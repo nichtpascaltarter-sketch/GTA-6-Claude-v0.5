@@ -1,0 +1,12 @@
+In file included from src/anim/anim_all.cpp:14,
+                 from src/main.cpp:49:
+src/anim/clips.cpp: In function 'void Anim::detail::walkPelvis(const AuthorCtx&, const GaitP&, float*)':
+src/anim/clips.cpp:1297: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
+ 1297 |         for (int k = -2 * R; k <= 2 * R; k++) m = Min(m, raw[(i + k + N) % N]);
+      | 
+src/anim/clips.cpp:1297: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
+-rwxr-xr-x 1 root root 11804160 Oct  1 04:00 bin/missions2.exe
+
+real	4m48.556s
+user	3m33.117s
+sys	0m3.650s

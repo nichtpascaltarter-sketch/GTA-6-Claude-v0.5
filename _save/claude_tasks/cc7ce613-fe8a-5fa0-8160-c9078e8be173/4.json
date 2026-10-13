@@ -1,0 +1,9 @@
+{
+  "id": "4",
+  "subject": "M4: Characters, animation, player movement, camera, combat",
+  "description": "Procedural humanoid meshes + skeleton + procedural clips; third-person controller; weapons; ragdoll.",
+  "activeForm": "Building game core: entities, input, camera, player",
+  "status": "in_progress",
+  "blocks": [],
+  "blockedBy": []
+}

@@ -1,0 +1,20 @@
+    } else if (const int rp = blockstyle::ranchPorch(b)) {
+        // the ranch porch: long and low under a shed roof, slim posts or round columns, across the middle of the front over
+        // the door; on an L in the inner corner beside the front leg
+        const float yardC = dot(b.lotC - b.c, b.front) + b.lotHy - hy;
+        const u32 ph = hash32(b.seed ^ 0x2A0C5u);
+        x.porchPosts = (ph & 3u) == 0u ? 2 : 0;
+        const bool rail = ((ph >> 2) & 3u) == 0u;
+        if (rp == 2 && parts.size() > 1) {
+            const vec4 leg = parts[1].r;
+            const float vc = parts[0].r.w;
+            const float nu0 = leg.x > -hx + 0.1f ? -hx : leg.y, nu1 = leg.x > -hx + 0.1f ? leg.x : hx;
+            const float dep = Min(2.3f, hy - vc - 0.1f);
+            if (nu1 - nu0 > 2.4f && dep > 1.2f) housePorch(x, e, vc, nu0 + 0.15f, nu1 - 0.1f, dep, zb, zb + 2.5f, 1, roofCol, roofMat, wallTrim, rail);
+        } else if (rp == 1) {
+            const float ud = houseDoorU(e, -hx, hx, fac.bayW);
+            const float pw = Min(2.f * hx - 0.6f, 2.f * hx * (0.48f + 0.22f * hashToFloat(ph >> 8)));
+            const float off = Clamp(ud, -hx + 0.3f + pw * 0.5f, hx - 0.3f - pw * 0.5f);
+            const float dep = Clamp(1.8f + 0.5f * hashToFloat(ph >> 16), 1.4f, Max(1.4f, yardC - 1.3f));
+            housePorch(x, e, hy, off - pw * 0.5f, off + pw * 0.5f, dep, zb, zb + 2.5f, 1, roofCol, roofMat, wallTrim, rail, -1e9f, true, ud);
+        }

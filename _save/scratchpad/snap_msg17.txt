@@ -1,0 +1,27 @@
+Bindless materials and per-draw instance data on Direct3D 12; the SkyLine glows less at night; no more sawtooth C-pillars
+
+- Per-draw data: world cells pass their offset as root constants instead of a 512-byte constant buffer per cell
+  (G-buffer, decals, shadow cascades, env probe, overhead map). Dynamic objects (vehicles, characters, props in
+  motion) read one per-frame object buffer written once in prepare(), each draw picking its entry with one root
+  constant, instead of uploading a 512-byte constant buffer and setting two root CBVs per draw.
+- Bindless materials: the material table, the albedo and normal arrays, foliage cards, the facade table, the sign
+  atlas and the facade night lights are read through the bindless heap arrays, with their indices in the frame
+  constants (materials.hlsli, facade.hlsli); no pass binds t10-t15 any more. Groundwork for per-object textures and
+  ExecuteIndirect.
+- gfx: root constants record only the DWORDs that change; a descriptor table is kept when the next shader reads a
+  subset of its slots; --gfxstats logs per-frame API counters every 30 frames; --gfxselftest has 19 checks (new: per-
+  draw root constants selecting instance data, bindless array and structured reads in a pixel shader, a table kept
+  across a shader switch).
+- Per frame at the tour stops and streets measured: constant-buffer writes 350-660 (100-290 KB) -> 68-72 (25-28 KB),
+  root CBV sets 390-800 -> 83-87, descriptors copied 1,200-2,500 -> 920-1,050.
+- Images are unchanged: the downtown night street is pixel-identical to the previous build (RMSE 0), and the other
+  shots differ only in ped poses, rain ripples and foliage wind.
+- SkyLine: the stair-canopy lights and the platform lamp strips are downlights. They were omni lights 0.35 m under
+  the panels, which burned the guideway's underside to near white at night.
+- Car bodies: the side glass's slanted rear edge kept a W-shaped kink where its two end rows failed a strict range
+  test and stayed at mid-height; the door cut-out then left it as a sawtooth on the C-pillar (and a spike or a step on
+  the far LODs). The range is inclusive now: one straight slant on every car and LOD (17 cars with slanted rear
+  edges, plus 5 with rear quarter windows, checked closed and open against the previous build).
+- Test rig: tools/run.sh and build.sh take a shared launch lock around their memory gate and hold it 30 s after a
+  game starts (15 s after a compile) until the new process shows up in tools/memfree.sh's count. Launches in the same
+  seconds (after a restart) used to pass the gate together and get one of them OOM-killed.

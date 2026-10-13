@@ -1,0 +1,151 @@
+[   0.004] Neon Tide starting. Data dir: C:\users\root\AppData\Local\NeonTide\
+[   0.355] D3D11 device created: feature level b100, adapter 'NVIDIA GeForce GTX 470', VRAM 16094 MB
+[   0.362] UI font 'Segoe UI Semibold' -> 'Liberation Sans'
+[   0.459] UI font 'Bahnschrift SemiBold Condensed' -> 'Liberation Sans'
+[   0.557] UI font 'Impact' -> 'Liberation Sans'
+[   0.652] Font atlas built in 0.29 s
+ALSA lib confmisc.c:855:(parse_card) cannot find card '0'
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_card_inum returned error: No such file or directory
+ALSA lib confmisc.c:422:(snd_func_concat) error evaluating strings
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_concat returned error: No such file or directory
+ALSA lib confmisc.c:1342:(snd_func_refer) error evaluating name
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5727:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2721:(snd_pcm_open_noupdate) Unknown PCM default
+ALSA lib confmisc.c:855:(parse_card) cannot find card '0'
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_card_inum returned error: No such file or directory
+ALSA lib confmisc.c:422:(snd_func_concat) error evaluating strings
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_concat returned error: No such file or directory
+ALSA lib confmisc.c:1342:(snd_func_refer) error evaluating name
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5727:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2721:(snd_pcm_open_noupdate) Unknown PCM default
+[   0.699] Audio: no output device - audio disabled
+[   0.699] Audio: no output device, continuing silently
+[   2.805] UI icon atlas: 91 icons + 13 weapons in 2019 ms
+[  24.963] Transit: SkyLine loop 8.60 km, 8 stations, 4299 samples; 3 ferry piers
+[  25.044] Sites: 91 pads, 324 elements, 23 roads, 21 buildings requested (0.12 s)
+[  26.837] World map generated in 26.13 s
+[  30.392] Road gen: 21 interchanges, 62 ramps (22 left out where they could not come down in time) 3.38 s DBGT
+[  43.521] Road network: 6264 nodes, 9945 edges, 1738 signalized; hwy 61.7 km, streets 1189.4 km (16.68 s)
+[  53.745] Transit: 0 buildings cleared from the SkyLine corridor
+[  53.763] Buildings: 35820 (towers 335, midrise 2409, condo 477, deco 846, shops 4672, strip 672, houses 21888, villas 924, warehouses 1622) in 9.82 s
+[  53.778] Sites: 74 highway billboards
+[  53.791] Sites: 118 silos, 53 windmills
+[  53.943] Transit: 3 ferry piers, 1 routes, 4.24 km of water path (0.01 s)
+[  53.962] Transit: ferry pier Sol Beach  base (4836, -1250) length 90 deck 2.3 berth (4741, -1250)
+[  53.962] Transit: ferry pier Port Isle  base (4280, -1044) length 26 deck 2.3 berth (4280, -1075)
+[  53.962] Transit: ferry pier Key Coral  base (4350, -2973) length 58 deck 2.3 berth (4350, -2910)
+[  54.052] Transit: 4 bus routes, 64 stops (42 new shelters) (0.09 s); rejects class 1172 cut 1880 deck 68 road 105 avoid 0 pad 0 furn 299 stop 30
+[  54.054] Transit: bus 3   Airport      8.2 km, 17 stops, 4 buses, headway 6.3 min
+[  54.055] Transit: bus 7   Calle Luna   6.4 km, 15 stops, 3 buses, headway 6.7 min
+[  54.055] Transit: bus 9   Sol Beach    7.1 km, 15 stops, 4 buses, headway 5.5 min
+[  54.055] Transit: bus 12  Bayshore     9.0 km, 21 stops, 5 buses, headway 5.7 min
+[  54.059] Transit: Sol Beach Streetcar 6.24 km, 16 stops, 65 junctions (32 signalled, 33 stop signs), 229 poles, 4 streetcars, headway 4.9 min (0.00 s)
+[  54.090] Transit: SkyLine profile 12.9..25.4 m above the street, 273 piers (0 straddle bents) (0.30 s)
+[  54.091] Transit: station Calle Luna       s    691 at (1850, -629) rail 16.5 street 3.1 exits -1/+1
+[  54.109] Transit: station Solaris          s   1891 at (3050, -629) rail 15.0 street 1.5 exits -1/+1
+[  54.109] Transit: station Civic Center     s   3068 at (3275, 400) rail 14.9 street 1.5 exits -1/+1
+[  54.110] Transit: station Midtown          s   3868 at (3275, 1200) rail 15.0 street 1.6 exits -1/+1
+[  54.112] Transit: station Canvas District  s   4644 at (2750, 1529) rail 16.4 street 2.2 exits -1/+1
+[  54.116] Transit: station Palmetto Flats   s   5744 at (1650, 1529) rail 17.0 street 3.5 exits -1/+1
+[  54.120] Transit: station Airport          s   6567 at (979, 1300) rail 17.7 street 4.3 exits -1/+1
+[  54.121] Transit: station Westbrook        s   8067 at (979, -200) rail 17.8 street 4.4 exits -1/+1
+[  54.167] Site runway 09L|27R  from (-1180, 2080) to (820, 2080) z 4.6 width 60
+[  54.167] Site runway 09R|27L  from (-1100, 780) to (700, 780) z 4.6 width 45
+[  54.167] Site terminal             at (628, 1440, 4.6)
+[  54.167] Site control tower        at (730, 1832, 4.6)
+[  54.167] Site container ship       at (4625, -800, 0.0)
+[  54.167] Site container ship       at (4616, -330, 0.0)
+[  54.167] Site port gate            at (4008, -160, 3.0)
+[  54.167] Site Key Coral marina     at (4039, -4035, 0.0)
+[  54.167] Site beach club           at (4873, -3866, 1.2)
+[  54.167] Site beach club           at (4808, -4183, 2.2)
+[  54.167] Site Solaris One          at (3350, -750, 1.4)
+[  54.167] Site stadium              at (3565, 445, 1.6)
+[  54.167] Site City Hall            at (3000, 372, 2.0)
+[  54.167] Site Canvas Park          at (3100, 1800, 1.7)
+[  54.167] Site Sol Beach Pier from (5414, 1250) to (5840, 1250) deck z 5.6
+[  54.167] Site Ferris wheel         at (5504, 1270, 5.6)
+[  54.167] Site lighthouse           at (-2206, -8000, 0.5)
+[  54.167] Site radio mast           at (-6744, 7248, 166.1)
+[  54.167] Site sugar mill           at (1430, 7500, 8.1)
+[  54.167] Site Rio Sol marina       at (2280, 188, 0.0)
+[  54.167] Site Okahatchee boat ramp at (-515, 6822, 7.7)
+[  54.167] Site Sawgrass tower       at (-4873, 420, 0.6)
+[  54.167] Sites finalized: 893 elements (0.39 s)
+[  54.168] Interiors: no building for Police Headquarters near (3050, -350)
+[  54.229] Interiors: 28 planned (convenience 7, gun shops 2) in 61.8 ms
+[  54.244]   interior 'Mari's Apartment' kind 0 building 3676 at (1545.51, 359.25, 4.00) ax (1.0000, 0.0000) x -5.35..5.35 depth 11.50 ceil 3.29: 3 rooms, 4 openings, 3 doors, 4 portals, 0 npc points
+[  54.244]   interior 'Mama Lucha's' kind 2 building 3198 at (1345.82, 340.73, 4.30) ax (-1.0000, -0.0000) x -9.05..5.43 depth 16.00 ceil 4.20: 4 rooms, 5 openings, 4 doors, 5 portals, 23 npc points
+[  54.244]   interior 'Rook's Garage' kind 3 building 4150 at (1714.95, 2265.38, 4.21) ax (1.0000, 0.0000) x -6.76..13.52 depth 20.00 ceil 8.26: 3 rooms, 5 openings, 4 doors, 5 portals, 5 npc points
+[  54.244]   interior 'Dex's Trailer' kind 1 building 2732 at (1268.24, 2667.76, 4.77) ax (1.0000, 0.0000) x -11.84..11.84 depth 18.17 ceil 2.25: 3 rooms, 7 openings, 3 doors, 7 portals, 0 npc points
+[  54.244]   interior 'Tidewater General Hospital' kind 6 building 4078 at (1678.54, 1071.01, 3.64) ax (1.0000, 0.0000) x -9.67..9.67 depth 16.00 ceil 3.95: 2 rooms, 7 openings, 2 doors, 7 portals, 12 npc points
+[  54.244]   interior 'Palmetto Arms' kind 7 building 1659 at (884.65, 2996.93, 4.88) ax (0.0000, 1.0000) x -3.52..7.04 depth 14.00 ceil 3.76: 2 rooms, 4 openings, 2 doors, 4 portals, 3 npc points
+[  54.244]   interior 'Northside Arms' kind 7 building 9253 at (3188.34, 3994.75, 2.15) ax (0.0000, 1.0000) x -3.72..7.43 depth 14.00 ceil 4.19: 2 rooms, 4 openings, 2 doors, 4 portals, 3 npc points
+[  54.244]   interior 'Threads' kind 9 building 31606 at (5150.15, -280.66, 1.90) ax (-1.0000, 0.0000) x -8.96..6.40 depth 15.00 ceil 4.07: 2 rooms, 7 openings, 2 doors, 7 portals, 4 npc points
+[  54.244]   interior 'Port Isle Warehouse' kind 12 building 35805 at (4034.00, -820.00, 3.15) ax (-0.0000, 1.0000) x -23.22..23.22 depth 38.00 ceil 8.93: 2 rooms, 10 openings, 4 doors, 10 portals, 4 npc points
+[  54.244]   interior 'TideStop Mart' kind 8 building 3304 at (1467.98, -259.23, 4.25) ax (-1.0000, -0.0000) x -8.72..5.23 depth 17.00 ceil 4.20: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+[  54.244]   interior 'Bodega La Luna' kind 8 building 6217 at (2247.84, 540.76, 2.92) ax (-1.0000, -0.0000) x -4.85..4.85 depth 17.00 ceil 4.20: 2 rooms, 4 openings, 2 doors, 4 portals, 5 npc points
+[  54.244]   interior 'Canvas Corner Market' kind 8 building 8639 at (2981.20, 1603.04, 2.23) ax (0.0000, 1.0000) x -9.66..5.80 depth 17.00 ceil 3.57: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+[  54.244]   interior 'Sunrise Food Mart' kind 8 building 31650 at (5227.66, 640.77, 1.78) ax (0.0000, 1.0000) x -6.51..6.51 depth 17.00 ceil 3.89: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+[  54.244]   interior 'Northside Quick Stop' kind 8 building 6473 at (2279.84, 3861.67, 3.24) ax (1.0000, 0.0000) x -5.85..8.78 depth 17.00 ceil 4.20: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+[  54.244]   interior 'Flats Food & Fuel' kind 8 building 1251 at (467.63, 3361.64, 5.21) ax (1.0000, 0.0000) x -7.67..7.67 depth 17.00 ceil 4.20: 2 rooms, 1 openings, 2 doors, 1 portals, 5 npc points
+[  54.244]   interior 'Grove Pantry' kind 8 building 12238 at (2168.92, -3116.76, 2.22) ax (0.0210, -0.9998) x -6.90..6.90 depth 17.00 ceil 3.71: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+[  54.244]   interior 'Palm Motors' kind 17 building 7823 at (2686.81, 1408.71, 2.67) ax (0.0000, 1.0000) x -11.71..11.71 depth 20.00 ceil 3.79: 2 rooms, 8 openings, 3 doors, 8 portals, 6 npc points
+[  54.244]   interior 'Tide Customs Calle Luna' kind 18 building 6160 at (2263.57, -140.77, 3.03) ax (1.0000, 0.0000) x -6.05..6.05 depth 18.00 ceil 3.62: 1 rooms, 5 openings, 2 doors, 5 portals, 3 npc points
+[  54.244]   interior 'Tide Customs Sol Beach' kind 18 building 32091 at (5043.39, 1999.36, 1.93) ax (-1.0000, 0.0000) x -8.78..8.78 depth 18.00 ceil 4.10: 1 rooms, 7 openings, 2 doors, 7 portals, 3 npc points
+[  54.244]   interior 'Sunwash Car Wash' kind 19 building 5592 at (1988.38, 1486.93, 3.43) ax (0.0000, 1.0000) x -7.59..7.59 depth 20.00 ceil 7.32: 1 rooms, 5 openings, 3 doors, 5 portals, 2 npc points
+[  54.244]   interior 'Key Coral Villa' kind 0 building 35751 at (4515.51, -4202.01, 1.64) ax (0.9992, 0.0401) x -5.77..5.77 depth 12.00 ceil 2.80: 3 rooms, 4 openings, 3 doors, 4 portals, 0 npc points
+[  54.244]   interior 'Sol Beach Condo Lobby' kind 20 building 31700 at (5133.20, 1524.35, 1.80) ax (-1.0000, 0.0000) x -6.64..2.21 depth 10.00 ceil 4.04: 2 rooms, 3 openings, 2 doors, 3 portals, 2 npc points
+[  54.244]   interior 'Sol Beach Condo' kind 21 building 31700 at (5133.20, 1524.35, 31.43) ax (-1.0000, 0.0000) x -6.64..6.64 depth 12.00 ceil 2.66: 5 rooms, 3 openings, 5 doors, 3 portals, 0 npc points
+[  54.244]   interior 'Downtown Penthouse Lobby' kind 20 building 10052 at (3511.16, -704.77, 1.71) ax (-0.0000, -1.0000) x -3.14..6.28 depth 10.00 ceil 4.52: 2 rooms, 4 openings, 2 doors, 4 portals, 2 npc points
+[  54.244]   interior 'Downtown Penthouse' kind 21 building 10052 at (3511.16, -704.77, 132.12) ax (-0.0000, -1.0000) x -9.43..12.57 depth 14.00 ceil 3.33: 6 rooms, 7 openings, 4 doors, 7 portals, 0 npc points
+[  54.244]   interior 'Club Riptide' kind 4 building -1 at (5424.10, 900.00, 0.94) ax (0.0000, -1.0000) x -55.00..17.00 depth 32.00 ceil 4.00: 4 rooms, 0 openings, 0 doors, 0 portals, 32 npc points
+[  54.244]   interior 'Solaris One' kind 10 building -1 at (3350.00, -786.00, 1.89) ax (1.0000, -0.0000) x -18.40..18.40 depth 31.00 ceil 8.30: 3 rooms, 4 openings, 4 doors, 4 portals, 17 npc points
+[  54.244]   interior 'Solaris One Penthouse' kind 11 building -1 at (3365.30, -759.93, 457.34) ax (0.5442, 0.8390) x -18.24..18.24 depth 36.48 ceil 8.20: 4 rooms, 4 openings, 1 doors, 4 portals, 15 npc points
+[  54.356] Material library: 57 layers at 256^2
+[  54.380] Props: 71 prototypes, 34282 verts
+[  64.444] Vehicle assets: 45 models in 6.75 s
+[ 110.601] Character assets: 86 characters in 46.16 s
+[ 110.608] Game assets built in 52.91 s
+[ 110.739] Story place near (800, -5400): no building frontage found, using the street
+[ 110.749] Story places resolved in 138.9 ms (diner 1346 342, Mari's 1546 358, Rook's 1718 2264, Pulse FM 3356 662, boatyard 1650 239, river 1644 140, sawgrass dock -5016 -74)
+[ 110.750] Missions registered: 48
+[ 112.114] Lane graph: 26626 lanes, 59681 connectors (1213981 pts), 36664 walk nodes, 53014 walk links, dead-end turning circles moved 0 / obstructed 0 (1.36 s)
+[ 113.092] UI map: base 2560x2560 in 855 ms, 9945 roads (45940 pts) in 33 ms, 30 labels in 89 ms
+[ 113.092] hudInit done in 977 ms
+[ 113.092] Init done in 112.39 s (shaders: 0 compiled in 0.00 s)
+[ 113.132] Interior 'Downtown Penthouse Lobby' built: 6246 triangles, 6 lights, 11 colliders, 4 door leaves in 0.9 ms
+[ 113.133] Interior 'Downtown Penthouse' built: 14662 triangles, 18 lights, 31 colliders, 5 door leaves in 28.9 ms
+[ 116.860] Interior 'Solaris One' built: 29852 triangles, 33 lights, 52 colliders, 6 door leaves in 4.4 ms
+[ 116.870] Interior 'Solaris One Penthouse' built: 50468 triangles, 33 lights, 53 colliders, 2 door leaves in 64.9 ms
+[ 618.337] Saved Z:\tmp\int\solaris_one_street_13.bmp
+[ 681.312] Saved Z:\tmp\int\solaris_one_entrance_13.bmp
+[ 740.704] Saved Z:\tmp\int\solaris_one_desk_13.bmp
+[ 826.268] Saved Z:\tmp\int\solaris_one_garden_13.bmp
+[ 891.544] Saved Z:\tmp\int\solaris_one_penthouse_lounge_21.bmp
+[ 891.611] Interior 'Palm Motors' built: 16650 triangles, 34 lights, 25 colliders, 4 door leaves in 1.6 ms
+[ 896.287] Interior 'Canvas Corner Market' built: 129723 triangles, 22 lights, 15 colliders, 3 door leaves in 111.7 ms
+[1300.953] Saved Z:\tmp\int\palm_motors_in_front_13.bmp
+[1388.838] Saved Z:\tmp\int\palm_motors_in_back_13.bmp
+[1388.913] Interior 'Tidewater General Hospital' built: 18056 triangles, 30 lights, 21 colliders, 4 door leaves in 14.9 ms
+[1388.913] Interior 'Sunwash Car Wash' built: 7254 triangles, 6 lights, 22 colliders, 3 door leaves in 0.7 ms
+[1543.504] Saved Z:\tmp\int\sunwash_car_wash_in_front_13.bmp
+[1543.520] Interior 'Tide Customs Sol Beach' built: 11710 triangles, 14 lights, 27 colliders, 2 door leaves in 9.3 ms
+[1543.532] Interior 'Sol Beach Condo Lobby' built: 6064 triangles, 6 lights, 11 colliders, 4 door leaves in 1.2 ms
+[1545.796] Interior 'Sol Beach Condo' built: 14690 triangles, 14 lights, 34 colliders, 7 door leaves in 1.8 ms
+[1949.880] Saved Z:\tmp\int\sol_beach_condo_lobby_in_front_13.bmp
+[2038.392] Saved Z:\tmp\int\sol_beach_condo_living_13.bmp
+[2131.508] Saved Z:\tmp\int\sol_beach_condo_bedroom_13.bmp
+[2131.532] Interior 'Downtown Penthouse Lobby' built: 6246 triangles, 6 lights, 11 colliders, 4 door leaves in 8.2 ms
+[2136.663] Interior 'Port Isle Warehouse' built: 68852 triangles, 13 lights, 235 colliders, 4 door leaves in 132.6 ms
+[2136.677] Interior 'Downtown Penthouse' built: 14662 triangles, 18 lights, 31 colliders, 5 door leaves in 21.6 ms
+[2136.681] Interior 'Solaris One' built: 29852 triangles, 33 lights, 52 colliders, 6 door leaves in 15.2 ms
+[2141.263] Interior 'Solaris One Penthouse' built: 50468 triangles, 33 lights, 53 colliders, 2 door leaves in 9.4 ms
+[2544.596] Saved Z:\tmp\int\downtown_penthouse_living_20.bmp
+[2607.144] Saved Z:\tmp\int\downtown_penthouse_kitchen_20.bmp
+[2607.170] Interior 'Key Coral Villa' built: 15824 triangles, 12 lights, 27 colliders, 3 door leaves in 8.8 ms
+[3105.341] Saved Z:\tmp\int\key_coral_villa_in_front_13.bmp
+[3114.345] Shutdown complete.
+exit=0

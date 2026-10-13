@@ -1,0 +1,2 @@
+QS run 19 dn t8.267 foot 0 u 0.85 h  22.9 b  10.8 t  26.4 g 0.34 0.34 0.17 fz 0.354 gIn 0.340 yh 8.778 yt 8.994 yFrom 8.438 yTo 8.750 lift 0.050 pz 2.550 | n 1 dz 0.000 o pl1 hold0 st-1.00
+QS run 19 dn t8.283 foot 0 u 0.93 h  22.3 b  10.6 t  25.9 g 0.34 0.34 0.17 fz 0.354 gIn 0.340 yh 8.789 yt 9.006 yFrom 8.438 yTo 8.750 lift 0.050 pz 2.550 | n 1 dz 0.000 o pl1 hold0 st-1.00

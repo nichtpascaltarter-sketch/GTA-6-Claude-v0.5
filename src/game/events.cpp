@@ -7,6 +7,14 @@
 
 namespace Game {
 
+// getting back into a car through its door (ai.cpp ai_board: GameWorld::startCarEntry, PS_ENTERING while the door clip
+// runs; then 1: away at the wheel, 2: nothing - the event carries on once it sees them in)
+namespace ai_board {
+bool beginThen(GameWorld& g, int id, int veh, int seat, u8 then);
+bool claimed(const GameWorld& g, int veh, int seat, int except);   // (somebody getting into that seat through its door)
+}  // namespace ai_board
+bool aiCarEndFree(const GameWorld& g, int veh, float e);   // ai.cpp: is that end of a car free to walk round?
+
 namespace events_detail {
 
 enum EvType : u8 {
@@ -1761,6 +1769,7 @@ void GameWorld::updateEvents(float dt) {
                             drivingAway++;
                             continue;
                         }
+                        if (p.state == PS_ENTERING) continue;   // (in through the door: ai.cpp ai_board - away once in)
                         Vehicle& v = vehicles[car];
                         if (v.seats[0] >= 0 || v.sim.wrecked || v.exploded || (p.brain.type != BRAIN_WANDER && p.brain.type != BRAIN_GOTO)) {
                             drivingAway++;
@@ -1769,6 +1778,27 @@ void GameWorld::updateEvents(float dt) {
                         const Vehicles::VehicleModel& spec = vassets[v.model].spec;
                         vec3 door = v.sim.body.pos.toVec3() + rotate(v.sim.body.rot, vec3(-(spec.boxHalf.x + 0.6f), 0.3f, 0.f));
                         vec2 toD = door.xy() - p.pos.toVec3().xy();
+                        if (length(toD) < 1.1f && ai_board::beginThen(*this, me, car, 0, 1)) continue;   // (the door clip, then away)
+                        {
+                            // on the curb side with the car boxed in at both ends (the other car of the crash at one, traffic
+                            // stopped close at the other - on nt_ai92's events run a driver paced up and down beside his car
+                            // for the whole 25 s): in on the passenger side and across to the wheel (ai.cpp ai_board::step)
+                            vec2 bc = (v.sim.body.pos.toVec3() + rotate(v.sim.body.rot, spec.boxCenter)).xy(), bf = v.sim.forward().xy();
+                            bf = length2(bf) > 1e-6f ? normalize(bf) : vec2(0, 1);
+                            vec2 bp = p.pos.toVec3().xy() - bc;
+                            int ps = (int)spec.seats.size() > 1 && !spec.seats[1].exitLeft ? 1 : -1;   // (the front passenger's seat, on the right)
+                            if (ps > 0 && v.seats[ps] < 0 && !ai_board::claimed(*this, car, ps, me) && dot(bp, AI::rightOf(bf)) > spec.boxHalf.x * 0.5f &&
+                                !aiCarEndFree(*this, car, 1.f) &&
+                                !aiCarEndFree(*this, car, -1.f)) {
+                                vec3 pdoor = v.sim.body.pos.toVec3() + rotate(v.sim.body.rot, vec3(spec.boxHalf.x + 0.6f, spec.seats[ps].pos.y, 0.f));
+                                if (length(pdoor.xy() - p.pos.toVec3().xy()) < 1.1f && ai_board::beginThen(*this, me, car, ps, 1)) continue;
+                                pedAI(me).activity = ACT_WALK;
+                                p.brain.type = BRAIN_GOTO;
+                                p.brain.goal = dvec3(pdoor);
+                                p.brain.speed = 1.5f;
+                                if (e.t <= 25.f) continue;   // (to the passenger door; the old warp after 25 s all the same)
+                            }
+                        }
                         if (length(toD) < 1.1f || e.t > 25.f) {
                             warpPedIntoVehicle(me, car, 0);
                             p.brain.type = BRAIN_DRIVER;
@@ -1778,16 +1808,21 @@ void GameWorld::updateEvents(float dt) {
                             attachTraffic(car);
                             drivingAway++;
                         } else {
-                            // round the nearer free end of the car when coming from the curb side, then to the door
+                            // round the nearer free end of the car when coming from the curb side, then to the door (the
+                            // corners off the middle of the car's box - its boxCenter, not the body's origin: on nt_ai90
+                            // a long-nosed coupe's front corner, taken off the origin, was inside the car, and its driver
+                            // stood against the wing for 25 s)
                             vec3 goal = door;
-                            vec2 cc = v.sim.body.pos.toVec3().xy(), cf = v.sim.forward().xy();
+                            vec2 cc = (v.sim.body.pos.toVec3() + rotate(v.sim.body.rot, spec.boxCenter)).xy(), cf = v.sim.forward().xy();
                             cf = length2(cf) > 1e-6f ? normalize(cf) : vec2(0, 1);
                             vec2 lp = p.pos.toVec3().xy() - cc;
                             float lx = dot(lp, AI::rightOf(cf)), ly = dot(lp, cf);
                             if (lx > spec.boxHalf.x * 0.5f) {   // (the driver's door is on the left)
+                                // (past the end once beyond the box at all: the walk stops 0.6 m short of a corner - BRAIN_GOTO - and
+                                //  on nt_ai91 a "past it" line further out than that left both drivers stood at their first corner)
                                 float endSign = aiCarEndToWalkRound(*this, car, ly >= 0.f ? 1.f : -1.f);
-                                float side = fabsf(ly) < spec.boxHalf.y + 0.6f || ly * endSign < 0.f ? 1.f : -1.f;
-                                vec2 wp = cc + cf * (endSign * (spec.boxHalf.y + 0.8f)) + AI::rightOf(cf) * (side * (spec.boxHalf.x + 0.6f));
+                                float side = fabsf(ly) < spec.boxHalf.y + 0.2f || ly * endSign < 0.f ? 1.f : -1.f;
+                                vec2 wp = cc + cf * (endSign * (spec.boxHalf.y + 0.9f)) + AI::rightOf(cf) * (side * (spec.boxHalf.x + 0.7f));
                                 goal = vec3(wp, door.z);
                             }
                             pedAI(me).activity = ACT_WALK;
@@ -2486,12 +2521,15 @@ void GameWorld::updateEvents(float dt) {
                     }
                     Ped& p = peds[drv];
                     if (p.state == PS_INVEHICLE) {
+                        if (p.vehicle == car) vehAI(car).role = VR_TRAFFIC;   // (in through the door: ai_board drove it off)
                         if (e.t > 12.f) over = true;
                         break;
                     }
+                    if (p.state == PS_ENTERING) break;   // (getting in through the door: ai.cpp ai_board)
                     if (e.t < 2.f) break;   // cheering
                     vec3 door = v.sim.body.pos.toVec3() + rotate(v.sim.body.rot, vec3(-(spec.boxHalf.x + 0.6f), 0.3f, 0.f));
                     vec2 toD = door.xy() - p.pos.toVec3().xy();
+                    if (length(toD) < 1.2f && e.t <= 20.f && ai_board::beginThen(*this, drv, car, 0, 1)) break;   // (the door clip, then away)
                     if (length(toD) < 1.2f || e.t > 20.f) {
                         warpPedIntoVehicle(drv, car, 0);
                         p.brain.type = BRAIN_DRIVER;
@@ -2577,10 +2615,14 @@ void GameWorld::updateEvents(float dt) {
                         setStage(e, ST_D);
                     }
                 } else if (e.stage == ST_D) {
-                    if (length(opos - copDoor) < 1.2f || e.t > 20.f) {
+                    // (in through the cruiser's door - ai.cpp ai_board, the door clip - and once in, both drive off)
+                    bool inCar = o.state == PS_INVEHICLE && o.vehicle == cop;
+                    if (!inCar && o.state == PS_ENTERING) break;
+                    if (!inCar && length(opos - copDoor) < 1.2f && e.t <= 20.f && ai_board::beginThen(*this, off, cop, 0, 2)) break;
+                    if (inCar || length(opos - copDoor) < 1.2f || e.t > 20.f) {
                         pedAI(off).eventId = -1;
                         pedAI(drv).eventId = -1;
-                        warpPedIntoVehicle(off, cop, 0);
+                        if (!inCar) warpPedIntoVehicle(off, cop, 0);
                         o.brain.type = BRAIN_DRIVER;
                         peds[drv].brain.type = BRAIN_DRIVER;
                         vc.parked = vp.parked = false;
@@ -2888,6 +2930,19 @@ std::string GameWorld::aiEventsText(int want, int* stage, vec3* pos) const {
             }
             const Ped& q = peds[id];
             out += StrFormat(" %d:s%d b%d a%d", id, (int)q.state, (int)q.brain.type, id < (int)ai.ped.size() ? (int)ai.ped[id].activity : -1);
+            if (e.type == EV_CRASH && e.stage == ST_C && k < 2) {
+                // (back to the cars: where they are off the middle of their own car's box - across, along - and how fast)
+                int c = liveVeh(*this, e.veh[k]);
+                if (c >= 0) {
+                    const Vehicle& cv = vehicles[c];
+                    const Vehicles::VehicleModel& cs = vassets[cv.model].spec;
+                    vec2 cc = (cv.sim.body.pos.toVec3() + rotate(cv.sim.body.rot, cs.boxCenter)).xy(), cf = cv.sim.forward().xy();
+                    cf = length2(cf) > 1e-6f ? normalize(cf) : vec2(0, 1);
+                    vec2 lp = q.pos.toVec3().xy() - cc;
+                    out += StrFormat(" (car %d: %+.1f %+.1f of %.1f x %.1f, %.1f m/s)", c, dot(lp, AI::rightOf(cf)), dot(lp, cf), cs.boxHalf.x, cs.boxHalf.y,
+                                     length(q.vel.xy()));
+                }
+            }
         }
         out += StrFormat(" | asked %d done %d] ", (int)e.asked, (int)e.done);
     }

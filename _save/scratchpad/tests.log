@@ -1,0 +1,7 @@
+start hold4 10:19:10
+done hold4 0 10:32:23
+start elev1 10:32:23
+done elev1 0 10:43:38
+start tide4 10:43:38
+done tide4 0 10:56:36
+all done

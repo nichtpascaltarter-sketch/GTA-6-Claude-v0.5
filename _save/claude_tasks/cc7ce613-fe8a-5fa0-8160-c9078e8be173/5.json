@@ -1,0 +1,9 @@
+{
+  "id": "5",
+  "subject": "M5: Vehicles (cars, bikes, boats, aircraft) + physics + traffic AI",
+  "description": "Procedural vehicle models, raycast vehicle physics, buoyancy, flight model, lane-graph traffic with lights.",
+  "activeForm": "Vehicle models + dynamics agents working",
+  "status": "in_progress",
+  "blocks": [],
+  "blockedBy": []
+}

@@ -1,0 +1,6 @@
+cf1178b3a878e0f6c911d9e5e2e531013c920882 src/anim/clips.cpp
+42337671198a2bfb352987b401caaab5fcc1b950 src/sim/vehicle_doors.cpp
+cc1b875ee1044e7f48e425b3995169d36c62769c src/sim/vehicle_cardetail.cpp
+dd8f301f2b7486a52ab27a97cdcba8d833e37c98 src/sim/vehicle_cars.cpp
+e5bcd853935b3cea542f459bcf4643f75149ff2d src/game/player.cpp
+190c377fc724e52ea7d3fd76ca0b4e049433cefb tests/anim/carview.cpp

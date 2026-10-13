@@ -1,0 +1,23 @@
+Garden and woodland plants placed on the GPU: crotons, hibiscus and ixora along houses, ferns and palmettos in the woods
+
+Renderer vegetation phase 2 (src/render/vegdecor.cpp, new):
+- A compute pass scatters decor plants around the camera each frame, deterministic per 1.2 m world cell:
+  - crotons, hibiscus and ixora along walls and hedges and in planting beds;
+  - ferns and saw palmettos on the forest floor;
+  - flower clumps in lawns and meadows.
+  They are culled and drawn by the phase-1 GPU path, in the same ExecuteIndirect draws, so no draw calls are added.
+- Placement reads the overhead map (top surface plus a new planting-bed class) and the splat:
+  - Plants stay off roads, sidewalks, lots, drives, roofs, decks and stoops, and doors stay clear.
+  - Each plant keeps its reach clear of walls, eaves and other shrubs.
+  - Shrubs stay 1.2 m from low paving.
+  - Only things over 1.2 m tall anchor foundation plantings, so a stoop doesn't pull plants in front of a door.
+  - Bare soil away from a wall grows nothing, so dirt roads stay clear.
+- Town lawns on the terrain now count as lawn, so suburbs like the Grove get gardens. Before, they were all thrown
+  away as urban ground.
+- Shrubs are leafy down to the ground instead of bare stems with a ball of leaves on top.
+- --gfxstats logs decor plants placed and drawn, so the 6,144 cap can be checked.
+- Checks:
+  - Grove at 1080p: 151 plants placed, 32 drawn at quality 1 in the 40 m ring.
+  - Timing at tour stops 11-13, normalised by the lighting pass: total -7% / -3% / -1%. Stops without plants are
+    within noise.
+  - --gfxselftest 19 PASS + 1 SKIP, 0 failures; 147 shaders, 0 failed.

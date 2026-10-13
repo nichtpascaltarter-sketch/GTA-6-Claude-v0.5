@@ -1,0 +1,32 @@
+Night phase C: street lamps light like road luminaires, sodium and LED blocks, aviation beacons on towers, varied office lights
+
+Night renderer phase C (src/shaders: facade.hlsli, lights.hlsli, props.hlsl, particles.hlsl; src/render: world_render.cpp,
+particles.cpp; PROGRESS.md):
+- Street lamps light like road luminaires:
+  - Each pool has an edge: the light peaks about 60 degrees out along the road and ends by 80 degrees.
+  - Only about a third of the light falls behind the pole, so poles, pavements and the facades behind them are no longer
+    floodlit by their own lamp. The motel behind its pole lamp now reads as night.
+- Lamp installations change block by block: orange high-pressure sodium, warm-white, neutral and cool-white LED. Each
+  lamp's lens glows in its own colour.
+- Buildings over 60 m carry red aviation beacons at their roof corners. They flash in the same rhythm as the beacons on
+  masts, spires and the landmarks, and pulse gently with Reduce Flashing on.
+- Offices lit outside working hours have only some lights on, and office levels vary more, so downtown towers no longer
+  read as walls of equally bright windows.
+- Daytime is unchanged.
+- facade.hlsli is a clean 3-way merge with the city agent's storefront gate (streetMark lines untouched).
+
+Checks (night agent):
+- --gfxselftest: 0 failures and 0 debug-layer errors, on ab5995c + C and on 8993054 + C. Shaders: 150 compiled.
+- Night views at 1920x1080 Q3, before -> after, top-decile luminance:
+  - the motel 0.221 -> 0.126 (no longer floodlit);
+  - the Westbrook pools 0.087 -> 0.058 (tighter lamp pools);
+  - the downtown aerial 0.056 -> 0.043 (more varied office windows).
+- Day views: RMSE at most 0.065%; the strip mall is pixel-identical.
+- Timing tour, stops 4-8: night/day cost ratios within each run go down or stay level (lighting 1.45 -> 1.32, total
+  1.16 -> 1.04). There is no measurable night cost from the road-lighting pattern.
+- MSVC: the C++ adds only std::vector, floorf/sqrtf and u32 arithmetic.
+- Known and parked:
+  - beacons on round towers bunch on one side;
+  - the sodium share (38% of blocks) can turn a whole view orange; it can be tuned;
+  - lamps whose pole is in a neighbouring cell keep the old cone;
+  - the shop interiors.

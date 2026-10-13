@@ -1,0 +1,21 @@
+Get in and out of cars through the door; tall people fit under low roofs
+
+- Front seats: the player and NPCs get in and out through an opening door. In: walk to the door and pull it open by
+  the handle (long coupe doors open less on the pull, so the arm never wraps round the edge), step round its edge into
+  the doorway (two steps on a long door), duck in, sit, swing the legs in, pull it shut and buckle up. Out: unbuckle,
+  push the door open, turn out, stand holding the frame, push it shut. The door swings, and sounds, with the clip. An
+  NPC set to flee or fight as it is taken out keeps the quick exit. Rear seats keep the plain clips for now.
+- No more lunges: the hips used to jump up to 30 cm in one frame (the walk to a long door's doorway, a tall person's
+  seat fit kicking in); now at most 5 cm per frame getting in and 7.5 getting out.
+- Headroom: a seated person whose head would be in the roof slumps under it (the pelvis rolls back, the back rounds,
+  the head stays nearly level over the seat, the hips move at most 10 cm); cushions under low roofs sit up to 10 cm
+  lower (hips kept 14 cm over the floor); sun visors fold flush under the headliner; hats count. At 1.94 m the Harbor
+  front goes from 12.5 cm into the roof to 3.1 cm under it, the Kaito and Gatorback fronts from 23-25 cm into it to
+  0.8 cm under; at 1.76 m the low sports cars go from 1-13 cm into it to 2-3 cm under.
+- Animator groundwork for the police escort (used once the AI set lands): a cuffed stance and a hand that holds on to
+  a point outside clips.
+- Test rig: tools/memfree.sh also counts the room still owed to running games and unity compiles until they peak.
+  The gates used to see only the room free at launch, so a game and a compile could start together, grow, and get
+  killed by the container's memory cap (snapshot 15's first melee run).
+- Known, not regressions: the Orsa and Arclight door clips still clip, tall passengers in the coupes' +2 rear seats
+  reach the rear glass, and 1.84-1.94 m drivers graze the dash ducking in.

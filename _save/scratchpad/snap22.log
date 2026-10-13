@@ -1,0 +1,6 @@
+Embedded 39 shader files.
+141 shaders, 0 failed
+SMOKE FAILED rc=137 ac8448dd7569e45422e01ba66e9c886cbb66a637
+[ 391.031] autoplay t=2.6 pos 1789.6 164.1 6.4 state 2 health 200 veh 1 speed 5.5 | peds 88 vehicles 61 wanted 0 | cpu ms player 0.09 ai 0.65 veh 1.16 peds 1.79 | mem 2823 MB (private 0)
+[ 530.259] autoplay t=9.5 pos 1806.7 201.1 4.6 state 2 health 200 veh 1 speed 11.1 | peds 88 vehicles 63 wanted 0 | cpu ms player 0.08 ai 0.69 veh 0.63 peds 1.27 | mem 2851 MB (private 0)
+[ 685.840] autoplay t=17.5 pos 1806.7 270.7 3.5 state 2 health 200 veh 1 speed 17.6 | peds 86 vehicles 66 wanted 0 | cpu ms player 0.05 ai 0.61 veh 0.66 peds 2.18 | mem 2861 MB (private 0)

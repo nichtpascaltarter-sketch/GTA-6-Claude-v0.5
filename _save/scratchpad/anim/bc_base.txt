@@ -1,0 +1,24 @@
+walk near                    0.95 us
+stand near                   1.71 us
+walk far (cheap)             0.54 us
+stand far (cheap)            1.20 us
+walk near + ground probes    1.51 us
+computeMatrices              2.73 us
+walk near                    0.94 us
+stand near                   1.74 us
+walk far (cheap)             0.68 us
+stand far (cheap)            1.44 us
+walk near + ground probes    1.42 us
+computeMatrices              2.65 us
+walk near                    0.71 us
+stand near                   1.72 us
+walk far (cheap)             0.68 us
+stand far (cheap)            1.53 us
+walk near + ground probes    1.38 us
+computeMatrices              2.98 us
+walk near                    0.89 us
+stand near                   1.71 us
+walk far (cheap)             0.68 us
+stand far (cheap)            1.50 us
+walk near + ground probes    1.49 us
+computeMatrices              2.98 us

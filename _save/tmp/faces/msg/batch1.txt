@@ -1,0 +1,82 @@
+faces snapshot-safe — batch 1: eyes, lids, lashes, brows, skin shading data, ears, beards, stubble, hairline
+
+Files (6). They are now in the working tree at these paths (written just now; nobody else had touched them since my base); copies are in /tmp/faces/batch1/:
+- src/anim/face.cpp
+- src/anim/hair.cpp
+- src/anim/character.cpp
+- src/anim/meshutil.cpp
+- tests/anim/anim_test.cpp
+- tests/anim/preview.cpp
+Before this batch the working-tree copies were byte-identical to the base I verified against (/tmp/faces/base_tree, a snapshot of the working tree from earlier today). The verified tree is /tmp/faces/b1tree, which is base_tree plus these six files.
+
+Landing order:
+- Zero-safe with today's shaders: every new bit is ignored or reads as the old default.
+- The renderer agent (afef9ce4809b4c421) has a shading batch that reads these bits when they are nonzero. Either batch can land first.
+- The eye "shader pupil" switch (kShaderPupil in face.cpp) stays off here. It comes later as a small batch of its own, together with the renderer's eye shading, once they say "ready for the flip".
+
+What players see:
+Eyes
+- Real eyeballs. A clear cornea bulges over the iris. The iris has a dark pupil, a warm inner ring on light eyes, a lighter collarette, radial fibres and crypts, and a dark ring at its edge.
+- Eye whites are no longer paper-white. They are yellower with age, a shade darker on very dark skin, and darker in the corners and under the upper lid, which makes the eyes less bug-eyed.
+- Lids have thickness:
+  - a dark lash-root edge on the upper lid, which reads like natural liner from a distance;
+  - a moist pink waterline along the lower lid;
+  - a pink caruncle at the inner corner.
+  The lid margins no longer sink into the eyeball, and the crease and fold stop at the eye corners instead of running past them.
+- Upper lashes come in two rows, longer and curled. Lower lashes are short and lighter.
+- Brows are made of 70-130 individual hairs in the natural growth pattern: the head stands up, the body sweeps outwards, the tail runs out. They thin at the edges and sit over a faint tint of skin, instead of a painted band.
+Skin
+- Every skin vertex now carries data for the renderer's new skin shading:
+  - the region it belongs to (lips, wet tissue, eyelids, ears, nose, nails, mouth);
+  - how thin the tissue is, for translucency;
+  - pore strength by face zone;
+  - per person: oiliness, age band and melanin.
+- Each person has their own oily T-zone of forehead, nose and chin.
+- Skin colour gains:
+  - more blush on the cheeks, nose and ears;
+  - a tint on the upper lids;
+  - a slightly darker ring round the mouth on medium and dark skin;
+  - shaped lip colour (a fuller, lighter middle to the lower lip and a crisper border);
+  - fine vertical lines on the lips.
+- The brow ridge keeps sky light off the upper lids, so in flat or overhead light the eyes sit in the face instead of bulging.
+Ears
+- A deeper helix, antihelix and bowl on a finer mesh.
+Beards and stubble
+- Beards are no longer a dark mask. They are two or three layers of short hair cards rooted in the skin and combed the way beards grow: the mustache down and out, the chin down and a little forward, and back along the underside of the jaw. A few longer hairs stand off the edge for a soft outline.
+- The solid beard mass is only the dense core now. Some skin shows through, and over the last centimetre it fades into the skin instead of ending in a hard edge.
+- Beards reach the lips. There is no pale ring round the mouth, and no grey shelf under the lower lip.
+- Stubble is a layer of short hairs over the shaved-shadow tint.
+Hairline
+- The hairline is soft. The hair fades into the skin over its first ~9 mm, with grain, and two staggered rows of fine short hairs fall onto the forehead. At the temples they thin out and run back towards the ear.
+- The hairline's edge wanders smoothly instead of zig-zagging. Cards are narrower and sparser near the edge, and the ends of long hair vary smoothly instead of randomly per strip.
+- The distant LOD keeps the hair's own colour at the hairline.
+Budget
+- The close-up mesh budget rises from 33.6k to 36k triangles to pay for the face's hair cards; the decimator takes the rest from flat body and clothing areas. The distant LODs (4.5k and 1.5k) are unchanged.
+
+Tests run (final files):
+- anim_test: ALL PASSED. New "Faces" test checks:
+  - skin regions per character;
+  - one melanin value per character, rising with skin tone;
+  - nonzero oiliness;
+  - plausible eye radius;
+  - teeth flagged;
+  - card depth bits;
+  - lash, brow and beard cards on the head;
+  - beard card counts for full beards and stubble, none on women;
+  - LOD skin keeping its bits.
+  Mesh triangles average 34506 (base 31423). In side-by-side runs, building a character's full mesh takes about 25% longer (about 138 -> 170 ms). That cost is at load, where the roster is built in parallel.
+- Full -O2 build (b1tree): exit 0.
+- Wine D3D12: a 30-portrait viewer run with the final exe (nt_b1e_o2.exe) logged no FATAL or vkd3d lines; earlier batch-1 runs were clean too.
+- Crowd perf, --autoplay tour --tourstart 7 --tourcount 1 (club_night, 196 peds), cpu ms peds: base 4.74, batch 1 4.47 and 4.62. Unchanged. The last fix rounds after that (beard volume near the lips, fringe at the temples) only remove or reshape cards.
+
+Montages (before/after; 0.5 m, 1 m and 4 m by day at 15.5 h; 1 m and 4 m at night under the viewer lamp):
+scratchpad/faces/final_c0.png (Mari), final_c1.png (Dex), final_c27.png (young dark-skinned bearded man), final_c7.png (old woman), final_c17.png (older light-skinned woman), final_c38.png (full beard)
+(full path: /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/faces/)
+
+Known issue, fixed for batch 2: on long or curly styles whose hair comes down the sides of the face (c17 in the montage), the temple edge shows a few faint dark stripes beside the eyes at 0.5-1 m. Strand cards lie over the newly faded hair edge there. In dev, those cards are sparser at the temples, their tips no longer hang past the hairline, and the fade is narrower.
+
+Next, batch 2, in progress: the "goggles" look round the eyes, worst at night.
+- The lid mound met the eye socket in a 3-4 mm groove that rings each eye. The baked AO darkened that groove, and the lid rows' fans at the corners folded into pleats.
+- The fix: soft lid blends, a filled inner corner, relaxed normals, a proper lid crease, and orbit shade only under the eye.
+- Also: brows sit higher with less density at the head and tail, the brow ridge stands a little prouder of the eyes, the waterline is darker, lips are less lacquered and men's lips less red, and brow building is faster.
+- A new anim_test "FaceShape" check guards all of this; it fails on batch-1 code and passes on batch 2.

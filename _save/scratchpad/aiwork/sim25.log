@@ -1,0 +1,129 @@
+Sites: 91 pads, 324 elements, 23 roads, 21 buildings requested (0.05 s)
+World map generated in 29.19 s
+Road gen: 22 interchanges
+Road network: 6284 nodes, 10030 edges, 1734 signalized; hwy 61.7 km, streets 1189.6 km (3.26 s)
+Buildings: 36093 (towers 358, midrise 2400, condo 485, deco 838, shops 4829, strip 693, houses 21872, villas 928, warehouses 1686) in 2.44 s
+Sites: 66 highway billboards
+Sites: 112 silos, 55 windmills
+Site runway 09L|27R  from (-1180, 2080) to (820, 2080) z 4.6 width 60
+Site runway 09R|27L  from (-1100, 780) to (700, 780) z 4.6 width 45
+Site terminal             at (628, 1440, 4.6)
+Site control tower        at (730, 1832, 4.6)
+Site container ship       at (4625, -800, 0.0)
+Site container ship       at (4616, -330, 0.0)
+Site port gate            at (4008, -160, 3.0)
+Site Key Coral marina     at (4039, -4035, 0.0)
+Site beach club           at (4873, -3866, 1.2)
+Site beach club           at (4808, -4183, 2.2)
+Site Solaris One          at (3350, -750, 1.4)
+Site stadium              at (3565, 445, 1.6)
+Site City Hall            at (3000, 372, 2.0)
+Site Canvas Park          at (3100, 1800, 1.7)
+Site Sol Beach Pier from (5414, 1250) to (5840, 1250) deck z 5.6
+Site Ferris wheel         at (5504, 1270, 5.6)
+Site lighthouse           at (-2206, -8000, 0.5)
+Site radio mast           at (-6744, 7248, 166.1)
+Site sugar mill           at (1430, 7500, 8.1)
+Site Rio Sol marina       at (2280, 188, 0.0)
+Site Okahatchee boat ramp at (-515, 6822, 7.7)
+Site Sawgrass tower       at (-4873, 420, 0.6)
+Sites finalized: 557 elements (0.01 s)
+Lane graph: 26691 lanes, 59937 connectors (1215831 pts), 36768 walk nodes, 53089 walk links, dead-end turning circles moved 0 / obstructed 0 (1.19 s)
+Loaded 12 collision cells
+Simulating 4.0 minutes around (4535, 9080) r=250 with 40 cars, 0 peds
+LATDEV t=7.2 car 10 (Tanuki) at 4570.4 9146.3 lane 4 u 80.4 latErr -0.92 v 24.1 vT 23.4 steer 0.29 diag e 0.00 psi 0.00 ff -0.00 st -0.00
+PSIJUMP t=8.0 car 22 psi -0.01 real 0.24 fp 12 fu 99.04 u 186.03 lcLane -1 lcU0 0.0 lcLen 30.0 lcFrom 0.00 lcTo 0.00 lat 0.00 nudge 0.00
+LATDEV t=8.4 car 6 (Tanuki) at 4520.1 8964.9 lane 11 u 471.6 latErr 0.90 v 21.0 vT 23.6 steer -0.23 diag e -0.25 psi 0.02 ff -0.00 st 0.01
+PSIJUMP t=13.0 car 22 psi -0.01 real 0.56 fp 12 fu 99.04 u 276.04 lcLane -1 lcU0 0.0 lcLen 30.0 lcFrom 0.00 lcTo 0.00 lat 0.00 nudge 0.00
+PSIJUMP t=17.3 car 13 psi 0.22 real -0.03 fp 2 fu 13.02 u 11.50 lcLane 1 lcU0 9.0 lcLen 16.0 lcFrom 0.00 lcTo -3.60 lat -0.25 nudge 0.00
+LATDEV t=18.9 car 35 (Parcel P70) at 4524.5 9076.0 lane 12 u 17.9 latErr 0.95 v 3.7 vT 6.1 steer -1.00 diag e 2.90 psi 0.96 ff -0.04 st -1.88
+PSIJUMP t=20.5 car 5 psi -0.03 real 0.22 fp 12 fu 167.54 u 204.56 lcLane -1 lcU0 0.0 lcLen 30.0 lcFrom 0.00 lcTo 0.00 lat 0.00 nudge 0.00
+LATDEV t=21.5 car 23 (Stevedore) at 4396.1 9268.4 lane 23732 u 11.9 latErr 2.49 v 3.0 vT 8.3 steer -1.00 diag e 3.07 psi 0.32 ff -0.00 st -1.28
+PSIJUMP t=22.3 car 34 psi -0.20 real 0.05 fp 0 fu 13.18 u 11.77 lcLane 1 lcU0 9.0 lcLen 16.0 lcFrom 0.00 lcTo 3.60 lat 0.28 nudge 0.00
+PSIJUMP t=24.7 car 10 psi 0.11 real -0.14 fp 1 fu 13.23 u 11.97 lcLane 0 lcU0 9.2 lcLen 16.0 lcFrom 0.00 lcTo -3.60 lat -0.29 nudge 0.00
+PSIJUMP t=25.5 car 5 psi -0.03 real 0.23 fp 12 fu 167.54 u 295.80 lcLane -1 lcU0 0.0 lcLen 30.0 lcFrom 0.00 lcTo 0.00 lat 0.00 nudge 0.00
+STUCK t=27.1 car 6 at 4557.0 9066.0 z 11.07 path 13 u 16.2 lat 0.01 vT 6.3 stop 1000000000.0 obst 1000000000.0(-1) up 0.76 gear 1 wheels 2 sleep 0 imp 82 col -1 thr 0.63
+LATDEV t=30.6 car 13 (Sawgrass) at 4507.5 8995.2 lane 8 u 83.2 latErr 0.91 v 29.1 vT 29.1 steer -0.36 diag e 0.04 psi 0.02 ff -0.00 st -0.02
+STUCK t=34.7 car 6 at 4557.0 9066.0 z 11.07 path 13 u 16.2 lat 0.02 vT 6.3 stop 1000000000.0 obst 1000000000.0(-1) up 0.76 gear 1 wheels 2 sleep 0 imp 82 col -1 thr 0.63
+LATDEV t=36.8 car 10 (Tanuki) at 4508.7 9000.5 lane 8 u 77.7 latErr 1.29 v 28.5 vT 40.0 steer -0.33 diag e -0.53 psi 0.01 ff -0.00 st 0.06
+STATIC t=39.2 car 35 at 4444.0 8884.1 v=1.7 imp 17978 path 12 u 228.8 lat 0.00
+STUCK t=42.3 car 6 at 4557.0 9066.0 z 11.07 path 13 u 16.2 lat 0.03 vT 6.3 stop 1000000000.0 obst 1000000000.0(-1) up 0.76 gear 1 wheels 2 sleep 0 imp 91 col -1 thr 0.63
+STUCK t=50.0 car 6 at 4556.9 9066.0 z 11.07 path 13 u 16.1 lat 0.03 vT 6.3 stop 1000000000.0 obst 1000000000.0(-1) up 0.76 gear 1 wheels 2 sleep 0 imp 82 col -1 thr 0.63
+LATDEV t=57.4 car 37 (Raijin 1000) at 4529.0 8782.3 lane 21 u 17.7 latErr -0.91 v 9.1 vT 12.0 steer 0.38 diag e 0.00 psi 0.00 ff 0.00 st 0.00
+STUCK t=57.7 car 6 at 4556.9 9066.0 z 11.07 path 13 u 16.1 lat 0.04 vT 6.3 stop 1000000000.0 obst 1000000000.0(-1) up 0.76 gear 1 wheels 2 sleep 0 imp 82 col -1 thr 0.63
+  sim 60 s: collisions 0 (hard 0), red 0, stuck 5, deadlocks 0, ped hits 0, respawns 14 (wall 6 s)
+STUCK t=65.5 car 6 at 4556.9 9066.0 z 11.07 path 13 u 16.1 lat 0.05 vT 6.3 stop 1000000000.0 obst 1000000000.0(-1) up 0.76 gear 1 wheels 2 sleep 0 imp 81 col -1 thr 0.63
+STUCK t=73.3 car 6 at 4556.9 9066.0 z 11.07 path 13 u 16.0 lat 0.06 vT 6.3 stop 1000000000.0 obst 1000000000.0(-1) up 0.76 gear 1 wheels 2 sleep 0 imp 82 col -1 thr 0.63
+LATDEV t=76.4 car 30 (Glint) at 4800.1 9160.6 lane 23988 u 7.7 latErr -1.56 v 3.0 vT 16.3 steer 0.50 diag e -1.29 psi 0.20 ff 0.00 st 0.33
+STATIC t=76.6 car 33 at 4521.6 8768.6 v=6.8 imp 13520 path 21 u 33.2 lat 0.01
+LATDEV t=76.8 car 33 (Kiko) at 4520.4 8768.1 lane 21 u 34.3 latErr 0.92 v 6.1 vT 16.2 steer -0.77 diag e 1.10 psi 0.14 ff -0.00 st -0.51
+STUCK t=81.2 car 6 at 4556.8 9066.0 z 11.07 path 13 u 16.0 lat 0.07 vT 6.3 stop 1000000000.0 obst 1000000000.0(-1) up 0.76 gear 1 wheels 2 sleep 0 imp 81 col -1 thr 0.63
+STUCK t=89.1 car 6 at 4556.8 9066.0 z 11.07 path 13 u 16.0 lat 0.07 vT 6.3 stop 33.3 obst 1000000000.0(-1) up 0.76 gear 1 wheels 2 sleep 0 imp 82 col -1 thr 0.63
+LATDEV t=96.7 car 5 (Glint) at 4524.6 9076.2 lane 12 u 17.7 latErr 0.91 v 4.5 vT 6.7 steer -1.00 diag e 2.23 psi 0.84 ff -0.02 st -1.53
+STUCK t=97.0 car 6 at 4556.8 9066.0 z 11.07 path 13 u 15.9 lat 0.08 vT 6.3 stop 1000000000.0 obst 1000000000.0(-1) up 0.76 gear 1 wheels 2 sleep 0 imp 90 col -1 thr 0.63
+STUCK t=104.9 car 6 at 4556.7 9066.0 z 11.07 path 13 u 15.9 lat 0.09 vT 6.3 stop 1000000000.0 obst 1000000000.0(-1) up 0.76 gear 1 wheels 2 sleep 0 imp 82 col -1 thr 0.63
+LATDEV t=109.5 car 5 (Glint) at 4472.1 8917.4 lane 12 u 185.2 latErr -0.90 v 22.8 vT 22.8 steer 0.31 diag e 0.01 psi 0.01 ff -0.00 st -0.01
+STUCK t=112.9 car 6 at 4556.7 9066.0 z 11.07 path 13 u 15.9 lat 0.10 vT 6.3 stop 1000000000.0 obst 1000000000.0(-1) up 0.76 gear 1 wheels 2 sleep 0 imp 81 col -1 thr 0.63
+PSIJUMP t=114.5 car 5 psi 0.01 real 0.42 fp 12 fu 56.92 u 293.80 lcLane -1 lcU0 0.0 lcLen 30.0 lcFrom 0.00 lcTo 0.00 lat 0.00 nudge 0.00
+  sim 120 s: collisions 0 (hard 0), red 0, stuck 12, deadlocks 0, ped hits 0, respawns 38 (wall 12 s)
+STUCK t=120.8 car 6 at 4556.6 9066.0 z 11.07 path 13 u 15.8 lat 0.11 vT 6.4 stop 1000000000.0 obst 1000000000.0(-1) up 0.76 gear 1 wheels 2 sleep 0 imp 82 col -1 thr 0.63
+PSIJUMP t=125.5 car 39 psi -0.00 real -0.25 fp 12 fu 261.87 u 297.82 lcLane -1 lcU0 0.0 lcLen 30.0 lcFrom 0.00 lcTo 0.00 lat 0.00 nudge 0.00
+STUCK t=128.9 car 6 at 4556.6 9066.0 z 11.07 path 13 u 15.8 lat 0.12 vT 6.4 stop 1000000000.0 obst 1000000000.0(-1) up 0.76 gear 1 wheels 2 sleep 0 imp 82 col -1 thr 0.63
+COLLISION t=135.41 imp 2837 at 4403.3 8961.2
+   A 19: Harbor v=3.9 vT=0.0 conn 52011 node 5389 turn 0 ctl 1 u=0.0/10.8 lc -1 lat 0.00 nudge 0.00 obst 7.1(26) stop 1000000000.0 dummy 0
+   B 39: Kumo v=1.2 vT=0.0 conn 52335 node 5417 turn 0 ctl 0 u=0.8/10.8 lc -1 lat 0.00 nudge 0.00 obst 0.1(19) stop 1000000000.0 dummy 0
+   conflict A->B: none | appr A 1 B 1 to A 23600 B 23596 | enterTime A 127.35 B 134.93 committed 0 0
+STUCK t=136.9 car 6 at 4556.6 9066.0 z 11.07 path 13 u 15.8 lat 0.13 vT 6.4 stop 1000000000.0 obst 1000000000.0(-1) up 0.76 gear 1 wheels 2 sleep 0 imp 90 col -1 thr 0.63
+STUCK t=145.0 car 6 at 4556.5 9066.0 z 11.07 path 13 u 15.7 lat 0.14 vT 6.4 stop 1000000000.0 obst 1000000000.0(-1) up 0.76 gear 1 wheels 2 sleep 0 imp 82 col -1 thr 0.63
+DEADLOCK t=147.8 car 3 at 4400.6 9273.7 conn 52677 turn 2 appr 1 node 5447 ctl 0 u 5.4/8.5 hold 0.0 committed 0 gateNode 5447 stopDist 1000000000.0 obst 1.9 (body 32) sig 4
+   -> car 32 lane e8658 d1 i0 u 12.0/12.8 v=0.0 vT=10.0 stop 1000000000.0 obst 1000000000.0(-1) wait 0.0 gateConn 52391 gateNode 5422 stopDone 1 lat 2.01
+STUCK t=153.3 car 6 at 4556.5 9066.0 z 11.07 path 13 u 15.7 lat 0.14 vT 6.4 stop 1000000000.0 obst 1000000000.0(-1) up 0.76 gear 1 wheels 2 sleep 0 imp 90 col -1 thr 0.63
+PSIJUMP t=157.4 car 24 psi -0.06 real 0.19 fp 12 fu 201.68 u 246.39 lcLane -1 lcU0 0.0 lcLen 30.0 lcFrom 0.00 lcTo 0.00 lat 0.00 nudge 0.00
+STUCK t=161.5 car 6 at 4556.4 9066.1 z 11.07 path 13 u 15.6 lat 0.16 vT 6.4 stop 1000000000.0 obst 1000000000.0(-1) up 0.76 gear 1 wheels 2 sleep 0 imp 81 col -1 thr 0.63
+STUCK t=169.8 car 6 at 4556.4 9066.1 z 11.07 path 13 u 15.6 lat 0.17 vT 6.4 stop 1000000000.0 obst 1000000000.0(-1) up 0.76 gear 1 wheels 2 sleep 0 imp 82 col -1 thr 0.63
+DEADLOCK t=176.8 car 28 at 4406.4 9271.7 lane e8655 d1 i0 u 9.5/11.6 stopU -1.0 next conn 52677 turn 2 ctl 0 gateNode 5447 stopDist 8.5 obst 3.3 (body 3) sig 4
+   -> car 3 conn 52677 turn 2 node 5447 u 5.4/8.5 hold 0.0 committed 0 v=0.0 vT=0.2 stop 1000000000.0 obst 1.9(32) wait 89.0 gateConn 52677 gateNode 5447 stopDone 0 lat -0.46
+   -> car 32 lane e8658 d1 i0 u 12.0/12.8 v=0.0 vT=10.0 stop 1000000000.0 obst 1000000000.0(-1) wait 0.0 gateConn 52391 gateNode 5422 stopDone 1 lat 2.01
+STUCK t=178.3 car 6 at 4556.3 9066.1 z 11.07 path 13 u 15.5 lat 0.18 vT 6.4 stop 1000000000.0 obst 1000000000.0(-1) up 0.76 gear 1 wheels 2 sleep 0 imp 90 col -1 thr 0.63
+  sim 180 s: collisions 1 (hard 0), red 0, stuck 20, deadlocks 2, ped hits 0, respawns 61 (wall 17 s)
+STUCK t=186.7 car 6 at 4556.3 9066.1 z 11.07 path 13 u 15.4 lat 0.19 vT 6.4 stop 1000000000.0 obst 1000000000.0(-1) up 0.76 gear 1 wheels 2 sleep 0 imp 90 col -1 thr 0.63
+PSIJUMP t=189.9 car 4 psi 0.18 real -0.07 fp 2 fu 13.08 u 11.70 lcLane 1 lcU0 9.0 lcLen 16.0 lcFrom 0.00 lcTo -3.60 lat -0.28 nudge 0.00
+DEADLOCK t=192.2 car 38 at 4407.9 9264.8 conn 52653 turn 2 appr 0 node 5445 ctl 1 u 6.8/12.9 hold 0.0 committed 0 gateNode 5445 stopDist 1000000000.0 obst 2.6 (body 28) sig 4
+   -> car 28 lane e8655 d1 i0 u 9.5/11.6 v=0.0 vT=0.2 stop 8.5 obst 3.3(3) wait 75.5 gateConn 52677 gateNode 5447 stopDone 1 lat 0.12
+   -> car 3 conn 52677 turn 2 node 5447 u 5.4/8.5 hold 0.0 committed 0 v=0.0 vT=0.2 stop 1000000000.0 obst 1.9(32) wait 104.5 gateConn 52677 gateNode 5447 stopDone 0 lat -0.46
+   -> car 32 lane e8658 d1 i0 u 12.0/12.8 v=0.0 vT=10.0 stop 1000000000.0 obst 1000000000.0(-1) wait 0.0 gateConn 52391 gateNode 5422 stopDone 1 lat 2.01
+STUCK t=195.2 car 6 at 4556.2 9066.1 z 11.07 path 13 u 15.4 lat 0.20 vT 6.4 stop 33.9 obst 1000000000.0(-1) up 0.76 gear 1 wheels 2 sleep 0 imp 90 col -1 thr 0.63
+DEADLOCK t=199.0 car 31 at 4412.4 9257.0 conn 52656 turn 0 appr 1 node 5445 ctl 1 u 2.3/17.1 hold 0.0 committed 0 gateNode 5445 stopDist 1000000000.0 obst 3.4 (body 38) sig 4
+   -> car 38 conn 52653 turn 2 node 5445 u 6.8/12.9 hold 0.0 committed 0 v=0.0 vT=0.2 stop 1000000000.0 obst 2.6(28) wait 66.8 gateConn 52653 gateNode 5445 stopDone 0 lat -0.50
+   -> car 28 lane e8655 d1 i0 u 9.5/11.6 v=0.0 vT=0.2 stop 8.5 obst 3.3(3) wait 82.3 gateConn 52677 gateNode 5447 stopDone 1 lat 0.12
+   -> car 3 conn 52677 turn 2 node 5447 u 5.4/8.5 hold 0.0 committed 0 v=0.0 vT=0.2 stop 1000000000.0 obst 1.9(32) wait 111.3 gateConn 52677 gateNode 5447 stopDone 0 lat -0.46
+   -> car 32 lane e8658 d1 i0 u 12.0/12.8 v=0.0 vT=10.0 stop 1000000000.0 obst 1000000000.0(-1) wait 0.0 gateConn 52391 gateNode 5422 stopDone 1 lat 2.01
+DEADLOCK t=204.0 car 1 at 4415.1 9249.6 lane e8652 d1 i0 u 76.0/81.5 stopU 76.4 next conn 52654 turn 2 ctl 1 gateNode 5445 stopDist 16.0 obst 2.5 (body 31) sig 4
+   -> car 31 conn 52656 turn 0 node 5445 u 2.3/17.1 hold 0.0 committed 0 v=0.0 vT=0.2 stop 1000000000.0 obst 3.4(38) wait 64.9 gateConn 52656 gateNode 5445 stopDone 0 lat 0.01
+   -> car 38 conn 52653 turn 2 node 5445 u 6.8/12.9 hold 0.0 committed 0 v=0.0 vT=0.2 stop 1000000000.0 obst 2.6(28) wait 71.8 gateConn 52653 gateNode 5445 stopDone 0 lat -0.50
+   -> car 28 lane e8655 d1 i0 u 9.5/11.6 v=0.0 vT=0.2 stop 8.5 obst 3.3(3) wait 87.3 gateConn 52677 gateNode 5447 stopDone 1 lat 0.12
+   -> car 3 conn 52677 turn 2 node 5447 u 5.4/8.5 hold 0.0 committed 0 v=0.0 vT=0.2 stop 1000000000.0 obst 1.9(32) wait 116.2 gateConn 52677 gateNode 5447 stopDone 0 lat -0.46
+   -> car 32 lane e8658 d1 i0 u 12.0/12.8 v=0.0 vT=10.0 stop 1000000000.0 obst 1000000000.0(-1) wait 0.0 gateConn 52391 gateNode 5422 stopDone 1 lat 2.01
+LATDEV t=206.1 car 14 (Governor) at 4572.5 9153.0 lane 4 u 87.4 latErr -0.90 v 24.1 vT 23.6 steer 0.32 diag e 0.00 psi 0.00 ff -0.00 st -0.00
+STUCK t=219.6 car 6 at 4555.5 9065.8 z 11.19 path 13 u 14.8 lat 0.70 vT 6.6 stop 1000000000.0 obst 1000000000.0(-1) up 0.69 gear 1 wheels 1 sleep 0 imp 81 col -1 thr 0.63
+PSIJUMP t=219.8 car 27 psi -0.22 real 0.03 fp 0 fu 13.26 u 11.92 lcLane 1 lcU0 9.2 lcLen 16.0 lcFrom 0.00 lcTo 3.60 lat 0.28 nudge 0.00
+PSIJUMP t=223.7 car 14 psi -0.24 real 0.02 fp 0 fu 13.11 u 11.66 lcLane 1 lcU0 9.0 lcLen 16.0 lcFrom 0.00 lcTo 3.60 lat 0.26 nudge 0.00
+LATDEV t=232.1 car 27 (Kumo) at 4505.6 8989.0 lane 8 u 89.7 latErr 0.92 v 32.7 vT 40.1 steer -0.27 diag e 0.36 psi -0.03 ff -0.00 st -0.01
+STATIC t=233.6 car 19 at 4521.7 8769.0 v=6.5 imp 13326 path 21 u 32.9 lat 0.02
+LATDEV t=233.9 car 19 (Harbor) at 4520.5 8768.4 lane 21 u 34.0 latErr 0.93 v 5.5 vT 14.6 steer -0.79 diag e 1.09 psi 0.12 ff -0.00 st -0.49
+LATDEV t=234.0 car 14 (Governor) at 4526.4 9059.0 lane 8 u 16.4 latErr 1.50 v 28.2 vT 34.6 steer -0.49 diag e 0.15 psi -0.04 ff -0.00 st 0.02
+COLLISION t=234.01 imp 3148 at 4518.0 8766.7
+   A 19: Harbor v=1.9 vT=14.4 lane 21(e6 d1 i0) u=34.6/333.0 lc -1 lat 0.00 nudge 0.00 obst 1000000000.0(-1) stop 1000000000.0 dummy 0
+   B 33: Kiko v=2.8 vT=15.4 lane 21(e6 d1 i0) u=38.5/333.0 lc -1 lat 0.00 nudge 0.00 obst 1000000000.0(-1) stop 1000000000.0 dummy 0
+STUCK t=237.9 car 19 at 4519.5 8767.7 z 7.52 path 21 u 35.0 lat 1.58 vT 14.4 stop 1000000000.0 obst 1000000000.0(-1) up 1.00 gear 1 wheels 4 sleep 0 imp 22 col 185 thr 0.63
+
+==== Traffic metrics (240 s simulated, 40 cars, 0 peds, 2.67 vehicle-hours) ====
+collisions: 2 (0.75 per vehicle-hour), hard (>3000 Ns): 1 (0.38/veh-h)
+static impacts (walls/props >2500 Ns): 3, props broken: 3
+red-light violations: 0, stop-sign violations: 2
+stuck recoveries: 24, relocalizations: 26, deadlocks (>60 s waits): 5, respawns: 81
+pedestrians hit: 0
+average speed by road class (km/h):  highway 61.1 (305 s)  street 18.8 (6202 s)  rural 9.7 (448 s)  dirt 9.6 (393 s)  ramp 11.1 (503 s)
+lane-center error (RMS, lanes, v>3 m/s): 0.140 m
+AI cost per 60 Hz tick: traffic 0.080 ms + peds 0.000 ms (avg), p50 0.073 ms, p99 0.160 ms, max 0.474 ms
+physics per 120 Hz step: 0.255 ms (40 cars)

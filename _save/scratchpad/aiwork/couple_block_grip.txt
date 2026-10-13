@@ -1,0 +1,18 @@
+    // a couple walking hand in hand (pedai.cpp: PedAI::handWith on both, renewed every frame by the companion): the
+    // companion's inner hand closes round the leader's inner hand where it is in its swing (the animator's grip round
+    // something upright, as an escort's round an arm), the animator picking the hand on that side; the leader's arm
+    // swings on as it walks, the two hands together
+    if (in.grabWeight <= 0.f) {
+        int self = (int)(&p - peds.data());
+        const PedAI* q = self >= 0 && self < (int)ai.ped.size() && ai.ped[self].uid == p.uid ? &ai.ped[self] : nullptr;
+        int o = q ? q->handWith : -1;
+        if (o >= 0 && o == q->leader && o < (int)peds.size() && o < (int)ai.ped.size() && peds[o].used && peds[o].uid == q->handUid &&
+            ai.ped[o].uid == peds[o].uid && ai.ped[o].handWith == self && time - q->handT < 0.3 && p.state == PS_ONFOOT && peds[o].state == PS_ONFOOT &&
+            !p.ragdoll && !peds[o].ragdoll && peds[o].charIndex >= 0) {
+            const Ped& L = peds[o];
+            int bone = q->slotSide > 0 ? Anim::B_HAND_R : Anim::B_HAND_L;   // (the companion on the leader's right: its right hand)
+            vec3 j = rel(L.pos, p.pos) + rotate(yawQuat(L.yaw), L.bones[bone].c[3].xyz());
+            in.grabTarget = vec3(dot(vec2(j.x, j.y), rightV), dot(vec2(j.x, j.y), fwd), j.z);
+            in.grabWeight = 1.f;
+        }
+    }

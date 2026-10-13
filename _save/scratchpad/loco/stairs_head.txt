@@ -1,0 +1,35 @@
+M stairs.walk_1.3.up.steps                         25.000
+M stairs.walk_1.3.up.slide_cm_step_mean             2.973
+M stairs.walk_1.3.up.slide_cm_step_p90              8.655
+M stairs.walk_1.3.up.slide_cm_step_max              9.591
+M stairs.walk_1.3.up.pivot_deg_step_mean            0.013
+M stairs.walk_1.3.up.pivot_deg_step_max             0.044
+M stairs.walk_1.3.up.slide_cm_total_per_person     19.100
+M stairs.walk_1.3.up.pivot_deg_total_per_person      0.099
+M stairs.walk_1.3.up.lowest_sole_mm              -194.212
+M stairs.walk_1.3.up.planted_float_frames          10.000
+M stairs.walk_1.3.up.planted_float_max_mm          39.065
+M stairs.walk_1.3.up.scuffs                        11.000
+M stairs.walk_1.3.down.steps                       27.000
+M stairs.walk_1.3.down.slide_cm_step_mean           1.558
+M stairs.walk_1.3.down.slide_cm_step_p90            5.279
+M stairs.walk_1.3.down.slide_cm_step_max            7.094
+M stairs.walk_1.3.down.pivot_deg_step_mean          0.009
+M stairs.walk_1.3.down.pivot_deg_step_max           0.062
+M stairs.walk_1.3.down.slide_cm_total_per_person     10.044
+M stairs.walk_1.3.down.pivot_deg_total_per_person      0.051
+M stairs.walk_1.3.down.lowest_sole_mm            -201.680
+M stairs.walk_1.3.down.planted_float_frames       107.000
+M stairs.walk_1.3.down.planted_float_max_mm       132.107
+M stairs.walk_1.3.down.scuffs                      20.000
+M stairs.walk_1.3.up.planted_across_riser_pct      79.874
+M stairs.walk_1.3.up.planted_sunk_pct              60.557
+M stairs.walk_1.3.up.planted_sunk_3cm_pct          59.659
+M stairs.walk_1.3.up.planted_lifted_pct             0.898
+M stairs.walk_1.3.down.planted_across_riser_pct     76.797
+M stairs.walk_1.3.down.planted_sunk_pct            20.928
+M stairs.walk_1.3.down.planted_sunk_3cm_pct        18.562
+M stairs.walk_1.3.down.planted_lifted_pct           9.736
+time 0.2 s
+animator 4.516 us per update over 4674 updates
+ground scans 0 (one per 0 updates)

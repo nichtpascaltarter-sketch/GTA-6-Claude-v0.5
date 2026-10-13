@@ -1,0 +1,36 @@
+--- a/src/anim/animator.cpp
++++ b/src/anim/animator.cpp
+@@ -359,8 +359,11 @@
+             if (n) {
+                 dzRoot = Clamp(sum / (float)n, -0.25f, 0.25f);
+                 if (dt > 1e-4f) A.rootVz += (dzRoot / dt - A.rootVz) * (1.f - expf(-dt * 12.f));
++            } else if (in.rootMoveValid) {
++                // (no foot held down - one stepping while the other swings, a run's flight: the root's own vertical move)
++                dzRoot = Clamp(in.rootMove.z, -0.25f, 0.25f);
+             } else {
+-                dzRoot = Clamp(A.rootVz * dt, -0.05f, 0.05f);   // both feet off the ground (a run's flight): as it was going
++                dzRoot = Clamp(A.rootVz * dt, -0.05f, 0.05f);   // (not given: as it was going)
+             }
+         } else {
+             A.rootVz = 0.f;
+@@ -376,9 +379,9 @@
+                 *fz[s] -= dzRoot;
+             } else {
+                 // (a quick step on stairs - its ground probed where it lands - goes over the higher of that and the ground it
+-                // left until late in the step, then down onto it: not through a riser)
++                // left until late in the step, its trailing toe or heel past the edge, then down onto it: not through a nose)
+                 const bool qs = A.stepT[s] >= 0.f && A.stairSeen < 1.5f;
+-                const float gi = qs && A.stepT[s] < 0.6f ? Max(gIn[s], *fz[s] - dzRoot) : gIn[s];
++                const float gi = qs && A.stepT[s] < 0.85f ? Max(gIn[s], *fz[s] - dzRoot) : gIn[s];
+                 *fz[s] += (gi - (*fz[s] - dzRoot)) * (held[s] ? 1.f : (swingU[s] > 0.f || qs ? ks : kg)) - dzRoot;
+                 if (swingU[s] <= 0.f) A.groundAhead[s] = *fz[s];
+             }
+@@ -673,6 +676,8 @@
+             lift[s] = A.stepLift[s] * sinf(kPi * u);
+             shiftT = (s ? -1.f : 1.f) * 0.03f * scale * sinf(kPi * Min(1.f, u * 1.3f));   // weight over the other foot
+             if (A.stepT[s] >= 1.f) {
++                // (on stairs: down on the ground probed where it lands, whatever of the way down is left)
++                if (A.stairSeen < 1.5f && terrain && in.footProbes) (s ? A.footR : A.footL) = A.groundRaw[s];
+                 A.stepT[s] = -1.f;
+                 A.planted[s] = true;
+                 A.footHold[s] = false;

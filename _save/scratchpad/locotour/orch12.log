@@ -1,0 +1,5 @@
+start 16:37:38
+check done
+build sepclean2 rc 0
+-rwxr-xr-x 1 root root 12774912 Oct 12 17:03 bin/loco_sepclean2.exe
+orch12 (killed by faces agent at 16:52): its build.sh sepclean2 survived and finished 17:03:53

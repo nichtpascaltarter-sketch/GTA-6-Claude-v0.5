@@ -1,0 +1,5 @@
+100644 1cb05fbde78b3100ffabb64dc440db69f04e5b37 src/world/buildings.h
+100644 3e33935586a5c85bcf0c45872175c93a8e90df2b src/world/facadedetail.cpp
+100644 e157f83fedf1dcf308824560e548915ee3d01f85 src/world/cellgen.cpp
+100644 72266ddea14cec5767fa388c4c589bd29ccc0b92 src/world/blockstyle.cpp
+100644 97ecbdbb7a918f67b31139ce566b2af43a2cbb75 src/world/massing.cpp

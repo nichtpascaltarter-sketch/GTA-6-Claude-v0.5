@@ -1,0 +1,5 @@
+boatyard_n 1880 230
+boatyard_s 1700 -10
+diner 1330 330
+mari_apt 1560 560
+solaris_pier 2480 310

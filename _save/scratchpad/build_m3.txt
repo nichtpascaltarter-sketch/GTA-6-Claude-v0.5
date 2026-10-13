@@ -1,0 +1,12 @@
+In file included from src/anim/anim_all.cpp:15,
+                 from src/main.cpp:49:
+src/anim/animator.cpp: In member function 'void Anim::Animator::conversation(const Anim::AnimInput&, float, Anim::Pose&)':
+src/anim/animator.cpp:1909: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
+ 1909 |     if (gestMode == 0) wR *= beatS;
+      | 
+src/anim/animator.cpp:1909: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
+-rwxr-xr-x 1 root root 11358208 Sep 30 22:39 bin/missions2.exe
+
+real	16m2.855s
+user	3m32.692s
+sys	0m3.373s

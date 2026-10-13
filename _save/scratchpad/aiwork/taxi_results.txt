@@ -1,0 +1,85 @@
+TAXI / SNAPSHOT 47 FIXES - results (AI agent)
+
+nt_ai94c = c1af87a + traffic.cpp ef10180 (taxi fix only) + test app 309ea19 (taxi mode v3), run 10-13 00:58-01:30 (killed after round 2):
+- round 1 (t=4): cab 69 spawned 45 m back at 8 m/s; saw the hailer (ped 112) at 39 m (t=5), DM_PULLOVER, stopped by t=7 - 36 m SHORT
+  (traffic_core's pull-over clamp: in to the kerb and stop, the stop point at the hailer ignored). The fare walked 36 m, got caught behind
+  a kerb bench 3.4 m from the cab (t=28-29); the cab gave up at stopTimer 25 (t=30) with the fare on foot (valid: not mid-clip), the fare
+  freed (targetVeh -1) and went back to hailing. Shots: taxi94c_r1_stall.png.
+- round 2 (t=70): cab 58 stopped for ped 112 (the round-1 fare, hailing again nearer than the new hailer) - stopped at t=73, mode 5 task 1
+  held to t=85, ped 112 in by t=86 (fare 112, DM_ROUTE) and away with them. (ped 112's state not traced: the log follows the round-2 hailer)
+=> the fix holds the cab while the fare boards; the stop-short bug found -> traffic_core.cpp 2819f95.
+
+nt_ai95 (set 17 WIP, c1af87a-based, before the calmActor fix), trafficstop: the stop forced at 3 s, staged at t=5 (2695 692); ST_A to t=10;
+  at ST_B the officer stepped out through the door (PS_EXITING) and the event was over at once ("events: none" from t=12.2); the officer
+  then got straight back into the cruiser (2.94 s clip at t=13). = the bug.
+nt_ai96 = c1af87a + traffic ef10180 + events ff4a3f8 (calmActor accepts PS_EXITING) + test app, trafficstop: PASS (run 01:33-01:49, stopped
+  at t=61 once over). stage 0 t=5-10 in the cars; t=12.2 stage 1 with officer 113 in s3 (PS_EXITING, WANDER, ACT_EVENT) - not called
+  off; on foot by t=14.3 and to the window; t=20.4 stage 2 (words at the window) for 17 s; t=38.7 stage 3 back to the cruiser; t=44.8
+  stage 4, both at the wheel (BRAIN_DRIVER); t=50.9 over, both driven off. Shots: trafficstop96.png (out of the door, the walk up, at
+  the window, back, away).
+
+nt_ai98 = c1af87a + traffic ef10180 + traffic_core 2819f95 (pull-over clamp skipped while the stop point is ahead) + events ff4a3f8 + test app b1df55d
+  (taxi with a short ride + drop-off), run 01:49-02:25, killed at t~60:
+- round 1: cab 69 saw hailer 112 at 39 m (t=5) and drove on along the kerb strip (the pull-over nudge) instead of stopping at once - but
+  stopped at t=11 behind a car PARKED at the kerb, ~24 m short of the hailer. The fare walked up: PS_ENTERING at t=28 (boardVeh 69); the
+  give-up timer passed 25 s (t~30) MID-CLIP and the cab held (mode 5 task 1 at t=28-30) - the taxi fix's guard seen working; in at
+  t=30.4 (seat 3, kerb-side back). Shots: taxi98_r1_a.png, taxi98_r1_b.png (the door open, the fare going in).
+- BUT then the cab never moved off (DM_ROUTE, speed 0 from t=37 to t=60): nudged into the kerb strip right behind the parked car, it
+  could not pull out round it (the near corridor starts at its actual lateral place). A regression of 2819f95 (HEAD stops at once at the
+  kerb, so it seldom runs up behind a parked car). 2819f95 WITHDRAWN.
+- Replacement traffic_core.cpp 8efeb4a (= d716924 + 7/-2): with a host stop point in its lane (only the taxi hail sets one with
+  DM_PULLOVER) the cab neither moves over to the kerb nor takes the kerb-stop clamp: it drives on in its lane to the point beside the
+  hailer and stops there (double-parked, as cabs do); the fare walks across to its kerb-side back door. Pull-overs without a stop point
+  (police, drop-offs, errands, coffee breaks, ambulances) unchanged. (02ed981, an in-lane approach with a move-over in the last 12 m, was
+  dropped before testing: the same trap if a car is parked in those 12 m.) Test exe nt_ai99b.
+
+nt_ai96 (rebuilt 02:57, graft96: the exact pair) knock: PASS (round 1; see signoff_s47_pair.txt item 4). knock96_a.png / knock96_b.png.
+
+nt_ai99b = c1af87a + traffic ef10180 + traffic_core 8efeb4a + events ff4a3f8 + test app b1df55d (taxi with a short ride + drop-off), run 03:45-04:10:
+- round 1: the cab saw hailer 112 at 37 m (t=5) and drove on in its lane, but at t=7 stopped ~26 m short behind a car pulling OUT of
+  a kerb parking spot into its lane (an obstacle in the lane, not the pull-over) - the fare walked up; PS_ENTERING t=24, in t=26.5
+  (seat 3), off on the ride (DM_ROUTE); drop-off: DM_PULLOVER at t=37 (within 45 m of the destination), stopped at the kerb at t=38 as
+  before (no stop point: the plain pull-over), the fare out through the door at t=39 (PS_EXITING to t~40.5) - BUT the cab was already
+  moving at t=39 (1.0 m/s, 4.4 at t=40) during the fare's exit clip: the same pattern on the exit side, also on main
+  (drop-off: removePedFromVehicle(fare, true) then DM_NORMAL at once).
+- round 2: cab 58 saw hailer 45 at 36.6 m (t=71), drove on in its lane and braked for the stop point: STOPPED BESIDE THE HAILER at t=79
+  (2.1 m from them); clip t=80, in t=82.4 (seat 3), away t=83. Drop-off at t=92-95 (pull-over, stopped t=94, out ~t=95, the fare then
+  culled - 200 m from the player). Shots: taxi99b_r2.png (approach in the lane, the hailer at the kerb, at the rear door, away).
+=> 8efeb4a: the cab stops at the hailer when its lane is clear. Drop-offs pull in at the kerb as before.
+NEW drop-off hold (traffic.cpp a8bf23c = ef10180 + 23/-2): after the drop the cab stays in DM_PULLOVER (task 2) until the fare is out of
+  the door clip (PS_EXITING with doorVehicle == the cab), 6 s at most. Test exe nt_ai99c (= nt_ai99b + that).
+
+nt_ai99b crashscene (police pull-over check with 8efeb4a; run 04:15-04:41, stopped at t~70): unit 71 sent from 144 m at t=4.5, "pulled over
+  at the scene, 25 m off" at t~27.5 (nt_ai92, before the change: "the police at the fender bender" at the same point, t~27); the crew
+  out through the doors (105/106 in PS_EXITING at t=28.5, on foot by t=32.6 - the scene carried on: calmActor), the words with the
+  officer, ST_C at t~52. Police pull-overs (no stop point) as before.
+
+SEAT CLAIMS (Codex P2) - copreturn test:
+- nt_ai100 (ab5995c + claims + follow-ups): officer 112 to the wheel (clip t=19.5, in t=22.7, seat 0); officer 113 never got in: stuck
+  pressed against the TAIL of the estate police car (FT_RETURN walked to the car's middle until within 3 m - a long car's middle is
+  more than 3 m from its tail), its walking refreshing escortHold so the car held. Round 2 invalid (its car placed onto round 1's).
+  -> police.cpp: near enough also within 1.2 m of the bodywork (seatfix2.py); copreturn v2 (each round 35 m further on).
+- nt_ai100b (+ that): 112 in at t~13.5 (clip from t=10.4, seat 0); then the car DROVE OFF while 113 walked round to the passenger door
+  (seat 1: the claim kept it off the driver's door) - no hold while walking to the door, only while walking to the car: a stop-go
+  dance (the car pulls away, 113 runs after it, the car stops, again), never in by t=31 - the stranding Codex guessed at, made common
+  by the claims (the second one now always takes the far door). copreturn100b_r1.png.
+  -> police.cpp: the door walk holds the car too (escortHold +1 s, within the 8 s door walk) (seatfix3.py). police.cpp HEAD blob 68a4207.
+- nt_ai100c (+ that): copreturn and crashscene queued.
+
+nt_ai100b taxi (ab5995c + a8bf23c + 8efeb4a + claims; run 06:57-07:15, stopped at t~45): round 1 - the cab stopped ~26 m short behind a car
+  pulling out of a kerb spot (as on nt_ai99b), the fare walked up; clip t=24-26.5 (seat 3), the short ride; drop-off pull-over at t=37,
+  stopped t=38; the fare out at t=39: the cab HELD (mode 5, task 2, scene 112, speed 0) through the exit clip (state 3 at t=39 and 40),
+  released at t=41 with the fare on foot (state 0), away at t=42 (2.1 m/s). On nt_ai99b, without the hold, the cab was already moving
+  at t=39 (1.0) and t=40 (4.4) with the fare mid-clip. Frames: taxi100b_dropoff.png (stopped, the fare out of the back door, the fare
+  walking off, the cab away).
+- nt_ai100c (+ the door walk holds the car, seatfix3): WORSE - neither officer got in by t=21.6: an officer walking round to its door
+  refreshed escortHold, and the next frame the "wait by the car" branch (meant for a colleague bringing a prisoner) saw that very hold
+  and stood it still - one step a second. -> police.cpp: the wait branch only for an officer not yet on its way round to its door
+  (pa.doorWalkT <= 0) (seatfix4.py). police.cpp HEAD blob 1eb24c9. nt_ai100d: copreturn + crashscene queued.
+- nt_ai100d (+ seatfix4; police.cpp 1eb24c9): copreturn PASS, both rounds, overlaps 0 throughout.
+  - round 1 (car 69, the estate model 25): officer 112 into seat 0 through the driver's door (PS_ENTERING t=10.4, in t=13.6); the
+    car held; officer 113 round to the kerb-side passenger door, seat 1 (PS_ENTERING t=16.8); both in t=19.2; away t=20.4.
+  - round 2 (car 58, model 24, 31 m on): officer 109 seat 0 (t=66.4 -> 68.6), officer 116 seat 1 (t=71.8 -> 74.2); away t=75.8.
+  - copreturn100d_r1.png: the second officer going round the back to the passenger door, its door open, both in.
+- nt_ai100d crashscene: PASS - unit 71 pulled over 25 m off at t~27.5 (as before); crew out through the doors; crewBack t~52; officer
+  105 PS_ENTERING t=69.2 -> in (BRAIN_DRIVER) t=71.2; officer 106 PS_ENTERING t=75.3 (its own door); no "back on foot"; scene over t=77.3.

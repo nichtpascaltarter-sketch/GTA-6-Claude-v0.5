@@ -1,0 +1,39 @@
+start 05:33:55
+build st9 rc 0
+Embedded 40 shader files.
+-rwxr-xr-x 1 root root 12835328 Oct 13 05:42 bin/loco_st9.exe
+built st9 05:42:33
+run st9 05:45:03
+build st8s rc 0
+Embedded 40 shader files.
+-rwxr-xr-x 1 root root 12828672 Oct 13 05:59 bin/loco_st8s.exe
+built st8s 05:59:48
+run st9 exit 0
+[ 222.439] locostairs: station Calle Luna, stair top 1815.4 -638.0 17.6, foot 1848.1 -638.0 3.1, 32.7 m long
+[ 236.287] locostairs: 8 walkers
+[2337.900] locostairs up   steps  298 | slide cm/step mean 1.62 p90 3.33 max 8.27 | scuffs 22
+[2337.900] locostairs up   planted foot-frames 6089 | across a riser 87.5% | sunk 1 cm 1.4%, 3 cm 1.1% | lifted 0.5% | lowest sole -169.0 mm
+[2337.901] locostairs down steps  277 | slide cm/step mean 0.84 p90 3.16 max 8.08 | scuffs 27
+[2337.901] locostairs down planted foot-frames 5754 | across a riser 86.5% | sunk 1 cm 1.8%, 3 cm 1.7% | lifted 6.1% | lowest sole -169.0 mm
+[2337.901] locostairs trips 27 | peds cpu 2.42 ms per frame (mean over 3002 frames)
+run st9s 06:24:44
+run st9s exit 0
+[ 752.547] locostairs bigslide 182 up foot 0: 18.7 cm over 27 frames | biggest 3.2 cm at frame 26: planted 1 hold 0 stepT -1.00 age 0.90 rootRatio 1.00 v 0.67 a 22.08
+[1633.711] locostairs bigslide 177 up foot 0: 19.7 cm over 7 frames | biggest 7.4 cm at frame 1: planted 0 hold 1 stepT -1.00 age 0.00 rootRatio 1.00 v 0.00 a 19.43
+[2264.016] locostairs bigslide 178 up foot 0: 20.4 cm over 19 frames | biggest 8.2 cm at frame 1: planted 0 hold 0 stepT 0.82 age 0.00 rootRatio 1.00 v 1.40 a 31.01
+[2411.728] locostairs up   steps  269 | slide cm/step mean 2.01 p90 4.11 max 26.73 | scuffs 44
+[2411.728] locostairs up   planted foot-frames 6381 | across a riser 85.6% | sunk 1 cm 7.7%, 3 cm 7.4% | lifted 0.6% | lowest sole -169.0 mm
+[2411.732] locostairs down steps  277 | slide cm/step mean 1.35 p90 3.46 max 30.69 | scuffs 24
+[2411.732] locostairs down planted foot-frames 6594 | across a riser 82.2% | sunk 1 cm 4.4%, 3 cm 4.2% | lifted 3.9% | lowest sole -169.0 mm
+[2411.732] locostairs trips 16 | peds cpu 2.48 ms per frame (mean over 3002 frames)
+run st8s 07:15:26
+run st8s exit 0
+[2142.934] locostairs bigslide 178 up foot 0: 20.4 cm over 19 frames | biggest 8.2 cm at frame 1: planted 0 hold 0 stepT 0.82 age 0.00 rootRatio 1.00 v 1.40 a 31.01
+[2206.501] locostairs bigslide 176 up foot 0: 46.7 cm over 23 frames | biggest 10.1 cm at frame 6: planted 0 hold 0 stepT 0.57 age 0.00 rootRatio 1.00 v 1.30 a 27.84
+[2225.087] locostairs bigslide 178 up foot 0: 56.3 cm over 23 frames | biggest 11.2 cm at frame 4: planted 0 hold 0 stepT 0.54 age 0.00 rootRatio 1.00 v 1.40 a 28.65
+[2290.988] locostairs up   steps  238 | slide cm/step mean 7.92 p90 31.85 max 76.69 | scuffs 25
+[2290.988] locostairs up   planted foot-frames 6406 | across a riser 83.3% | sunk 1 cm 24.2%, 3 cm 23.9% | lifted 0.6% | lowest sole -261.6 mm
+[2290.988] locostairs down steps  274 | slide cm/step mean 1.90 p90 6.21 max 36.70 | scuffs 24
+[2290.988] locostairs down planted foot-frames 6649 | across a riser 80.7% | sunk 1 cm 17.4%, 3 cm 17.2% | lifted 5.0% | lowest sole -169.1 mm
+[2290.988] locostairs trips 16 | peds cpu 2.39 ms per frame (mean over 3002 frames)
+orch24 done 07:53:50

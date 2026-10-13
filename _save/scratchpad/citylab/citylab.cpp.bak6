@@ -1,0 +1,1228 @@
+// citylab: native (no GPU) analysis of the ordinary city blocks.
+//   - generates the world exactly as the game does (map, roads, sites, buildings, interiors)
+//   - repetition metric per district (silhouette + facade signature of every building, same signature within 150 m)
+//   - triangle / vertex counts of the building meshes per cell (detail and far LOD) around chosen points
+//   - software "clay" renders (perspective, sun shadows, facade window grid) of chosen camera views
+// Build (from the root holding tools/ and src/):  g++ -std=c++17 -O2 -I<root> citylab.cpp -o citylab -lpthread
+#include "tools/native_stubs.cpp"
+#include "src/core/math.cpp"
+#include "src/core/noise.cpp"
+#include "src/core/jobs.cpp"
+#include "src/render/mesh.cpp"
+#include "src/world/worldmap.cpp"
+#include "src/world/sites.cpp"
+#include "src/world/roads.cpp"
+#include "src/world/roadmesh.cpp"
+#include "src/world/buildings.cpp"
+#include "src/world/buildmesh.cpp"
+#include "src/world/propmesh.cpp"
+#include "src/world/cellgen.cpp"
+#include "src/world/sitegeo.cpp"
+#include "src/world/airport.cpp"
+#include "src/world/port.cpp"
+#include "src/world/landmarks.cpp"
+#include "src/world/leisure.cpp"
+#include "src/world/rural.cpp"
+#include "src/world/transit.cpp"
+#include "src/world/transitmesh.cpp"
+#include "src/world/sitecell.cpp"
+#include "src/world/facadedetail.cpp"
+#include "src/world/interiorkit.cpp"
+#include "src/world/interiorfurniture.cpp"
+#include "src/world/interiorlayouts.cpp"
+#include "src/world/interiorhomes.cpp"
+#include "src/world/interiorvenues.cpp"
+#include "src/world/interiorshops.cpp"
+#include "src/world/interiorcivic.cpp"
+#include "src/world/interiorindustrial.cpp"
+#include "src/world/interiortower.cpp"
+#include "src/world/interiorgarages.cpp"
+#include "src/world/interiorresidences.cpp"
+#include "src/world/interiors.cpp"
+#include <thread>
+#include <unordered_map>
+#include <map>
+#include <set>
+#include <algorithm>
+#include <string>
+
+using namespace World;
+
+namespace citylab {
+
+// ------------------------------------------------------------------------------------------------ signatures
+// Silhouette of a building from its far-LOD mesh: roof levels on a 4 x 4 grid over the footprint (3 m bands), pitched
+// roof share, footprint occupancy. Facade: shader style, wall material, colour family, bay class, storefront.
+struct Sig {
+    u64 silhouette = 0, facade = 0, colour = 0;
+    int heightBand = 0;
+};
+
+int heightBandOf(float h) {
+    const float edges[] = {5, 9, 14, 22, 35, 55, 90, 140};
+    int b = 0;
+    while (b < 8 && h > edges[b]) b++;
+    return b;
+}
+
+// Coarse colour family as a viewer groups facades: white, light grey, dark, then hue families for saturated walls
+int colourFamily(u32 c, bool coarse) {
+    vec4 v = unpackRGBA8(c);
+    float r = v.x, g = v.y, b = v.z;
+    float mx = Max(r, Max(g, b)), mn = Min(r, Min(g, b));
+    float s = mx > 1e-3f ? (mx - mn) / mx : 0.f;
+    if (s < 0.14f) return mx > 0.86f ? 0 : (mx > 0.55f ? 1 : 2);
+    float h;
+    if (mx == r) h = fmodf((g - b) / (mx - mn), 6.f);
+    else if (mx == g) h = (b - r) / (mx - mn) + 2.f;
+    else h = (r - g) / (mx - mn) + 4.f;
+    if (h < 0) h += 6.f;
+    // red/orange, yellow, green, cyan, blue, magenta/pink
+    int hb = (int)floorf(h + 0.5f) % 6;
+    return 3 + hb;
+}
+
+Sig signature(const BuildingSet& bs, int bi) {
+    const Building& b = bs.buildings[bi];
+    Sig s;
+    MeshData m;
+    if (b.siteElem < 0) buildBuildingMesh(b, bs.facades[b.facade], *gMap, false, vec3(0.f), m, nullptr, nullptr, nullptr);
+    float top[4][4];
+    for (auto& r : top)
+        for (float& v : r) v = -1.f;
+    float pitched = 0.f, flat = 0.f;
+    vec2 ay = perp(b.ax);
+    float zmax = 0.f;
+    for (size_t t = 0; t + 2 < m.indices.size(); t += 3) {
+        vec3 p0 = m.verts[m.indices[t]].pos, p1 = m.verts[m.indices[t + 1]].pos, p2 = m.verts[m.indices[t + 2]].pos;
+        vec3 n = cross(p1 - p0, p2 - p0);
+        float area = length(n) * 0.5f;
+        if (area < 1e-4f) continue;
+        n = n / (2.f * area);
+        vec3 c = (p0 + p1 + p2) / 3.f;
+        float z = c.z - b.baseZ;
+        if (z < 1.f) continue;   // lots, pools, driveways
+        zmax = Max(zmax, Max(p0.z, Max(p1.z, p2.z)) - b.baseZ);
+        if (n.z > 0.3f) {
+            if (n.z < 0.97f) pitched += area;
+            else flat += area;
+            // the roof covers its whole triangle: sample the grid cells the triangle spans (centre and vertices)
+            vec3 q[4] = {c, p0, p1, p2};
+            for (vec3 qq : q) {
+                vec2 d = qq.xy() - b.c;
+                float lx = dot(d, b.ax) / Max(b.hx, 0.5f), ly = dot(d, ay) / Max(b.hy, 0.5f);
+                if (fabsf(lx) > 1.05f || fabsf(ly) > 1.05f) continue;
+                int gx = Clamp((int)floorf((lx + 1.f) * 2.f), 0, 3), gy = Clamp((int)floorf((ly + 1.f) * 2.f), 0, 3);
+                top[gy][gx] = Max(top[gy][gx], z);
+            }
+        }
+    }
+    // massing class: how much of the envelope stands at full height, mid height, low (podium / wing), or is open
+    int nEmpty = 0, nLow = 0, nMid = 0, nFull = 0;
+    float H = Max(zmax, 1.f);
+    float frontSum = 0.f, backSum = 0.f;
+    float fsgn = dot(b.front, ay) >= 0.f ? 1.f : -1.f;   // grid row toward the street
+    for (int gy = 0; gy < 4; gy++)
+        for (int gx = 0; gx < 4; gx++) {
+            float v = top[gy][gx];
+            if (v < 0.f) nEmpty++;
+            else if (v < 0.45f * H) nLow++;
+            else if (v < 0.85f * H) nMid++;
+            else nFull++;
+            int row = fsgn > 0.f ? gy : 3 - gy;
+            float vv = v < 0.f ? 0.f : v / H;
+            if (row == 3) frontSum += vv;
+            if (row == 0) backSum += vv;
+        }
+    auto bucket = [](int n) { return n == 0 ? 0 : (n <= 3 ? 1 : (n <= 7 ? 2 : 3)); };
+    int profile = frontSum > backSum + 0.6f ? 1 : (backSum > frontSum + 0.6f ? 2 : 0);
+    u64 h = 1469598103934665603ull;
+    auto mix = [&](u64 v) { h ^= v; h *= 1099511628211ull; };
+    int family = b.style;   // building kind as the street reads it
+    mix((u64)family);
+    mix((u64)bucket(nEmpty));
+    mix((u64)bucket(nLow));
+    mix((u64)bucket(nMid));
+    mix((u64)profile);
+    mix(pitched > flat * 0.5f ? 1u : 0u);
+    s.silhouette = h;
+    s.heightBand = heightBandOf(zmax);
+    const FacadeGPU& f = bs.facades[b.facade];
+    u64 g = 1469598103934665603ull;
+    auto mixg = [&](u64 v) { g ^= v; g *= 1099511628211ull; };
+    mixg((u64)(int)f.style);
+    int lay = (int)f.wallLayer;
+    if (lay == MAT_PLASTER || lay == MAT_CONCRETE) lay = MAT_STUCCO;   // same read from the street
+    mixg((u64)lay);
+    mixg((u64)(f.flags & 1u));
+    s.facade = g;
+    s.colour = (u64)colourFamily(f.wallColor, true);
+    return s;
+}
+
+// The game's debug-log metric (blockstyle.cpp logRepetition) computed the same way on any version of the world: the
+// signature is style + archetype + massing + roof form + roof + height band + facade pattern (curtain walls: glass
+// family); a world without archetypes (the baseline) has archetype, massing and roof form at their defaults.
+#ifndef CITYLAB_ARCH
+#define CL_ARCH(b) 0u
+#define CL_MASS(b) 0u
+#define CL_RFORM(b) 0u
+#else
+#define CL_ARCH(b) (u32)(b).arch
+#define CL_MASS(b) (u32)(b).massing
+#define CL_RFORM(b) (u32)(b).roofForm
+#endif
+void logMetric(const BuildingSet& bs) {
+    auto band = [](float h) {
+        const float edges[] = {5, 9, 14, 22, 35, 55, 90, 140};
+        int k = 0;
+        while (k < 8 && h > edges[k]) k++;
+        return k;
+    };
+    auto family = [](u32 c) {
+        vec4 v = unpackRGBA8(c);
+        float mx = Max(v.x, Max(v.y, v.z)), mn = Min(v.x, Min(v.y, v.z));
+        float sat = mx > 1e-3f ? (mx - mn) / mx : 0.f;
+        if (sat < 0.14f) return mx > 0.86f ? 0 : (mx > 0.55f ? 1 : 2);
+        float hue;
+        if (mx == v.x) hue = fmodf((v.y - v.z) / (mx - mn), 6.f);
+        else if (mx == v.y) hue = (v.z - v.x) / (mx - mn) + 2.f;
+        else hue = (v.x - v.y) / (mx - mn) + 4.f;
+        if (hue < 0.f) hue += 6.f;
+        return 3 + (int)floorf(hue + 0.5f) % 6;
+    };
+    size_t n = bs.buildings.size();
+    std::vector<u32> sig(n, 0);
+    for (size_t i = 0; i < n; i++) {
+        const Building& b = bs.buildings[i];
+        const FacadeGPU& f = bs.facades[b.facade];
+        int lay = (int)f.wallLayer;
+        if (lay == MAT_PLASTER || lay == MAT_CONCRETE) lay = MAT_STUCCO;
+        u32 h = hash32((u32)b.style * 131u + CL_ARCH(b));
+        h = hashCombine(h, CL_MASS(b) * 17u + CL_RFORM(b) * 3u + (u32)b.roof * 101u);
+        h = hashCombine(h, (u32)band(b.height));
+        h = hashCombine(h, (u32)(int)f.style * 7u + (u32)lay * 61u + (f.flags & 1u));
+        if ((int)f.style == 1) h = hashCombine(h, (u32)family(f.glassColor) * 977u + (u32)family(f.frameColor));
+        sig[i] = h;
+    }
+    struct Acc { double twins = 0, nbrs = 0; int count = 0, unique = 0; };
+    std::map<int, Acc> acc;
+    std::vector<int> nb;
+    for (size_t i = 0; i < n; i++) {
+        const Building& b = bs.buildings[i];
+        if (b.siteElem >= 0) continue;
+        bs.buildingsNear(b.c, 150.f, nb);
+        int same = 0, tot = 0;
+        for (int j : nb) {
+            if ((size_t)j == i || bs.buildings[j].siteElem >= 0 || length(bs.buildings[j].c - b.c) > 150.f) continue;
+            tot++;
+            if (sig[j] == sig[i]) same++;
+        }
+        Acc& a = acc[b.region];
+        a.twins += same; a.nbrs += tot; a.count++; a.unique += same == 0 ? 1 : 0;
+    }
+    printf("log metric (the game's debug log, blockstyle.cpp): share of neighbours within 150 m with the same signature\n");
+    Acc all;
+    for (auto& kv : acc) {
+        const Acc& a = kv.second;
+        if (a.count < 100) continue;
+        printf("  %-26s %6d bldgs %6.1f%%  (%.0f%% without a twin)\n", regionInfo((Region)kv.first).name, a.count, 100.0 * a.twins / Max(1.0, a.nbrs), 100.0 * a.unique / Max(1, a.count));
+        all.twins += a.twins; all.nbrs += a.nbrs; all.count += a.count; all.unique += a.unique;
+    }
+    printf("  %-26s %6d bldgs %6.1f%%  (%.0f%% without a twin)\n", "ALL", all.count, 100.0 * all.twins / Max(1.0, all.nbrs), 100.0 * all.unique / Max(1, all.count));
+}
+
+// Far-LOD triangles of the building meshes over the whole map, by building style (and archetype where there is one)
+void farBreakdown(const BuildingSet& bs) {
+    size_t n = bs.buildings.size();
+    std::vector<long long> tris(n, 0);
+    Jobs::parallelFor((int)n, [&](int i) {
+        const Building& b = bs.buildings[i];
+        if (b.siteElem >= 0) return;
+        MeshData m;
+        buildBuildingMesh(b, bs.facades[b.facade], *gMap, false, vec3(0.f), m, nullptr, nullptr, nullptr);
+        tris[i] = (long long)(m.indices.size() / 3);
+    });
+    const char* styleName[] = {"tower", "midrise", "condo", "deco", "shops", "stripmall", "house", "villa", "warehouse", "factory", "farmhouse", "barn", "motel",
+                               "gasstation", "garage", "church", "shack"};
+    std::map<std::string, std::pair<long long, int>> acc;
+    long long total = 0;
+    for (size_t i = 0; i < n; i++) {
+        const Building& b = bs.buildings[i];
+        if (b.siteElem >= 0) continue;
+        std::string k = b.style < BS_COUNT ? styleName[b.style] : "?";
+#ifdef CITYLAB_ARCH
+        if (b.arch != AR_NONE) k += std::string(" / ") + blockstyle::kArch[b.arch].name;
+#endif
+        acc[k].first += tris[i];
+        acc[k].second++;
+        total += tris[i];
+    }
+    printf("far LOD building triangles, whole map: %lld\n", total);
+    std::vector<std::pair<long long, std::string>> v;
+    for (auto& kv : acc) v.push_back({kv.second.first, kv.first});
+    std::sort(v.rbegin(), v.rend());
+    for (auto& e : v) printf("  %-34s %9lld tris %6d bldgs %7.1f per bldg\n", e.second.c_str(), e.first, acc[e.second].second, (double)e.first / Max(1, acc[e.second].second));
+}
+
+void repetition(const BuildingSet& bs) {
+    double t0 = TimeSeconds();
+    size_t n = bs.buildings.size();
+    std::vector<Sig> sig(n);
+    Jobs::parallelFor((int)n, [&](int i) { sig[i] = signature(bs, i); });
+    double t1 = TimeSeconds();
+    struct Acc { double same = 0, total = 0, uniq = 0, distinct = 0, twin = 0, sameC = 0, twinC = 0, adjPairs = 0, adjSame = 0; int count = 0; };
+    std::map<int, Acc> acc;
+    std::vector<int> near;
+    auto key = [&](size_t j) { return sig[j].silhouette * 31ull + sig[j].facade * 7ull + (u64)sig[j].heightBand; };
+    auto keyC = [&](size_t j) { return key(j) * 13ull + sig[j].colour; };
+    for (size_t i = 0; i < n; i++) {
+        const Building& b = bs.buildings[i];
+        if (b.siteElem >= 0) continue;
+        bs.buildingsNear(b.c, 150.f, near);
+        int same = 0, total = 0, sameC = 0;
+        std::set<u64> distinct;
+        distinct.insert(key(i));
+        for (int j : near) {
+            if ((size_t)j == i) continue;
+            const Building& o = bs.buildings[j];
+            if (o.siteElem >= 0 || length(o.c - b.c) > 150.f) continue;
+            total++;
+            distinct.insert(key(j));
+            if (key(j) == key(i)) same++;
+            if (keyC(j) == keyC(i)) sameC++;
+        }
+        Acc& a = acc[b.region];
+        a.same += same;
+        a.total += total;
+        a.uniq += same == 0 ? 1 : 0;
+        a.twin += total > 0 ? (double)same / total : 0.0;
+        a.sameC += sameC;
+        a.twinC += total > 0 ? (double)sameC / total : 0.0;
+        a.distinct += (double)distinct.size() / (total + 1);
+        a.count++;
+        // the next building along the same block face (lots are generated in order along each street side)
+        if (i + 1 < n) {
+            const Building& o = bs.buildings[i + 1];
+            if (o.siteElem < 0 && dot(o.front, b.front) > 0.98f && length(o.lotC - b.lotC) < b.lotHx + o.lotHx + 8.f) {
+                a.adjPairs++;
+                if (key(i + 1) == key(i)) a.adjSame++;
+            }
+        }
+    }
+    printf("repetition: signature = building kind + massing class + height band + facade class; neighbours within 150 m (%.2f s + %.2f s)\n", t1 - t0, TimeSeconds() - t1);
+    printf("  form twins: same kind, massing class, height band and facade pattern (colour ignored); +colour: also the same colour family\n");
+    printf("  %-26s %6s %7s %8s %8s %9s %9s %10s %9s\n", "district", "bldgs", "nbrs", "twins", "twin%", "unique", "distinct", "+colour%", "nextSame");
+    Acc all;
+    for (auto& kv : acc) {
+        const Acc& a = kv.second;
+        if (a.count < 20) continue;
+        printf("  %-26s %6d %7.1f %8.2f %7.1f%% %8.1f%% %8.1f%% %9.1f%% %8.1f%%\n", regionInfo((Region)kv.first).name, a.count, a.total / a.count, a.same / a.count,
+               100.0 * a.twin / a.count, 100.0 * a.uniq / a.count, 100.0 * a.distinct / a.count, 100.0 * a.twinC / a.count, 100.0 * a.adjSame / Max(1.0, a.adjPairs));
+        all.same += a.same; all.twin += a.twin; all.total += a.total; all.uniq += a.uniq; all.distinct += a.distinct; all.count += a.count; all.twinC += a.twinC;
+        all.adjPairs += a.adjPairs; all.adjSame += a.adjSame;
+    }
+    printf("  %-26s %6d %7.1f %8.2f %7.1f%% %8.1f%% %8.1f%% %9.1f%% %8.1f%%\n", "ALL", all.count, all.total / all.count, all.same / all.count, 100.0 * all.twin / all.count,
+           100.0 * all.uniq / all.count, 100.0 * all.distinct / all.count, 100.0 * all.twinC / all.count, 100.0 * all.adjSame / Max(1.0, all.adjPairs));
+}
+
+// The signatures behind the twins of one district: the form keys with the most twin pairs, what the buildings are
+void twinsReport(const BuildingSet& bs, int region) {
+    size_t n = bs.buildings.size();
+    std::vector<Sig> sig(n);
+    Jobs::parallelFor((int)n, [&](int i) { sig[i] = signature(bs, i); });
+    auto key = [&](size_t j) { return sig[j].silhouette * 31ull + sig[j].facade * 7ull + (u64)sig[j].heightBand; };
+    struct K { double pairs = 0; int bldgs = 0; std::map<std::string, int> what; };
+    std::map<u64, K> acc;
+    std::vector<int> near;
+    double allPairs = 0;
+    int count = 0;
+    const char* styleName[] = {"tower", "midrise", "condo", "deco", "shops", "stripmall", "house", "villa", "warehouse", "factory", "farmhouse", "barn", "motel",
+                               "gasstation", "garage", "church", "shack"};
+    for (size_t i = 0; i < n; i++) {
+        const Building& b = bs.buildings[i];
+        if (b.siteElem >= 0 || b.region != region) continue;
+        count++;
+        bs.buildingsNear(b.c, 150.f, near);
+        int same = 0;
+        for (int j : near) {
+            if ((size_t)j == i) continue;
+            const Building& o = bs.buildings[j];
+            if (o.siteElem >= 0 || length(o.c - b.c) > 150.f) continue;
+            if (key(j) == key(i)) same++;
+        }
+        if (!same) continue;
+        K& k = acc[key(i)];
+        k.pairs += same;
+        k.bldgs++;
+        allPairs += same;
+        std::string w = b.style < BS_COUNT ? styleName[b.style] : "?";
+#ifdef CITYLAB_ARCH
+        if (b.arch != AR_NONE) w += std::string("/") + blockstyle::kArch[b.arch].name;
+        w += " mk" + std::to_string((int)b.massing);
+#endif
+        w += " " + std::to_string((int)b.floors) + "f";
+        k.what[w]++;
+    }
+    std::vector<std::pair<double, u64>> v;
+    for (auto& kv : acc) v.push_back({kv.second.pairs, kv.first});
+    std::sort(v.rbegin(), v.rend());
+    printf("twins in %s (%d bldgs, %.0f twin pairs):\n", regionInfo((Region)region).name, count, allPairs);
+    for (size_t t = 0; t < v.size() && t < 10; t++) {
+        const K& k = acc[v[t].second];
+        std::string ex;
+        std::vector<std::pair<int, std::string>> ws;
+        for (auto& w : k.what) ws.push_back({w.second, w.first});
+        std::sort(ws.rbegin(), ws.rend());
+        for (size_t q = 0; q < ws.size() && q < 3; q++) ex += (q ? ", " : "") + ws[q].second + " x" + std::to_string(ws[q].first);
+        printf("  %5.1f%% of the pairs, %4d bldgs: %s\n", 100.0 * k.pairs / Max(1.0, allPairs), k.bldgs, ex.c_str());
+    }
+}
+
+// ------------------------------------------------------------------------------------------------ triangle counts
+void triCounts(const BuildingSet& bs, vec2 p, float rNear, float rFar, const char* label) {
+    const int cps = kCellsPerSide;
+    long long nearTris = 0, nearVerts = 0, farTris = 0, farVerts = 0, siteTris = 0;
+    int nearCells = 0, farCells = 0, nearBld = 0;
+    double ms = 0.0;
+    long long maxCellTris = 0;
+    for (int cy = 0; cy < cps; cy++)
+        for (int cx = 0; cx < cps; cx++) {
+            vec2 c = cellOrigin(cx, cy) + vec2(kCellSize * 0.5f);
+            float d = length(c - p);
+            if (d > rFar) continue;
+            bool detail = d < rNear;
+            MeshData m;
+            std::vector<CollisionBox> col;
+            std::vector<PropInstance> props;
+            std::vector<LightInstance> lights;
+            double t0 = TimeSeconds();
+            for (int bi : bs.cellLists[(size_t)cy * cps + cx]) {
+                const Building& b = bs.buildings[bi];
+                buildBuildingMesh(b, bs.facades[b.facade], *gMap, detail, vec3(cellOrigin(cx, cy), 0.f), m, detail ? &col : nullptr, detail ? &props : nullptr,
+                                  detail ? &lights : nullptr);
+                if (detail) nearBld++;
+            }
+            double dt = (TimeSeconds() - t0) * 1000.0;
+            long long tris = (long long)m.indices.size() / 3;
+            if (detail) {
+                nearTris += tris;
+                nearVerts += (long long)m.verts.size();
+                nearCells++;
+                ms += dt;
+                maxCellTris = Max(maxCellTris, tris);
+            } else {
+                farTris += tris;
+                farVerts += (long long)m.verts.size();
+                farCells++;
+            }
+        }
+    printf("tris %-22s near(%3.0f m): %3d cells %4d bldgs %9lld tris %9lld verts (max cell %lld tris, %.1f ms gen) | far(%4.0f m): %4d cells %9lld tris %9lld verts\n",
+           label, rNear, nearCells, nearBld, nearTris, nearVerts, maxCellTris, ms, rFar, farCells, farTris, farVerts);
+}
+
+// ------------------------------------------------------------------------------------------------ clay renderer
+struct Image {
+    int w = 0, h = 0;
+    std::vector<vec3> c;
+    std::vector<float> z;   // camera depth (forward distance)
+};
+
+// Albedo of each material as the game's generated layers average it (render/materials.cpp: mean of the two tones)
+vec3 matColour(int mat) {
+    switch (mat) {
+        case MAT_ASPHALT: return vec3(0.06f);
+        case MAT_ASPHALT_OLD: return vec3(0.1f);
+        case MAT_CONCRETE: return vec3(0.38f, 0.37f, 0.35f);
+        case MAT_SIDEWALK: return vec3(0.45f, 0.44f, 0.41f);
+        case MAT_CURB: return vec3(0.5f, 0.49f, 0.46f);
+        case MAT_PAINT_WHITE: return vec3(0.78f);
+        case MAT_PAINT_YELLOW: return vec3(0.7f, 0.5f, 0.06f);
+        case MAT_BRICK: return vec3(0.4f, 0.15f, 0.09f);
+        case MAT_STUCCO: return vec3(0.65f, 0.62f, 0.57f);
+        case MAT_PLASTER: return vec3(0.65f, 0.62f, 0.57f);
+        case MAT_WOOD_SIDING: return vec3(0.66f, 0.66f, 0.65f);
+        case MAT_ROOF_TILE: return vec3(0.5f, 0.19f, 0.08f);
+        case MAT_ROOF_SHINGLE: return vec3(0.15f, 0.14f, 0.135f);
+        case MAT_ROOF_METAL: return vec3(0.5f, 0.51f, 0.54f);
+        case MAT_ROOF_GRAVEL: return vec3(0.4f, 0.385f, 0.36f);
+        case MAT_GLASS: return vec3(0.1f, 0.14f, 0.17f);
+        case MAT_METAL_PAINTED: return vec3(0.6f);
+        case MAT_METAL_BRUSHED: return vec3(0.75f);
+        case MAT_PAVERS: return vec3(0.47f, 0.34f, 0.24f);
+        case MAT_MARBLE: return vec3(0.62f, 0.6f, 0.57f);
+        case MAT_STONE: return vec3(0.54f, 0.49f, 0.42f);
+        case MAT_CORRUGATED: return vec3(0.39f, 0.41f, 0.44f);
+        case MAT_FABRIC: return vec3(0.55f);
+        case MAT_WOOD: return vec3(0.34f, 0.22f, 0.13f);
+        case MAT_TILE_POOL: return vec3(0.14f, 0.52f, 0.72f);
+        case MAT_GRASS: return vec3(0.07f, 0.125f, 0.03f) * 2.2f;
+        case MAT_DIRT: return vec3(0.16f, 0.11f, 0.065f);
+        case MAT_RUBBER: return vec3(0.03f);
+        case MAT_EMISSIVE: return vec3(1.f);
+        case MAT_CHROME: return vec3(0.95f);
+        case MAT_CONCRETE_PANEL: return vec3(0.47f, 0.455f, 0.43f);
+        case MAT_LEAVES: return vec3(0.075f, 0.15f, 0.035f) * 2.2f;
+        case MAT_BARK: return vec3(0.25f, 0.195f, 0.135f);
+        case MAT_PALM_FROND: return vec3(0.09f, 0.17f, 0.04f) * 2.2f;
+        case MAT_SAND: return vec3(0.515f, 0.44f, 0.31f);
+        default: return vec3(0.6f);
+    }
+}
+
+struct Tri {
+    vec3 p[3];
+    vec2 uv[3];
+    vec3 col;      // albedo (non-facade)
+    vec3 n;
+    int facade;    // facade id or -1
+    float emissive;
+};
+
+struct Renderer {
+    std::vector<Tri> tris;
+    // shadow map (orthographic along the sun)
+    vec3 L = normalize(vec3(-0.45f, -0.62f, 0.64f));
+    vec3 su, sv;
+    vec2 smMin;
+    float smCell = 0.4f;
+    int smRes = 0;
+    std::vector<float> sm;
+    const BuildingSet* bs = nullptr;
+
+    void addMesh(const MeshData& m, vec3 org) {
+        for (size_t t = 0; t + 2 < m.indices.size(); t += 3) {
+            Tri tr;
+            const VtxStatic* v[3] = {&m.verts[m.indices[t]], &m.verts[m.indices[t + 1]], &m.verts[m.indices[t + 2]]};
+            for (int k = 0; k < 3; k++) {
+                tr.p[k] = v[k]->pos + org;
+                tr.uv[k] = v[k]->uv;
+            }
+            vec3 n = cross(tr.p[1] - tr.p[0], tr.p[2] - tr.p[0]);
+            float ln = length(n);
+            if (ln < 1e-7f) continue;
+            tr.n = n / ln;
+            int mat = (int)(v[0]->mat & 0xffu);
+            u32 param = (v[0]->mat >> 8) & 0x7fffffu;
+            vec4 vc = unpackRGBA8(v[0]->color);
+            tr.facade = -1;
+            tr.emissive = 0.f;
+            if (mat == MAT_FACADE) {
+                tr.facade = (int)param;
+                tr.col = vec3(vc.x, vc.y, vc.z);
+            } else {
+                tr.col = matColour(mat) * vec3(vc.x, vc.y, vc.z);
+                if (mat == MAT_EMISSIVE) tr.emissive = 1.f;
+            }
+            tris.push_back(tr);
+        }
+    }
+
+    void addTerrain(vec2 mn, vec2 mx, float step) {
+        int nx = (int)ceilf((mx.x - mn.x) / step), ny = (int)ceilf((mx.y - mn.y) / step);
+        for (int j = 0; j < ny; j++)
+            for (int i = 0; i < nx; i++) {
+                vec2 a = mn + vec2(i * step, j * step);
+                vec2 q[4] = {a, a + vec2(step, 0), a + vec2(step, step), a + vec2(0, step)};
+                vec3 p[4];
+                for (int k = 0; k < 4; k++) {
+                    float hgt = gMap->heightAt(q[k].x, q[k].y);
+                    float w = gMap->waterAt(q[k].x, q[k].y);
+                    if (w > kNoWater + 1.f && w > hgt) hgt = w;
+                    p[k] = vec3(q[k], hgt - 0.05f);
+                }
+                vec2 cc = a + vec2(step * 0.5f);
+                vec3 col;
+                float w = gMap->waterAt(cc.x, cc.y);
+                float hg = gMap->heightAt(cc.x, cc.y);
+                if (w > kNoWater + 1.f && w > hg) col = vec3(0.12f, 0.32f, 0.4f);
+                else {
+                    int tx = Clamp((int)worldToTexel(cc.x), 0, kHeightRes - 1), ty = Clamp((int)worldToTexel(cc.y), 0, kHeightRes - 1);
+                    vec4 s0 = unpackRGBA8(gMap->splat0[texelIndex(tx, ty)]), s1 = unpackRGBA8(gMap->splat1[texelIndex(tx, ty)]);
+                    vec3 cols[8] = {vec3(0.86f, 0.8f, 0.62f), vec3(0.32f, 0.48f, 0.22f), vec3(0.45f, 0.36f, 0.25f), vec3(0.5f), vec3(0.3f, 0.27f, 0.2f),
+                                    vec3(0.55f, 0.55f, 0.3f), vec3(0.17f, 0.32f, 0.15f), vec3(0.5f, 0.5f, 0.48f)};
+                    float ws[8] = {s0.x, s0.y, s0.z, s0.w, s1.x, s1.y, s1.z, s1.w};
+                    col = vec3(0.f);
+                    float sw = 0.f;
+                    for (int k = 0; k < 8; k++) col += cols[k] * ws[k], sw += ws[k];
+                    if (sw > 0.f) col = col / sw;
+                }
+                for (int t = 0; t < 2; t++) {
+                    Tri tr;
+                    int idx[3] = {0, t == 0 ? 1 : 2, t == 0 ? 2 : 3};
+                    for (int k = 0; k < 3; k++) {
+                        tr.p[k] = p[idx[k]];
+                        tr.uv[k] = vec2(0.f);
+                    }
+                    vec3 n = cross(tr.p[1] - tr.p[0], tr.p[2] - tr.p[0]);
+                    tr.n = normalize(n);
+                    tr.col = col;
+                    tr.facade = -1;
+                    tr.emissive = 0.f;
+                    tris.push_back(tr);
+                }
+            }
+    }
+
+    void addProps(const std::vector<PropInstance>& props) {
+        for (const PropInstance& p : props) {
+            bool palm = p.type == PROP_PALM || p.type == PROP_PALM_TALL;
+            bool tree = p.type == PROP_TREE_OAK || p.type == PROP_TREE_PINE || p.type == PROP_STREET_TREE || p.type == PROP_CYPRESS || p.type == PROP_MANGROVE;
+            bool bush = p.type == PROP_BUSH;
+            if (!palm && !tree && !bush) continue;
+            MeshData m;
+            float s = p.scale;
+            if (palm) {
+                float H = (p.type == PROP_PALM_TALL ? 14.f : 9.f) * s;
+                m.cylinder(p.pos, 0.22f * s, 0.16f * s, H, 5, packRGBA8(0.55f, 0.45f, 0.35f, 1), makeMat(MAT_BARK), false);
+                for (int k = 0; k < 6; k++) {
+                    float a = kTwoPi * k / 6 + p.yaw;
+                    vec3 d(cosf(a), sinf(a), 0);
+                    vec3 a0 = p.pos + vec3(0, 0, H), a1 = a0 + d * (3.2f * s) - vec3(0, 0, 1.4f * s);
+                    vec3 side = cross(d, vec3(0, 0, 1)) * (0.6f * s);
+                    m.quad(a0 - side * 0.3f, a1 - side, a1 + side, a0 + side * 0.3f, vec2(0), vec2(0), vec2(0), vec2(0), packRGBA8(0.9f, 1.f, 0.9f, 1), makeMat(MAT_PALM_FROND));
+                    m.quad(a0 + side * 0.3f, a1 + side, a1 - side, a0 - side * 0.3f, vec2(0), vec2(0), vec2(0), vec2(0), packRGBA8(0.9f, 1.f, 0.9f, 1), makeMat(MAT_PALM_FROND));
+                }
+            } else {
+                float H = (bush ? 1.2f : (p.type == PROP_TREE_PINE ? 12.f : 8.f)) * s, R = (bush ? 1.f : 3.2f) * s;
+                if (!bush) m.cylinder(p.pos, 0.25f * s, 0.18f * s, H * 0.5f, 5, packRGBA8(0.55f, 0.45f, 0.35f, 1), makeMat(MAT_BARK), false);
+                vec3 c = p.pos + vec3(0, 0, bush ? R * 0.6f : H * 0.62f);
+                // octahedron canopy
+                vec3 ax[6] = {vec3(R, 0, 0), vec3(-R, 0, 0), vec3(0, R, 0), vec3(0, -R, 0), vec3(0, 0, R * 0.9f), vec3(0, 0, -R * 0.7f)};
+                int f[8][3] = {{0, 2, 4}, {2, 1, 4}, {1, 3, 4}, {3, 0, 4}, {2, 0, 5}, {1, 2, 5}, {3, 1, 5}, {0, 3, 5}};
+                for (auto& t : f) {
+                    u32 i0 = m.addVertex(c + ax[t[0]], vec3(0, 0, 1), vec3(1, 0, 0), vec2(0), packRGBA8(1, 1, 1, 1), makeMat(MAT_LEAVES));
+                    u32 i1 = m.addVertex(c + ax[t[1]], vec3(0, 0, 1), vec3(1, 0, 0), vec2(0), packRGBA8(1, 1, 1, 1), makeMat(MAT_LEAVES));
+                    u32 i2 = m.addVertex(c + ax[t[2]], vec3(0, 0, 1), vec3(1, 0, 0), vec2(0), packRGBA8(1, 1, 1, 1), makeMat(MAT_LEAVES));
+                    m.tri(i0, i1, i2);
+                }
+            }
+            addMesh(m, vec3(0.f));
+        }
+    }
+
+    void buildShadowMap(vec2 c, float half) {
+        su = normalize(cross(vec3(0, 0, 1), L));
+        sv = cross(L, su);
+        smRes = (int)ceilf(2.f * half / smCell);
+        smRes = Min(smRes, 6000);
+        smCell = 2.f * half / smRes;
+        smMin = vec2(dot(vec3(c, 0.f), su) - half, dot(vec3(c, 0.f), sv) - half);
+        sm.assign((size_t)smRes * smRes, -1e30f);
+        for (const Tri& t : tris) {
+            vec3 q[3];
+            for (int k = 0; k < 3; k++) q[k] = vec3((dot(t.p[k], su) - smMin.x) / smCell, (dot(t.p[k], sv) - smMin.y) / smCell, dot(t.p[k], L));
+            float x0 = Min(q[0].x, Min(q[1].x, q[2].x)), x1 = Max(q[0].x, Max(q[1].x, q[2].x));
+            float y0 = Min(q[0].y, Min(q[1].y, q[2].y)), y1 = Max(q[0].y, Max(q[1].y, q[2].y));
+            int ix0 = Max(0, (int)floorf(x0)), ix1 = Min(smRes - 1, (int)ceilf(x1)), iy0 = Max(0, (int)floorf(y0)), iy1 = Min(smRes - 1, (int)ceilf(y1));
+            float area = (q[1].x - q[0].x) * (q[2].y - q[0].y) - (q[2].x - q[0].x) * (q[1].y - q[0].y);
+            if (fabsf(area) < 1e-9f) continue;
+            for (int y = iy0; y <= iy1; y++)
+                for (int x = ix0; x <= ix1; x++) {
+                    float px = x + 0.5f, py = y + 0.5f;
+                    float w0 = ((q[1].x - px) * (q[2].y - py) - (q[2].x - px) * (q[1].y - py)) / area;
+                    float w1 = ((q[2].x - px) * (q[0].y - py) - (q[0].x - px) * (q[2].y - py)) / area;
+                    float w2 = 1.f - w0 - w1;
+                    if (w0 < -0.01f || w1 < -0.01f || w2 < -0.01f) continue;
+                    float d = w0 * q[0].z + w1 * q[1].z + w2 * q[2].z;
+                    float& s = sm[(size_t)y * smRes + x];
+                    if (d > s) s = d;
+                }
+        }
+    }
+    float shadow(vec3 p, vec3 n) const {
+        if (smRes == 0) return 1.f;
+        vec3 q = p + n * 0.25f;
+        float x = (dot(q, su) - smMin.x) / smCell, y = (dot(q, sv) - smMin.y) / smCell;
+        int ix = (int)x, iy = (int)y;
+        if (ix < 0 || iy < 0 || ix >= smRes || iy >= smRes) return 1.f;
+        float d = dot(q, L);
+        float lit = 0.f;
+        int nn = 0;
+        for (int dy = -1; dy <= 1; dy++)
+            for (int dx = -1; dx <= 1; dx++) {
+                int xx = Clamp(ix + dx, 0, smRes - 1), yy = Clamp(iy + dy, 0, smRes - 1);
+                lit += sm[(size_t)yy * smRes + xx] <= d + 0.35f ? 1.f : 0.f;
+                nn++;
+            }
+        return lit / nn;
+    }
+
+    // facade albedo at uv (simplified facade.hlsli)
+    vec3 facadeColour(int id, vec2 uv, vec3 vtint, bool& window) const {
+        window = false;
+        if (!bs || id < 0 || id >= (int)bs->facades.size()) return vec3(0.7f);
+        const FacadeGPU& f = bs->facades[id];
+        vec4 wc = unpackRGBA8(f.wallColor), fc = unpackRGBA8(f.frameColor), gc = unpackRGBA8(f.glassColor);
+        int layer = (int)f.wallLayer;
+        vec3 wall = matColour(layer) * vec3(wc.x, wc.y, wc.z) * 1.6f * vtint;   // facade.hlsli: layer albedo * wall colour * 1.6
+        bool ground = uv.y < f.groundH;
+        float fy = ground ? uv.y : fmodf(uv.y - f.groundH, f.floorH);
+        float fh = ground ? f.groundH : f.floorH;
+        float bay = Max(f.bayW, 0.3f);
+        float bayIdx = floorf(uv.x / bay);
+        float fx = uv.x - bayIdx * bay;
+        int style = (int)f.style;
+        float winW = bay * f.winW, winH = fh * f.winH, sill = f.sillH;
+        bool store = ground && (f.flags & 1u);
+        if (store) { winW = bay * 0.92f; sill = 0.35f; winH = fh - 1.3f; }
+        if (style == 1 && !store) { winW = bay - 0.12f; winH = fh - 0.1f; sill = 0.05f; }
+        if (style == 2 && !store) { winW = bay; sill = fh * 0.38f; winH = fh * 0.45f; }
+        if (style == 4 && !store) { winH = fh * 0.25f; sill = fh * 0.6f; winW = bay * 0.5f; }
+        float x0 = (bay - winW) * 0.5f;
+        float wx = fx - x0, wy = fy - sill;
+        bool inWin = wx >= 0 && wx <= winW && wy >= 0 && wy <= winH;
+        if (style == 4 && !store) {
+            u32 rh = facade_detail::shHash3u((u32)(bayIdx + 1000.f), (u32)(ground ? 0 : (int)floorf((uv.y - f.groundH) / f.floorH) + 1), f.seed);
+            if (facade_detail::shHashF(rh + 9u) < 0.5f) inWin = false;
+        }
+        bool signBand = (f.flags & 2u) && ground && fy > fh - 1.05f && fy < fh - 0.15f;
+        if (signBand) return vec3(fc.x, fc.y, fc.z) * 0.6f + vec3(0.15f);
+        if (style == 6 && !ground) {
+            float finX = fmodf(uv.x / (bay * 2.f), 1.f);
+            if (fabsf(finX - 0.5f) < 0.03f) return vec3(fc.x, fc.y, fc.z);
+            if (fy > sill + winH && fy < sill + winH + 0.18f) return wall * 0.8f;
+        }
+        if (style == 1 && !ground && fy < 0.35f) return vec3(fc.x, fc.y, fc.z) * 0.8f;
+        if (style == 3 && !ground && fy < 0.25f) return vec3(0.85f);
+        if (inWin) {
+            float edge = Min(Min(wx, winW - wx), Min(wy, winH - wy));
+            if (edge < (style == 1 ? 0.06f : 0.09f)) return vec3(fc.x, fc.y, fc.z);
+            window = true;
+            return vec3(gc.x, gc.y, gc.z) * 0.22f + vec3(0.02f);
+        }
+        return wall;
+    }
+
+    void render(Image& img, vec3 pos, float yawDeg, float pitchDeg, float fovDeg) {
+        float yaw = yawDeg * kDegToRad, pitch = pitchDeg * kDegToRad;
+        vec3 fwd(-sinf(yaw) * cosf(pitch), cosf(yaw) * cosf(pitch), sinf(pitch));
+        vec3 rt = normalize(cross(fwd, vec3(0, 0, 1)));
+        vec3 up = cross(rt, fwd);
+        float fy = 1.f / tanf(fovDeg * kDegToRad * 0.5f);
+        int W = img.w, H = img.h;
+        float hh = H * 0.5f;
+        img.c.assign((size_t)W * H, vec3(0.f));
+        img.z.assign((size_t)W * H, 1e30f);
+        std::vector<int> triId((size_t)W * H, -1);
+        std::vector<vec3> bary((size_t)W * H);
+        const float zn = 0.4f;
+        for (size_t ti = 0; ti < tris.size(); ti++) {
+            const Tri& t = tris[ti];
+            if (dot(t.n, pos - t.p[0]) <= 0.f) continue;   // back faces culled, as the world pass does
+            vec3 cpts[3];
+            for (int k = 0; k < 3; k++) {
+                vec3 d = t.p[k] - pos;
+                cpts[k] = vec3(dot(d, rt), dot(d, up), dot(d, fwd));
+            }
+            // near clip (Sutherland-Hodgman on z), barycentrics carried along
+            struct V { vec3 c; vec3 b; };
+            V in[4], out[4];
+            int nin = 3, nout = 0;
+            for (int k = 0; k < 3; k++) in[k] = {cpts[k], vec3(k == 0, k == 1, k == 2)};
+            for (int k = 0; k < nin; k++) {
+                const V& a = in[k];
+                const V& b = in[(k + 1) % nin];
+                bool ai = a.c.z >= zn, bi = b.c.z >= zn;
+                if (ai) out[nout++] = a;
+                if (ai != bi) {
+                    float s = (zn - a.c.z) / (b.c.z - a.c.z);
+                    out[nout++] = {lerp(a.c, b.c, s), lerp(a.b, b.b, s)};
+                }
+                if (nout >= 4) break;
+            }
+            if (nout < 3) continue;
+            for (int f = 1; f + 1 < nout; f++) {
+                V vv[3] = {out[0], out[f], out[f + 1]};
+                vec3 s[3];
+                for (int k = 0; k < 3; k++) s[k] = vec3(W * 0.5f + vv[k].c.x / vv[k].c.z * fy * hh, hh - vv[k].c.y / vv[k].c.z * fy * hh, vv[k].c.z);
+                float area = (s[1].x - s[0].x) * (s[2].y - s[0].y) - (s[2].x - s[0].x) * (s[1].y - s[0].y);
+                if (fabsf(area) < 1e-6f) continue;
+                int x0 = Max(0, (int)floorf(Min(s[0].x, Min(s[1].x, s[2].x)))), x1 = Min(W - 1, (int)ceilf(Max(s[0].x, Max(s[1].x, s[2].x))));
+                int y0 = Max(0, (int)floorf(Min(s[0].y, Min(s[1].y, s[2].y)))), y1 = Min(H - 1, (int)ceilf(Max(s[0].y, Max(s[1].y, s[2].y))));
+                if (x0 > x1 || y0 > y1) continue;
+                for (int y = y0; y <= y1; y++)
+                    for (int x = x0; x <= x1; x++) {
+                        float px = x + 0.5f, py = y + 0.5f;
+                        float w0 = ((s[1].x - px) * (s[2].y - py) - (s[2].x - px) * (s[1].y - py)) / area;
+                        float w1 = ((s[2].x - px) * (s[0].y - py) - (s[0].x - px) * (s[2].y - py)) / area;
+                        float w2 = 1.f - w0 - w1;
+                        if (w0 < 0.f || w1 < 0.f || w2 < 0.f) continue;
+                        // perspective correct
+                        float iz = w0 / s[0].z + w1 / s[1].z + w2 / s[2].z;
+                        float z = 1.f / iz;
+                        size_t pi = (size_t)y * W + x;
+                        if (z >= img.z[pi]) continue;
+                        img.z[pi] = z;
+                        triId[pi] = (int)ti;
+                        vec3 bb = (vv[0].b * (w0 / s[0].z) + vv[1].b * (w1 / s[1].z) + vv[2].b * (w2 / s[2].z)) * z;
+                        bary[pi] = bb;
+                    }
+            }
+        }
+        // shade
+        vec3 skyTop(0.38f, 0.58f, 0.85f), skyHor(0.75f, 0.83f, 0.9f);
+        for (int y = 0; y < H; y++)
+            for (int x = 0; x < W; x++) {
+                size_t pi = (size_t)y * W + x;
+                vec3 ray = normalize(fwd + rt * ((x + 0.5f - W * 0.5f) / (fy * hh)) - up * ((y + 0.5f - hh) / (fy * hh)));
+                vec3 sky = lerp(skyHor, skyTop, Saturate(ray.z * 3.f));
+                int ti = triId[pi];
+                if (ti < 0) {
+                    img.c[pi] = sky;
+                    continue;
+                }
+                const Tri& t = tris[ti];
+                vec3 b = bary[pi];
+                vec3 wp = t.p[0] * b.x + t.p[1] * b.y + t.p[2] * b.z;
+                vec3 n = t.n;
+                if (dot(n, ray) > 0.f) n = -n;
+                vec3 alb = t.col;
+                bool window = false;
+                if (t.facade >= 0) {
+                    vec2 uv = t.uv[0] * b.x + t.uv[1] * b.y + t.uv[2] * b.z;
+                    alb = facadeColour(t.facade, uv, t.col, window);
+                }
+                float sh = shadow(wp, n);
+                float ndl = Max(0.f, dot(n, L));
+                vec3 amb = lerp(vec3(0.42f, 0.44f, 0.48f), vec3(0.55f, 0.62f, 0.72f), n.z * 0.5f + 0.5f);
+                vec3 c = alb * (amb * 0.55f + vec3(1.f, 0.95f, 0.85f) * (ndl * sh * 1.05f));
+                if (window) {
+                    // sky / street reflection on glass
+                    vec3 r = ray - n * (2.f * dot(ray, n));
+                    float fres = 0.08f + 0.6f * powf(1.f - Max(0.f, -dot(ray, n)), 4.f);
+                    c = c + lerp(vec3(0.35f, 0.38f, 0.4f), skyTop, Saturate(r.z * 2.f + 0.3f)) * (0.25f + fres);
+                }
+                if (t.emissive > 0.f) c = t.col;
+                float dist = img.z[pi];
+                float haze = 1.f - expf(-dist / 2600.f);
+                img.c[pi] = lerp(c, skyHor, haze);
+            }
+    }
+};
+
+bool writePPM(const Image& img, const std::string& path) {
+    FILE* f = fopen(path.c_str(), "wb");
+    if (!f) return false;
+    fprintf(f, "P6 %d %d 255\n", img.w, img.h);
+    std::vector<unsigned char> row((size_t)img.w * 3);
+    for (int y = 0; y < img.h; y++) {
+        for (int x = 0; x < img.w; x++) {
+            vec3 c = img.c[(size_t)y * img.w + x];
+            for (int k = 0; k < 3; k++) {
+                float v = (&c.x)[k];
+                v = v / (1.f + v * 0.25f) * 1.25f;            // soft shoulder
+                v = powf(Saturate(v), 1.f / 2.2f);
+                row[(size_t)x * 3 + k] = (unsigned char)(v * 255.f + 0.5f);
+            }
+        }
+        fwrite(row.data(), 1, row.size(), f);
+    }
+    fclose(f);
+    return true;
+}
+
+// Render a view: geometry from every cell within `radius` of the camera's look-at area
+void renderView(const BuildingSet& bs, const std::string& out, vec3 pos, float yaw, float pitch, float fov, int W, int H, vec2 focus, float radius,
+                float detailR) {
+    Renderer R;
+    R.bs = &bs;
+    const int cps = kCellsPerSide;
+    vec2 c2 = focus;
+    int cx0 = Max(0, (int)floorf((c2.x - radius + kWorldHalf) / kCellSize)), cx1 = Min(cps - 1, (int)floorf((c2.x + radius + kWorldHalf) / kCellSize));
+    int cy0 = Max(0, (int)floorf((c2.y - radius + kWorldHalf) / kCellSize)), cy1 = Min(cps - 1, (int)floorf((c2.y + radius + kWorldHalf) / kCellSize));
+    std::vector<std::pair<int, int>> cells;
+    for (int cy = cy0; cy <= cy1; cy++)
+        for (int cx = cx0; cx <= cx1; cx++) cells.push_back({cx, cy});
+    std::vector<CellGeometry> geos(cells.size());
+    Jobs::parallelFor((int)cells.size(), [&](int i) {
+        int cx = cells[i].first, cy = cells[i].second;
+        vec2 cc = cellOrigin(cx, cy) + vec2(kCellSize * 0.5f);
+        bool detail = length(cc - pos.xy()) < detailR || length(cc - focus) < detailR;
+        generateCell(cx, cy, detail, geos[i]);
+    });
+    for (size_t i = 0; i < cells.size(); i++) {
+        vec3 org(cellOrigin(cells[i].first, cells[i].second), 0.f);
+        R.addMesh(geos[i].opaque, org);
+        R.addProps(geos[i].props);
+    }
+    R.addTerrain(c2 - vec2(radius), c2 + vec2(radius), radius > 900.f ? 12.f : 6.f);
+    R.buildShadowMap(c2, radius + 150.f);
+    Image img;
+    img.w = W;
+    img.h = H;
+    R.render(img, pos, yaw, pitch, fov);
+    writePPM(img, out);
+    printf("render %s: %zu tris\n", out.c_str(), R.tris.size());
+}
+
+
+// View list: "name aerial fx fy dist azimuthDeg elevationDeg fovDeg hour" or "name street x y turnDeg pitchDeg fovDeg hour"
+// (street: on the sidewalk of the street nearest x,y on x,y's side, eye 1.7 m, looking along the street turned toward the
+// frontage). Renders clay images into outDir and writes the matching in-game --shot arguments to outDir/shots.txt.
+void views(const BuildingSet& bs, const char* listPath, const std::string& outDir, int W, int H, bool render) {
+    FILE* f = fopen(listPath, "r");
+    if (!f) { printf("no view list %s\n", listPath); return; }
+    FILE* shots = fopen((outDir + "/shots.txt").c_str(), "w");
+    char line[512];
+    while (fgets(line, sizeof(line), f)) {
+        char name[128], kind[32];
+        float a, b, c, d, e, fov, hour;
+        if (line[0] == '#' || sscanf(line, "%127s %31s", name, kind) < 2) continue;
+        vec3 pos;
+        float yaw = 0.f, pitch = 0.f;
+        vec2 focus;
+        float radius = 700.f;
+        if (strcmp(kind, "aerial") == 0) {
+            if (sscanf(line, "%*s %*s %f %f %f %f %f %f %f", &a, &b, &c, &d, &e, &fov, &hour) != 7) continue;
+            focus = vec2(a, b);
+            float az = d * kDegToRad, el = e * kDegToRad;
+            float gz = gMap->heightAt(a, b);
+            vec3 dir(cosf(el) * sinf(az), cosf(el) * cosf(az), sinf(el));   // from focus toward the camera (az from north, clockwise)
+            pos = vec3(focus, gz) + dir * c;
+            vec3 fw = normalize(vec3(focus, gz) - pos);
+            yaw = atan2f(-fw.x, fw.y) * kRadToDeg;
+            pitch = asinf(fw.z) * kRadToDeg;
+            radius = Max(450.f, c * 1.6f);
+        } else if (strcmp(kind, "front") == 0) {
+            // name front <building index> <distance from the facade> <eye height> <side offset> <fov> <hour>
+            int bi;
+            if (sscanf(line, "%*s %*s %d %f %f %f %f %f", &bi, &a, &b, &c, &fov, &hour) != 6 || bi < 0 || bi >= (int)bs.buildings.size()) continue;
+            const Building& B = bs.buildings[bi];
+            vec2 fc = B.c + B.front * B.hy;
+            vec2 cp = fc + B.front * a + B.ax * c;
+            float gz = gMap->heightAt(cp.x, cp.y);
+            float rz;
+            if (gRoads->surfaceHeight(cp, &rz, gz + 3.f)) gz = Max(gz, rz);
+            pos = vec3(cp, gz + b);
+            vec3 target(B.c + B.front * (B.hy * 0.5f), B.baseZ + Min(B.height * 0.45f, 12.f));
+            vec3 fw = normalize(target - pos);
+            yaw = atan2f(-fw.x, fw.y) * kRadToDeg;
+            pitch = asinf(fw.z) * kRadToDeg;
+            focus = B.c;
+            radius = 450.f;
+        } else {
+            if (sscanf(line, "%*s %*s %f %f %f %f %f %f", &a, &b, &c, &d, &fov, &hour) != 6) continue;
+            vec2 p(a, b);
+            float s0, dd, side;
+            int ei = gRoads->nearestEdge(p, 120.f, &s0, &dd, &side);
+            if (ei < 0) { printf("view %s: no street\n", name); continue; }
+            const RoadEdge& ed = gRoads->edges[ei];
+            vec3 cp = ed.posAt(s0);
+            vec2 t = normalize(ed.tangentAt(s0).xy());
+            vec2 out = normalize(p - cp.xy());
+            if (fabsf(dot(out, t)) > 0.9f) out = perp(t);
+            vec2 n = perp(t);
+            if (dot(n, out) < 0.f) n = -n;
+            vec2 sp = cp.xy() + n * (ed.halfWidth + Max(ed.sidewalk, 1.2f) * 0.5f);
+            float gz = cp.z + 0.15f;
+            pos = vec3(sp, gz + 1.7f);
+            // look along the street (the direction with the building side on the left or right per turn sign)
+            vec2 look = t;
+            float turn = c * kDegToRad;
+            // turn toward the frontage
+            float sgn = cross(look, n) > 0.f ? -1.f : 1.f;
+            vec2 lk = normalize(look * cosf(turn) + n * sinf(turn));
+            (void)sgn;
+            yaw = atan2f(-lk.x, lk.y) * kRadToDeg;
+            pitch = d;
+            focus = sp + look * 150.f;
+            radius = 520.f;
+        }
+        if (shots) fprintf(shots, "--shot %.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%s\n", pos.x, pos.y, pos.z, yaw, pitch, hour, name);
+        printf("view %s: pos (%.1f, %.1f, %.1f) yaw %.1f pitch %.1f\n", name, pos.x, pos.y, pos.z, yaw, pitch);
+        if (render) renderView(bs, outDir + "/" + name + ".ppm", pos, yaw, pitch, fov, W, H, focus, radius, 560.f);
+    }
+    fclose(f);
+    if (shots) fclose(shots);
+}
+
+}  // namespace citylab
+
+int main(int argc, char** argv) {
+    using namespace citylab;
+    setvbuf(stdout, nullptr, _IOLBF, 0);
+    Jobs::init(Max(1, (int)std::thread::hardware_concurrency() - 1));
+    double t0 = TimeSeconds();
+    WorldMap map;
+    map.generate();
+    gMap = &map;
+    RoadNetwork roads;
+    roads.generate(map);
+    gRoads = &roads;
+    double tb = TimeSeconds();
+    BuildingSet bs;
+    bs.generate(map, roads);
+    gBuildings = &bs;
+    printf("world generated in %.2f s (buildings %.2f s)\n", TimeSeconds() - t0, TimeSeconds() - tb);
+    for (int i = 1; i < argc; i++) {
+        std::string a = argv[i];
+        if (a == "--stats") {
+            repetition(bs);
+            logMetric(bs);
+        } else if (a == "--logmetric") {
+            logMetric(bs);
+        } else if (a == "--farbreak") {
+            farBreakdown(bs);
+        } else if (a == "--interiors") {
+            for (auto& d : gInteriors->defs)
+                printf("interior '%s' kind %d at (%.2f, %.2f, %.2f) ax (%.4f, %.4f) x %.2f..%.2f depth %.2f ceil %.2f openings %zu doors %zu\n", d.name.c_str(), (int)d.kind,
+                       d.origin.x, d.origin.y, d.origin.z, d.ax.x, d.ax.y, d.x0, d.x1, d.depth, d.ceil, d.openings.size(), d.doors.size());
+        } else if (a == "--tris" && i + 1 < argc) {
+            float x, y, rn, rf;
+            char label[64] = {};
+            if (sscanf(argv[++i], "%f,%f,%f,%f,%63s", &x, &y, &rn, &rf, label) >= 4) triCounts(bs, vec2(x, y), rn, rf, label);
+        } else if (a == "--render" && i + 1 < argc) {
+            // name,x,y,z,yawDeg,pitchDeg,fovDeg,W,H,focusX,focusY,radius,detailR
+            char name[256] = {};
+            float x, y, z, yaw, pitch, fov, fx, fyy, rad, dr;
+            int W, H;
+            if (sscanf(argv[++i], "%255[^,],%f,%f,%f,%f,%f,%f,%d,%d,%f,%f,%f,%f", name, &x, &y, &z, &yaw, &pitch, &fov, &W, &H, &fx, &fyy, &rad, &dr) == 13)
+                renderView(bs, name, vec3(x, y, z), yaw, pitch, fov, W, H, vec2(fx, fyy), rad, dr);
+            else
+                printf("bad --render spec\n");
+        } else if (a == "--views" && i + 2 < argc) {
+            const char* list = argv[++i];
+            std::string dir = argv[++i];
+            views(bs, list, dir, 960, 540, true);
+        } else if (a == "--viewsnorender" && i + 2 < argc) {
+            const char* list = argv[++i];
+            std::string dir = argv[++i];
+            views(bs, list, dir, 960, 540, false);
+        } else if (a == "--regions") {
+            std::map<int, std::pair<vec2, int>> acc;
+            for (const Building& b : bs.buildings) {
+                auto& e = acc[b.region];
+                e.first += b.c;
+                e.second++;
+            }
+            for (auto& kv : acc) {
+                vec2 c = kv.second.first / (float)kv.second.second;
+                // the building nearest the centroid
+                float bd = 1e30f;
+                vec2 best = c;
+                for (const Building& b : bs.buildings)
+                    if (b.region == kv.first && length(b.c - c) < bd) bd = length(b.c - c), best = b.c;
+                printf("region %-26s %6d bldgs centroid (%.0f, %.0f) nearest building (%.0f, %.0f)\n", regionInfo((Region)kv.first).name, kv.second.second, c.x, c.y,
+                       best.x, best.y);
+            }
+        } else if (a == "--plan" && i + 1 < argc) {
+            // --plan x,y,halfSize,out.ppm: top-down plan at 0.5 m/px: roads, lot outlines, building envelopes, open lots
+            float x, y, hsz;
+            char out[256] = {};
+            if (sscanf(argv[++i], "%f,%f,%f,%255s", &x, &y, &hsz, out) != 4) continue;
+            int N = (int)(2.f * hsz / 0.5f);
+            Image img;
+            img.w = img.h = N;
+            img.c.assign((size_t)N * N, vec3(0.75f, 0.78f, 0.72f));
+            auto px = [&](vec2 p, int& ix, int& iy) { ix = (int)((p.x - (x - hsz)) / 0.5f); iy = N - 1 - (int)((p.y - (y - hsz)) / 0.5f); };
+            for (int iy = 0; iy < N; iy++)
+                for (int ix = 0; ix < N; ix++) {
+                    vec2 p(x - hsz + (ix + 0.5f) * 0.5f, y + hsz - (iy + 0.5f) * 0.5f);
+                    vec3& c = img.c[(size_t)iy * N + ix];
+                    if (gMap->isWater(p.x, p.y)) c = vec3(0.3f, 0.5f, 0.7f);
+                    else if (gRoads->nearRoad(p, 0.f)) c = vec3(0.35f);
+                    std::vector<int> nb;
+                    bs.buildingsNear(p, 1.f, nb);
+                    for (int bi : nb) {
+                        const Building& b = bs.buildings[bi];
+                        vec2 d = p - b.c;
+                        vec2 dl = p - b.lotC;
+                        bool inB = fabsf(dot(d, b.ax)) < b.hx && fabsf(dot(d, perp(b.ax))) < b.hy;
+                        bool onLot = fabsf(fabsf(dot(dl, b.ax)) - b.lotHx) < 0.35f && fabsf(dot(dl, perp(b.ax))) < b.lotHy + 0.3f;
+                        onLot = onLot || (fabsf(fabsf(dot(dl, perp(b.ax))) - b.lotHy) < 0.35f && fabsf(dot(dl, b.ax)) < b.lotHx + 0.3f);
+                        if (inB) c = b.style == BS_GARAGE ? vec3(0.55f, 0.35f, 0.6f) : (b.style == BS_HOUSE || b.style == BS_VILLA ? vec3(0.8f, 0.45f, 0.3f) : vec3(0.95f, 0.85f, 0.55f));
+                        else if (onLot) c = vec3(0.2f, 0.2f, 0.9f);
+                    }
+#ifdef CITYLAB_ARCH
+                    int cx = Clamp((int)((p.x + kWorldHalf) / kCellSize), 0, kCellsPerSide - 1), cy = Clamp((int)((p.y + kWorldHalf) / kCellSize), 0, kCellsPerSide - 1);
+                    if (!bs.openCellLists.empty())
+                        for (int dy = -1; dy <= 1; dy++)
+                            for (int dx = -1; dx <= 1; dx++) {
+                                int nx = cx + dx, ny = cy + dy;
+                                if (nx < 0 || ny < 0 || nx >= kCellsPerSide || ny >= kCellsPerSide) continue;
+                                for (int li : bs.openCellLists[(size_t)ny * kCellsPerSide + nx]) {
+                                    const OpenLot& L = bs.openLots[li];
+                                    vec2 d = p - L.c;
+                                    if (fabsf(dot(d, L.ax)) < L.hx && fabsf(dot(d, perp(L.ax))) < L.hy && c.x > 0.7f && c.y > 0.7f && c.z < 0.75f)
+                                        c = L.kind == OL_PARKING ? vec3(0.15f) : (L.kind == OL_YARD ? vec3(0.4f, 0.75f, 0.35f) : vec3(0.6f));
+                                }
+                            }
+#endif
+                }
+            (void)px;
+            writePPM(img, out);
+            printf("plan %s\n", out);
+#ifdef CITYLAB_ARCH
+        } else if (a == "--pavedtest") {
+            // pavedGrid against pavedAt on every cell with buildings: agreement and cost
+            double tg = 0.0, tp = 0.0;
+            long long samples = 0, paved = 0, mismatch = 0;
+            int cellsTested = 0;
+            std::vector<u8> grid;
+            const int n = 64;
+            for (int cy = 0; cy < kCellsPerSide; cy++)
+                for (int cx = 0; cx < kCellsPerSide; cx++) {
+                    size_t ci = (size_t)cy * kCellsPerSide + cx;
+                    if (ci >= bs.cellLists.size() || bs.cellLists[ci].empty() || (cx + cy) % 3 != 0) continue;
+                    double t0 = TimeSeconds();
+                    paved += bs.pavedGrid(cx, cy, n, grid);
+                    tg += TimeSeconds() - t0;
+                    vec2 o = cellOrigin(cx, cy);
+                    double t1 = TimeSeconds();
+                    for (int iy = 0; iy < n; iy++)
+                        for (int ix = 0; ix < n; ix++) {
+                            bool a2 = bs.pavedAt(o + vec2((ix + 0.5f) * kCellSize / n, (iy + 0.5f) * kCellSize / n));
+                            if (a2 != (grid[(size_t)iy * n + ix] != 0)) mismatch++;
+                            samples++;
+                        }
+                    tp += TimeSeconds() - t1;
+                    cellsTested++;
+                }
+            printf("pavedtest: %d cells, %lld samples (%dx%d per cell), %.1f%% paved, %lld mismatches; pavedGrid %.3f ms per cell, pavedAt %.2f us per call\n",
+                   cellsTested, samples, n, n, 100.0 * paved / Max(1LL, samples), mismatch, 1000.0 * tg / Max(1, cellsTested), 1e6 * tp / Max(1LL, samples));
+        } else if (a == "--find" && i + 1 < argc) {
+            // --find arch,x,y[,massing]: the nearest buildings of an archetype (and massing) to a point
+            int ar = 0, mk = -1;
+            float x = 0, y = 0;
+            sscanf(argv[++i], "%d,%f,%f,%d", &ar, &x, &y, &mk);
+            std::vector<std::pair<float, int>> found;
+            for (size_t k = 0; k < bs.buildings.size(); k++) {
+                const Building& b = bs.buildings[k];
+                if (b.arch != ar || (mk >= 0 && b.massing != mk)) continue;
+                found.push_back({length(b.c - vec2(x, y)), (int)k});
+            }
+            std::sort(found.begin(), found.end());
+            for (size_t k = 0; k < found.size() && k < 6; k++) {
+                const Building& b = bs.buildings[found[k].second];
+                printf("find arch %d: b%d at (%.1f, %.1f) front (%.2f, %.2f) hx %.1f hy %.1f floors %d massing %d roof %d flags %d region %d\n", ar, found[k].second, b.c.x, b.c.y,
+                       b.front.x, b.front.y, b.hx, b.hy, b.floors, b.massing, b.roofForm, b.archFlags, b.region);
+            }
+#endif
+        } else if (a == "--yardtrees") {
+            // trees and bushes the houses plant in their yards (detail meshes of every house): how many, how many inside
+            // a building's footprint (their own back-yard buildings, the neighbours)
+            long long trees = 0, inBldg = 0, houses = 0;
+            std::vector<long long> perType(PROP_COUNT, 0);
+            double t0 = TimeSeconds();
+            for (const Building& b : bs.buildings) {
+                if (b.style != BS_HOUSE && b.style != BS_VILLA && b.style != BS_FARMHOUSE && b.style != BS_SHACK) continue;
+                if (b.interior >= 0 || b.siteElem >= 0) continue;
+                houses++;
+                MeshData m;
+                std::vector<CollisionBox> col;
+                std::vector<PropInstance> props;
+                std::vector<LightInstance> lights;
+                vec2 o2 = cellOrigin(Clamp((int)((b.c.x + kWorldHalf) / kCellSize), 0, kCellsPerSide - 1), Clamp((int)((b.c.y + kWorldHalf) / kCellSize), 0, kCellsPerSide - 1));
+                buildBuildingMesh(b, bs.facades[b.facade], *gMap, true, vec3(o2, 0.f), m, &col, &props, &lights);
+                for (const PropInstance& pi : props) {
+                    if (pi.type != PROP_PALM && pi.type != PROP_TREE_OAK && pi.type != PROP_TREE_PINE && pi.type != PROP_BUSH) continue;
+                    trees++;
+                    perType[pi.type]++;
+                    if (bs.pointInBuilding(pi.pos.xy(), 0.f)) inBldg++;
+                }
+            }
+            printf("yardtrees: %lld houses, %lld trees and bushes (palms %lld, oaks %lld, pines %lld, bushes %lld), %lld inside a building footprint; %.1f s\n", houses, trees,
+                   perType[PROP_PALM], perType[PROP_TREE_OAK], perType[PROP_TREE_PINE], perType[PROP_BUSH], inBldg, TimeSeconds() - t0);
+        } else if (a == "--twins" && i + 1 < argc) {
+            // --twins r1,r2,...: the twin signatures of these districts (Region ids)
+            std::string list = argv[++i];
+            size_t st = 0;
+            while (st < list.size()) {
+                size_t e = list.find(',', st);
+                if (e == std::string::npos) e = list.size();
+                twinsReport(bs, atoi(list.substr(st, e - st).c_str()));
+                st = e + 1;
+            }
+        } else if (a == "--courts") {
+            // strip-mall and gas-station forecourts (a slab at baseZ - 0.1 between the building and the street): how far
+            // the slab stands above the ground at its street edge and its corners, and where the ground rises through it
+            int n = 0, nAbove25 = 0, nAbove50 = 0, nBuried = 0;
+            double sumEdge = 0.0;
+            std::vector<float> curbs;
+            float worst = 0.f;
+            vec2 worstAt(0.f);
+            for (const Building& b : bs.buildings) {
+                if (b.style != BS_STRIPMALL && b.style != BS_GASSTATION) continue;
+                if (b.interior >= 0 || b.siteElem >= 0) continue;
+                vec2 lotFront = b.lotC + b.front * b.lotHy;
+                vec2 pc = (lotFront + (b.c + b.front * b.hy)) * 0.5f;
+                float pd = length(lotFront - (b.c + b.front * b.hy)) * 0.5f;
+                if (pd <= 2.f) continue;
+                n++;
+                float zs = b.baseZ - 0.1f, maxAbove = -1e9f, minAbove = 1e9f;
+                for (int iu = 0; iu <= 4; iu++)
+                    for (int iv = 0; iv <= 4; iv++) {
+                        vec2 p = pc + b.ax * ((b.hx + 1.f) * (iu / 2.f - 1.f)) + b.front * (pd * (iv / 2.f - 1.f));
+                        float above = zs - gMap->heightAt(p.x, p.y);
+                        maxAbove = Max(maxAbove, above);
+                        minAbove = Min(minAbove, above);
+                    }
+                // the walk along the shopfront (stripCourt): its curb above the asphalt
+                {
+                    float gLo = 1e9f;
+                    vec2 f0 = b.c + b.front * b.hy;
+                    for (int q = 0; q <= 8; q++) {
+                        vec2 p = f0 + b.ax * ((b.hx + 1.f) * (q / 4.f - 1.f)) + b.front * 1.f;
+                        gLo = Min(gLo, gMap->heightAt(p.x, p.y));
+                    }
+                    float curb = (b.baseZ - 0.08f) - (gLo + 0.05f);
+                    curbs.push_back(curb);
+                }
+                vec2 pe = pc + b.front * pd;
+                float edge = zs - gMap->heightAt(pe.x, pe.y);
+                sumEdge += edge;
+                if (maxAbove > 0.25f) nAbove25++;
+                if (maxAbove > 0.5f) nAbove50++;
+                if (minAbove < -0.05f) nBuried++;
+                if (maxAbove > worst) worst = maxAbove, worstAt = pe;
+            }
+            printf("courts: %d forecourts; slab above the ground at its street edge %.2f m on average; %d stand > 0.25 m above the ground somewhere, %d > 0.5 m (worst %.2f m at %.0f, %.0f); the ground rises through %d\n",
+                   n, sumEdge / Max(1, n), nAbove25, nAbove50, worst, worstAt.x, worstAt.y, nBuried);
+            std::sort(curbs.begin(), curbs.end());
+            if (!curbs.empty()) {
+                int over = 0;
+                for (float c : curbs) over += c > 0.5f ? 1 : 0;
+                printf("courts: the walk's curb above the asphalt: median %.2f m, 90%% %.2f m, max %.2f m; %d of %zu over 0.5 m (no walk collider there)\n",
+                       curbs[curbs.size() / 2], curbs[curbs.size() * 9 / 10], curbs.back(), over, curbs.size());
+            }
+        } else if (a == "--findstyle" && i + 1 < argc) {
+            // --findstyle style,x,y: the nearest buildings of a BuildingStyle to a point
+            int st = 0;
+            float x = 0, y = 0;
+            sscanf(argv[++i], "%d,%f,%f", &st, &x, &y);
+            std::vector<std::pair<float, int>> found;
+            for (size_t k = 0; k < bs.buildings.size(); k++)
+                if (bs.buildings[k].style == st && bs.buildings[k].siteElem < 0 && bs.buildings[k].interior < 0) found.push_back({length(bs.buildings[k].c - vec2(x, y)), (int)k});
+            std::sort(found.begin(), found.end());
+            for (size_t k = 0; k < found.size() && k < 8; k++) {
+                const Building& b = bs.buildings[found[k].second];
+                printf("findstyle %d: b%d at (%.1f, %.1f) front (%.2f, %.2f) hx %.1f hy %.1f lotHy %.1f seedkind %u region %d\n", st, found[k].second, b.c.x, b.c.y, b.front.x,
+                       b.front.y, b.hx, b.hy, b.lotHy, hash32(b.seed ^ 0x6A5C0u) % 100u, b.region);
+            }
+        } else if (a == "--dump" && i + 1 < argc) {
+            float x, y, r;
+            sscanf(argv[++i], "%f,%f,%f", &x, &y, &r);
+            std::vector<int> nb;
+            bs.buildingsNear(vec2(x, y), r, nb);
+            for (int bi : nb) {
+                const Building& b = bs.buildings[bi];
+                const FacadeGPU& f = bs.facades[b.facade];
+                printf("b%d style %d floors %d h %.1f hx %.1f hy %.1f at (%.0f,%.0f) facade style %d mat %d bay %.2f col %06x glass %06x flags %u groundH %.2f int %d",
+                       bi, b.style, b.floors, b.height, b.hx, b.hy, b.c.x, b.c.y, (int)f.style, (int)f.wallLayer, f.bayW, f.wallColor & 0xffffff, f.glassColor & 0xffffff,
+                       f.flags, f.groundH, b.interior);
+#ifdef CITYLAB_ARCH
+                printf(" arch %d massing %d facade2 %d", (int)b.arch, (int)b.massing, (int)b.facade2);
+                if (b.facade2 != 0xffffffffu && b.facade2 < bs.facades.size()) {
+                    const FacadeGPU& f2 = bs.facades[b.facade2];
+                    printf(" (f2 style %d glass %06x flags %u)", (int)f2.style, f2.glassColor & 0xffffff, f2.flags);
+                }
+#endif
+                printf("\n");
+            }
+        }
+    }
+    fflush(stdout);
+    Jobs::shutdown();
+    return 0;
+}

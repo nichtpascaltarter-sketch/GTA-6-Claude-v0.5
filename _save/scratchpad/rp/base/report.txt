@@ -1,0 +1,156 @@
+sfx step_concrete        loud -34.9 dB
+sfx step_grass           loud -35.1 dB
+sfx step_wood            loud -34.0 dB
+sfx step_metal           loud -33.0 dB
+sfx step_sand            loud -35.0 dB
+sfx step_water           loud -34.0 dB
+sfx step_gravel          loud -34.0 dB
+sfx pistol               loud -16.9 dB
+sfx smg                  loud -21.1 dB
+sfx rifle                loud -14.6 dB
+sfx shotgun              loud -11.3 dB
+sfx sniper               loud -12.0 dB
+sfx rocket_launch        loud -15.5 dB
+sfx silenced             loud -27.0 dB
+sfx reload               loud -30.0 dB
+sfx dry_fire             loud -31.3 dB
+sfx weapon_switch        loud -32.0 dB
+sfx shell_casing         loud -36.0 dB
+sfx bullet_whiz          loud -23.0 dB
+sfx impact_concrete      loud -29.0 dB
+sfx impact_metal         loud -27.0 dB
+sfx impact_glass         loud -29.0 dB
+sfx impact_flesh         loud -27.0 dB
+sfx impact_dirt          loud -27.1 dB
+sfx impact_water         loud -28.0 dB
+sfx impact_wood          loud -28.0 dB
+sfx explosion            loud -4.9 dB
+sfx explosion_small      loud -6.7 dB
+sfx grenade_bounce       loud -28.0 dB
+sfx punch                loud -25.0 dB
+sfx kick                 loud -23.0 dB
+sfx body_fall            loud -24.0 dB
+sfx grunt_male           loud -24.0 dB
+sfx grunt_female         loud -24.0 dB
+sfx scream_male          loud -16.0 dB
+sfx scream_female        loud -16.1 dB
+sfx car_door_open        loud -30.0 dB
+sfx car_door_close       loud -24.0 dB
+sfx car_crash_light      loud -14.0 dB
+sfx car_crash_heavy      loud -10.5 dB
+sfx glass_break          loud -24.6 dB
+sfx engine_start         loud -17.0 dB
+sfx engine_stop          loud -20.0 dB
+sfx gear_shift           loud -32.0 dB
+sfx tire_pop             loud -19.3 dB
+sfx metal_scrape         loud -18.0 dB
+sfx bike_kickstand       loud -32.0 dB
+sfx splash_small         loud -25.0 dB
+sfx splash_big           loud -15.1 dB
+sfx boat_slam            loud -17.7 dB
+sfx thunder              loud -6.0 dB
+sfx dog_bark             loud -20.0 dB
+sfx seagull              loud -22.0 dB
+sfx bird_chirp           loud -25.9 dB
+sfx car_alarm_chirp      loud -18.1 dB
+sfx door_buzz            loud -24.0 dB
+sfx cash_register        loud -24.0 dB
+sfx bell                 loud -16.1 dB
+sfx heli_flyby           loud -13.9 dB
+sfx ui_move              loud -30.0 dB
+sfx ui_select            loud -26.1 dB
+sfx ui_back              loud -27.0 dB
+sfx ui_error             loud -24.0 dB
+sfx ui_notify            loud -22.0 dB
+sfx ui_text              loud -36.0 dB
+sfx phone_ring           loud -20.0 dB
+sfx phone_msg            loud -21.0 dB
+sfx pickup_cash          loud -22.0 dB
+sfx pickup_weapon        loud -22.0 dB
+sfx pickup_health        loud -22.0 dB
+sfx pickup_collectible   loud -20.9 dB
+sfx checkpoint           loud -21.1 dB
+sfx mission_passed       loud -15.0 dB
+sfx mission_failed       loud -16.0 dB
+sfx wasted               loud -13.0 dB
+sfx busted               loud -14.0 dB
+sfx wanted_up            loud -18.0 dB
+sfx wanted_lost          loud -19.0 dB
+sfx camera_shutter       loud -28.0 dB
+sfx purchase             loud -20.9 dB
+sfx race_countdown       loud -18.0 dB
+sfx race_go              loud -15.9 dB
+sfx whoosh               loud -25.8 dB
+sfx wing_flap            loud -24.2 dB
+sfx pigeon_coo           loud -24.0 dB
+sfx gator_hiss           loud -14.0 dB
+sfx gator_bellow         loud -4.7 dB
+sfx jaw_snap             loud -19.7 dB
+sfx dog_growl            loud -18.5 dB
+sfx dog_yelp             loud -16.1 dB
+sfx cat_meow             loud -16.2 dB
+sfx cow_moo              loud -11.3 dB
+sfx horse_neigh          loud -8.6 dB
+sfx parrot_squawk        loud -15.1 dB
+sfx heron_call           loud -14.1 dB
+sfx dolphin_call         loud -15.0 dB
+sfx animal_blow          loud -25.5 dB
+sfx raccoon_chitter      loud -25.7 dB
+sfx deer_snort           loud -18.0 dB
+sfx grackle_call         loud -17.2 dB
+sfx shorebird_peep       loud -25.8 dB
+sfx transit_chime        loud -13.6 dB
+sfx train_doors          loud -19.3 dB
+sfx rail_clack           loud -19.8 dB
+sfx ship_horn            loud -7.1 dB
+engine_i4 rms -21.0 dB peak 0.63
+engine_v6 rms -21.0 dB peak 0.49
+engine_v8 rms -19.0 dB peak 0.87
+engine_v12 rms -18.5 dB peak 0.95
+engine_truck_diesel rms -20.1 dB peak 0.95
+engine_electric rms -32.8 dB peak 0.12
+engine_bike_sport rms -16.7 dB peak 0.95
+engine_bike_cruiser rms -20.3 dB peak 0.66
+engine_scooter rms -21.5 dB peak 0.95
+emitter siren_wail       rms -14.9 dB peak 0.33
+emitter siren_yelp       rms -15.5 dB peak 0.32
+emitter siren_hilo       rms -16.3 dB peak 0.31
+emitter siren_ambulance  rms -18.9 dB peak 0.30
+emitter horn_car         rms -15.5 dB peak 0.47
+emitter horn_truck       rms -13.8 dB peak 0.54
+emitter skid_asphalt     rms -20.3 dB peak 0.55
+emitter skid_dirt        rms -19.8 dB peak 0.63
+emitter wind_rush        rms -41.0 dB peak 0.06
+emitter fire             rms -21.1 dB peak 0.58
+emitter rotor            rms -17.1 dB peak 0.95
+emitter prop             rms -15.5 dB peak 0.52
+emitter jet              rms -17.9 dB peak 0.80
+emitter boat             rms -16.1 dB peak 0.58
+emitter wake             rms -24.0 dB peak 0.37
+emitter alarm            rms -17.0 dB peak 0.29
+emitter crowd_calm       rms -26.7 dB peak 0.35
+emitter crowd_panic      rms -11.1 dB peak 0.95
+radio 0 Neon Coast 88.1 rms -18.4 peak 0.94 now 'Crystal Boulevard - Crimson Skyline'
+radio 1 The Heat 97.3 rms -19.2 peak 0.95 now 'Nautica Dre - Palm Trees and Problems'
+radio 2 Radio Calor 101.5 rms -19.0 peak 0.95 now 'Rafa Caliente - Marea Alta'
+radio 3 Pulse FM 104.8 rms -18.1 peak 0.59 now 'Tidal Society - Sweat and Satellites'
+radio 4 Riptide Rock 93.7 rms -18.4 peak 0.92 now 'The Rolling Wires - Bad Blood Boulevard'
+radio 5 Blue Lagoon Lounge 90.9 rms -18.1 peak 0.70 now 'Lionel Whitfield - Harbor Lights'
+radio 6 Sawgrass Country 99.5 rms -18.4 peak 0.95 now 'Buck Boone - Two Lane Highway Home'
+radio 7 Tidepool FM 106.1 rms -19.3 peak 0.95 now 'cassette coast - lighthouse'
+radio 8 Palmera Public Talk 1040 AM rms -19.0 peak 0.88 now ''
+score_010 rms -27.2
+score_040 rms -20.1
+score_070 rms -18.9
+score_100 rms -18.0
+amb city_day         rms -34.4 peak 0.09
+amb city_night       rms -35.7 peak 0.10
+amb forest_day       rms -35.8 peak 0.11
+amb forest_night     rms -43.2 peak 0.08
+amb beach_day        rms -32.7 peak 0.17
+amb wetland_evening  rms -43.2 peak 0.08
+amb storm            rms -25.0 peak 0.39
+amb underwater       rms -30.0 peak 0.16
+perf 20+8 mixer 8.11% music 3.28%
+perf 6+2 mixer 6.25% music 3.49%
+1196 checks, 0 failures

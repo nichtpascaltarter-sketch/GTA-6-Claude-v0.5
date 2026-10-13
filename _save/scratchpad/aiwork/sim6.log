@@ -1,0 +1,131 @@
+Sites: 83 pads, 320 elements, 23 roads, 21 buildings requested (0.03 s)
+World map generated in 20.21 s
+Road gen: 22 interchanges
+Road network: 6284 nodes, 10030 edges, 1734 signalized; hwy 61.7 km, streets 1189.6 km (1.77 s)
+Buildings: 36321 (towers 358, midrise 2411, condo 535, deco 859, shops 4885, strip 730, houses 21906, villas 903, warehouses 1707) in 1.42 s
+Sites: 65 highway billboards
+Sites: 117 silos, 53 windmills
+Sites finalized: 555 elements (0.01 s)
+Lane graph: 26691 lanes, 59937 connectors (1215831 pts), 36768 walk nodes, 53089 walk links (0.52 s)
+Loaded 12 collision cells
+Simulating 5.0 minutes around (2700, 750) r=200 with 100 cars, 80 peds
+COLLISION t=33.27 imp 3102 at 2608.4 750.0
+   A 65: v=1.8 vT=0.0 lane 7781(e2432 d-1 i0) u=89.5/91.5 lc -1 lat 0.00 nudge 0.00 obst 0.0(67) stop 1000000000.0 dummy 0
+   B 67: v=3.2 vT=4.0 conn 16105 node 1364 turn 1 ctl 1 u=8.6/10.8 lc -1 lat 0.00 nudge 0.00 obst 36.2(70) stop 1000000000.0 dummy 0
+COLLISION t=38.11 imp 627 at 2603.0 652.2
+   A 48: v=0.9 vT=0.0 conn 16100 node 1363 turn 2 ctl 1 u=6.9/15.8 lc -1 lat 0.00 nudge 0.00 obst -0.0(90) stop 1000000000.0 dummy 0
+   B 90: v=1.2 vT=0.0 conn 16097 node 1363 turn 1 ctl 1 u=3.3/10.8 lc -1 lat 0.00 nudge 0.00 obst -0.0(48) stop 1000000000.0 dummy 0
+COLLISION t=48.63 imp 5190 at 2900.1 840.0
+   A 4: v=2.6 vT=4.2 conn 18650 node 1583 turn 1 ctl 1 u=9.8/10.8 lc -1 lat 0.00 nudge 0.00 obst 1000000000.0(-1) stop 1000000000.0 dummy 0
+   B 21: v=1.9 vT=0.0 lane 9022(e2861 d1 i0) u=87.5/91.5 lc -1 lat 0.00 nudge 0.00 obst -0.0(4) stop 1000000000.0 dummy 0
+  sim 60 s: collisions 3 (hard 2), red 0, stuck 0, deadlocks 0, ped hits 0, respawns 54 (wall 8 s)
+DEADLOCK t=65.4 car 37 at 2719.5 851.6 lane e2558 d-1 i0 u 80.5/88.2 stopU 83.1 next conn 16647 turn 0 ctl 2 gateNode 1411 stopDist 0.4 obst 1.2 (body 44) sig 0
+DEADLOCK t=66.8 car 89 at 2726.2 851.6 lane e2558 d-1 i0 u 73.8/88.2 stopU 83.1 next conn 16647 turn 0 ctl 2 gateNode 1411 stopDist 7.0 obst 2.5 (body 37) sig 0
+DEADLOCK t=68.5 car 8 at 2733.7 851.6 lane e2558 d-1 i0 u 66.3/88.2 stopU 83.1 next conn 16647 turn 0 ctl 2 gateNode 1411 stopDist 14.2 obst 2.5 (body 89) sig 0
+DEADLOCK t=77.9 car 3 at 2680.3 848.4 lane e2434 d1 i0 u 80.3/88.2 stopU 83.1 next conn 16653 turn 0 ctl 2 gateNode 1411 stopDist 0.4 obst 24.4 (body 44) sig 2
+COLLISION t=78.02 imp 5969 at 2511.7 850.2
+   A 41: v=0.3 vT=0.0 lane 7577(e2353 d-1 i0) u=85.2/91.5 lc -1 lat 0.00 nudge 0.00 obst 0.0(65) stop 1000000000.0 dummy 0
+   B 65: v=1.8 vT=11.2 lane 7576(e2353 d1 i0) u=8.5/91.5 lc -1 lat 0.00 nudge 0.00 obst 1000000000.0(-1) stop 1000000000.0 dummy 0
+DEADLOCK t=79.5 car 44 at 2712.1 849.3 lane e2558 d1 i0 u 12.1/91.5 stopU 86.4 next conn 17545 turn 1 ctl 1 gateNode 1411 stopDist 1000000000.0 obst 1.4 (body 37) sig 4
+DEADLOCK t=84.1 car 43 at 2739.6 851.6 lane e2558 d-1 i0 u 60.4/88.2 stopU 83.1 next conn 16647 turn 0 ctl 2 gateNode 1411 stopDist 1000000000.0 obst 2.3 (body 8) sig 2
+DEADLOCK t=90.6 car 64 at 2673.6 848.4 lane e2434 d1 i0 u 73.6/88.2 stopU 83.1 next conn 16653 turn 0 ctl 2 gateNode 1411 stopDist 7.3 obst 2.0 (body 3) sig 0
+DEADLOCK t=90.9 car 2 at 2705.6 842.6 conn 16641 turn 1 appr 0 node 1411 ctl 2 u 4.6/13.7 hold 0.0 committed 0 gateNode 1411 stopDist 1000000000.0 obst 1.9 (body 44) sig 0
+DEADLOCK t=92.6 car 80 at 2745.6 851.6 lane e2558 d-1 i0 u 54.4/88.2 stopU 83.1 next conn 16646 turn 1 ctl 2 gateNode 1411 stopDist 26.2 obst 2.6 (body 43) sig 0
+DEADLOCK t=98.2 car 48 at 2600.6 652.0 conn 16100 turn 2 appr 2 node 1363 ctl 1 u 6.9/15.8 hold 0.0 committed 0 gateNode 1363 stopDist 1000000000.0 obst 0.0 (body 90) sig 4
+DEADLOCK t=98.3 car 90 at 2605.2 652.4 conn 16097 turn 1 appr 1 node 1363 ctl 1 u 3.5/10.8 hold 0.0 committed 0 gateNode 1363 stopDist 1000000000.0 obst 0.0 (body 48) sig 4
+DEADLOCK t=99.2 car 12 at 2667.3 848.4 lane e2434 d1 i0 u 67.3/88.2 stopU 83.1 next conn 16653 turn 0 ctl 2 gateNode 1411 stopDist 13.4 obst 1.9 (body 64) sig 0
+DEADLOCK t=103.6 car 69 at 2614.4 651.6 lane e2430 d-1 i0 u 85.6/91.5 stopU 86.4 next conn 16098 turn 0 ctl 1 gateNode 1363 stopDist 1000000000.0 obst 2.6 (body 90) sig 4
+DEADLOCK t=110.5 car 38 at 2660.0 848.4 lane e2434 d1 i0 u 60.0/88.2 stopU 83.1 next conn 16653 turn 0 ctl 2 gateNode 1411 stopDist 20.3 obst 1.9 (body 12) sig 0
+DEADLOCK t=114.2 car 99 at 2622.9 651.6 lane e2430 d-1 i0 u 77.1/91.5 stopU 86.4 next conn 16098 turn 0 ctl 1 gateNode 1363 stopDist 7.2 obst 3.3 (body 69) sig 4
+DEADLOCK t=114.3 car 76 at 2704.9 825.1 lane e2555 d1 i1 u 75.1/88.2 stopU 83.1 next conn 16643 turn 0 ctl 2 gateNode 1411 stopDist 1000000000.0 obst 2.6 (body 63) sig 2
+PEDHIT t=114.7 car 78 v=0.0 ped state 2 link kind 1 at 2714.3 650.7 obst 0.0 body 159 stop 1000000000.0
+DEADLOCK t=117.4 car 25 at 2704.9 817.0 lane e2555 d1 i1 u 67.0/88.2 stopU 83.1 next conn 16643 turn 0 ctl 2 gateNode 1411 stopDist 13.8 obst 2.6 (body 76) sig 1
+DEADLOCK t=117.8 car 15 at 2631.6 651.6 lane e2430 d-1 i0 u 68.4/91.5 stopU 86.4 next conn 16096 turn 2 ctl 1 gateNode 1363 stopDist 13.8 obst 2.6 (body 99) sig 4
+DEADLOCK t=118.8 car 23 at 2642.8 651.6 lane e2430 d-1 i0 u 57.2/91.5 stopU 86.4 next conn 16096 turn 2 ctl 1 gateNode 1363 stopDist 26.7 obst 3.3 (body 15) sig 4
+  sim 120 s: collisions 4 (hard 3), red 0, stuck 0, deadlocks 19, ped hits 1, respawns 104 (wall 16 s)
+DEADLOCK t=121.2 car 82 at 2657.4 651.6 lane e2430 d-1 i0 u 42.6/91.5 stopU 86.4 next conn 16097 turn 1 ctl 1 gateNode 1363 stopDist 41.2 obst 2.6 (body 83) sig 4
+DEADLOCK t=122.2 car 83 at 2650.2 651.6 lane e2430 d-1 i0 u 49.8/91.5 stopU 86.4 next conn 16096 turn 2 ctl 1 gateNode 1363 stopDist 34.4 obst 2.6 (body 23) sig 4
+DEADLOCK t=125.6 car 19 at 2719.2 651.6 lane e2554 d-1 i0 u 80.8/88.2 stopU 83.1 next conn 16619 turn 0 ctl 2 gateNode 1409 stopDist -0.3 obst 2.5 (body 78) sig 0
+DEADLOCK t=125.7 car 16 at 2753.1 851.6 lane e2558 d-1 i0 u 46.9/88.2 stopU 83.1 next conn 16647 turn 0 ctl 2 gateNode 1411 stopDist 1000000000.0 obst 2.6 (body 80) sig 2
+DEADLOCK t=127.5 car 31 at 2651.6 848.4 lane e2434 d1 i0 u 51.6/88.2 stopU 83.1 next conn 16652 turn 1 ctl 2 gateNode 1411 stopDist 1000000000.0 obst 2.5 (body 38) sig 2
+DEADLOCK t=127.7 car 91 at 2666.2 651.6 lane e2430 d-1 i0 u 33.8/91.5 stopU 86.4 next conn 16098 turn 0 ctl 1 gateNode 1409 stopDist 1000000000.0 obst 3.3 (body 82) sig 4
+DEADLOCK t=127.7 car 73 at 2726.9 651.6 lane e2554 d-1 i0 u 73.1/88.2 stopU 83.1 next conn 16619 turn 0 ctl 2 gateNode 1409 stopDist 7.1 obst 2.5 (body 19) sig 0
+DEADLOCK t=130.5 car 13 at 2763.1 851.6 lane e2558 d-1 i0 u 36.9/88.2 stopU 83.1 next conn 16645 turn 2 ctl 2 gateNode 1411 stopDist 51.6 obst 2.6 (body 16) sig 2
+DEADLOCK t=131.6 car 81 at 2734.7 651.6 lane e2554 d-1 i0 u 65.3/88.2 stopU 83.1 next conn 16619 turn 0 ctl 2 gateNode 1409 stopDist 1000000000.0 obst 2.6 (body 73) sig 2
+DEADLOCK t=131.8 car 63 at 2704.9 834.5 lane e2555 d1 i1 u 84.5/88.2 stopU 83.1 next conn 16643 turn 0 ctl 2 gateNode 1411 stopDist 1000000000.0 obst 0.0 (body 174) [ped state 0 link kind 1 x 4.9/21.1 pos 2702.7 835.2 vel 0.12] sig 0
+DEADLOCK t=131.9 car 20 at 2601.6 644.2 conn 16094 turn 0 appr 0 node 1363 ctl 1 u 2.7/17.0 hold 0.0 committed 0 gateNode 1363 stopDist 1000000000.0 obst 2.5 (body 48) sig 4
+DEADLOCK t=134.3 car 6 at 2741.4 651.6 lane e2554 d-1 i0 u 58.6/88.2 stopU 83.1 next conn 16619 turn 0 ctl 2 gateNode 1409 stopDist 1000000000.0 obst 2.6 (body 81) sig 2
+DEADLOCK t=134.3 car 72 at 2774.2 851.6 lane e2558 d-1 i0 u 25.8/88.2 stopU 83.1 next conn 16646 turn 1 ctl 2 gateNode 1480 stopDist 1000000000.0 obst 3.3 (body 13) sig 1
+DEADLOCK t=136.6 car 40 at 2781.3 851.6 lane e2558 d-1 i0 u 18.7/88.2 stopU 83.1 next conn 16647 turn 0 ctl 2 gateNode 1480 stopDist 1000000000.0 obst 2.6 (body 72) sig 0
+DEADLOCK t=136.8 car 70 at 2704.9 809.9 lane e2555 d1 i1 u 59.9/88.2 stopU 83.1 next conn 16643 turn 0 ctl 2 gateNode 1411 stopDist 21.0 obst 2.6 (body 25) sig 0
+DEADLOCK t=137.6 car 75 at 2748.5 651.6 lane e2554 d-1 i0 u 51.5/88.2 stopU 83.1 next conn 16617 turn 2 ctl 2 gateNode 1409 stopDist 1000000000.0 obst 2.6 (body 6) sig 2
+DEADLOCK t=142.2 car 22 at 2593.9 648.4 conn 16103 turn 0 appr 3 node 1363 ctl 1 u 2.4/17.0 hold 0.0 committed 0 gateNode 1363 stopDist 1000000000.0 obst 2.5 (body 48) sig 4
+DEADLOCK t=144.5 car 78 at 2710.0 648.9 conn 16613 turn 1 appr 0 node 1409 ctl 2 u 12.0/13.7 hold 0.0 committed 0 gateNode 1409 stopDist 1000000000.0 obst 2.2 (body 19) sig 0
+DEADLOCK t=146.1 car 50 at 2601.6 636.1 lane e2427 d1 i0 u 86.1/91.5 stopU 86.4 next conn 16094 turn 0 ctl 1 gateNode 1363 stopDist 1000000000.0 obst 0.2 (body 121) [ped state 0 link kind 1 x 7.4/14.2 pos 2603.4 639.1 vel 0.55] sig 4
+DEADLOCK t=146.1 car 52 at 2755.7 651.6 lane e2554 d-1 i0 u 44.3/88.2 stopU 83.1 next conn 16618 turn 1 ctl 2 gateNode 1409 stopDist 36.5 obst 2.6 (body 75) sig 0
+DEADLOCK t=146.2 car 18 at 2788.0 851.8 lane e2558 d-1 i0 u 12.0/88.2 stopU 83.1 next conn 16647 turn 0 ctl 2 gateNode 1480 stopDist 1000000000.0 obst 2.5 (body 40) sig 0
+DEADLOCK t=149.8 car 30 at 2598.4 658.9 lane e2429 d-1 i0 u 91.1/91.5 stopU 86.4 next conn 16099 turn 0 ctl 1 gateNode 1363 stopDist 1000000000.0 obst 2.0 (body 48) sig 4
+DEADLOCK t=152.6 car 28 at 2598.4 666.7 lane e2429 d-1 i0 u 83.3/91.5 stopU 86.4 next conn 16101 turn 1 ctl 1 gateNode 1363 stopDist 1000000000.0 obst 2.6 (body 30) sig 4
+DEADLOCK t=159.7 car 34 at 2763.0 651.6 lane e2554 d-1 i0 u 37.0/88.2 stopU 83.1 next conn 16619 turn 0 ctl 2 gateNode 1409 stopDist 43.6 obst 2.6 (body 52) sig 0
+DEADLOCK t=172.0 car 66 at 2772.4 651.6 lane e2554 d-1 i0 u 27.6/88.2 stopU 83.1 next conn 16618 turn 1 ctl 2 gateNode 1478 stopDist 1000000000.0 obst 3.2 (body 34) sig 0
+DEADLOCK t=177.1 car 47 at 2586.2 648.4 lane e2349 d1 i0 u 86.2/91.5 stopU 86.4 next conn 16103 turn 0 ctl 1 gateNode 1363 stopDist 1000000000.0 obst 2.5 (body 22) sig 4
+DEADLOCK t=179.9 car 88 at 2780.6 651.6 lane e2554 d-1 i0 u 19.4/88.2 stopU 83.1 next conn 16619 turn 0 ctl 2 gateNode 1478 stopDist 1000000000.0 obst 2.2 (body 66) sig 2
+  sim 180 s: collisions 4 (hard 3), red 0, stuck 0, deadlocks 46, ped hits 1, respawns 133 (wall 22 s)
+DEADLOCK t=180.1 car 95 at 2576.7 648.4 lane e2349 d1 i0 u 76.7/91.5 stopU 86.4 next conn 16103 turn 0 ctl 1 gateNode 1363 stopDist 5.5 obst 2.0 (body 47) sig 4
+DEADLOCK t=181.7 car 33 at 2601.6 627.5 lane e2427 d1 i0 u 77.5/91.5 stopU 86.4 next conn 16094 turn 0 ctl 1 gateNode 1363 stopDist 6.2 obst 3.3 (body 50) sig 4
+DEADLOCK t=184.1 car 26 at 2601.6 620.0 lane e2427 d1 i0 u 70.0/91.5 stopU 86.4 next conn 16094 turn 0 ctl 1 gateNode 1363 stopDist 14.3 obst 2.6 (body 33) sig 4
+DEADLOCK t=189.3 car 32 at 2785.9 651.6 lane e2554 d-1 i0 u 14.1/88.2 stopU 83.1 next conn 16619 turn 0 ctl 2 gateNode 1478 stopDist 1000000000.0 obst 2.0 (body 88) sig 1
+DEADLOCK t=191.4 car 42 at 2642.9 848.4 lane e2434 d1 i0 u 42.9/88.2 stopU 83.1 next conn 16653 turn 0 ctl 2 gateNode 1411 stopDist 37.7 obst 3.3 (body 31) sig 0
+DEADLOCK t=193.6 car 21 at 2798.4 865.5 lane e2718 d-1 i0 u 84.5/91.5 stopU 86.4 next conn 17542 turn 0 ctl 1 gateNode 1480 stopDist 1000000000.0 obst 2.6 (body 9) sig 4
+DEADLOCK t=198.0 car 7 at 2598.4 672.9 lane e2429 d-1 i0 u 77.1/91.5 stopU 86.4 next conn 16099 turn 0 ctl 1 gateNode 1363 stopDist 8.3 obst 2.3 (body 28) sig 4
+DEADLOCK t=198.6 car 97 at 2601.6 613.1 lane e2427 d1 i0 u 63.1/91.5 stopU 86.4 next conn 16094 turn 0 ctl 1 gateNode 1363 stopDist 20.8 obst 2.5 (body 26) sig 4
+DEADLOCK t=205.9 car 41 at 2598.4 678.8 lane e2429 d-1 i0 u 71.2/91.5 stopU 86.4 next conn 16100 turn 2 ctl 1 gateNode 1363 stopDist 12.8 obst 2.5 (body 7) sig 4
+DEADLOCK t=209.8 car 46 at 2598.4 687.0 lane e2429 d-1 i0 u 63.0/91.5 stopU 86.4 next conn 16101 turn 1 ctl 1 gateNode 1363 stopDist 21.0 obst 3.3 (body 41) sig 4
+DEADLOCK t=211.8 car 27 at 2598.4 694.7 lane e2429 d-1 i0 u 55.3/91.5 stopU 86.4 next conn 16100 turn 2 ctl 1 gateNode 1363 stopDist 28.6 obst 2.6 (body 46) sig 4
+DEADLOCK t=212.7 car 29 at 2794.5 851.2 conn 17538 turn 2 appr 0 node 1480 ctl 1 u 12.8/15.8 hold 0.0 committed 0 gateNode 1480 stopDist 1000000000.0 obst 2.4 (body 139) [ped state 2 link kind 1 x 1.3/14.2 pos 2789.5 855.9 vel 1.64] sig 4
+DEADLOCK t=212.9 car 9 at 2798.3 858.2 conn 17544 turn 1 appr 2 node 1480 ctl 1 u 0.3/10.8 hold 0.0 committed 0 gateNode 1480 stopDist 1000000000.0 obst 3.4 (body 29) sig 4
+DEADLOCK t=218.0 car 14 at 2634.4 848.4 lane e2434 d1 i0 u 34.4/88.2 stopU 83.1 next conn 16654 turn 2 ctl 2 gateNode 1411 stopDist 54.2 obst 1.9 (body 42) sig 2
+DEADLOCK t=219.6 car 11 at 2705.2 640.7 conn 16613 turn 1 appr 0 node 1409 ctl 2 u 2.6/13.7 hold 0.0 committed 0 gateNode 1409 stopDist 1000000000.0 obst 2.5 (body 78) sig 1
+DEADLOCK t=220.6 car 67 at 2704.9 633.2 lane e2551 d1 i1 u 83.2/88.2 stopU 83.1 next conn 16615 turn 0 ctl 2 gateNode 1409 stopDist 1000000000.0 obst 2.0 (body 11) sig 0
+DEADLOCK t=223.2 car 4 at 2704.9 623.2 lane e2551 d1 i1 u 73.2/88.2 stopU 83.1 next conn 16615 turn 0 ctl 2 gateNode 1409 stopDist 5.7 obst 3.3 (body 67) sig 0
+DEADLOCK t=224.9 car 56 at 2625.6 848.4 lane e2434 d1 i0 u 25.6/88.2 stopU 83.1 next conn 16653 turn 0 ctl 2 gateNode 1365 stopDist 1000000000.0 obst 1.9 (body 14) sig 0
+DEADLOCK t=231.8 car 17 at 2673.4 651.6 lane e2430 d-1 i0 u 26.6/91.5 stopU 86.4 next conn 16096 turn 2 ctl 1 gateNode 1409 stopDist 1000000000.0 obst 2.0 (body 91) sig 4
+DEADLOCK t=234.3 car 53 at 2680.9 651.6 lane e2430 d-1 i0 u 19.1/91.5 stopU 86.4 next conn 16096 turn 2 ctl 1 gateNode 1409 stopDist 1000000000.0 obst 2.5 (body 17) sig 4
+DEADLOCK t=236.9 car 57 at 2797.5 651.6 conn 17517 turn 0 appr 1 node 1478 ctl 1 u 11.0/17.0 hold 0.0 committed 0 gateNode 1478 stopDist 1000000000.0 obst 2.6 (body 62) sig 4
+  sim 240 s: collisions 4 (hard 3), red 0, stuck 0, deadlocks 67, ped hits 1, respawns 144 (wall 27 s)
+DEADLOCK t=242.8 car 62 at 2791.1 651.6 lane e2554 d-1 i0 u 8.9/88.2 stopU 83.1 next conn 16619 turn 0 ctl 2 gateNode 1478 stopDist 1000000000.0 obst 2.0 (body 32) sig 0
+DEADLOCK t=243.4 car 61 at 2705.0 803.0 lane e2555 d1 i1 u 53.0/88.2 stopU 83.1 next conn 16643 turn 0 ctl 2 gateNode 1411 stopDist 1000000000.0 obst 2.6 (body 70) sig 2
+DEADLOCK t=246.0 car 39 at 2600.1 757.2 conn 16109 turn 1 appr 1 node 1364 ctl 1 u 9.8/10.8 hold 0.0 committed 0 gateNode 1364 stopDist 1000000000.0 obst 2.3 (body 92) sig 4
+DEADLOCK t=246.4 car 24 at 2800.2 846.5 conn 17538 turn 2 appr 0 node 1480 ctl 1 u 5.3/15.8 hold 0.0 committed 0 gateNode 1480 stopDist 1000000000.0 obst 2.5 (body 29) sig 4
+DEADLOCK t=247.6 car 35 at 2608.1 751.8 conn 16109 turn 1 appr 1 node 1364 ctl 1 u 0.5/10.8 hold 0.0 committed 0 gateNode 1364 stopDist 1000000000.0 obst 2.5 (body 39) sig 4
+DEADLOCK t=248.0 car 92 at 2598.4 766.2 lane e2431 d-1 i0 u 83.8/91.5 stopU 86.4 next conn 16111 turn 0 ctl 1 gateNode 1364 stopDist 1000000000.0 obst 2.7 (body 39) sig 4
+DEADLOCK t=250.6 car 54 at 2615.0 751.6 lane e2432 d-1 i0 u 85.0/91.5 stopU 86.4 next conn 16108 turn 2 ctl 1 gateNode 1364 stopDist 1000000000.0 obst 1.9 (body 146) [ped state 0 link kind 1 x 3.5/14.2 pos 2610.6 749.9 vel 0.54] sig 4
+DEADLOCK t=250.8 car 84 at 2801.6 838.4 lane e2716 d1 i0 u 88.4/91.5 stopU 86.4 next conn 17538 turn 2 ctl 1 gateNode 1480 stopDist 1000000000.0 obst 2.6 (body 24) sig 4
+DEADLOCK t=252.0 car 77 at 2622.1 751.6 lane e2432 d-1 i0 u 77.9/91.5 stopU 86.4 next conn 16108 turn 2 ctl 1 gateNode 1364 stopDist 6.4 obst 2.6 (body 54) sig 4
+DEADLOCK t=261.0 car 10 at 2801.6 829.1 lane e2716 d1 i0 u 79.1/91.5 stopU 86.4 next conn 17538 turn 2 ctl 1 gateNode 1480 stopDist 3.2 obst 2.5 (body 84) sig 4
+DEADLOCK t=263.4 car 51 at 2798.4 872.3 lane e2718 d-1 i0 u 77.7/91.5 stopU 86.4 next conn 17542 turn 0 ctl 1 gateNode 1480 stopDist 6.6 obst 2.6 (body 21) sig 4
+DEADLOCK t=264.7 car 85 at 2598.4 772.2 lane e2431 d-1 i0 u 77.8/91.5 stopU 86.4 next conn 16112 turn 2 ctl 1 gateNode 1364 stopDist 6.5 obst 2.0 (body 92) sig 4
+DEADLOCK t=266.2 car 0 at 2801.6 819.0 lane e2716 d1 i0 u 69.0/91.5 stopU 86.4 next conn 17537 turn 0 ctl 1 gateNode 1480 stopDist 14.8 obst 3.3 (body 10) sig 4
+DEADLOCK t=267.2 car 65 at 2798.4 880.0 lane e2718 d-1 i0 u 70.0/91.5 stopU 86.4 next conn 17543 turn 2 ctl 1 gateNode 1480 stopDist 14.0 obst 3.3 (body 51) sig 4
+DEADLOCK t=268.9 car 96 at 2798.4 887.1 lane e2718 d-1 i0 u 62.9/91.5 stopU 86.4 next conn 17543 turn 2 ctl 1 gateNode 1480 stopDist 21.4 obst 2.5 (body 65) sig 4
+DEADLOCK t=275.7 car 49 at 2798.4 658.1 conn 17518 turn 0 appr 2 node 1478 ctl 1 u 0.4/17.0 hold 0.0 committed 0 gateNode 1478 stopDist 1000000000.0 obst 2.5 (body 57) sig 4
+DEADLOCK t=277.0 car 94 at 2798.4 674.0 lane e2714 d-1 i0 u 76.0/91.5 stopU 86.4 next conn 17518 turn 0 ctl 1 gateNode 1478 stopDist 8.3 obst 2.6 (body 79) sig 4
+PEDHIT t=277.0 car 30 v=0.0 ped state 0 link kind 1 at 2598.9 661.7 obst 2.0 body 48 stop 1000000000.0
+DEADLOCK t=277.5 car 79 at 2798.4 666.8 lane e2714 d-1 i0 u 83.2/91.5 stopU 86.4 next conn 17519 turn 2 ctl 1 gateNode 1478 stopDist 1000000000.0 obst 2.5 (body 49) sig 4
+DEADLOCK t=280.1 car 74 at 2689.6 651.7 conn 16623 turn 1 appr 2 node 1409 ctl 2 u 12.2/13.7 hold 0.0 committed 0 gateNode 1409 stopDist 1000000000.0 obst 3.3 (body 53) sig 0
+DEADLOCK t=283.8 car 36 at 2628.8 751.6 lane e2432 d-1 i0 u 71.2/91.5 stopU 86.4 next conn 16110 turn 0 ctl 1 gateNode 1364 stopDist 13.0 obst 2.5 (body 77) sig 4
+DEADLOCK t=288.1 car 71 at 2635.9 751.6 lane e2432 d-1 i0 u 64.1/91.5 stopU 86.4 next conn 16110 turn 0 ctl 1 gateNode 1364 stopDist 20.1 obst 2.5 (body 36) sig 4
+DEADLOCK t=290.0 car 58 at 2801.6 811.4 lane e2716 d1 i0 u 61.4/91.5 stopU 86.4 next conn 17538 turn 2 ctl 1 gateNode 1480 stopDist 22.7 obst 2.5 (body 0) sig 4
+DEADLOCK t=292.3 car 86 at 2616.9 848.4 lane e2434 d1 i0 u 16.9/88.2 stopU 83.1 next conn 16653 turn 0 ctl 2 gateNode 1365 stopDist 1000000000.0 obst 3.3 (body 56) sig 0
+
+==== Traffic metrics (300 s simulated, 100 cars, 80 peds, 8.33 vehicle-hours) ====
+collisions: 4 (0.48 per vehicle-hour), hard (>3000 Ns): 3 (0.36/veh-h)
+static impacts (walls/props >2500 Ns): 0, props broken: 0
+red-light violations: 0, stop-sign violations: 0
+stuck recoveries: 0, relocalizations: 0, deadlocks (>60 s waits): 90, respawns: 147
+pedestrians hit: 2
+average speed by road class (km/h):  boulevard 15.5 (840 s)  avenue 8.7 (3284 s)  street 5.9 (21769 s)
+lane-center error (RMS, lanes, v>3 m/s): 0.147 m
+AI cost per 60 Hz tick: traffic 0.174 ms + peds 0.023 ms (avg), p50 0.186 ms, p99 0.344 ms, max 0.781 ms
+physics per 120 Hz step: 0.276 ms (100 cars)
+done

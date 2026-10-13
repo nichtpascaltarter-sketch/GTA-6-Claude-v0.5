@@ -1,0 +1,78 @@
+--- /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/dev15/src/world/blockstyle.cpp	2026-10-06 12:05:00.917042814 +0000
++++ /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/dev16/src/world/blockstyle.cpp	2026-10-06 12:20:14.602939618 +0000
+@@ -34,6 +34,11 @@
+ const vec3 kModernWall[] = {vec3(0.97f, 0.97f, 0.96f), vec3(0.85f, 0.85f, 0.84f), vec3(0.62f, 0.63f, 0.64f), vec3(0.45f, 0.46f, 0.48f), vec3(0.92f, 0.9f, 0.86f)};
+ const vec3 kSuburb[] = {vec3(1.0f, 0.95f, 0.85f), vec3(0.98f, 0.92f, 0.78f), vec3(1.0f, 1.0f, 0.97f), vec3(0.9f, 0.93f, 0.95f), vec3(0.9f, 0.95f, 0.85f),
+                         vec3(1.0f, 0.88f, 0.8f), vec3(0.95f, 0.9f, 0.82f), vec3(0.85f, 0.9f, 0.98f), vec3(1.0f, 0.97f, 0.82f)};
++// sixties and seventies ranch houses (Westbrook, the Grove): stucco and painted block in white and cream, butter, peach,
++// coral, sage, mint, sky, grey-blue, warm grey, tan and lilac
++const vec3 kRanch[] = {vec3(0.99f, 0.99f, 0.97f), vec3(1.0f, 0.95f, 0.84f), vec3(1.0f, 0.93f, 0.72f), vec3(1.0f, 0.85f, 0.72f), vec3(0.98f, 0.76f, 0.66f),
++                       vec3(0.82f, 0.9f, 0.76f), vec3(0.78f, 0.92f, 0.86f), vec3(0.78f, 0.88f, 0.98f), vec3(0.76f, 0.8f, 0.86f), vec3(0.86f, 0.83f, 0.78f),
++                       vec3(0.93f, 0.84f, 0.68f), vec3(0.9f, 0.85f, 0.95f)};
+ const vec3 kConch[] = {vec3(0.72f, 0.95f, 0.9f), vec3(1.0f, 0.85f, 0.88f), vec3(0.75f, 0.85f, 1.0f), vec3(1.0f, 0.97f, 0.75f), vec3(1.0f, 1.0f, 1.0f),
+                        vec3(0.85f, 0.95f, 0.75f), vec3(1.0f, 0.82f, 0.7f)};
+ // fifties block houses: mint, butter, salmon, sky, seafoam, peach, lilac, sand, white
+@@ -143,7 +148,16 @@
+     return !(b.style == BS_FARMHOUSE && hr.chance(0.75f));
+ }
+ // What the repetition signature adds for a building's form inside its archetype and massing
++// A ranch house's front porch (massing.cpp): 0 none, 1 a long low porch under a shed roof across the middle of a box
++// ranch's front, 2 one in the inner corner of an L - more on the Grove's older ranches than on Westbrook's tract houses
++inline int ranchPorch(const Building& b) {
++    if (b.arch != AR_HOUSE_RANCH || b.interior >= 0 || (b.massing != MK_BOX && b.massing != MK_L)) return 0;
++    const float share = b.region == REG_GROVE ? 0.55f : (b.region == REG_SUBURBS ? 0.38f : 0.42f);
++    return hashToFloat(hash32(b.seed ^ 0x2A0C4u)) < share ? (b.massing == MK_BOX ? 1 : 2) : 0;
++}
++
+ inline u32 formKey(const Building& b) {
++    if (b.arch == AR_HOUSE_RANCH) return 48u + (u32)ranchPorch(b);
+     if (b.arch == AR_SHACK_STILT || b.arch == AR_HOUSE_RAISED) return 16u + (u32)stiltRoofKind(b) * 4u + (u32)stiltDeckKind(b);
+     if (b.arch == AR_HOUSE_TRAILER) return 32u + (trailerDouble(b) ? 1u : 0u) + (trailerRoofOver(b) ? 2u : 0u);
+     return (u32)houseForm(b);
+@@ -151,7 +165,7 @@
+ 
+ // The house's porch comes with its massing (massing.cpp), over the door: facadedetail.cpp adds no door canopy of its own
+ inline bool massingPorch(const Building& b) {
+-    return b.interior < 0 && ((b.style == BS_HOUSE && b.arch == AR_HOUSE_BUNGALOW && b.massing == MK_BOX) || houseForm(b) == HF_FOURSQUARE);
++    return b.interior < 0 && ((b.style == BS_HOUSE && b.arch == AR_HOUSE_BUNGALOW && b.massing == MK_BOX) || houseForm(b) == HF_FOURSQUARE || ranchPorch(b) != 0);
+ }
+ 
+ struct Pick {
+@@ -580,11 +594,16 @@
+             glass = r.chance(0.5f) ? vec3(0.4f, 0.6f, 0.78f) : vec3(0.5f, 0.7f, 0.7f);
+             break;
+         // houses: style 5 (shuttered windows), stucco or siding by type
+-        case AR_HOUSE_RANCH:
++        case AR_HOUSE_RANCH: {
++            // a third in the pale suburban whites and creams, the rest in the ranch colours, a sixth in brick; trim in white,
++            // a deeper tone of the wall or dark bronze (the ranch rows used to be white on white)
+             style = 5; floorH = 3.0f; groundH = 3.0f; bay = r.range(3.6f, 4.8f); winW = r.range(0.32f, 0.45f); winH = 0.5f; sill = 1.0f;
+-            wall = pick(kSuburb, r); if (r.chance(0.2f)) mat = MAT_BRICK, wall = vec3(1.0f, 0.9f, 0.85f) * r.range(0.85f, 1.f);
+-            frame = vec3(0.95f);
++            wall = r.chance(0.32f) ? pick(kSuburb, r) : pick(kRanch, r);
++            if (r.chance(0.17f)) mat = MAT_BRICK, wall = vec3(1.0f, 0.9f, 0.85f) * r.range(0.85f, 1.f);
++            const float t = r.f();
++            frame = (t < 0.6f || mat == MAT_BRICK) ? vec3(0.95f) : (t < 0.85f ? wall * 0.72f : vec3(0.27f, 0.23f, 0.2f));
+             break;
++        }
+         case AR_HOUSE_BUNGALOW:
+             style = 5; floorH = 3.0f; groundH = 3.0f; bay = r.range(3.0f, 3.8f); winW = r.range(0.34f, 0.44f); winH = 0.55f; sill = 0.9f;
+             if (r.chance(0.45f)) { mat = MAT_WOOD_SIDING; wall = r.chance(0.5f) ? pick(kConch, r) : pick(kSuburb, r); }
+@@ -599,7 +618,7 @@
+         case AR_HOUSE_TWO:
+             style = 5; floorH = 2.9f; groundH = 3.0f; bay = r.range(3.0f, 3.8f); winW = r.range(0.34f, 0.42f); winH = 0.55f; sill = 0.9f;
+             if (r.chance(0.35f)) mat = MAT_WOOD_SIDING;
+-            wall = pick(kSuburb, r);
++            wall = r.chance(0.4f) ? pick(kRanch, r) : pick(kSuburb, r);   // (some colour among the suburbs' whites)
+             frame = vec3(0.95f);
+             break;
+         case AR_HOUSE_MIMO:
+@@ -610,7 +629,7 @@
+         case AR_HOUSE_SPLIT:
+             style = 5; floorH = 2.8f; groundH = 3.0f; bay = r.range(3.2f, 4.2f); winW = r.range(0.34f, 0.45f); winH = 0.5f; sill = 1.0f;
+             if (r.chance(0.3f)) mat = MAT_WOOD_SIDING;
+-            wall = pick(kSuburb, r);
++            wall = r.chance(0.5f) ? pick(kRanch, r) : pick(kSuburb, r);
+             frame = vec3(0.95f);
+             break;
+         case AR_HOUSE_CONCH:

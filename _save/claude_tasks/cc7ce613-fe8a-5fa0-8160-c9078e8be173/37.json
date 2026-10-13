@@ -1,0 +1,8 @@
+{
+  "id": "37",
+  "subject": "Carried props for pedestrians (suitcases, bags, coffee, umbrellas, rods, binoculars, surfboards)",
+  "description": "Carried props shipped in dd402cf. Working tree (next snapshot): CARRY_HANDSFREE official; Anim::rightHandBusy (phone 8 / smoke 10 stances): cup moves to the left hand in both animator and renderer, cases/umbrellas/rods/boards put away meanwhile, no rain umbrella handed out. Verify umbrellas at tour stop 8 (/tmp/v8_stop8, chain).",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": []
+}

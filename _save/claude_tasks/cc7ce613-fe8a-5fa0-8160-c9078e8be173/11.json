@@ -1,0 +1,9 @@
+{
+  "id": "11",
+  "subject": "Commit build-verified snapshot after restart",
+  "description": "Snapshot loop (scratchpad/snap_loop.sh) builds a consistent working-tree snapshot; commit via commit_snap.sh and push to claude/neon-tide.",
+  "activeForm": "Committing build-verified snapshot",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": []
+}

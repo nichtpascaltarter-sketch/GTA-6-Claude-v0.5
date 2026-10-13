@@ -1,0 +1,57 @@
+synthwave seed  9000 sub 0 var 2 104 bpm 224.0 s  rms -16.7 dB  pk 0.97  dc +0.0003  max-med  3.4  silentWin 0  key+2  cpu 2.16%
+synthwave seed 15151 sub 0 var 1 104 bpm 196.3 s  rms -17.0 dB  pk 0.98  dc +0.0002  max-med  3.2  silentWin 0  key+1  cpu 2.07%
+synthwave seed 21302 sub 0 var 2  89 bpm 207.4 s  rms -17.1 dB  pk 0.94  dc +0.0003  max-med  3.6  silentWin 0  key+2  cpu 2.08%
+synthwave seed 27453 sub 2 var 1  87 bpm 201.1 s  rms -16.7 dB  pk 0.96  dc +0.0003  max-med  2.9  silentWin 0  key+2  cpu 2.05%
+synthwave seed 33604 sub 1 var 0 124 bpm 211.5 s  rms -15.1 dB  pk 0.92  dc +0.0003  max-med  1.8  silentWin 0  key+1  cpu 2.38%
+synthwave seed 39755 sub 0 var 0  96 bpm 222.5 s  rms -17.0 dB  pk 0.99  dc +0.0002  max-med  2.9  silentWin 0  key+0  cpu 2.03%
+  synthwave: avg cpu 2.13% worst 2.38%
+hiphop    seed  9977 sub 1 var 0 140 bpm 173.9 s  rms -15.1 dB  pk 0.92  dc +0.0002  max-med  0.7  silentWin 0  key+0  cpu 1.73%
+hiphop    seed 16128 sub 0 var 1  88 bpm 209.8 s  rms -17.8 dB  pk 0.94  dc +0.0007  max-med  1.6  silentWin 0  key+0  cpu 3.36%
+hiphop    seed 22279 sub 0 var 0 149 bpm 195.8 s  rms -14.5 dB  pk 0.95  dc +0.0003  max-med  0.5  silentWin 0  key+0  cpu 1.05%
+hiphop    seed 28430 sub 0 var 1  85 bpm 194.5 s  rms -17.7 dB  pk 0.96  dc +0.0001  max-med  2.1  silentWin 0  key+0  cpu 3.02%
+hiphop    seed 34581 sub 0 var 0 135 bpm 180.3 s  rms -15.0 dB  pk 0.97  dc +0.0002  max-med  0.7  silentWin 0  key+0  cpu 1.78%
+hiphop    seed 40732 sub 0 var 1  94 bpm 196.5 s  rms -17.6 dB  pk 0.92  dc +0.0005  max-med  2.9  silentWin 0  key+0  cpu 3.10%
+  hiphop: avg cpu 2.37% worst 3.36%
+reggaeton seed 10954 sub 0 var 1  89 bpm 229.0 s  rms -15.7 dB  pk 1.00  dc +0.0001  max-med  1.5  silentWin 0  key+0  cpu 1.51%
+reggaeton seed 17105 sub 0 var 1  96 bpm 202.5 s  rms -15.1 dB  pk 0.97  dc +0.0001  max-med  1.5  silentWin 0  key+1  cpu 1.45%
+reggaeton seed 23256 sub 0 var 1  98 bpm 227.8 s  rms -15.4 dB  pk 0.95  dc +0.0001  max-med  1.4  silentWin 0  key+2  cpu 1.54%
+reggaeton seed 29407 sub 0 var 0  96 bpm 212.5 s  rms -15.3 dB  pk 0.99  dc +0.0001  max-med  1.2  silentWin 0  key+0  cpu 2.11%
+reggaeton seed 35558 sub 0 var 0  91 bpm 202.9 s  rms -15.5 dB  pk 0.99  dc +0.0001  max-med  1.2  silentWin 0  key+1  cpu 2.06%
+reggaeton seed 41709 sub 0 var 0  94 bpm 217.0 s  rms -15.4 dB  pk 0.98  dc +0.0001  max-med  1.2  silentWin 0  key+0  cpu 2.20%
+  reggaeton: avg cpu 1.81% worst 2.20%
+house     seed 11931 sub 0 var 0 121 bpm 177.0 s  rms -15.7 dB  pk 0.93  dc -0.0000  max-med  0.5  silentWin 0  key+0  cpu 1.42%
+house     seed 18082 sub 0 var 1 125 bpm 179.1 s  rms -16.0 dB  pk 0.84  dc +0.0001  max-med  0.6  silentWin 0  key+0  cpu 1.55%
+house     seed 24233 sub 0 var 0 124 bpm 188.3 s  rms -15.9 dB  pk 0.97  dc -0.0000  max-med  1.1  silentWin 0  key+0  cpu 1.24%
+house     seed 30384 sub 0 var 0 121 bpm 185.0 s  rms -15.8 dB  pk 0.93  dc -0.0001  max-med  0.9  silentWin 0  key+0  cpu 1.33%
+house     seed 36535 sub 1 var 0 118 bpm 197.7 s  rms -16.1 dB  pk 0.90  dc +0.0001  max-med  1.8  silentWin 0  key+0  cpu 1.43%
+house     seed 42686 sub 0 var 0 123 bpm 182.0 s  rms -15.8 dB  pk 0.98  dc +0.0000  max-med  0.9  silentWin 0  key+0  cpu 1.30%
+  house: avg cpu 1.38% worst 1.55%
+rock      seed 12908 sub 1 var 1 182 bpm 197.7 s  rms -14.6 dB  pk 1.00  dc +0.0005  max-med  2.1  silentWin 0  key+0  cpu 4.08%
+rock      seed 19059 sub 1 var 0 179 bpm 168.7 s  rms -14.5 dB  pk 1.00  dc +0.0008  max-med  1.9  silentWin 0  key+0  cpu 2.28%
+rock      seed 25210 sub 0 var 0 128 bpm 197.5 s  rms -15.2 dB  pk 1.00  dc +0.0002  max-med  2.3  silentWin 0  key+0  cpu 1.87%
+rock      seed 31361 sub 0 var 1 124 bpm 211.5 s  rms -15.1 dB  pk 1.00  dc +0.0005  max-med  2.1  silentWin 0  key+0  cpu 3.44%
+rock      seed 37512 sub 0 var 1 150 bpm 168.9 s  rms -14.9 dB  pk 1.00  dc +0.0004  max-med  1.9  silentWin 0  key+0  cpu 3.66%
+rock      seed 43663 sub 0 var 1 146 bpm 173.5 s  rms -14.9 dB  pk 0.98  dc +0.0005  max-med  1.8  silentWin 0  key+0  cpu 3.54%
+  rock: avg cpu 3.15% worst 4.08%
+jazz      seed 13885 sub 0 var 0 123 bpm 174.2 s  rms -18.6 dB  pk 0.75  dc +0.0001  max-med  0.8  silentWin 0  key+0  cpu 1.65%
+jazz      seed 20036 sub 0 var 1 121 bpm 177.0 s  rms -19.0 dB  pk 0.76  dc +0.0004  max-med  0.9  silentWin 0  key+0  cpu 0.99%
+jazz      seed 26187 sub 0 var 0 106 bpm 201.7 s  rms -18.5 dB  pk 0.77  dc +0.0008  max-med  0.8  silentWin 0  key+0  cpu 2.41%
+jazz      seed 32338 sub 0 var 0 124 bpm 165.1 s  rms -19.0 dB  pk 0.79  dc -0.0006  max-med  1.0  silentWin 0  key+0  cpu 1.62%
+jazz      seed 38489 sub 0 var 1 131 bpm 163.7 s  rms -19.0 dB  pk 0.68  dc +0.0003  max-med  1.1  silentWin 0  key+0  cpu 1.02%
+jazz      seed 44640 sub 0 var 1 138 bpm 183.4 s  rms -19.3 dB  pk 0.81  dc +0.0006  max-med  0.9  silentWin 0  key+0  cpu 1.02%
+  jazz: avg cpu 1.47% worst 2.41%
+country   seed 14862 sub 0 var 2 104 bpm 159.4 s  rms -19.1 dB  pk 0.78  dc +0.0000  max-med  1.5  silentWin 0  key+2  cpu 2.10%
+country   seed 21013 sub 0 var 2  95 bpm 174.3 s  rms -19.4 dB  pk 0.75  dc -0.0004  max-med  1.6  silentWin 0  key+0  cpu 2.21%
+country   seed 27164 sub 0 var 1  98 bpm 169.0 s  rms -18.2 dB  pk 0.88  dc +0.0003  max-med  2.6  silentWin 0  key+1  cpu 1.16%
+country   seed 33315 sub 0 var 2 126 bpm 177.7 s  rms -18.7 dB  pk 0.79  dc +0.0001  max-med  0.9  silentWin 0  key+2  cpu 2.10%
+country   seed 39466 sub 0 var 1 120 bpm 186.5 s  rms -17.6 dB  pk 0.92  dc -0.0001  max-med  2.9  silentWin 0  key+0  cpu 1.21%
+country   seed 45617 sub 0 var 1 115 bpm 202.8 s  rms -17.9 dB  pk 0.95  dc +0.0000  max-med  2.6  silentWin 0  key+0  cpu 1.17%
+  country: avg cpu 1.64% worst 2.21%
+lofi      seed 15839 sub 1 var 0  86 bpm 203.4 s  rms -20.3 dB  pk 0.90  dc +0.0005  max-med  2.6  silentWin 0  key+0  cpu 1.72%
+lofi      seed 21990 sub 0 var 0  83 bpm 210.7 s  rms -20.3 dB  pk 0.87  dc +0.0004  max-med  2.3  silentWin 0  key+0  cpu 4.14%
+lofi      seed 28141 sub 1 var 0  87 bpm 201.1 s  rms -20.4 dB  pk 0.91  dc +0.0013  max-med  2.6  silentWin 0  key+0  cpu 1.72%
+lofi      seed 34292 sub 0 var 0  73 bpm 226.1 s  rms -19.8 dB  pk 0.82  dc +0.0005  max-med  2.5  silentWin 0  key+0  cpu 4.62%
+lofi      seed 40443 sub 1 var 0  79 bpm 221.2 s  rms -20.5 dB  pk 0.87  dc +0.0009  max-med  2.3  silentWin 0  key+0  cpu 1.72%
+lofi      seed 46594 sub 0 var 0  88 bpm 187.9 s  rms -18.7 dB  pk 0.79  dc +0.0005  max-med  1.6  silentWin 0  key+0  cpu 4.23%
+  lofi: avg cpu 3.03% worst 4.62%
+0 failures

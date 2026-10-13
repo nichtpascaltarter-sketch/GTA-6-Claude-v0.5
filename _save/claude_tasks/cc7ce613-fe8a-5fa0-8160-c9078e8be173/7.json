@@ -1,0 +1,9 @@
+{
+  "id": "7",
+  "subject": "M7: Audio (mixer, SFX synth, engine sounds, radio music, TTS voices)",
+  "description": "WASAPI mixer with 3D audio, procedural SFX, procedural radio stations, formant TTS.",
+  "activeForm": "Integrating audio engine; speech agent working",
+  "status": "in_progress",
+  "blocks": [],
+  "blockedBy": []
+}

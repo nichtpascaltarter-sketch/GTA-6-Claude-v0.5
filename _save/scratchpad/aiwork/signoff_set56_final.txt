@@ -1,0 +1,113 @@
+AI snapshot-safe, sets 5+6 (on top of sets 3+4). Tested on nt_ai74 = HEAD <hash> plus the blobs below.
+
+Blobs (written with git hash-object -w):
+  e200065f647725dde4543026498b3ff84b3418a3 src/game/ai.cpp
+  321e33e90d1fcfcd1b89bcae047858ec1e3aec58 src/game/ai_core.h
+  d1b78cc448be4196035b05545bda18913b22db8d src/game/ai_game.h
+  fc2f17e3d3c6568214a28cfb06f259efee94d972 src/game/app.cpp
+  22985e2c26e684c2bf713782ff783e416e3ac39f src/game/barks.cpp
+  1e506ec4bece859cfad14d1340d67fa428ac776a src/game/events.cpp
+  c58b0328908c5dadc3224c9ac892bc5a5a064367 src/game/pedai.cpp
+  7d7038cd2f354b49b6e0d6de3f3c427ec03755fd src/game/pednav.cpp
+  becaad9f5c472219dc5ccf7bae405c5d8dabdb3f src/game/police.cpp
+  def45fbf016c4309d3e14f771cafd0a5b7e4e160 src/game/traffic.cpp
+  c0b6ea2dbaf6b9be65a7f641c0d38c69e56bf7da src/game/traffic_core.cpp
+  f066727401fbb94c54ffd8ed005415d46036f3cd src/game/wildlife.cpp   (HEAD + leashHand only; graft text below)
+  c938d5b47e96be03c996b07ef88db115fbe32f89 src/game/wildlife.h     (HEAD + its declaration only)
+Unchanged: gameworld.h, lanes.cpp, population.cpp, game.h.
+peds.cpp: one more block, the in-car look (graft text below), after the couple and reach blocks, before the foot IK line.
+
+Street life (set 5):
+- A panhandler (EV_PANHANDLER, events.cpp): sat against a wall with a paper cup; asks the player walking close on foot
+  (not wanted, no gun out): stood still beside him gives $2 (thanks, a wave), walking on gets "no hard feelings"; back
+  to his spot; asks again once the player has been 30 m off. Now and then a passer-by drops something in his cup.
+- Running for the bus (traffic.cpp bus_run, pedai.cpp ACT_ENTER_VEH busRun): someone 18-60 m along the sidewalk, in
+  sight of a bus pulled in, waves, calls "Hold the bus!" and runs; within 16 m the driver holds on; the thanks at the
+  door - or it goes without them: stood looking after it, a hand to the head, "Seriously?!".
+- Startles (pedai.cpp): a car tearing past close to the kerb (the player's over 54 km/h, anyone's over 70 km/h): a start
+  back from it, stood looking after it, a word ("Slow down!").
+- Beat officers call to jaywalkers ("Crosswalk's right there!"); they trot the rest, sometimes "Sorry, officer!".
+- Personal space: the player stood right by someone sat or stood about 3 s: "Can I help you?"; 9 s: they leave ("Weirdo.").
+- Followed: the player close behind someone 7 s: a look back, "Are you following me?", a quicker step; 15 s: the timid
+  hurry off, the bold square up.
+- Rain: half of those running for it without an umbrella hold a hand over their head (the reach hook).
+- Asking the way of a beat officer (askableCop, meet kind 1: BK_ASK_COP_WAY / BK_COP_GIVE_WAY).
+Traffic (set 5):
+- Rubbernecking (ai.cpp ai_sights, traffic.cpp, Driver::hostCap/hostCapT in traffic_core.cpp/ai_core.h): passing a
+  wreck, a fire, lights going at a stop, somebody down, a fender bender, a breakdown, a fight or a traffic stop, three
+  in four drivers slow to 14-25 km/h (highways: half the limit). The old speedCap was reset every plan().
+- Cut up by the player: a long blast of the horn and "Learn to drive!".
+Movement quality (set 5):
+- Turn-rate cap: walking along, the body turns at most 3 rad/s; a turn over 60 degrees is taken at a slower step
+  (to 30% at most); on the spot, running, aiming, fighting and a startled start back stay quick.
+- Companions keep their slot smoothly: the pace is the leader's own plus 1.2 x the offset (no dead zone, clamped at
+  2.8 m/s, low-passed), the slot built on the leader's velocity, facing the leader's heading within 1 m of it; the side
+  kept flips when it runs off the sidewalk.
+- Leaders no longer shy from their own companions: PedNav::step takes an ignore list (ai_core.h, pednav.cpp); a
+  companion registers on its leader every frame (PedAI::company[2] / companyT[2]).
+- Anchor arrival: walk in only from beyond 0.6 m, settle inside 0.2 m, speed min(vmax, 2d) >= 0.15, face anchorYaw for
+  the last metre. Census "anchor rewalks".
+- Couples hand in hand 0.62 m apart; not with a dog's leash in either inner hand (Wildlife::leashHand, read-only).
+Police (set 5): a ticketed car's owner can be a worker too; "police: nobody comes for car N (...)"; a rushing owner
+only for a car with room to pull out.
+Car alarms and key fobs (set 6):
+- An alarm going is heard (ai.cpp car_alarm, STIM_ALARM every second): people stop for a look, sat ones turn, a few
+  grumble (more late at night), officers glance over; the player seen breaking in: "Hey! That's not your car!".
+- Its owner comes for half of them (police_ticket::pickOwner; pedai.cpp ACT_ALARM_OWNER): knocked - a jog over 4-9 s
+  on, the key fob from a few metres (the alarm stops: SFX_CAR_ALARM_CHIRP, unused till now, and a flash of the hazards),
+  round to its sidewalk side, crouched for a look at the paint, a word ("Not a scratch. Lucky." / to the player stood
+  by: "Was that you?!"), away in it half the time; broken into - a run to the driver's door shouting, then a hand to the
+  head as it goes ("Come back here!"). Only ordinary civilian cars.
+- Fobs: three in four drivers who park lock it a few steps off (VehAI::lockAt, a chirp and one flash); owners walking
+  to their car unlock it 6 m off with the arm out (two flashes).
+- Fixes: a stolen car's alarm never stopped while driven (now 14-24 s); a knocked kerbside car (spawned without an AI
+  record) was never looked at by ai.cpp at all, so it wailed forever - an alarm going now puts the car on record.
+Rubbernecking heads (set 6): drivers and passengers slowing past a scene turn their heads to it (traffic.cpp
+VehAI::gawkAt / gawkT, the in-car look block); stopped in traffic, now and then a look at the player walking by close.
+Crossings (set 6): when the little man lights after a wait, each steps off after a moment of their own (0.15-1.2 s, one
+in ten 1.6-2.8 s): a crowd at the kerb no longer moves off as one (pednav.cpp Walker::goT).
+Tests: panhandle, busrun, nearmiss, jaywalk, crowded, followed, couple, walkby (greetings, "are you okay?" with the
+player's health held at 30%), alarm modes; the hurt test picks a victim who stays down; the crashscene camera clear of
+arcades; census counters for all of it.
+
+Results:
+[RESULTS]
+
+Graft text - peds.cpp, after the couple and reach blocks, before the foot IK line:
+    // AI drivers and passengers: the head turned to a scene the car is slowing past (traffic.cpp rubbernecking, while
+    // VehAI::gawkT is ahead), else - stopped in traffic - now and then to the player walking past close by
+    if (in.lookWeight <= 0.f && p.state == PS_INVEHICLE && !p.isPlayer && p.vehicle >= 0 && p.vehicle < (int)vehicles.size() && p.visibleDist < 45.f) {
+        const Vehicle& lv = vehicles[p.vehicle];
+        const VehAI* la = p.vehicle < (int)ai.veh.size() && ai.veh[p.vehicle].uid == lv.uid ? &ai.veh[p.vehicle] : nullptr;
+        vec3 D(0.f);
+        float w = 0.f;
+        if (la && time < la->gawkT) {
+            D = la->gawkAt - p.pos.toVec3() + vec3(0.f, 0.f, 0.5f);
+            w = 0.85f;
+        } else if (player >= 0 && peds[player].used && peds[player].state == PS_ONFOOT && lv.sim.speed() < 1.f &&
+                   (hash32(p.uid * 977u + (u32)(time * 0.2)) & 3u) == 0u) {
+            D = rel(peds[player].pos, p.pos) + vec3(0.f, 0.f, 1.5f);
+            w = length(vec2(D.x, D.y)) < 9.f ? 0.6f : 0.f;
+        }
+        if (w > 0.f) {
+            in.lookAt = vec3(dot(vec2(D.x, D.y), rightV), dot(vec2(D.x, D.y), fwd), D.z);
+            in.lookWeight = in.lookAt.y > -0.3f * length(vec2(D.x, D.y)) ? w : 0.f;   // (not round to somebody behind)
+        }
+    }
+
+Graft text - wildlife.h (after `int speciesCount();`) and wildlife.cpp (in namespace Wildlife, before `bool k9Loose`):
+--- wildlife.h, after `int speciesCount();`:
+
+// The hand a pedestrian holds a dog's leash in (a pet walked on the sidewalk, or a police dog at heel): 0 left, 1 right;
+// -1 when they walk no dog on a leash. With pedUid (non-zero) only for that pedestrian (not one since spawned in the slot).
+int leashHand(int ped, u32 pedUid = 0);
+
+--- wildlife.cpp, in namespace Wildlife, before `bool k9Loose(int group) {`:
+
+int leashHand(int ped, u32 pedUid) {
+    using namespace wild_detail;
+    if (ped < 0) return -1;
+    for (const Group& G : gW.groups)
+        if (G.used && G.type == GT_DOG_LEASH && G.owner == ped && (pedUid == 0 || G.ownerUid == pedUid)) return G.leashHand;
+    return -1;
+}

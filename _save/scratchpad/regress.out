@@ -1,0 +1,87 @@
+built 15:10
+=== low_tide,repo_man,dry_dock,pressure  (15:17)
+[ 391.959] [missiontest] SUMMARY: 4 passed, 0 failed
+[ 391.959] [missiontest]   low_tide: passed (stage 5, 72 s)
+[ 391.959] [missiontest]   repo_man: passed (stage 5, 73 s)
+[ 391.959] [missiontest]   dry_dock: passed (stage 4, 17 s)
+[ 391.959] [missiontest]   pressure: passed (stage 4, 105 s)
+=== collateral,pink_slips,last_call,opening  (15:20)
+[ 209.108] [missiontest] SUMMARY: 4 passed, 0 failed
+[ 209.108] [missiontest]   collateral: passed (stage 6, 60 s)
+[ 209.108] [missiontest]   pink_slips: passed (stage 4, 37 s)
+[ 209.108] [missiontest]   last_call: passed (stage 6, 26 s)
+[ 209.108] [missiontest]   opening: passed (stage 0, 10 s)
+=== dead_air,velvet_rope,bagman,sawgrass_run  (15:23)
+[ 148.851] [missiontest] SUMMARY: 4 passed, 0 failed
+[ 148.851] [missiontest]   dead_air: passed (stage 5, 123 s)
+[ 148.851] [missiontest]   velvet_rope: passed (stage 4, 10 s)
+[ 148.851] [missiontest]   bagman: passed (stage 8, 316 s)
+[ 148.851] [missiontest]   sawgrass_run: passed (stage 4, 12 s)
+=== riptide,heavy_lift,fireworks,second_chance,paper_trail  (15:26)
+[ 155.145] [missiontest] SUMMARY: 5 passed, 0 failed
+[ 155.145] [missiontest]   riptide: passed (stage 5, 12 s)
+[ 155.145] [missiontest]   heavy_lift: passed (stage 5, 99 s)
+[ 155.145] [missiontest]   fireworks: passed (stage 5, 63 s)
+[ 155.145] [missiontest]   second_chance: passed (stage 4, 6 s)
+[ 155.145] [missiontest]   paper_trail: passed (stage 4, 90 s)
+=== blueprints,dress_rehearsal,solaris_one,overseas,signal  (15:29)
+[ 117.831] [missiontest] solaris_one t=33.0: FAILED at stage 1 - The van was destroyed.
+[ 195.705] [missiontest] SUMMARY: 4 passed, 1 failed
+[ 195.705] [missiontest]   blueprints: passed (stage 6, 80 s)
+[ 195.705] [missiontest]   dress_rehearsal: passed (stage 5, 48 s)
+[ 195.705] [missiontest]   solaris_one: FAILED (stage 1, 33 s) - The van was destroyed.
+[ 195.705] [missiontest]   overseas: passed (stage 9, 22 s)
+[ 195.705] [missiontest]   signal: passed (stage 4, 40 s)
+=== taxi,vigilante,paramedic,courier,range,bounty,wishlist  (15:33)
+[ 208.927] [missiontest] SUMMARY: 7 passed, 0 failed
+[ 208.927] [missiontest]   taxi: passed (stage 4, 25 s)
+[ 208.927] [missiontest]   vigilante: passed (stage 0, 4 s)
+[ 208.927] [missiontest]   paramedic: passed (stage 0, 185 s)
+[ 208.927] [missiontest]   courier: passed (stage 0, 4 s)
+[ 208.927] [missiontest]   range: passed (stage 0, 15 s)
+[ 208.927] [missiontest]   bounty: passed (stage 2, 106 s)
+[ 208.927] [missiontest]   wishlist: passed (stage 3, 76 s)
+=== rosa_1,rosa_2,rosa_3,velma_1,velma_2,velma_3,jaz_1,jaz_2,jaz_3  (15:41)
+[ 486.603] [missiontest] SUMMARY: 9 passed, 0 failed
+[ 486.604] [missiontest]   rosa_1: passed (stage 4, 108 s)
+[ 486.604] [missiontest]   rosa_2: passed (stage 3, 28 s)
+[ 486.604] [missiontest]   rosa_3: passed (stage 3, 80 s)
+[ 486.604] [missiontest]   velma_1: passed (stage 3, 32 s)
+[ 486.604] [missiontest]   velma_2: passed (stage 3, 10 s)
+[ 486.604] [missiontest]   velma_3: passed (stage 3, 10 s)
+[ 486.604] [missiontest]   jaz_1: passed (stage 4, 126 s)
+[ 486.604] [missiontest]   jaz_2: passed (stage 5, 13 s)
+[ 486.604] [missiontest]   jaz_3: passed (stage 5, 14 s)
+=== race_calle,race_beach,race_overseas,race_grove,race_keys,boat_bay,boat_river  (15:47)
+[ 320.123] [missiontest] SUMMARY: 7 passed, 0 failed
+[ 320.123] [missiontest]   race_calle: passed (stage 2, 22 s)
+[ 320.124] [missiontest]   race_beach: passed (stage 2, 25 s)
+[ 320.124] [missiontest]   race_overseas: passed (stage 2, 40 s)
+[ 320.124] [missiontest]   race_grove: passed (stage 2, 31 s)
+[ 320.124] [missiontest]   race_keys: passed (stage 2, 13 s)
+[ 320.124] [missiontest]   boat_bay: passed (stage 2, 19 s)
+[ 320.124] [missiontest]   boat_river: passed (stage 2, 14 s)
+=== flight_1,flight_2,flight_3,roam  (15:49)
+[ 117.715] [missiontest] roam: ok   garage: Mochi 125 parked outside
+[ 118.352] [missiontest] roam: ok   handset: 6 contacts, 5 apps
+[ 120.248] [missiontest] roam: 44 checks ok, 0 failed
+[ 120.975] [missiontest] SUMMARY: 4 passed, 0 failed
+[ 120.975] [missiontest]   flight_1: passed (stage 0, 4 s)
+[ 120.975] [missiontest]   flight_2: passed (stage 0, 1 s)
+[ 120.975] [missiontest]   flight_3: passed (stage 0, 6 s)
+[ 120.975] [missiontest]   roam: 44 checks ok, 0 failed (39 s)
+=== dress_rehearsal,solaris_one --approach loud (15:54)
+[ 267.532] [missiontest] SUMMARY: 2 passed, 0 failed
+[ 267.532] [missiontest]   dress_rehearsal: passed (stage 5, 39 s)
+[ 267.532] [missiontest]   solaris_one: passed (stage 8, 183 s)
+=== signal --ending leverage (15:57)
+[ 173.163] [missiontest] SUMMARY: 1 passed, 0 failed
+[ 173.163] [missiontest]   signal: passed (stage 14, 36 s)
+=== series,harbor,harbor,harbor,harbor,harbor  (16:06)
+[ 527.758] [missiontest] SUMMARY: 6 passed, 0 failed
+[ 527.758] [missiontest]   series: passed (stage 6, 103 s)
+[ 527.758] [missiontest]   harbor: passed (stage 3, 6 s)
+[ 527.758] [missiontest]   harbor: passed (stage 3, 6 s)
+[ 527.758] [missiontest]   harbor: passed (stage 3, 6 s)
+[ 527.758] [missiontest]   harbor: passed (stage 3, 11 s)
+[ 527.759] [missiontest]   harbor: passed (stage 3, 11 s)

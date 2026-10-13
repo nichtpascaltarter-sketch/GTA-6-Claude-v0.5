@@ -1,0 +1,9 @@
+{
+  "id": "8",
+  "subject": "M8: UI (menus, HUD, minimap, map, settings, save/load, controller)",
+  "description": "Complete front-end and HUD with settings persistence and save slots.",
+  "activeForm": "UI agent: HUD, minimap, map, menus",
+  "status": "in_progress",
+  "blocks": [],
+  "blockedBy": []
+}

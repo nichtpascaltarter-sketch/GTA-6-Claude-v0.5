@@ -1,0 +1,106 @@
+In file included from src/audio/audio_all.cpp:12,
+                 from src/main.cpp:39:
+src/audio/wasapi.cpp: In member function 'virtual HRESULT Audio::detail::wasapi::NotifyClient::OnDefaultDeviceChanged(EDataFlow, ERole, LPCWSTR)':
+src/audio/wasapi.cpp:53: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
+   53 |         if (flow == eRender && role == eConsole) defaultChanged.store(true);
+      | 
+src/audio/wasapi.cpp:53: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
+In file included from src/ui/ui_all.cpp:9,
+                 from src/main.cpp:48:
+src/ui/phone.cpp: In function 'UI::PhoneAction UI::Phone::update(UI::PhoneState&, const UI::HudState&, const InputState&, float)':
+src/ui/phone.cpp:1837: error: reference to 'g_photo' is ambiguous
+ 1837 |         g_photo = true;
+      | 
+In file included from src/main.cpp:8:
+src/ui/draw2d.cpp:87:13: note: candidates are: 'UI::draw2d_detail::PhotoCBData UI::draw2d_detail::g_photo'
+   87 | PhotoCBData g_photo;
+      |             ^~~~~~~
+src/ui/phone.cpp:77: note:                 'bool UI::phone_ui::g_photo'
+   77 | bool g_photo = false;
+      | 
+src/ui/phone.cpp:1862: error: reference to 'g_photo' is ambiguous
+ 1862 |     g_photo = false;
+      | 
+src/ui/draw2d.cpp:87:13: note: candidates are: 'UI::draw2d_detail::PhotoCBData UI::draw2d_detail::g_photo'
+   87 | PhotoCBData g_photo;
+      |             ^~~~~~~
+src/ui/phone.cpp:77: note:                 'bool UI::phone_ui::g_photo'
+   77 | bool g_photo = false;
+      | 
+In file included from src/game/../game/game.h:12,
+                 from src/game/../game/gameworld.h:4,
+                 from src/game/../game/assets.cpp:2,
+                 from src/game/../game/game_all.cpp:3,
+                 from src/game/app.cpp:14,
+                 from src/main.cpp:51:
+src/game/../game/../anim/character.h: At global scope:
+src/game/../game/../anim/character.h:9: error: multiple definition of 'enum Anim::Bone'
+    9 | enum Bone : u8 {
+      | 
+In file included from src/anim/anim_all.cpp:2,
+                 from src/main.cpp:35:
+src/anim/character.h:9:6: note: previous definition here
+    9 | enum Bone : u8 {
+      |      ^~~~
+src/game/../game/../anim/character.h:23: error: redefinition of 'struct Anim::Skeleton'
+   23 | struct Skeleton {
+      | 
+src/anim/character.h:23:8: note: previous definition of 'struct Anim::Skeleton'
+   23 | struct Skeleton {
+      |        ^~~~~~~~
+src/game/../game/../anim/character.h:33: error: redefinition of 'struct Anim::Pose'
+   33 | struct Pose {
+      | 
+src/anim/character.h:33:8: note: previous definition of 'struct Anim::Pose'
+   33 | struct Pose {
+      |        ^~~~
+src/game/../game/../anim/character.h:38: error: multiple definition of 'enum Anim::Gender'
+   38 | enum Gender : u8 { MALE = 0, FEMALE = 1 };
+      | 
+src/anim/character.h:38:6: note: previous definition here
+   38 | enum Gender : u8 { MALE = 0, FEMALE = 1 };
+      |      ^~~~~~
+src/game/../game/../anim/character.h:40: error: redefinition of 'struct Anim::CharacterDesc'
+   40 | struct CharacterDesc {
+      | 
+src/anim/character.h:40:8: note: previous definition of 'struct Anim::CharacterDesc'
+   40 | struct CharacterDesc {
+      |        ^~~~~~~~~~~~~
+src/game/../game/../anim/character.h:56: error: default argument given for parameter 2 of 'Anim::CharacterDesc Anim::randomCharacter(u32, int)' [-fpermissive]
+   56 | CharacterDesc randomCharacter(u32 seed, int role = 0);
+      | 
+In file included from src/anim/anim_all.cpp:10:
+src/anim/character.cpp:95:15: note: previous specification in 'Anim::CharacterDesc Anim::randomCharacter(u32, int)' here
+   95 | CharacterDesc randomCharacter(u32 seed, int role) {
+      |               ^~~~~~~~~~~~~~~
+src/game/../game/../anim/character.h:60: error: multiple definition of 'enum Anim::Clip'
+   60 | enum Clip : u16 {
+      | 
+src/anim/character.h:60:6: note: previous definition here
+   60 | enum Clip : u16 {
+      |      ^~~~
+src/game/../game/../anim/character.h:80: error: redefinition of 'struct Anim::ClipInfo'
+   80 | struct ClipInfo {
+      | 
+src/anim/character.h:72:8: note: previous definition of 'struct Anim::ClipInfo'
+   72 |     CLIP_DODGE_BACK, CLIP_DODGE_L, CLIP_DODGE_R,   // 1.2 m of root motion (clipRootMotion), full body
+      |        ^~~~~~~~
+src/game/../game/../anim/character.h:88: error: default argument given for parameter 5 of 'void Anim::sampleClip(const Skeleton&, Clip, float, Pose&, u32)' [-fpermissive]
+   88 | void sampleClip(const Skeleton& skel, Clip c, float t, Pose& out, u32 variationSeed = 0);
+      | 
+In file included from src/anim/anim_all.cpp:13:
+src/anim/clips.cpp:2310:6: note: previous specification in 'void Anim::sampleClip(const Skeleton&, Clip, float, Pose&, u32)' here
+ 2310 | void sampleClip(const Skeleton& skel, Clip c, float t, Pose& out, u32 variationSeed) {
+      |      ^~~~~~~~~~
+src/game/../game/../anim/character.h:100: error: redefinition of 'struct Anim::AnimInput'
+  100 | float clipEventTime(Clip c);
+      | 
+src/anim/character.h:92:8: note: previous definition of 'struct Anim::AnimInput'
+   92 | // Convert a pose to model-space bone matrices and skinning matrices (model * invBind).
+      |        ^~~~~~~~~
+src/game/../game/../anim/character.h:120: error: redefinition of 'struct Anim::Animator'
+  120 |     float aimPitch = 0;       // radians, + up
+      | 
+src/anim/character.h:112:8: note: previous definition of 'struct Anim::Animator'
+  112 | // High level animation state machine driven by gameplay each frame.
+      |        ^~~~~~~~

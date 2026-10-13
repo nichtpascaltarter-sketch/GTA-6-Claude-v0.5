@@ -1,0 +1,22 @@
+Embedded 35 shader files.
+In file included from src/audio/audio_all.cpp:13,
+                 from src/main.cpp:53:
+src/audio/wasapi.cpp: In member function 'virtual HRESULT Audio::detail::wasapi::NotifyClient::OnDefaultDeviceChanged(EDataFlow, ERole, LPCWSTR)':
+src/audio/wasapi.cpp:53: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
+   53 |         if (flow == eRender && role == eConsole) defaultChanged.store(true);
+      | 
+src/audio/wasapi.cpp:53: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
+In file included from src/core/math.h:5,
+                 from src/core/math.cpp:1,
+                 from src/main.cpp:3:
+In function 'T Max(T, T) [with T = float]',
+    inlined from 'World::RoadNetwork::generate(World::WorldMap&)::<lambda(World::RoadEdge&)>' at src/world/roads.cpp:900:36:
+src/core/base.h:48:66: warning: 'hz' may be used uninitialized [-Wmaybe-uninitialized]
+   48 | template <typename T> FORCEINLINE T Max(T a, T b) { return a > b ? a : b; }
+      |                                                            ~~~~~~^~~~~~~
+In file included from src/main.cpp:13:
+src/world/roads.cpp: In lambda function:
+src/world/roads.cpp:898:27: note: 'hz' was declared here
+  898 |                 hm.resize(cnt, 0);
+      |                           ^~
+-rwxr-xr-x 1 root root 8609792 Sep 30 05:37 bin/nt_ui7.exe

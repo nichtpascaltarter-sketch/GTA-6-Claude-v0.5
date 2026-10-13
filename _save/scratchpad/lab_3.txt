@@ -1,0 +1,11 @@
+
+=== house seed 1465: 123 bpm, key 9 scale 1, variant 0, 96 bars, 189.8 s, swing 0.00
+  form: Intro16 Build8 Drop16 Breakdown16 Build8 Drop16 Outro16
+  MIX rms -16.9 dB, centroid 2609 Hz, peak 0.87
+  track 0 Drums  notes  1316                                  rms  -18.3 dB  centroid  3172 Hz  peak 0.88
+  track 1 Fm     notes   192 range  33- 52 outKey  0.0% steps  67% leaps  24%  rms  -28.0 dB  centroid   186 Hz  peak 0.22
+  track 2 Piano  notes  1120 range  59- 74 outKey  3.6% steps   7% leaps  36%  rms  -25.8 dB  centroid   889 Hz  peak 0.47
+  track 3 Sub    notes    64 range  59- 72 outKey  0.0% steps   8% leaps  33%  rms  -26.7 dB  centroid   863 Hz  peak 0.45
+  track 4 Sub    notes   240 range  65- 88 outKey  0.0% steps  79% leaps   7%  rms  -31.8 dB  centroid  2026 Hz  peak 0.51
+  track 5 Vox    notes    80 range  64- 81 outKey  0.0% steps  67% leaps   6%  rms  -27.8 dB  centroid   663 Hz  peak 0.37
+  track 6 Drums  notes    36                                  rms  -38.8 dB  centroid  2727 Hz  peak 0.37

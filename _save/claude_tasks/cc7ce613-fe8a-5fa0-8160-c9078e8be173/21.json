@@ -1,0 +1,9 @@
+{
+  "id": "21",
+  "subject": "Vehicle realism pass (models agent)",
+  "description": "Models agent finished the realism pass (bodies, lamps with maker light signatures, wheels with calipers, cabins, underbody, bikes, boats); open leftovers: Kaze roadster A-pillar back faces, single-pixel LOD1 back faces, opaque bus windscreen, van/bus LOD1 over budget.",
+  "activeForm": "Improving vehicle models",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": []
+}

@@ -1,0 +1,9 @@
+{
+  "id": "29",
+  "subject": "Fade peds between the camera and the player",
+  "description": "Dithered fade (psDynamic/psHairCard clip on gObjParams2.z, DrawItem.fade) for non-player peds occluding the player close to the camera, plus a soft near-camera fade replacing the hard 0.55 m skip; smoothed per ped; FP/scripted cameras only use the near fade. Verify with a Wine shot.",
+  "activeForm": "Adding the near-camera ped fade",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": []
+}

@@ -1,0 +1,9 @@
+{
+  "id": "51",
+  "subject": "Clean wind-down for usage pause (agents finish fully, then save_all)",
+  "description": "Done 16:41 on 10-06: all 5 agents stopped with resume notes; PRs #40-#42 merged during the wind-down (main 894e7fb); everything saved byte for byte to claude/neon-tide-save 4df7e08; check-in trigger disabled.",
+  "activeForm": "Winding down: letting agents finish",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": []
+}

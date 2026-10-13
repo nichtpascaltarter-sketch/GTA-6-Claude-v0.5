@@ -1320,6 +1320,34 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                     b.edge = -2;
                 }
             }
+            // knocked down by a car whose driver stopped to see (ai.cpp): up again and not hurt, they stay where they are,
+            // turned to the driver getting out and coming over, for a word with them (ACT_ROADRAGE's sorry branch has
+            // them answer once the driver is close) - up to 8 s from getting up; on 1.5 s after their answer, or as soon
+            // as the driver gives it up or drives on
+            if (pa.waitDrv >= 0) {
+                int dv = pa.waitDrv;
+                const Ped* D = dv < (int)peds.size() && peds[dv].used && peds[dv].uid == pa.waitDrvUid && peds[dv].state != PS_DEAD ? &peds[dv] : nullptr;
+                const PedAI* da = D && dv < (int)ai.ped.size() && ai.ped[dv].uid == D->uid ? &ai.ped[dv] : nullptr;
+                bool coming = false;
+                if (D && D->state == PS_INVEHICLE && D->vehicle >= 0 && D->vehicle < (int)vehicles.size()) {
+                    const VehAI& wv = vehAI(D->vehicle);   // (still pulling up)
+                    coming = wv.rage >= 1 && wv.rageSorry && wv.rageFor == id;
+                } else if (D && (D->state == PS_ONFOOT || D->state == PS_EXITING) && da) {   // (getting out - the door clip - or on foot)
+                    coming = da->activity == ACT_ROADRAGE && da->rageSorry && da->sorryFor == id && da->sorryForUid == p.uid && da->actTimer > 0.f;
+                }
+                if (pa.waitT < 0.f) pa.waitT = (float)time + 8.f;   // (just up)
+                if (coming && da && da->sorryCalled && pa.replyAt < 0.f) pa.waitT = Min(pa.waitT, (float)time + 1.5f);   // (had their word)
+                if (!coming || time > pa.waitT || pa.activity == ACT_HURT || pa.activity == ACT_CUFFED || p.state != PS_ONFOOT) {
+                    pa.waitDrv = -1;
+                } else {
+                    faceYaw = yawTo(pos, D->pos.toVec3().xy());
+                    faceSet = true;
+                    turnRate = 4.f;
+                    p.lookPed = dv;
+                    p.lookT = Max(p.lookT, 0.4f);
+                    break;   // (stood there: nothing else this frame)
+                }
+            }
             switch (pa.activity) {
                 case ACT_WALK:
                 case ACT_JOG: {
@@ -1456,13 +1484,18 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                             faceYaw = d < 1.f && lspd > 0.3f ? AI::dirYaw(lf) : atan2f(-desired.x, desired.y);
                             faceSet = true;
                             if (!hand && (p.uid + (u32)(time * 0.1)) % 2 == 0) stance = 7;   // chatting on the way
-                            // overheard as the player passes: a line now and then, the leader answering a moment later
-                            if (plDist < 8.f && pa.barkCooldown <= 0.f && la.replyAt < 0.f && fmodf((float)time + (p.uid % 97u) * 0.37f, 7.f) < dt &&
-                                hash32(p.uid + (u32)(time * 0.15)) % 3u == 0u && p.faction == L.faction && (p.faction == FAC_CIVILIAN || p.faction == FAC_POLICE)) {
+                            // overheard as the player passes: a line now and then (a try every 7 s or so while the player is
+                            // close, one in three said), the leader answering a moment later. A try lost to another voice just
+                            // then (ai.barkGlobal) goes again a moment later - on nt_ai86's busy night promenade, where the
+                            // try came once a frame in 7 s, not one was heard in 146 s
+                            if (plDist < 8.f && pa.barkCooldown <= 0.f && la.replyAt < 0.f && time >= pa.chatT && p.faction == L.faction &&
+                                (p.faction == FAC_CIVILIAN || p.faction == FAC_POLICE)) {
                                 // (late at night, two out on the town: their own lines - the after-party, the feet, the ride home)
                                 bool lateOut = p.faction == FAC_CIVILIAN && env && (env->timeOfDay > 21.5f || env->timeOfDay < 4.5f);
-                                aiSay(id, p.faction == FAC_POLICE ? BK_COP_BEAT_CHAT : (lateOut ? BK_NIGHT_CHAT : BK_STROLL_CHAT), 1.f);
+                                if (hash32(p.uid + (u32)(time * 0.15)) % 3u != 0u) pa.chatT = (float)time + 7.f;   // (not this time)
+                                else aiSay(id, p.faction == FAC_POLICE ? BK_COP_BEAT_CHAT : (lateOut ? BK_NIGHT_CHAT : BK_STROLL_CHAT), 1.f);
                                 if (pa.barkCooldown > 0.f) {   // (it was said)
+                                    pa.chatT = (float)time + 7.f;
                                     ai.stats.chats++;
                                     if (lateOut) ai.stats.nightChats++;
                                     la.replyAt = (float)time + p.speechCooldown + 0.2f + hashToFloat(hash32(p.uid + (u32)time)) * 0.5f;   // (once it is said)
@@ -2485,7 +2518,9 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                             vq.replyKind = BK_HIT_ANGRY;
                             pa.sorryCalled = true;
                         }
-                        pa.linger = down ? 0.f : pa.linger + dt;
+                        // (up again: a while with them once there, then back to the car - the clock not running while
+                        //  still on the way over, as the one hit waits for them: PedAI::waitDrv, above)
+                        pa.linger = down ? 0.f : (d < 4.f || pa.sorryCalled ? pa.linger + dt : pa.linger);
                         if (pa.linger > 3.5f) pa.actTimer = Min(pa.actTimer, 0.5f);   // (they are all right: off again)
                         break;
                     }

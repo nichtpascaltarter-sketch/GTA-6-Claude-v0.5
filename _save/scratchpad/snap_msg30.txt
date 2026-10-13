@@ -1,0 +1,36 @@
+City batch 4: block houses, folk Victorians, raised Keys houses, four gas stations; yard trees out of houses
+
+- New house types:
+  - Fifties Florida block houses: pastel stucco, a low hip roof, aluminium awnings and a carport. They stand among
+    the bungalows of North Porto Sol, Calle Luna, the Flats and Midtown, and in Westbrook, the small towns and the
+    Keys.
+  - Folk Victorians: two-storey frame houses with a cross gable, a bracketed porch in the inner corner and a gable
+    truss. They are in Okahatchee, Harlow, Fort Castell, Key Solano and among the farmhouses.
+  - Raised Keys houses in Key Solano, Ten Palms and the Keys: the living floor a storey up on concrete piers, open
+    parking with storage behind, a front deck with a stair, a metal roof and storm shutters.
+- Carports replace the garage wing on block and MiMo houses: a flat roof on steel posts, some with a screen of fins.
+- More house shapes:
+  - ranch and block houses with a gable-fronted bay forward of the front;
+  - L-shaped bungalows with the porch in the corner;
+  - fewer plain villas on Key Coral and the bay islands.
+- Gas stations in four designs:
+  - a flat canopy with a lit brand band;
+  - a sixties butterfly canopy on tapered columns;
+  - an old service station with a barrel-tile hip roof;
+  - a slab carried out from the kiosk.
+  All have pump islands, and most a pole price sign at the corner.
+- Roofs: tile in three blends (terracotta, brown, aged dark red) and white roofs on some ranch houses. Westbrook no
+  longer reads as one orange sheet from the air.
+- Yard trees are placed in the front and back yards measured from the house. Of 47,580 yard trees, 5,357 stood inside
+  a building, porch, pool, carport or driveway; none do now.
+- Strip-mall and gas-station forecourts follow the ground instead of a slab floating 0.35 m above it, so cars and
+  shoppers no longer sink into it.
+  - A 1 m curbed walk runs along the shopfronts.
+  - Where a building sits at an embankment road's level, the forecourt is a solid plateau (9 of 834).
+- Gameplay unchanged:
+  - Story places resolve to the same positions, and lot and back-building counts are unchanged.
+  - worldcheck passed.
+- Tests (city agent, on main plus exactly these files):
+  - Story regression: 27 of 27, identical mission by mission to batch 3.
+  - Near-ring triangles are unchanged. Whole-map far LOD is 1.01 M -> 1.05 M.
+  - Repetition: 3.2% -> 2.6%.

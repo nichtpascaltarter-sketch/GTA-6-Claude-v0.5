@@ -1,0 +1,27 @@
+Faces batch 2: no more "goggles" round the eyes; higher, softer brows; satin lips; no stripes in the hair at the temples
+
+- Eyes: the lids now blend softly into the socket instead of meeting it in a 3-4 mm groove that read as a dark ring
+  with pleats streaking out to the temples:
+  - the inner corner is filled;
+  - the normals round the eyes are relaxed;
+  - the lid rows carry the upper lid's crease.
+  Dark skin round the eyes stays only under the eye and at the inner corner. The lower waterline is darker (it sits
+  in the lashes' shade), men get a lighter lash line, and eye whites are a shade darker on very dark skin. With the
+  renderer's feature shadows, eyes sit in the socket's shade at night instead of glowing.
+- Brows: about 2.5 mm higher, leaving brow-bone skin above the lid's fold, so brow, socket and lashes no longer merge
+  into one dark bar at 4 m. Heads are sparser, tails thinner, and the skin tint under the brow is slightly stronger.
+  The brow ridge stands prouder: the cornea now sits on average 6.4 mm behind the brow front (5.3 before).
+- Hair: batch 1's dark and pale stripes beside the eyes are gone (worst on curly hair). The soft, skin-tinted hair
+  edge is kept to the front hairline; temples and sides keep a solid hair-coloured edge. Beards get a thinner,
+  softer rim where they meet the skin.
+- Lips are satin instead of lacquered (gloss 0.85 -> 0.65), and men's lips are a shade less red. Ears are less red,
+  older skin is a little blotchier, and forehead lines no longer box in the frown lines.
+- Dex now has the stubble his description gives him (src/game/protagonists.h); his seeded draw had left him
+  clean-shaven.
+- Brows build about twice as fast. A full character mesh builds a few percent faster than batch 1.
+- Tests:
+  - anim_test ALL PASSED. The new FaceShape test checks eye-region normals for folds, the brow's height above the
+    lid fold, the cornea's depth behind the brow and a beard shell's thickness at the lip; it fails on batch-1 code.
+  - The faces agent's O2 build on 06580c3 plus these files exits 0.
+  - Wine D3D12 portrait runs by day and night are clean.
+  - Crowd CPU at the 196-ped club stop: 4.22 ms, against a 4.74 ms base.

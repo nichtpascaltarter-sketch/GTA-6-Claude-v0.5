@@ -1,0 +1,37 @@
+Results for set 17. Logs are SP/log_MODE_TAG.txt; PNG sheets are in /tmp/ai/MODE_TAG/ (the BMPs are deleted).
+
+- crashscene on nt_ai90 (a fender bender downtown with a patrol sent to it, 150 s): found a bug, now fixed.
+  - The door clip itself is confirmed by the new LOG lines on every entry seen:
+    - Two ambient owners driving off: "ai: ped 63 into car 50 (seat 0) through the door: a 3.14 s clip (activity 18)", then "... in car 50 (seat 0) after its door clip (3.2 s in PS_ENTERING)". The same for ped 3 into car 44.
+    - The two officers back into unit 71: 2.92 s clips, in after 2.9 s.
+    - Another owner: 2.92 s.
+  - The crash drivers never reached their doors. One stood against the front wing of his long-nosed coupe from t=52 until the 25 s fallback warped both in at t≈77 (crash_seq.png, crash_stuck.png).
+    - The cause: the event's walk round the free end took its corners off the car's body origin, not the middle of its box (spec.boxCenter). For a car whose box sits forward of the origin, the front corner was inside the car's collision, so he pressed against the wing instead of reaching it.
+    - aiCarEndToWalkRound (ai.cpp) had the same offset in its "is that end free" test.
+    - Fixed: both now work off the box's middle, with a little more room (0.9 m past the end, 0.7 m out from the side). The event status line now shows each driver's place off their car's box while they walk back. crashscene is rerun on nt_ai91.
+  - On nt_ai91, with the box centre fixed, the drivers reached their first corner, then stood 0.5 m short of it. BRAIN_GOTO stops within 0.6 m, and the "past the end" test (box end + 0.7 m) was further out than that, so the next corner was never set. Fixed: past the end once beyond the box (+0.2 m).
+- crashscene on nt_ai92 (the set 17 graft): PASS.
+  - At the end of the scene both drivers walked round the free end of their own car to the driver's door, using the new status line:
+    - Driver 103 went round the rear of car 69 ((+1.8,-2.0) -> (0.0,-3.1) -> (-1.4,-1.8)): "ai: ped 103 into car 69 (seat 0) through the door: a 2.92 s clip", in 2.9 s later.
+    - Driver 104 went round the front of car 70 ((+1.7,+2.1) -> (-0.7,+3.0) -> (-1.4,-1.2)): a 3.30 s clip, in 3.3 s later.
+    - Frames: crash_return.png (walking back, rounding the coupe's nose, at the door) and crash_door_17.png.
+  - Both were in about 10 s after the event called them back (t=52 -> 62) and drove off (beginThen 1). The event ended at t≈70 with both away; on nt_ai90/91 it was the 25 s warp.
+  - The officers got back into unit 71 through their doors later (2.92 s clips), and three ambient owners drove off through theirs (2.92-3.14 s).
+- events on nt_ai92 (six forced events, 40 s each).
+  - Door entries were seen all through: owners driving off (2.92-3.22 s clips), and a cuffed purse thief put in the back through the door (seat 3, 2.90 s, activity 24).
+  - The crash (slot 2) found a new case. Driver 116 went round his car's free end and got in through the door (3.12 s clip). Driver 117's car was boxed in at both ends (the other crash car at one end, traffic stopped close at the other). He paced up and down his car's kerb side for the whole 25 s, until the old warp.
+    - Fixed: a crash driver on the kerb side whose car is blocked at both ends gets in on the passenger side through that door, then slides across to the wheel (ai_board::step, then == 1 and seat != 0; the LOG line adds "- across to the wheel"). aiCarEndFree() is split out of aiCarEndToWalkRound for the test.
+  - The breakdown (slot 4) waits for the player to fix the car, and the traffic stop (slot 5) needs longer than 40 s, so neither door entry was reached here. New test modes cover them: "breakdown" (the player put at the hood until it is fixed, then out of the way) and "trafficstop" (150 s on the stop).
+- breakdown on nt_ai95 (the new test mode): PASS.
+  - The stranded driver waved by the smoking car. The player, put at the hood, fixed it at t=9 ("Helped a stranded driver", +$42; "Here, take this. You earned it.") and stepped onto the sidewalk.
+  - After the cheer the driver walked round the front to the driver's door: "ai: ped 112 into car 69 (seat 0) through the door: a 3.44 s clip", in 3.5 s later (breakdown_door.png: the door open, the driver in it).
+  - At the wheel at t=20 and away; the event was over at t=22. The run was stopped there: the rest was idle.
+- trafficstop on nt_ai95: FOUND A BUG (also on HEAD): the stop was called off at ST_B as the officer got out. calmActor() wanted PS_ONFOOT,
+  and removePedFromVehicle(.., true) leaves the ped PS_EXITING for the door clip. The same cut real fender benders short (flag 3: both
+  drivers mid-exit -> ST_A -> ST_C, back in and away). Fixed: calmActor also accepts PS_EXITING (in the WIP; for HEAD it is events.cpp
+  ff4a3f8, going into snapshot 47 with the taxi fixes). Verified on nt_ai96 (HEAD + fixes): the whole stop played out (see taxi_results.txt).
+- New test mode "knock" (AW/knocktest.py): two cars nose to tail in a kerb lane + aiFenderBender at 4 s and 80 s - the real-knock path
+  (flag 2/3: out through the door, round the cars to the kerb, words, back in through the door; a car boxed in by the other one and the
+  traffic behind it gives the slide-over).
+- Set 17's remaining runs moved to nt_ai97 (= nt_ai95 + calmActor + knock mode): knock, trafficstop, crashscene, events, hitped,
+  nearmiss, nightwalk. nt_ai95 deleted.

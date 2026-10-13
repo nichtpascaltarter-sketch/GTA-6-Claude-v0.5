@@ -1,0 +1,17 @@
+Arrests end in an escort to a patrol car; street brawls; units that slow and get out near a suspect on foot
+
+- Arrests of NPCs: once the cuffs are on, the officer walks the suspect to a patrol car - a step behind and to the
+  side, a hand on their arm, at their pace - round the car's end to the back door, and the car drives off with them.
+  An officer on a foot beat radios for a transport: the nearest free patrol (or one from out of view, no siren)
+  pulls over at the kerb, light bar going, while the suspect sits on the kerb waiting. Onlookers stop to watch and
+  film. The suspect walks in a cuffed stance (wrists behind the back, head down).
+- Street brawls, a new ambient event: shouting, a friend trying to calm it down, blows, and the police coming for the
+  one who started it.
+- Police units: within 90 m of a suspect on foot they slow to normal driving and brake for people in their path, and
+  the officers get out and go on foot when the car is held up short of the suspect (stopped 3 s or crawling 8 s
+  within 75 m). A unit taking a prisoner in is not sent to the next call. Pedestrians wait at the kerb for a siren
+  coming through, whatever the crossing signal says.
+- Street takeover: the donut car backs off when it gets stuck.
+- Tests: new --autoplay brawl; --autoplay arrest and events (with forced-event isolation, so a random ambient chase
+  no longer spoils a run); search reworked; takeover logs the nearest police car. The --autoplay cardoor scenario for
+  the car-door clips.

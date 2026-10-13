@@ -1,0 +1,10 @@
+Embedded 35 shader files.
+In file included from src/anim/anim_all.cpp:14,
+                 from src/main.cpp:49:
+src/anim/clips.cpp: In function 'void Anim::detail::sampleClipId(const Anim::Skeleton&, int, float, Anim::Pose&, u32)':
+src/anim/clips.cpp:3967: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
+ 3967 |         } else if (rm == RM_HEAD) {
+      | 
+src/anim/clips.cpp:3967: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
+-rwxr-xr-x 1 root root 11391488 Oct  1 00:24 bin/places_agent.exe
+exit 0

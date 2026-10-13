@@ -1,0 +1,9 @@
+Results (nt_ai74; rc=0, no crash, no GPU errors unless noted):
+- alarm (150 s, 960x540): stage 1 - car 58 knocked with the player stood by it at t=8: the alarm going, 3 people stopped
+  for a look; at t=13 owner 30 came from 17 m at a jog ("Hey! Hey - that's my car!"), stopped it with the fob from
+  7.1 m at t=17.5 (chirp, hazards), round to the sidewalk side, crouched for a look at the paint (t=24), then to the
+  player stood by: "Did you touch my car?", and walked on (t=28). Stage 2 - the player broke into car 77 at t=70.7, its
+  alarm going: owner 20 came running from 26 m at once ("being taken"), the car pulled away at t=75 and the owner
+  stood looking after it, a hand to the head; the stolen car's alarm stopped by itself 15 s in (t=87). Census
+  at the end: alarms 2 (owners 2, looks 12), fobs 7 (the alarm stopped, cars locked after parking and unlocked by
+  owners walking up: 2 departures, 1 arrival).

@@ -1,0 +1,13 @@
+In file included from src/audio/audio_all.cpp:12,
+                 from src/main.cpp:39:
+src/audio/wasapi.cpp: In member function 'virtual HRESULT Audio::detail::wasapi::NotifyClient::OnDefaultDeviceChanged(EDataFlow, ERole, LPCWSTR)':
+src/audio/wasapi.cpp:53: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
+   53 |         if (flow == eRender && role == eConsole) defaultChanged.store(true);
+      | 
+src/audio/wasapi.cpp:53: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
+-rwxr-xr-x 1 root root 5911552 Sep 30 00:15 bin/nt_ui3.exe
+
+real	6m25.991s
+user	2m53.765s
+sys	0m2.767s
+build exit 0

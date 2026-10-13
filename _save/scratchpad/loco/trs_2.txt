@@ -1,0 +1,1057 @@
+PLANT foot 1 swingU 0.99 shift 0.000 corr -0.001 scanned 0 touching 1 plan 0 err 0.000 lead 0.304 ballProbe 0
+PLANT foot 0 swingU 0.00 shift 0.000 corr -0.001 scanned 0 touching 1 plan 0 err 0.000 lead 0.304 ballProbe 0
+SCAN foot 1 g: 0.16 0.16 0.16 0.16 0.16 0.16 0.32 0.32 0.32 0.32 0.32 0.32 | stepped 1 shift 0.031 land 0.320 cost 0.031 gFoot 0.320 ball 1
+PLANT foot 1 swingU 0.00 shift 0.031 corr 0.030 scanned 1 touching 1 plan 1 err 0.002 lead 0.293 ballProbe 0
+PIN foot 1 footZ 0.320 low 0.040 pz 0.040 pinZ -0.022 pin -0.022 ballz 0.040 toez 0.055 heelz -0.001 age 0.017
+PIN foot 1 footZ 0.320 low 0.028 pz 0.028 pinZ -0.028 pin -0.028 ballz 0.028 toez 0.039 heelz -0.000 age 0.033
+PIN foot 1 footZ 0.320 low 0.016 pz 0.016 pinZ -0.016 pin -0.016 ballz 0.016 toez 0.021 heelz -0.001 age 0.050
+PIN foot 1 footZ 0.320 low 0.006 pz 0.006 pinZ -0.006 pin -0.006 ballz 0.006 toez 0.008 heelz -0.000 age 0.067
+PIN foot 1 footZ 0.320 low 0.002 pz 0.002 pinZ -0.002 pin -0.002 ballz 0.002 toez 0.003 heelz -0.000 age 0.083
+PIN foot 1 footZ 0.216 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.100
+PIN foot 1 footZ 0.160 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz -0.001 age 0.117
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.133
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.150
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.167
+SCAN foot 0 g: 0.32 0.32 0.32 0.32 0.48 0.48 0.48 0.48 0.48 0.48 0.64 0.64 | stepped 1 shift -0.009 land 0.480 cost 0.009 gFoot 0.480 ball 0
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.183
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.200
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.217
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.233
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.250
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.267
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.283
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.300
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.317
+PIN foot 1 footZ 0.056 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.333
+PIN foot 1 footZ 0.000 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.350
+PIN foot 1 footZ 0.000 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.367
+PIN foot 1 footZ 0.000 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.383
+PIN foot 1 footZ 0.000 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz 0.001 age 0.400
+PIN foot 1 footZ 0.000 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz 0.004 age 0.417
+PIN foot 1 footZ 0.000 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz 0.011 age 0.433
+PIN foot 1 footZ 0.000 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz 0.021 age 0.450
+PIN foot 1 footZ 0.000 low -0.002 pz -0.002 pinZ 0.002 pin 0.002 ballz -0.001 toez -0.002 heelz 0.033 age 0.467
+PIN foot 1 footZ 0.000 low -0.002 pz -0.002 pinZ 0.002 pin 0.002 ballz -0.001 toez -0.002 heelz 0.046 age 0.483
+PIN foot 1 footZ 0.000 low -0.003 pz -0.003 pinZ 0.003 pin 0.003 ballz -0.001 toez -0.003 heelz 0.061 age 0.500
+PLANT foot 0 swingU 0.98 shift -0.009 corr -0.009 scanned 1 touching 1 plan 1 err 0.014 lead 0.295 ballProbe 0
+PIN foot 1 footZ 0.000 low -0.005 pz -0.005 pinZ 0.005 pin 0.005 ballz -0.002 toez -0.005 heelz 0.076 age 0.517
+PIN foot 1 footZ 0.000 low -0.007 pz -0.007 pinZ 0.007 pin 0.007 ballz -0.002 toez -0.007 heelz 0.090 age 0.533
+PIN foot 1 footZ 0.000 low -0.008 pz -0.008 pinZ 0.008 pin 0.008 ballz -0.002 toez -0.008 heelz 0.103 age 0.550
+PIN foot 1 footZ -0.104 low -0.010 pz -0.010 pinZ 0.010 pin 0.010 ballz -0.002 toez -0.010 heelz 0.115 age 0.567
+PIN foot 1 footZ -0.160 low -0.012 pz -0.012 pinZ 0.012 pin 0.012 ballz -0.003 toez -0.012 heelz 0.125 age 0.583
+PIN foot 1 footZ -0.160 low -0.014 pz -0.014 pinZ 0.014 pin 0.014 ballz -0.003 toez -0.014 heelz 0.134 age 0.600
+PIN foot 1 footZ -0.160 low -0.016 pz -0.016 pinZ 0.016 pin 0.016 ballz -0.003 toez -0.016 heelz 0.139 age 0.617
+PIN foot 1 footZ -0.160 low -0.016 pz -0.016 pinZ 0.016 pin 0.016 ballz -0.002 toez -0.016 heelz 0.144 age 0.633
+PIN foot 1 footZ -0.160 low -0.012 pz -0.012 pinZ 0.012 pin 0.012 ballz 0.001 toez -0.012 heelz 0.149 age 0.650
+PIN foot 1 footZ -0.160 low 0.001 pz 0.001 pinZ -0.001 pin -0.001 ballz 0.015 toez 0.001 heelz 0.162 age 0.667
+SCAN foot 1 g: 0.32 0.32 0.48 0.48 0.48 0.48 0.48 0.48 0.64 0.64 0.64 0.64 | stepped 1 shift -0.109 land 0.480 cost 0.109 gFoot 0.480 ball 0
+PLANT foot 1 swingU 0.00 shift -0.109 corr -0.108 scanned 1 touching 1 plan 1 err 0.016 lead 0.295 ballProbe 0
+SCAN foot 0 g: 0.32 0.32 0.32 0.32 0.32 0.48 0.48 0.48 0.48 0.48 0.48 0.64 | stepped 1 shift 0.000 land 0.480 cost 0.000 gFoot 0.480 ball 1
+PLANT foot 0 swingU 1.00 shift 0.000 corr -0.000 scanned 1 touching 1 plan 1 err 0.014 lead 0.297 ballProbe 0
+PIN foot 0 footZ 0.320 low 0.060 pz 0.060 pinZ -0.033 pin -0.033 ballz 0.060 toez 0.082 heelz -0.000 age 0.017
+PIN foot 0 footZ 0.320 low 0.052 pz 0.052 pinZ -0.052 pin -0.052 ballz 0.052 toez 0.072 heelz -0.002 age 0.033
+PIN foot 0 footZ 0.320 low 0.046 pz 0.046 pinZ -0.046 pin -0.046 ballz 0.046 toez 0.063 heelz -0.001 age 0.050
+PIN foot 0 footZ 0.320 low 0.034 pz 0.034 pinZ -0.034 pin -0.034 ballz 0.034 toez 0.047 heelz -0.001 age 0.067
+PIN foot 0 footZ 0.320 low 0.021 pz 0.021 pinZ -0.021 pin -0.021 ballz 0.021 toez 0.029 heelz -0.000 age 0.083
+PIN foot 0 footZ 0.320 low 0.011 pz 0.011 pinZ -0.011 pin -0.011 ballz 0.011 toez 0.015 heelz -0.000 age 0.100
+PIN foot 0 footZ 0.216 low 0.003 pz 0.003 pinZ -0.003 pin -0.003 ballz 0.003 toez 0.004 heelz -0.000 age 0.117
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez 0.000 heelz -0.001 age 0.133
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.150
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.167
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.183
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.200
+SCAN foot 1 g: 0.32 0.32 0.32 0.48 0.48 0.48 0.48 0.48 0.48 0.64 0.64 0.64 | stepped 1 shift -0.059 land 0.480 cost 0.059 gFoot 0.480 ball 0
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.217
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.233
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.250
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.267
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.283
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.300
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.317
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.333
+PIN foot 0 footZ 0.056 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.350
+PIN foot 0 footZ 0.000 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.367
+PIN foot 0 footZ 0.000 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.383
+PIN foot 0 footZ 0.000 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.400
+PIN foot 0 footZ 0.000 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.417
+PIN foot 0 footZ 0.000 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz 0.000 age 0.433
+PIN foot 0 footZ 0.000 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz 0.002 age 0.450
+PIN foot 0 footZ 0.000 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz 0.007 age 0.467
+PIN foot 0 footZ 0.000 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz 0.016 age 0.483
+PIN foot 0 footZ 0.000 low -0.002 pz -0.002 pinZ 0.002 pin 0.002 ballz -0.001 toez -0.002 heelz 0.027 age 0.500
+PIN foot 0 footZ 0.000 low -0.002 pz -0.002 pinZ 0.002 pin 0.002 ballz -0.001 toez -0.002 heelz 0.040 age 0.517
+PIN foot 0 footZ 0.000 low -0.003 pz -0.003 pinZ 0.003 pin 0.003 ballz -0.001 toez -0.003 heelz 0.054 age 0.533
+PIN foot 0 footZ 0.000 low -0.004 pz -0.004 pinZ 0.004 pin 0.004 ballz -0.001 toez -0.004 heelz 0.069 age 0.550
+PIN foot 0 footZ -0.104 low -0.006 pz -0.006 pinZ 0.006 pin 0.006 ballz -0.002 toez -0.006 heelz 0.083 age 0.567
+PLANT foot 1 swingU 0.00 shift -0.059 corr -0.059 scanned 1 touching 1 plan 1 err 0.012 lead 0.294 ballProbe 0
+PIN foot 0 footZ -0.160 low -0.007 pz -0.007 pinZ 0.007 pin 0.007 ballz -0.002 toez -0.007 heelz 0.098 age 0.583
+PIN foot 0 footZ -0.160 low -0.010 pz -0.010 pinZ 0.010 pin 0.010 ballz -0.002 toez -0.010 heelz 0.110 age 0.600
+PIN foot 0 footZ -0.160 low -0.011 pz -0.011 pinZ 0.011 pin 0.011 ballz -0.002 toez -0.011 heelz 0.121 age 0.617
+PIN foot 0 footZ -0.160 low -0.013 pz -0.013 pinZ 0.013 pin 0.013 ballz -0.003 toez -0.013 heelz 0.130 age 0.633
+PIN foot 0 footZ -0.160 low -0.015 pz -0.015 pinZ 0.015 pin 0.015 ballz -0.003 toez -0.015 heelz 0.137 age 0.650
+PIN foot 0 footZ -0.160 low -0.016 pz -0.016 pinZ 0.016 pin 0.016 ballz -0.004 toez -0.016 heelz 0.141 age 0.667
+PIN foot 0 footZ -0.160 low -0.017 pz -0.017 pinZ 0.017 pin 0.017 ballz -0.004 toez -0.017 heelz 0.144 age 0.683
+PIN foot 0 footZ -0.160 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz 0.014 toez -0.001 heelz 0.161 age 0.700
+SCAN foot 0 g: 0.32 0.32 0.32 0.32 0.32 0.32 0.32 0.32 0.32 0.32 0.32 0.32 | stepped 0 shift 0.000 land -9.000 cost 0.000 gFoot 0.320 ball 0
+PLANT foot 0 swingU 0.00 shift 0.000 corr -0.000 scanned 1 touching 1 plan 0 err 0.000 lead 0.294 ballProbe 0
+SCAN foot 1 g: 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 | stepped 0 shift 0.000 land -9.000 cost 0.000 gFoot 0.000 ball 0
+PLANT foot 1 swingU 0.00 shift 0.000 corr -0.000 scanned 1 touching 1 plan 0 err 0.000 lead 0.294 ballProbe 0
+PLANT foot 0 swingU 0.99 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.296 ballProbe 0
+SCAN foot 1 g: -0.16 -0.16 -0.16 -0.16 -0.32 -0.32 -0.32 -0.32 -0.32 -0.32 -0.48 -0.48 | stepped 1 shift 0.067 land -0.320 cost 0.067 gFoot -0.320 ball 0
+PLANT foot 1 swingU 0.99 shift 0.067 corr 0.066 scanned 1 touching 1 plan 1 err 0.011 lead 0.297 ballProbe 0
+SCAN foot 0 g: -0.32 -0.32 -0.48 -0.48 -0.48 -0.48 -0.48 -0.48 -0.64 -0.64 -0.64 -0.64 | stepped 1 shift -0.017 land -0.480 cost 0.017 gFoot -0.480 ball 0
+PLANT foot 0 swingU 1.00 shift -0.017 corr -0.017 scanned 1 touching 1 plan 1 err 0.012 lead 0.299 ballProbe 0
+SCAN foot 1 g: -0.32 -0.32 -0.32 -0.32 -0.32 -0.32 -0.48 -0.48 -0.48 -0.48 -0.48 -0.48 | stepped 1 shift -0.117 land -0.320 cost 0.117 gFoot -0.480 ball 0
+PLANT foot 1 swingU 0.00 shift -0.117 corr -0.116 scanned 1 touching 1 plan 1 err 0.011 lead 0.295 ballProbe 0
+SCAN foot 0 g: -0.32 -0.32 -0.32 -0.32 -0.48 -0.48 -0.48 -0.48 -0.48 -0.48 -0.64 -0.64 | stepped 1 shift 0.067 land -0.480 cost 0.067 gFoot -0.480 ball 0
+PLANT foot 0 swingU 0.00 shift 0.067 corr 0.066 scanned 1 touching 1 plan 1 err 0.015 lead 0.295 ballProbe 0
+SCAN foot 1 g: -0.32 -0.48 -0.48 -0.48 -0.48 -0.48 -0.48 -0.64 -0.64 -0.64 -0.64 -0.64 | stepped 1 shift -0.067 land -0.480 cost 0.067 gFoot -0.640 ball 0
+PLANT foot 1 swingU 0.00 shift -0.067 corr -0.067 scanned 1 touching 1 plan 1 err 0.015 lead 0.295 ballProbe 0
+SCAN foot 0 g: -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 | stepped 0 shift 0.000 land -9.000 cost 0.000 gFoot -0.160 ball 0
+PLANT foot 0 swingU 0.99 shift 0.000 corr 0.000 scanned 1 touching 1 plan 0 err 0.000 lead 0.296 ballProbe 0
+SCAN foot 1 g: 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 | stepped 0 shift 0.000 land -9.000 cost 0.000 gFoot 0.000 ball 0
+PLANT foot 1 swingU 1.00 shift 0.000 corr -0.000 scanned 1 touching 1 plan 0 err 0.000 lead 0.298 ballProbe 0
+PLANT foot 0 swingU 0.00 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.294 ballProbe 0
+PLANT foot 1 swingU 0.00 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.291 ballProbe 0
+PLANT foot 0 swingU 0.00 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.291 ballProbe 0
+PLANT foot 1 swingU 0.00 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.291 ballProbe 0
+PLANT foot 0 swingU 0.99 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.294 ballProbe 0
+PLANT foot 1 swingU 1.00 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.296 ballProbe 0
+PLANT foot 1 swingU 0.00 shift 0.000 corr 0.001 scanned 0 touching 1 plan 0 err 0.000 lead 0.295 ballProbe 0
+PLANT foot 0 swingU 0.00 shift 0.000 corr -0.001 scanned 0 touching 1 plan 0 err 0.000 lead 0.291 ballProbe 0
+SCAN foot 1 g: 0.16 0.32 0.32 0.32 0.32 0.32 0.32 0.48 0.48 0.48 0.48 0.48 | stepped 1 shift 0.082 land 0.480 cost 0.082 gFoot 0.480 ball 1
+PLANT foot 1 swingU 0.00 shift 0.082 corr 0.082 scanned 1 touching 1 plan 1 err 0.013 lead 0.283 ballProbe 0
+PIN foot 1 footZ 0.320 low 0.037 pz 0.037 pinZ -0.021 pin -0.021 ballz 0.037 toez 0.051 heelz -0.001 age 0.017
+PIN foot 1 footZ 0.320 low 0.028 pz 0.028 pinZ -0.028 pin -0.028 ballz 0.028 toez 0.038 heelz -0.001 age 0.033
+PIN foot 1 footZ 0.320 low 0.017 pz 0.017 pinZ -0.017 pin -0.017 ballz 0.017 toez 0.024 heelz -0.001 age 0.050
+PIN foot 1 footZ 0.320 low 0.008 pz 0.008 pinZ -0.008 pin -0.008 ballz 0.008 toez 0.011 heelz -0.000 age 0.067
+PIN foot 1 footZ 0.320 low 0.003 pz 0.003 pinZ -0.003 pin -0.003 ballz 0.003 toez 0.005 heelz -0.001 age 0.083
+PIN foot 1 footZ 0.320 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.100
+PIN foot 1 footZ 0.320 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz -0.001 age 0.117
+PIN foot 1 footZ 0.320 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.133
+PIN foot 1 footZ 0.216 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz -0.001 age 0.150
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.167
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.183
+SCAN foot 0 g: 0.32 0.32 0.32 0.32 0.48 0.48 0.48 0.48 0.48 0.48 0.64 0.64 | stepped 1 shift 0.000 land 0.480 cost 0.000 gFoot 0.480 ball 0
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.200
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.217
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.233
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.250
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.267
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.283
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.300
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.317
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.333
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.350
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.367
+PIN foot 1 footZ 0.056 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.383
+PIN foot 1 footZ 0.000 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.400
+PIN foot 1 footZ 0.000 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.417
+PIN foot 1 footZ 0.000 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz 0.000 age 0.433
+PIN foot 1 footZ 0.000 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz 0.003 age 0.450
+PIN foot 1 footZ 0.000 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz 0.008 age 0.467
+PIN foot 1 footZ 0.000 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz 0.015 age 0.483
+PIN foot 1 footZ 0.000 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz 0.024 age 0.500
+PIN foot 1 footZ 0.000 low -0.002 pz -0.002 pinZ 0.002 pin 0.002 ballz -0.001 toez -0.002 heelz 0.035 age 0.517
+PIN foot 1 footZ 0.000 low -0.002 pz -0.002 pinZ 0.002 pin 0.002 ballz -0.001 toez -0.002 heelz 0.045 age 0.533
+PLANT foot 0 swingU 0.98 shift 0.000 corr -0.000 scanned 1 touching 1 plan 1 err 0.019 lead 0.286 ballProbe 0
+PIN foot 1 footZ 0.000 low -0.003 pz -0.003 pinZ 0.003 pin 0.003 ballz -0.002 toez -0.003 heelz 0.057 age 0.550
+PIN foot 1 footZ 0.000 low -0.005 pz -0.005 pinZ 0.005 pin 0.005 ballz -0.002 toez -0.005 heelz 0.068 age 0.567
+PIN foot 1 footZ 0.000 low -0.006 pz -0.006 pinZ 0.006 pin 0.006 ballz -0.002 toez -0.006 heelz 0.079 age 0.583
+PIN foot 1 footZ -0.104 low -0.007 pz -0.007 pinZ 0.007 pin 0.007 ballz -0.003 toez -0.007 heelz 0.089 age 0.600
+PIN foot 1 footZ -0.160 low -0.009 pz -0.009 pinZ 0.009 pin 0.009 ballz -0.003 toez -0.009 heelz 0.098 age 0.617
+PIN foot 1 footZ -0.160 low -0.010 pz -0.010 pinZ 0.010 pin 0.010 ballz -0.004 toez -0.010 heelz 0.106 age 0.633
+PIN foot 1 footZ -0.160 low -0.012 pz -0.012 pinZ 0.012 pin 0.012 ballz -0.004 toez -0.012 heelz 0.112 age 0.650
+PIN foot 1 footZ -0.160 low -0.013 pz -0.013 pinZ 0.013 pin 0.013 ballz -0.005 toez -0.013 heelz 0.117 age 0.667
+PIN foot 1 footZ -0.160 low -0.015 pz -0.015 pinZ 0.015 pin 0.015 ballz -0.006 toez -0.015 heelz 0.119 age 0.683
+PIN foot 1 footZ -0.160 low -0.011 pz -0.011 pinZ 0.011 pin 0.011 ballz -0.002 toez -0.011 heelz 0.125 age 0.700
+SCAN foot 1 g: 0.32 0.48 0.48 0.48 0.48 0.48 0.48 0.64 0.64 0.64 0.64 0.64 | stepped 1 shift 0.082 land 0.640 cost 0.082 gFoot 0.640 ball 1
+PLANT foot 1 swingU 0.00 shift 0.000 corr 0.086 scanned 0 touching 1 plan 1 err 0.024 lead 0.286 ballProbe 1
+PIN foot 1 footZ 0.320 low 0.042 pz 0.042 pinZ -0.023 pin -0.023 ballz 0.042 toez 0.057 heelz -0.001 age 0.017
+PIN foot 1 footZ 0.320 low 0.033 pz 0.033 pinZ -0.033 pin -0.033 ballz 0.033 toez 0.045 heelz -0.001 age 0.033
+PIN foot 1 footZ 0.320 low 0.023 pz 0.023 pinZ -0.023 pin -0.023 ballz 0.023 toez 0.031 heelz -0.001 age 0.050
+PIN foot 1 footZ 0.320 low 0.013 pz 0.013 pinZ -0.013 pin -0.013 ballz 0.013 toez 0.017 heelz -0.000 age 0.067
+PIN foot 1 footZ 0.320 low 0.006 pz 0.006 pinZ -0.006 pin -0.006 ballz 0.006 toez 0.008 heelz -0.001 age 0.083
+PIN foot 1 footZ 0.320 low 0.001 pz 0.001 pinZ -0.001 pin -0.001 ballz 0.001 toez 0.002 heelz -0.000 age 0.100
+PIN foot 1 footZ 0.320 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz -0.001 age 0.117
+PIN foot 1 footZ 0.320 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz -0.001 age 0.133
+PIN foot 1 footZ 0.216 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.150
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.167
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.183
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.200
+SCAN foot 0 g: 0.32 0.32 0.32 0.32 0.48 0.48 0.48 0.48 0.48 0.48 0.64 0.64 | stepped 1 shift 0.000 land 0.480 cost 0.000 gFoot 0.480 ball 0
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.217
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.233
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.250
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.267
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.283
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.300
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.317
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.333
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.350
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.367
+PIN foot 1 footZ 0.056 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.383
+PIN foot 1 footZ 0.000 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.400
+PIN foot 1 footZ 0.000 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.417
+PIN foot 1 footZ 0.000 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.433
+PIN foot 1 footZ 0.000 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz 0.001 age 0.450
+PIN foot 1 footZ 0.000 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.000 toez -0.001 heelz 0.005 age 0.467
+PIN foot 1 footZ 0.000 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz 0.011 age 0.483
+PIN foot 1 footZ 0.000 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz 0.019 age 0.500
+PIN foot 1 footZ 0.000 low -0.002 pz -0.002 pinZ 0.002 pin 0.002 ballz -0.001 toez -0.002 heelz 0.029 age 0.517
+PIN foot 1 footZ 0.000 low -0.002 pz -0.002 pinZ 0.002 pin 0.002 ballz -0.001 toez -0.002 heelz 0.040 age 0.533
+PIN foot 1 footZ 0.000 low -0.003 pz -0.003 pinZ 0.003 pin 0.003 ballz -0.002 toez -0.003 heelz 0.051 age 0.550
+PIN foot 1 footZ 0.000 low -0.004 pz -0.004 pinZ 0.004 pin 0.004 ballz -0.001 toez -0.004 heelz 0.063 age 0.567
+PLANT foot 0 swingU 0.00 shift 0.000 corr -0.000 scanned 1 touching 1 plan 1 err 0.020 lead 0.285 ballProbe 0
+PIN foot 1 footZ 0.000 low -0.005 pz -0.005 pinZ 0.005 pin 0.005 ballz -0.002 toez -0.005 heelz 0.073 age 0.583
+PIN foot 1 footZ 0.000 low -0.006 pz -0.006 pinZ 0.006 pin 0.006 ballz -0.002 toez -0.006 heelz 0.084 age 0.600
+PIN foot 1 footZ -0.104 low -0.008 pz -0.008 pinZ 0.008 pin 0.008 ballz -0.003 toez -0.008 heelz 0.094 age 0.617
+PIN foot 1 footZ -0.160 low -0.009 pz -0.009 pinZ 0.009 pin 0.009 ballz -0.003 toez -0.009 heelz 0.103 age 0.633
+PIN foot 1 footZ -0.160 low -0.011 pz -0.011 pinZ 0.011 pin 0.011 ballz -0.004 toez -0.011 heelz 0.109 age 0.650
+PIN foot 1 footZ -0.160 low -0.012 pz -0.012 pinZ 0.012 pin 0.012 ballz -0.004 toez -0.012 heelz 0.115 age 0.667
+PIN foot 1 footZ -0.160 low -0.014 pz -0.014 pinZ 0.014 pin 0.014 ballz -0.005 toez -0.014 heelz 0.118 age 0.683
+PIN foot 1 footZ -0.160 low -0.014 pz -0.014 pinZ 0.014 pin 0.014 ballz -0.005 toez -0.014 heelz 0.121 age 0.700
+PIN foot 1 footZ -0.160 low -0.004 pz -0.004 pinZ 0.004 pin 0.004 ballz 0.006 toez -0.004 heelz 0.132 age 0.717
+SCAN foot 1 g: 0.32 0.48 0.48 0.48 0.48 0.48 0.48 0.48 0.48 0.48 0.48 0.48 | stepped 1 shift 0.000 land 0.480 cost 0.000 gFoot 0.480 ball 0
+PLANT foot 1 swingU 0.00 shift 0.000 corr 0.000 scanned 1 touching 1 plan 1 err 0.023 lead 0.279 ballProbe 1
+SCAN foot 0 g: 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 | stepped 0 shift 0.000 land -9.000 cost 0.000 gFoot 0.000 ball 0
+PLANT foot 0 swingU 0.98 shift 0.000 corr -0.000 scanned 1 touching 1 plan 0 err 0.000 lead 0.283 ballProbe 0
+SCAN foot 1 g: 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 | stepped 0 shift 0.000 land -9.000 cost 0.000 gFoot 0.000 ball 0
+PLANT foot 1 swingU 0.00 shift 0.000 corr -0.000 scanned 1 touching 1 plan 0 err 0.000 lead 0.283 ballProbe 0
+SCAN foot 0 g: 0.00 0.00 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.32 -0.32 -0.32 -0.32 | stepped 1 shift -0.007 land -0.160 cost 0.007 gFoot -0.160 ball 0
+PLANT foot 0 swingU 0.00 shift -0.007 corr -0.008 scanned 1 touching 1 plan 1 err 0.024 lead 0.283 ballProbe 0
+SCAN foot 1 g: -0.32 -0.32 -0.32 -0.32 -0.32 -0.48 -0.48 -0.48 -0.48 -0.48 -0.48 -0.64 | stepped 1 shift 0.107 land -0.480 cost 0.107 gFoot -0.480 ball 0
+PLANT foot 1 swingU 0.00 shift 0.107 corr 0.107 scanned 1 touching 1 plan 1 err 0.023 lead 0.282 ballProbe 0
+SCAN foot 0 g: -0.32 -0.32 -0.48 -0.48 -0.48 -0.48 -0.48 -0.48 -0.64 -0.64 -0.64 -0.64 | stepped 1 shift -0.007 land -0.480 cost 0.007 gFoot -0.480 ball 0
+PLANT foot 0 swingU 0.98 shift -0.007 corr -0.008 scanned 1 touching 1 plan 1 err 0.020 lead 0.285 ballProbe 0
+SCAN foot 1 g: -0.32 -0.32 -0.32 -0.32 -0.48 -0.48 -0.48 -0.48 -0.48 -0.48 -0.64 -0.64 | stepped 1 shift 0.057 land -0.480 cost 0.057 gFoot -0.480 ball 0
+PLANT foot 1 swingU 0.00 shift 0.057 corr 0.057 scanned 1 touching 1 plan 1 err 0.020 lead 0.285 ballProbe 0
+SCAN foot 0 g: -0.32 -0.48 -0.48 -0.48 -0.48 -0.48 -0.48 -0.64 -0.64 -0.64 -0.64 -0.64 | stepped 1 shift -0.057 land -0.480 cost 0.057 gFoot -0.640 ball 0
+PLANT foot 0 swingU 1.00 shift -0.057 corr -0.057 scanned 1 touching 1 plan 1 err 0.020 lead 0.288 ballProbe 0
+SCAN foot 1 g: -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 | stepped 0 shift 0.000 land -9.000 cost 0.000 gFoot -0.160 ball 0
+PLANT foot 1 swingU 0.00 shift 0.000 corr 0.000 scanned 1 touching 1 plan 0 err 0.000 lead 0.286 ballProbe 0
+SCAN foot 0 g: 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 | stepped 0 shift 0.000 land -9.000 cost 0.000 gFoot 0.000 ball 0
+PLANT foot 0 swingU 0.00 shift 0.000 corr -0.000 scanned 1 touching 1 plan 0 err 0.000 lead 0.286 ballProbe 0
+PLANT foot 1 swingU 0.00 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.286 ballProbe 0
+PLANT foot 0 swingU 1.00 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.288 ballProbe 0
+PLANT foot 1 swingU 0.00 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.286 ballProbe 0
+PLANT foot 0 swingU 0.00 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.286 ballProbe 0
+PLANT foot 1 swingU 0.00 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.286 ballProbe 0
+PLANT foot 0 swingU 0.99 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.289 ballProbe 0
+PLANT foot 0 swingU 0.98 shift 0.000 corr 0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.296 ballProbe 0
+PLANT foot 1 swingU 0.99 shift 0.000 corr -0.001 scanned 0 touching 1 plan 0 err 0.000 lead 0.294 ballProbe 0
+SCAN foot 0 g: 0.32 0.32 0.32 0.32 0.48 0.48 0.48 0.48 0.48 0.48 0.64 0.64 | stepped 1 shift 0.000 land 0.480 cost 0.000 gFoot 0.480 ball 0
+PLANT foot 0 swingU 0.00 shift 0.000 corr -0.008 scanned 0 touching 1 plan 1 err -0.007 lead 0.294 ballProbe 0
+0 000 pl1 st-1.00 h 16.0 b  2.8 t  3.8 sl-100.00 fy   3.4 | 1 011 pl1 st-1.00 h 28.7 b  0.7 t -0.0 sl-100.00 fy  -3.4 | t1.850 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.051 mw1.00 lag 0.00 ht 0.00
+0 000 pl1 st-1.00 h 16.0 b  1.6 t  2.1 sl-100.00 fy   3.4 | 1 001 pl1 st-1.00 h 29.7 b  0.9 t  0.0 sl 0.16 fy  -3.4 | t1.867 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.066 mw1.00 lag 0.00 ht 0.00
+0 010 pl1 st-1.00 h 16.0 b  0.7 t  1.0 sl-100.00 fy   3.4 | 1 001 pl1 st-1.00 h 30.4 b  1.0 t -0.0 sl 0.10 fy  -3.4 | t1.883 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.082 mw1.00 lag 0.00 ht 0.00
+0 011 pl1 st-1.00 h 16.0 b  0.1 t  0.1 sl 0.01 fy   3.4 | 1 001 pl1 st-1.00 h 31.0 b  1.1 t -0.0 sl 0.08 fy  -3.4 | t1.900 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.098 mw1.00 lag 0.00 ht 0.00
+0 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 001 pl1 st-1.00 h 31.1 b  1.1 t  0.0 sl 0.01 fy  -3.4 | t1.917 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.114 mw1.00 lag 0.00 ht 0.00
+0 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 001 pl1 st-1.00 h 31.2 b  1.2 t -0.0 sl 0.05 fy  -3.4 | t1.933 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.130 mw1.00 lag 0.00 ht 0.00
+0 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 34.3 b  4.5 t  3.0 sl-100.00 fy  -3.4 | t1.950 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.146 mw1.00 lag 0.00 ht 0.00
+0 011 pl1 st-1.00 h 16.0 b  0.0 t -0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 62.2 b 32.7 t 30.9 sl-100.00 fy  -3.5 | t1.967 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.161 mw1.00 lag 0.00 ht 0.00
+0 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 46.5 b 33.4 t 31.2 sl-100.00 fy  -3.5 | t1.983 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.177 mw1.00 lag 0.00 ht 0.00
+SCAN foot 1 g: 0.32 0.32 0.48 0.48 0.48 0.48 0.48 0.48 0.64 0.64 0.64 0.64 | stepped 1 shift -0.099 land 0.480 cost 0.099 gFoot 0.480 ball 0
+0 011 pl1 st-1.00 h 16.0 b  0.0 t -0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 61.0 b 48.4 t 45.9 sl-100.00 fy  -3.5 | t2.000 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.193 mw1.00 lag 0.00 ht 0.00
+0 011 pl1 st-1.00 h 16.0 b  0.0 t -0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 60.1 b 48.4 t 29.7 sl-100.00 fy  -3.5 | t2.017 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.209 mw1.00 lag 0.00 ht 0.00
+0 011 pl1 st-1.00 h 16.0 b  0.0 t -0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 67.8 b 41.1 t 38.3 sl-100.00 fy  -3.5 | t2.033 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.225 mw1.00 lag 0.00 ht 0.00
+0 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 66.6 b 41.1 t 38.4 sl-100.00 fy  -3.4 | t2.050 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.241 mw1.00 lag 0.00 ht 0.00
+0 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 71.6 b 47.5 t 45.0 sl-100.00 fy  -3.4 | t2.067 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.256 mw1.00 lag 0.00 ht 0.00
+0 011 pl1 st-1.00 h 16.0 b  0.0 t -0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 54.3 b 47.7 t 29.5 sl-100.00 fy  -3.4 | t2.083 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.272 mw1.00 lag 0.00 ht 0.00
+0 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 56.6 b 35.5 t 33.8 sl-100.00 fy  -3.4 | t2.100 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.288 mw1.00 lag 0.00 ht 0.00
+0 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 55.3 b 35.9 t 34.7 sl-100.00 fy  -3.4 | t2.117 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.304 mw1.00 lag 0.00 ht 0.00
+0 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 56.0 b 38.3 t 37.6 sl-100.00 fy  -3.4 | t2.133 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.320 mw1.00 lag 0.00 ht 0.00
+0 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 38.8 b 38.8 t 22.7 sl-100.00 fy  -3.4 | t2.150 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.336 mw1.00 lag 0.00 ht 0.00
+0 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 38.7 b 24.1 t 24.6 sl-100.00 fy  -3.4 | t2.167 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.351 mw1.00 lag 0.00 ht 0.00
+0 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 37.7 b 24.5 t 25.5 sl-100.00 fy  -3.4 | t2.183 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.367 mw1.00 lag 0.00 ht 0.00
+0 011 pl1 st-1.00 h 16.1 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 37.2 b 25.2 t 26.6 sl-100.00 fy  -3.4 | t2.200 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.383 mw1.00 lag 0.00 ht 0.00
+0 011 pl1 st-1.00 h 16.3 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 21.2 b 26.1 t 28.0 sl-100.00 fy  -3.4 | t2.217 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.399 mw1.00 lag 0.00 ht 0.00
+0 011 pl1 st-1.00 h 17.0 b  0.0 t  0.0 sl 0.01 fy   3.4 | 1 000 pl0 st-1.00 h 20.4 b 26.0 t 12.1 sl-100.00 fy  -3.4 | t2.233 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.415 mw1.00 lag 0.00 ht 0.00
+0 011 pl1 st-1.00 h 17.9 b  0.0 t  0.0 sl 0.01 fy   3.4 | 1 000 pl0 st-1.00 h 19.5 b  9.7 t 11.9 sl-100.00 fy  -3.4 | t2.250 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.431 mw1.00 lag 0.00 ht 0.00
+0 011 pl1 st-1.00 h 19.1 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 18.7 b  9.0 t 11.4 sl-100.00 fy  -3.4 | t2.267 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.446 mw1.00 lag 0.00 ht 0.00
+0 011 pl1 st-1.00 h 20.5 b  0.1 t -0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 17.9 b  8.2 t 10.5 sl-100.00 fy  -3.4 | t2.283 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.462 mw1.00 lag 0.00 ht 0.00
+0 011 pl1 st-1.00 h 22.1 b  0.2 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 17.1 b  7.2 t  9.4 sl-100.00 fy  -3.4 | t2.300 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.478 mw1.00 lag 0.00 ht 0.00
+0 011 pl1 st-1.00 h 23.6 b  0.3 t -0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 16.4 b  6.2 t  8.3 sl-100.00 fy  -3.4 | t2.317 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.494 mw1.00 lag 0.00 ht 0.00
+PLANT foot 1 swingU 0.00 shift -0.099 corr -0.098 scanned 1 touching 1 plan 1 err 0.001 lead 0.294 ballProbe 0
+0 011 pl1 st-1.00 h 25.2 b  0.4 t  0.0 sl 0.00 fy   3.4 | 1 000 pl1 st-1.00 h 16.0 b  5.4 t  7.4 sl-100.00 fy  -3.4 | t2.333 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.510 mw1.00 lag 0.00 ht 0.00
+0 011 pl1 st-1.00 h 10.6 b  0.5 t  0.0 sl 0.00 fy   3.4 | 1 000 pl1 st-1.00 h 16.0 b  4.7 t  6.4 sl-100.00 fy  -3.4 | t2.350 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.526 mw1.00 lag 0.00 ht 0.00
+0 011 pl1 st-1.00 h 12.0 b  0.7 t  0.0 sl 0.00 fy   3.4 | 1 000 pl1 st-1.00 h 16.0 b  3.5 t  4.8 sl-100.00 fy  -3.4 | t2.367 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.541 mw1.00 lag 0.00 ht 0.00
+0 001 pl1 st-1.00 h 13.1 b  0.8 t -0.0 sl 0.17 fy   3.4 | 1 000 pl1 st-1.00 h 16.0 b  2.3 t  3.2 sl-100.00 fy  -3.4 | t2.383 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.557 mw1.00 lag 0.00 ht 0.00
+0 001 pl1 st-1.00 h 14.0 b  0.9 t -0.0 sl 0.14 fy   3.4 | 1 000 pl1 st-1.00 h 16.0 b  1.1 t  1.5 sl-100.00 fy  -3.4 | t2.400 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.573 mw1.00 lag 0.00 ht 0.00
+0 001 pl1 st-1.00 h 14.7 b  1.0 t -0.0 sl 0.09 fy   3.4 | 1 011 pl1 st-1.00 h 16.0 b  0.4 t  0.6 sl-100.00 fy  -3.4 | t2.417 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.589 mw1.00 lag 0.00 ht 0.00
+0 001 pl1 st-1.00 h 15.1 b  1.1 t -0.0 sl 0.05 fy   3.4 | 1 011 pl1 st-1.00 h 16.0 b  0.1 t  0.2 sl 0.00 fy  -3.4 | t2.433 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.605 mw1.00 lag 0.00 ht 0.00
+0 001 pl1 st-1.00 h 15.2 b  1.2 t  0.0 sl 0.03 fy   3.4 | 1 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy  -3.4 | t2.450 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.621 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h 17.1 b  3.2 t  1.9 sl-100.00 fy   3.4 | 1 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy  -3.4 | t2.467 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.636 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h 44.3 b 30.7 t 29.1 sl-100.00 fy   3.4 | 1 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy  -3.4 | t2.483 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.652 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h 46.5 b 33.1 t 15.2 sl-100.00 fy   3.4 | 1 011 pl1 st-1.00 h 16.0 b  0.0 t -0.0 sl 0.00 fy  -3.4 | t2.500 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.668 mw1.00 lag 0.00 ht 0.00
+SCAN foot 0 g: 0.22 0.38 0.38 0.38 0.38 0.38 0.38 0.54 0.54 0.54 0.54 0.54 | stepped 1 shift 0.082 land 0.536 cost 0.082 gFoot 0.536 ball 1
+0 000 pl0 st-1.00 h 71.3 b 42.4 t 40.1 sl-100.00 fy   3.4 | 1 011 pl1 st-1.00 h 16.0 b  0.0 t -0.0 sl 0.00 fy  -3.4 | t2.517 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.684 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h 70.8 b 42.5 t 39.9 sl-100.00 fy   3.4 | 1 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy  -3.4 | t2.533 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.700 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h 59.8 b 48.5 t 45.7 sl-100.00 fy   3.4 | 1 011 pl1 st-1.00 h 16.0 b  0.0 t -0.0 sl 0.00 fy  -3.4 | t2.550 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.716 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h 58.8 b 48.6 t 29.7 sl-100.00 fy   3.4 | 1 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy  -3.4 | t2.567 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.731 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h 66.1 b 41.2 t 38.5 sl-100.00 fy   3.4 | 1 011 pl1 st-1.00 h 16.0 b  0.0 t -0.0 sl 0.00 fy  -3.4 | t2.583 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.747 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h 64.9 b 41.3 t 38.9 sl-100.00 fy   3.4 | 1 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy  -3.4 | t2.600 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.763 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h 52.5 b 46.5 t 44.5 sl-100.00 fy   3.4 | 1 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy  -3.4 | t2.617 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.779 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h 51.1 b 46.8 t 29.2 sl-100.00 fy   3.4 | 1 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy  -3.4 | t2.633 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.795 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h 52.6 b 34.0 t 33.0 sl-100.00 fy   3.4 | 1 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy  -3.4 | t2.650 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.811 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h 51.3 b 34.3 t 33.9 sl-100.00 fy   3.4 | 1 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy  -3.4 | t2.667 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.826 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h 35.8 b 36.3 t 20.5 sl-100.00 fy   3.4 | 1 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy  -3.4 | t2.683 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.842 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h 34.6 b 20.6 t 21.3 sl-100.00 fy   3.4 | 1 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy  -3.4 | t2.700 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.858 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h 34.5 b 21.8 t 23.0 sl-100.00 fy   3.4 | 1 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy  -3.4 | t2.717 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.874 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h 36.6 b 25.0 t 26.6 sl-100.00 fy   3.4 | 1 011 pl1 st-1.00 h 16.2 b  0.0 t  0.0 sl 0.00 fy  -3.4 | t2.733 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.890 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h 20.9 b 26.2 t 28.2 sl-100.00 fy   3.4 | 1 011 pl1 st-1.00 h 16.6 b  0.0 t -0.0 sl 0.01 fy  -3.4 | t2.750 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.906 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h 20.0 b 25.9 t 12.1 sl-100.00 fy   3.4 | 1 011 pl1 st-1.00 h 17.4 b  0.0 t -0.0 sl 0.00 fy  -3.4 | t2.767 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.921 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h 19.1 b  9.5 t 11.8 sl-100.00 fy   3.4 | 1 011 pl1 st-1.00 h 18.4 b  0.0 t  0.0 sl 0.01 fy  -3.4 | t2.783 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.937 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h 18.3 b  8.6 t 11.0 sl-100.00 fy   3.4 | 1 011 pl1 st-1.00 h 19.7 b  0.1 t -0.0 sl 0.00 fy  -3.4 | t2.800 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.953 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h 17.6 b  7.8 t 10.1 sl-100.00 fy   3.4 | 1 011 pl1 st-1.00 h 21.1 b  0.1 t  0.0 sl 0.00 fy  -3.4 | t2.817 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.969 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h 16.7 b  6.6 t  8.8 sl-100.00 fy   3.4 | 1 011 pl1 st-1.00 h 22.7 b  0.2 t  0.0 sl 0.00 fy  -3.4 | t2.833 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.985 mw1.00 lag 0.00 ht 0.00
+0 011 pl0 st-1.00 h  7.6 b -2.7 t -0.6 sl-100.00 fy   3.4 | 1 011 pl1 st-1.00 h 24.3 b  0.3 t  0.0 sl 0.00 fy  -3.4 | t2.850 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.001 mw1.00 lag 0.00 ht 0.00
+0 011 pl0 st-1.00 h  9.4 b -1.6 t  0.3 sl 0.35 fy   3.4 | 1 011 pl1 st-1.00 h 25.8 b  0.4 t -0.0 sl 0.00 fy  -3.4 | t2.867 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.016 mw1.00 lag 0.00 ht 0.00
+PLANT foot 0 swingU 0.00 shift 0.082 corr 0.081 scanned 1 touching 1 plan 1 err 0.001 lead 0.284 ballProbe 0
+PIN foot 0 footZ 0.320 low 0.042 pz 0.042 pinZ -0.023 pin -0.023 ballz 0.042 toez 0.058 heelz -0.001 age 0.017
+0 000 pl1 st-1.00 h 13.6 b  1.9 t  3.5 sl-100.00 fy   3.4 | 1 011 pl1 st-1.00 h 11.3 b  0.6 t  0.0 sl 0.00 fy  -3.4 | t2.883 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.032 mw1.00 lag 0.00 ht 0.00
+PIN foot 0 footZ 0.320 low 0.029 pz 0.029 pinZ -0.029 pin -0.029 ballz 0.029 toez 0.040 heelz -0.001 age 0.033
+0 010 pl1 st-1.00 h 13.0 b  0.0 t  1.1 sl-100.00 fy   3.4 | 1 011 pl1 st-1.00 h 12.5 b  0.7 t  0.0 sl 0.00 fy  -3.4 | t2.900 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.048 mw1.00 lag 0.00 ht 0.00
+PIN foot 0 footZ 0.320 low 0.017 pz 0.017 pinZ -0.017 pin -0.017 ballz 0.017 toez 0.023 heelz -0.000 age 0.050
+0 011 pl1 st-1.00 h 14.3 b  0.0 t  0.6 sl 0.00 fy   3.4 | 1 001 pl1 st-1.00 h 13.6 b  0.9 t  0.0 sl 0.17 fy  -3.4 | t2.917 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.064 mw1.00 lag 0.00 ht 0.00
+PIN foot 0 footZ 0.320 low 0.008 pz 0.008 pinZ -0.008 pin -0.008 ballz 0.008 toez 0.011 heelz -0.000 age 0.067
+0 011 pl1 st-1.00 h 15.1 b  0.0 t  0.3 sl 0.00 fy   3.4 | 1 001 pl1 st-1.00 h 14.3 b  1.0 t -0.0 sl 0.11 fy  -3.4 | t2.933 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.080 mw1.00 lag 0.00 ht 0.00
+PIN foot 0 footZ 0.320 low 0.001 pz 0.001 pinZ -0.001 pin -0.001 ballz 0.001 toez 0.001 heelz -0.000 age 0.083
+0 011 pl1 st-1.00 h 15.9 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 001 pl1 st-1.00 h 15.0 b  1.1 t  0.0 sl 0.09 fy  -3.4 | t2.950 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.096 mw1.00 lag 0.00 ht 0.00
+PIN foot 0 footZ 0.320 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez 0.000 heelz -0.000 age 0.100
+0 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 001 pl1 st-1.00 h 15.1 b  1.1 t  0.0 sl 0.01 fy  -3.4 | t2.967 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.111 mw1.00 lag 0.00 ht 0.00
+PIN foot 0 footZ 0.216 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.117
+0 011 pl1 st-1.00 h 16.0 b  0.0 t -0.0 sl 0.00 fy   3.4 | 1 001 pl1 st-1.00 h 15.2 b  1.2 t  0.0 sl 0.02 fy  -3.4 | t2.983 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.127 mw1.00 lag 0.00 ht 0.00
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.133
+0 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 18.0 b  4.2 t  2.8 sl-100.00 fy  -3.4 | t3.000 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.143 mw1.00 lag 0.00 ht 0.00
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.150
+0 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 52.9 b 39.4 t 37.6 sl-100.00 fy  -3.5 | t3.017 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.159 mw1.00 lag 0.00 ht 0.00
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.167
+0 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 53.2 b 40.1 t 21.9 sl-100.00 fy  -3.5 | t3.033 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.175 mw1.00 lag 0.00 ht 0.00
+SCAN foot 1 g: 0.32 0.32 0.32 0.32 0.32 0.48 0.48 0.48 0.48 0.48 0.48 0.64 | stepped 1 shift 0.000 land 0.480 cost 0.000 gFoot 0.480 ball 1
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.183
+0 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 71.7 b 43.0 t 40.6 sl-100.00 fy  -3.5 | t3.050 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.191 mw1.00 lag 0.00 ht 0.00
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.200
+0 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 70.8 b 43.0 t 40.3 sl-100.00 fy  -3.5 | t3.067 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.206 mw1.00 lag 0.00 ht 0.00
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.217
+0 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 64.8 b 54.0 t 51.2 sl-100.00 fy  -3.5 | t3.083 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.222 mw1.00 lag 0.00 ht 0.00
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.233
+0 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 63.6 b 53.9 t 35.2 sl-100.00 fy  -3.5 | t3.100 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.238 mw1.00 lag 0.00 ht 0.00
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.250
+0 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 68.8 b 44.4 t 41.8 sl-100.00 fy  -3.4 | t3.117 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.254 mw1.00 lag 0.00 ht 0.00
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.267
+0 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 67.4 b 44.5 t 42.2 sl-100.00 fy  -3.4 | t3.133 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.270 mw1.00 lag 0.00 ht 0.00
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.283
+0 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 53.7 b 48.5 t 30.6 sl-100.00 fy  -3.4 | t3.150 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.286 mw1.00 lag 0.00 ht 0.00
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.300
+0 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 52.4 b 32.8 t 31.5 sl-100.00 fy  -3.4 | t3.167 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.301 mw1.00 lag 0.00 ht 0.00
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.317
+0 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 53.1 b 35.2 t 34.4 sl-100.00 fy  -3.4 | t3.183 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.317 mw1.00 lag 0.00 ht 0.00
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.333
+0 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 35.9 b 35.6 t 35.5 sl-100.00 fy  -3.4 | t3.200 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.333 mw1.00 lag 0.00 ht 0.00
+PIN foot 0 footZ 0.056 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.350
+0 011 pl1 st-1.00 h 16.0 b -0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 37.1 b 38.3 t 22.7 sl-100.00 fy  -3.4 | t3.217 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.349 mw1.00 lag 0.00 ht 0.00
+PIN foot 0 footZ 0.000 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.367
+0 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 36.1 b 22.7 t 23.6 sl-100.00 fy  -3.4 | t3.233 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.365 mw1.00 lag 0.00 ht 0.00
+PIN foot 0 footZ 0.000 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz 0.000 age 0.383
+0 011 pl1 st-1.00 h 16.1 b -0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 36.3 b 24.1 t 25.5 sl-100.00 fy  -3.4 | t3.250 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.381 mw1.00 lag 0.00 ht 0.00
+PIN foot 0 footZ 0.000 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz 0.002 age 0.400
+0 011 pl1 st-1.00 h 16.2 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 21.2 b 26.0 t 27.8 sl-100.00 fy  -3.4 | t3.267 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.396 mw1.00 lag 0.00 ht 0.00
+PIN foot 0 footZ 0.000 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz 0.008 age 0.417
+0 011 pl1 st-1.00 h 16.9 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 20.5 b 26.0 t 12.1 sl-100.00 fy  -3.4 | t3.283 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.412 mw1.00 lag 0.00 ht 0.00
+PIN foot 0 footZ 0.000 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz 0.016 age 0.433
+0 011 pl1 st-1.00 h 17.7 b  0.0 t -0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 19.6 b 25.8 t 12.0 sl-100.00 fy  -3.4 | t3.300 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.428 mw1.00 lag 0.00 ht 0.00
+PIN foot 0 footZ 0.000 low -0.002 pz -0.002 pinZ 0.002 pin 0.002 ballz -0.002 toez -0.002 heelz 0.027 age 0.450
+0 011 pl1 st-1.00 h 18.9 b  0.0 t -0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 18.8 b  9.1 t 11.5 sl-100.00 fy  -3.4 | t3.317 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.444 mw1.00 lag 0.00 ht 0.00
+PIN foot 0 footZ 0.000 low -0.003 pz -0.003 pinZ 0.003 pin 0.003 ballz -0.002 toez -0.003 heelz 0.040 age 0.467
+0 011 pl1 st-1.00 h 20.3 b  0.1 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 18.0 b  8.3 t 10.7 sl-100.00 fy  -3.4 | t3.333 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.460 mw1.00 lag 0.00 ht 0.00
+PIN foot 0 footZ 0.000 low -0.004 pz -0.004 pinZ 0.004 pin 0.004 ballz -0.002 toez -0.004 heelz 0.054 age 0.483
+0 011 pl1 st-1.00 h 21.8 b  0.2 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 17.2 b  7.3 t  9.6 sl-100.00 fy  -3.4 | t3.350 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.476 mw1.00 lag 0.00 ht 0.00
+PIN foot 0 footZ 0.000 low -0.005 pz -0.005 pinZ 0.005 pin 0.005 ballz -0.003 toez -0.005 heelz 0.068 age 0.500
+0 011 pl1 st-1.00 h 23.4 b  0.2 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 16.5 b  6.3 t  8.5 sl-100.00 fy  -3.4 | t3.367 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.491 mw1.00 lag 0.00 ht 0.00
+PIN foot 0 footZ 0.000 low -0.007 pz -0.007 pinZ 0.007 pin 0.007 ballz -0.004 toez -0.007 heelz 0.082 age 0.517
+0 011 pl1 st-1.00 h 25.0 b  0.4 t -0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 16.0 b  5.5 t  7.5 sl-100.00 fy  -3.4 | t3.383 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.507 mw1.00 lag 0.00 ht 0.00
+PIN foot 0 footZ 0.000 low -0.009 pz -0.009 pinZ 0.009 pin 0.009 ballz -0.004 toez -0.009 heelz 0.095 age 0.533
+0 011 pl1 st-1.00 h 26.4 b  0.5 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 15.9 b  4.7 t  6.5 sl-100.00 fy  -3.4 | t3.400 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.523 mw1.00 lag 0.00 ht 0.00
+PLANT foot 1 swingU 0.00 shift 0.000 corr 0.000 scanned 0 touching 1 plan 1 err 0.016 lead 0.284 ballProbe 1
+PIN foot 0 footZ 0.000 low -0.011 pz -0.011 pinZ 0.011 pin 0.011 ballz -0.005 toez -0.011 heelz 0.106 age 0.550
+PIN foot 1 footZ 0.320 low 0.036 pz 0.036 pinZ -0.020 pin -0.020 ballz 0.036 toez 0.050 heelz -0.001 age 0.017
+0 011 pl1 st-1.00 h 27.8 b  0.6 t  0.0 sl 0.00 fy   3.4 | 1 000 pl1 st-1.00 h 13.9 b  1.6 t  3.0 sl-100.00 fy  -3.4 | t3.417 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.539 mw1.00 lag 0.00 ht 0.00
+PIN foot 0 footZ 0.000 low -0.013 pz -0.013 pinZ 0.013 pin 0.013 ballz -0.006 toez -0.013 heelz 0.116 age 0.567
+PIN foot 1 footZ 0.320 low 0.024 pz 0.024 pinZ -0.024 pin -0.024 ballz 0.024 toez 0.034 heelz -0.001 age 0.033
+0 011 pl1 st-1.00 h 29.0 b  0.8 t -0.0 sl 0.00 fy   3.4 | 1 010 pl1 st-1.00 h 13.5 b  0.0 t  0.9 sl-100.00 fy  -3.4 | t3.433 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.555 mw1.00 lag 0.00 ht 0.00
+PIN foot 0 footZ -0.104 low -0.015 pz -0.015 pinZ 0.015 pin 0.015 ballz -0.006 toez -0.015 heelz 0.124 age 0.583
+PIN foot 1 footZ 0.216 low 0.012 pz 0.012 pinZ -0.012 pin -0.012 ballz 0.012 toez 0.017 heelz -0.000 age 0.050
+0 001 pl1 st-1.00 h 29.9 b  0.9 t -0.0 sl 0.14 fy   3.4 | 1 011 pl1 st-1.00 h 14.7 b  0.0 t  0.5 sl 0.00 fy  -3.4 | t3.450 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.571 mw1.00 lag 0.00 ht 0.00
+PIN foot 0 footZ -0.160 low -0.017 pz -0.017 pinZ 0.017 pin 0.017 ballz -0.007 toez -0.017 heelz 0.129 age 0.600
+PIN foot 1 footZ 0.160 low 0.005 pz 0.005 pinZ -0.005 pin -0.005 ballz 0.005 toez 0.007 heelz -0.000 age 0.067
+0 001 pl1 st-1.00 h 30.6 b  1.0 t  0.0 sl 0.10 fy   3.4 | 1 011 pl1 st-1.00 h 15.5 b  0.0 t  0.2 sl 0.00 fy  -3.4 | t3.467 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.586 mw1.00 lag 0.00 ht 0.00
+PIN foot 0 footZ -0.160 low -0.018 pz -0.018 pinZ 0.018 pin 0.018 ballz -0.007 toez -0.018 heelz 0.132 age 0.617
+PIN foot 1 footZ 0.160 low 0.001 pz 0.001 pinZ -0.001 pin -0.001 ballz 0.001 toez 0.002 heelz -0.000 age 0.083
+0 001 pl1 st-1.00 h 31.0 b  1.1 t  0.0 sl 0.06 fy   3.4 | 1 011 pl1 st-1.00 h 15.8 b  0.0 t  0.1 sl 0.00 fy  -3.4 | t3.483 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.602 mw1.00 lag 0.00 ht 0.00
+PIN foot 0 footZ -0.160 low -0.011 pz -0.011 pinZ 0.011 pin 0.011 ballz 0.001 toez -0.011 heelz 0.142 age 0.633
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.100
+0 001 pl1 st-1.00 h 31.2 b  1.2 t  0.0 sl 0.00 fy   3.4 | 1 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy  -3.4 | t3.500 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.618 mw1.00 lag 0.00 ht 0.00
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.117
+0 000 pl0 st-1.00 h 33.0 b  3.1 t  1.8 sl-100.00 fy   3.4 | 1 011 pl1 st-1.00 h 16.0 b  0.0 t -0.0 sl 0.00 fy  -3.4 | t3.517 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.634 mw1.00 lag 0.00 ht 0.00
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.133
+0 000 pl0 st-1.00 h 44.2 b 30.5 t 28.9 sl-100.00 fy   3.4 | 1 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy  -3.4 | t3.533 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.650 mw1.00 lag 0.00 ht 0.00
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.150
+0 000 pl0 st-1.00 h 46.3 b 32.8 t 30.9 sl-100.00 fy   3.4 | 1 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy  -3.4 | t3.550 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.666 mw1.00 lag 0.00 ht 0.00
+SCAN foot 0 g: 0.32 0.32 0.32 0.32 0.48 0.48 0.48 0.48 0.48 0.48 0.48 0.48 | stepped 1 shift 0.000 land 0.480 cost 0.000 gFoot 0.480 ball 0
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.167
+0 000 pl0 st-1.00 h 61.5 b 48.5 t 46.2 sl-100.00 fy   3.5 | 1 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy  -3.4 | t3.567 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.681 mw1.00 lag 0.00 ht 0.00
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.183
+0 000 pl0 st-1.00 h 60.9 b 48.6 t 30.0 sl-100.00 fy   3.4 | 1 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy  -3.4 | t3.583 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.697 mw1.00 lag 0.00 ht 0.00
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.200
+0 000 pl0 st-1.00 h 68.6 b 41.2 t 38.4 sl-100.00 fy   3.5 | 1 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy  -3.4 | t3.600 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.713 mw1.00 lag 0.00 ht 0.00
+PIN foot 1 footZ 0.160 low 0.000 pz 0.000 pinZ -0.000 pin -0.000 ballz 0.000 toez 0.000 heelz 0.000 age 0.217
+0 000 pl0 st-1.00 h 67.6 b 41.2 t 38.4 sl-100.00 fy   3.4 | 1 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy  -3.4 | t3.617 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.729 mw1.00 lag 0.00 ht 0.00
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.233
+0 000 pl0 st-1.00 h 71.4 b 46.2 t 43.5 sl-100.00 fy   3.4 | 1 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy  -3.4 | t3.633 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.745 mw1.00 lag 0.00 ht 0.00
+PIN foot 1 footZ 0.160 low 0.000 pz 0.000 pinZ -0.000 pin -0.000 ballz 0.000 toez 0.000 heelz 0.000 age 0.250
+0 000 pl0 st-1.00 h 54.2 b 46.4 t 43.9 sl-100.00 fy   3.4 | 1 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy  -3.4 | t3.650 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.761 mw1.00 lag 0.00 ht 0.00
+PIN foot 1 footZ 0.056 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.267
+0 000 pl0 st-1.00 h 56.9 b 50.7 t 32.6 sl-100.00 fy   3.4 | 1 011 pl1 st-1.00 h 16.0 b -0.0 t  0.0 sl 0.00 fy  -3.4 | t3.667 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.776 mw1.00 lag 0.00 ht 0.00
+PIN foot 1 footZ 0.000 low 0.000 pz 0.000 pinZ -0.000 pin -0.000 ballz 0.000 toez 0.000 heelz 0.000 age 0.283
+0 000 pl0 st-1.00 h 55.6 b 35.0 t 33.4 sl-100.00 fy   3.4 | 1 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy  -3.4 | t3.683 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.792 mw1.00 lag 0.00 ht 0.00
+PIN foot 1 footZ 0.000 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.300
+0 000 pl0 st-1.00 h 56.6 b 37.7 t 36.6 sl-100.00 fy   3.4 | 1 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy  -3.4 | t3.700 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.808 mw1.00 lag 0.00 ht 0.00
+PIN foot 1 footZ 0.000 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.317
+0 000 pl0 st-1.00 h 39.3 b 38.0 t 21.6 sl-100.00 fy   3.4 | 1 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy  -3.4 | t3.717 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.824 mw1.00 lag 0.00 ht 0.00
+PIN foot 1 footZ 0.000 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.333
+0 000 pl0 st-1.00 h 39.4 b 23.7 t 23.8 sl-100.00 fy   3.4 | 1 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy  -3.4 | t3.733 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.840 mw1.00 lag 0.00 ht 0.00
+PIN foot 1 footZ 0.000 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.350
+0 000 pl0 st-1.00 h 38.2 b 24.0 t 24.7 sl-100.00 fy   3.4 | 1 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy  -3.4 | t3.750 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.856 mw1.00 lag 0.00 ht 0.00
+PIN foot 1 footZ 0.000 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.367
+0 000 pl0 st-1.00 h 37.9 b 25.0 t 26.1 sl-100.00 fy   3.4 | 1 011 pl1 st-1.00 h 16.0 b  0.0 t  0.0 sl 0.00 fy  -3.4 | t3.767 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.871 mw1.00 lag 0.00 ht 0.00
+PIN foot 1 footZ 0.000 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz 0.001 age 0.383
+0 000 pl0 st-1.00 h 20.8 b 25.1 t 10.7 sl-100.00 fy   3.4 | 1 011 pl1 st-1.00 h 16.1 b  0.0 t  0.0 sl 0.00 fy  -3.4 | t3.783 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.887 mw1.00 lag 0.00 ht 0.00
+PIN foot 1 footZ 0.000 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz 0.004 age 0.400
+0 000 pl0 st-1.00 h 21.0 b 26.2 t 12.1 sl-100.00 fy   3.4 | 1 011 pl1 st-1.00 h 16.5 b  0.0 t  0.0 sl 0.00 fy  -3.4 | t3.800 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.903 mw1.00 lag 0.00 ht 0.00
+PIN foot 1 footZ 0.000 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz 0.011 age 0.417
+0 000 pl0 st-1.00 h 20.1 b 10.0 t 12.1 sl-100.00 fy   3.4 | 1 011 pl1 st-1.00 h 17.2 b  0.0 t  0.0 sl 0.00 fy  -3.4 | t3.817 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.919 mw1.00 lag 0.00 ht 0.00
+PIN foot 1 footZ 0.000 low -0.002 pz -0.002 pinZ 0.002 pin 0.002 ballz -0.001 toez -0.002 heelz 0.021 age 0.433
+0 000 pl0 st-1.00 h 19.3 b  9.5 t 11.8 sl-100.00 fy   3.4 | 1 011 pl1 st-1.00 h 18.2 b  0.0 t  0.0 sl 0.00 fy  -3.4 | t3.833 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.935 mw1.00 lag 0.00 ht 0.00
+PIN foot 1 footZ 0.000 low -0.002 pz -0.002 pinZ 0.002 pin 0.002 ballz -0.002 toez -0.002 heelz 0.033 age 0.450
+0 000 pl0 st-1.00 h 18.4 b  8.8 t 11.1 sl-100.00 fy   3.4 | 1 011 pl1 st-1.00 h 19.5 b  0.1 t -0.0 sl 0.00 fy  -3.4 | t3.850 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.951 mw1.00 lag 0.00 ht 0.00
+PIN foot 1 footZ 0.000 low -0.003 pz -0.003 pinZ 0.003 pin 0.003 ballz -0.002 toez -0.003 heelz 0.046 age 0.467
+0 000 pl0 st-1.00 h 17.7 b  7.9 t 10.2 sl-100.00 fy   3.4 | 1 011 pl1 st-1.00 h 20.9 b  0.1 t  0.0 sl 0.00 fy  -3.4 | t3.867 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.966 mw1.00 lag 0.00 ht 0.00
+PIN foot 1 footZ 0.000 low -0.005 pz -0.005 pinZ 0.005 pin 0.005 ballz -0.003 toez -0.005 heelz 0.060 age 0.483
+0 100 pl0 st-1.00 h  0.8 b  6.8 t  9.0 sl-100.00 fy   3.4 | 1 011 pl1 st-1.00 h 22.5 b  0.2 t  0.0 sl 0.00 fy  -3.4 | t3.883 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.982 mw1.00 lag 0.00 ht 0.00
+PLANT foot 0 swingU 1.00 shift 0.000 corr 0.000 scanned 1 touching 1 plan 1 err 0.012 lead 0.286 ballProbe 1
+PIN foot 1 footZ -0.104 low -0.006 pz -0.006 pinZ 0.006 pin 0.006 ballz -0.003 toez -0.006 heelz 0.075 age 0.500
+0 100 pl1 st-1.00 h  0.0 b  5.7 t  7.9 sl 1.86 fy   3.4 | 1 011 pl1 st-1.00 h 24.1 b  0.3 t  0.0 sl 0.00 fy  -3.4 | t3.900 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.998 mw1.00 lag 0.00 ht 0.00
+PIN foot 1 footZ -0.160 low -0.008 pz -0.008 pinZ 0.008 pin 0.008 ballz -0.004 toez -0.008 heelz 0.088 age 0.517
+0 100 pl1 st-1.00 h  0.0 b  5.1 t  7.1 sl 0.91 fy   3.4 | 1 011 pl1 st-1.00 h 25.6 b  0.4 t  0.0 sl 0.00 fy  -3.4 | t3.917 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.014 mw1.00 lag 0.00 ht 0.00
+PIN foot 1 footZ -0.160 low -0.010 pz -0.010 pinZ 0.010 pin 0.010 ballz -0.004 toez -0.010 heelz 0.100 age 0.533
+0 100 pl1 st-1.00 h  0.0 b  4.4 t  6.1 sl 0.00 fy   3.4 | 1 011 pl1 st-1.00 h 27.0 b  0.6 t  0.0 sl 0.00 fy  -3.4 | t3.933 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.030 mw1.00 lag 0.00 ht 0.00
+PIN foot 1 footZ -0.160 low -0.012 pz -0.012 pinZ 0.012 pin 0.012 ballz -0.005 toez -0.012 heelz 0.111 age 0.550
+0 100 pl1 st-1.00 h  0.0 b  3.2 t  4.4 sl 0.00 fy   3.4 | 1 011 pl1 st-1.00 h 28.3 b  0.7 t -0.0 sl 0.00 fy  -3.4 | t3.950 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.046 mw1.00 lag 0.00 ht 0.00
+PIN foot 1 footZ -0.160 low -0.014 pz -0.014 pinZ 0.014 pin 0.014 ballz -0.006 toez -0.014 heelz 0.120 age 0.567
+0 100 pl1 st-1.00 h  0.0 b  1.9 t  2.6 sl 0.00 fy   3.4 | 1 001 pl1 st-1.00 h 29.4 b  0.8 t  0.0 sl 0.17 fy  -3.4 | t3.967 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.061 mw1.00 lag 0.00 ht 0.00
+PIN foot 1 footZ -0.160 low -0.016 pz -0.016 pinZ 0.016 pin 0.016 ballz -0.006 toez -0.016 heelz 0.126 age 0.583
+0 100 pl1 st-1.00 h  0.0 b  1.0 t  1.3 sl 0.00 fy   3.4 | 1 001 pl1 st-1.00 h 30.2 b  1.0 t  0.0 sl 0.12 fy  -3.4 | t3.983 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.077 mw1.00 lag 0.00 ht 0.00
+PIN foot 1 footZ -0.160 low -0.017 pz -0.017 pinZ 0.017 pin 0.017 ballz -0.007 toez -0.017 heelz 0.132 age 0.600
+0 111 pl1 st-1.00 h -0.0 b  0.2 t  0.3 sl 0.00 fy   3.4 | 1 001 pl1 st-1.00 h 30.9 b  1.1 t  0.0 sl 0.10 fy  -3.4 | t4.000 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.093 mw1.00 lag 0.00 ht 0.00
+PIN foot 1 footZ -0.160 low -0.016 pz -0.016 pinZ 0.016 pin 0.016 ballz -0.004 toez -0.016 heelz 0.135 age 0.617
+0 111 pl1 st-1.00 h  0.0 b  0.0 t  0.1 sl 0.00 fy   3.4 | 1 001 pl1 st-1.00 h 31.1 b  1.1 t  0.0 sl 0.02 fy  -3.4 | t4.017 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.109 mw1.00 lag 0.00 ht 0.00
+PIN foot 1 footZ -0.160 low -0.009 pz -0.009 pinZ 0.009 pin 0.009 ballz 0.002 toez -0.009 heelz 0.142 age 0.633
+0 111 pl1 st-1.00 h  0.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 001 pl1 st-1.00 h 31.2 b  1.2 t  0.0 sl 0.02 fy  -3.4 | t4.033 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.125 mw1.00 lag 0.00 ht 0.00
+0 111 pl1 st-1.00 h  0.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 33.6 b  3.8 t  2.4 sl-100.00 fy  -3.4 | t4.050 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.141 mw1.00 lag 0.00 ht 0.00
+0 111 pl1 st-1.00 h  0.0 b  0.0 t -0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 34.2 b 20.5 t 18.9 sl-100.00 fy  -3.5 | t4.067 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.156 mw1.00 lag 0.00 ht 0.00
+0 111 pl1 st-1.00 h  0.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 34.7 b 21.4 t 19.4 sl-100.00 fy  -3.5 | t4.083 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.172 mw1.00 lag 0.00 ht 0.00
+SCAN foot 1 g: 0.16 0.16 0.16 0.16 0.16 0.16 0.16 0.16 0.16 0.16 0.16 0.16 | stepped 0 shift 0.000 land -9.000 cost 0.000 gFoot 0.160 ball 0
+0 111 pl1 st-1.00 h  0.0 b  0.0 t -0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 42.3 b 29.6 t 11.1 sl-100.00 fy  -3.5 | t4.100 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.188 mw1.00 lag 0.00 ht 0.00
+0 111 pl1 st-1.00 h  0.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 41.5 b 13.5 t 10.8 sl-100.00 fy  -3.5 | t4.117 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.204 mw1.00 lag 0.00 ht 0.00
+0 111 pl1 st-1.00 h  0.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 45.1 b 18.1 t 15.3 sl-100.00 fy  -3.4 | t4.133 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.220 mw1.00 lag 0.00 ht 0.00
+0 111 pl1 st-1.00 h  0.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 27.9 b 18.0 t 15.2 sl-100.00 fy  -3.5 | t4.150 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.236 mw1.00 lag 0.00 ht 0.00
+0 111 pl1 st-1.00 h  0.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 29.3 b 20.8 t  2.1 sl-100.00 fy  -3.4 | t4.167 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.251 mw1.00 lag 0.00 ht 0.00
+0 111 pl1 st-1.00 h  0.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 27.9 b  4.8 t  2.5 sl-100.00 fy  -3.4 | t4.183 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.267 mw1.00 lag 0.00 ht 0.00
+0 111 pl1 st-1.00 h  0.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 28.1 b  6.6 t  4.7 sl-100.00 fy  -3.4 | t4.200 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.283 mw1.00 lag 0.00 ht 0.00
+0 111 pl1 st-1.00 h  0.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 10.7 b  6.8 t  5.4 sl-100.00 fy  -3.4 | t4.217 L5 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.299 mw1.00 lag 0.00 ht 0.00
+PLANT foot 1 swingU 0.00 shift 0.000 corr -0.000 scanned 1 touching 1 plan 0 err 0.000 lead 0.278 ballProbe 1
+SCAN foot 0 g: 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 | stepped 0 shift 0.000 land -9.000 cost 0.000 gFoot 0.000 ball 0
+PLANT foot 0 swingU 0.99 shift 0.000 corr -0.000 scanned 1 touching 1 plan 0 err 0.000 lead 0.281 ballProbe 0
+PLANT foot 1 swingU 0.00 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.279 ballProbe 0
+SCAN foot 0 g: -0.16 -0.32 -0.32 -0.32 -0.32 -0.32 -0.32 -0.48 -0.48 -0.48 -0.48 -0.48 | stepped 1 shift -0.061 land -0.320 cost 0.061 gFoot -0.480 ball 0
+PLANT foot 0 swingU 0.98 shift -0.061 corr -0.061 scanned 1 touching 1 plan 1 err 0.017 lead 0.281 ballProbe 0
+0 110 pl1 st-1.00 h  0.0 b  0.0 t 16.0 sl-100.00 fy   3.4 | 1 000 pl0 st-1.00 h 16.8 b  2.9 t 17.6 sl-100.00 fy  -3.4 | t6.150 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.136 mw1.00 lag 0.00 ht 0.00
+0 110 pl1 st-1.00 h  0.0 b  0.0 t 16.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 19.9 b  6.2 t 20.6 sl-100.00 fy  -3.4 | t6.167 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.152 mw1.00 lag 0.00 ht 0.00
+0 110 pl1 st-1.00 h  0.0 b  0.0 t 16.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 14.9 b 17.5 t 15.6 sl-100.00 fy  -3.5 | t6.183 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.167 mw1.00 lag 0.00 ht 0.00
+SCAN foot 1 g: -0.32 -0.32 -0.32 -0.32 -0.32 -0.48 -0.48 -0.48 -0.48 -0.48 -0.48 -0.64 | stepped 1 shift 0.111 land -0.480 cost 0.111 gFoot -0.480 ball 0
+0 110 pl1 st-1.00 h  0.0 b  0.0 t 16.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 14.8 b 17.9 t 15.6 sl-100.00 fy  -3.5 | t6.200 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.183 mw1.00 lag 0.00 ht 0.00
+0 110 pl1 st-1.00 h  0.0 b  0.0 t 16.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 26.3 b 14.0 t 11.5 sl-100.00 fy  -3.5 | t6.217 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.199 mw1.00 lag 0.00 ht 0.00
+0 110 pl1 st-1.00 h  0.0 b  0.0 t 16.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 25.5 b 14.1 t 27.3 sl-100.00 fy  -3.4 | t6.233 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.215 mw1.00 lag 0.00 ht 0.00
+0 110 pl1 st-1.00 h  0.0 b  0.0 t 16.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 15.3 b 21.1 t 18.3 sl-100.00 fy  -3.5 | t6.250 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.231 mw1.00 lag 0.00 ht 0.00
+0 110 pl1 st-1.00 h  0.0 b  0.0 t 16.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 14.2 b 21.2 t 18.5 sl-100.00 fy  -3.4 | t6.267 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.247 mw1.00 lag 0.00 ht 0.00
+0 110 pl1 st-1.00 h  0.0 b  0.0 t 16.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 23.5 b 16.0 t 13.5 sl-100.00 fy  -3.4 | t6.283 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.262 mw1.00 lag 0.00 ht 0.00
+0 110 pl1 st-1.00 h  0.0 b  0.0 t 16.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 22.3 b 32.2 t 30.1 sl-100.00 fy  -3.4 | t6.300 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.278 mw1.00 lag 0.00 ht 0.00
+0 110 pl1 st-1.00 h  0.0 b  0.0 t 16.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 11.0 b 22.6 t 21.1 sl-100.00 fy  -3.4 | t6.317 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.294 mw1.00 lag 0.00 ht 0.00
+0 110 pl1 st-1.00 h  0.0 b  0.0 t 16.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 25.8 b 23.0 t 22.0 sl-100.00 fy  -3.4 | t6.333 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.310 mw1.00 lag 0.00 ht 0.00
+0 110 pl1 st-1.00 h  0.0 b  0.0 t 16.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 18.6 b 17.5 t 33.1 sl-100.00 fy  -3.4 | t6.350 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.326 mw1.00 lag 0.00 ht 0.00
+0 110 pl1 st-1.00 h  0.0 b  0.0 t 16.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 17.4 b 33.9 t 34.1 sl-100.00 fy  -3.4 | t6.367 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.342 mw1.00 lag 0.00 ht 0.00
+0 110 pl1 st-1.00 h  0.0 b  0.0 t 16.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h  6.2 b 24.2 t 24.9 sl-100.00 fy  -3.4 | t6.383 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.357 mw1.00 lag 0.00 ht 0.00
+0 110 pl1 st-1.00 h  0.0 b  0.0 t 16.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 21.1 b 24.3 t 25.5 sl-100.00 fy  -3.4 | t6.400 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.373 mw1.00 lag 0.00 ht 0.00
+0 110 pl1 st-1.00 h  0.1 b  0.0 t 16.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 14.2 b 18.6 t 36.2 sl-100.00 fy  -3.4 | t6.417 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.389 mw1.00 lag 0.00 ht 0.00
+0 110 pl1 st-1.00 h  0.6 b  0.0 t 16.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 13.2 b 34.4 t 36.4 sl-100.00 fy  -3.4 | t6.433 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.405 mw1.00 lag 0.00 ht 0.00
+0 010 pl1 st-1.00 h  1.3 b  0.0 t 16.0 sl 0.01 fy   3.4 | 1 000 pl0 st-1.00 h  2.3 b 24.2 t 26.4 sl-100.00 fy  -3.4 | t6.450 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.421 mw1.00 lag 0.00 ht 0.00
+0 010 pl1 st-1.00 h  2.4 b  0.0 t 16.0 sl 0.01 fy   3.4 | 1 000 pl0 st-1.00 h  1.4 b 23.6 t 25.9 sl-100.00 fy  -3.4 | t6.467 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.437 mw1.00 lag 0.00 ht 0.00
+0 010 pl1 st-1.00 h  3.6 b  0.1 t 16.0 sl 0.00 fy   3.4 | 1 100 pl0 st-1.00 h -5.3 b 17.1 t 19.5 sl-100.00 fy  -3.4 | t6.483 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.452 mw1.00 lag 0.00 ht 0.00
+0 010 pl1 st-1.00 h  5.1 b  0.1 t 16.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h  9.9 b 16.1 t 18.4 sl-100.00 fy  -3.4 | t6.500 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.468 mw1.00 lag 0.00 ht 0.00
+0 010 pl1 st-1.00 h  6.6 b  0.2 t 16.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h  5.7 b 11.7 t 13.9 sl-100.00 fy  -3.4 | t6.517 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.484 mw1.00 lag 0.00 ht 0.00
+PLANT foot 1 swingU 1.00 shift 0.111 corr 0.110 scanned 1 touching 1 plan 1 err 0.014 lead 0.284 ballProbe 0
+0 010 pl1 st-1.00 h  8.2 b  0.3 t 16.0 sl 0.00 fy   3.4 | 1 100 pl1 st-1.00 h  0.1 b  5.8 t  7.9 sl-100.00 fy  -3.4 | t6.533 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.500 mw1.00 lag 0.00 ht 0.00
+0 010 pl1 st-1.00 h  9.8 b  0.4 t 16.0 sl 0.00 fy   3.4 | 1 100 pl1 st-1.00 h -0.0 b  5.3 t  7.2 sl 0.00 fy  -3.4 | t6.550 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.516 mw1.00 lag 0.00 ht 0.00
+0 010 pl1 st-1.00 h 11.2 b  0.6 t 16.0 sl 0.00 fy   3.4 | 1 100 pl1 st-1.00 h -0.0 b  4.2 t  5.8 sl 0.00 fy  -3.4 | t6.567 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.532 mw1.00 lag 0.00 ht 0.00
+0 010 pl1 st-1.00 h 12.5 b  0.7 t 16.0 sl 0.00 fy   3.4 | 1 100 pl1 st-1.00 h  0.0 b  3.1 t  4.2 sl 0.00 fy  -3.4 | t6.583 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.547 mw1.00 lag 0.00 ht 0.00
+0 000 pl1 st-1.00 h 13.5 b  0.9 t 16.0 sl-100.00 fy   3.4 | 1 100 pl1 st-1.00 h  0.0 b  1.8 t  2.5 sl 0.00 fy  -3.4 | t6.600 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.563 mw1.00 lag 0.00 ht 0.00
+0 000 pl1 st-1.00 h 14.4 b  1.0 t 16.0 sl-100.00 fy   3.4 | 1 110 pl1 st-1.00 h  0.0 b  0.7 t  1.0 sl 0.00 fy  -3.4 | t6.617 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.579 mw1.00 lag 0.00 ht 0.00
+0 000 pl1 st-1.00 h 14.8 b  1.1 t 16.0 sl-100.00 fy   3.4 | 1 111 pl1 st-1.00 h  0.0 b  0.3 t  0.4 sl 0.00 fy  -3.4 | t6.633 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.595 mw1.00 lag 0.00 ht 0.00
+0 000 pl1 st-1.00 h 15.2 b  1.1 t 16.0 sl-100.00 fy   3.4 | 1 111 pl1 st-1.00 h -0.0 b  0.0 t  0.0 sl 0.00 fy  -3.4 | t6.650 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.611 mw1.00 lag 0.00 ht 0.00
+0 000 pl1 st-1.00 h 15.2 b  1.2 t 16.0 sl-100.00 fy   3.4 | 1 111 pl1 st-1.00 h  0.0 b  0.0 t  0.0 sl 0.00 fy  -3.4 | t6.667 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.627 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h 17.4 b  3.6 t 18.2 sl-100.00 fy   3.4 | 1 111 pl1 st-1.00 h  0.0 b  0.0 t -0.0 sl 0.00 fy  -3.4 | t6.683 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.642 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h 19.6 b 22.0 t 20.3 sl-100.00 fy   3.4 | 1 111 pl1 st-1.00 h  0.0 b  0.0 t  0.0 sl 0.00 fy  -3.4 | t6.700 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.658 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h 14.8 b 17.5 t 15.4 sl-100.00 fy   3.4 | 1 111 pl1 st-1.00 h  0.0 b  0.0 t -0.0 sl 0.00 fy  -3.4 | t6.717 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.674 mw1.00 lag 0.00 ht 0.00
+SCAN foot 0 g: -0.32 -0.32 -0.32 -0.48 -0.48 -0.48 -0.48 -0.48 -0.48 -0.64 -0.64 -0.64 | stepped 1 shift 0.011 land -0.480 cost 0.011 gFoot -0.480 ball 0
+0 000 pl0 st-1.00 h 30.3 b 17.6 t 15.2 sl-100.00 fy   3.4 | 1 111 pl1 st-1.00 h  0.0 b  0.0 t -0.0 sl 0.00 fy  -3.4 | t6.733 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.690 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h 25.8 b 13.9 t 11.2 sl-100.00 fy   3.4 | 1 111 pl1 st-1.00 h  0.0 b  0.0 t  0.0 sl 0.00 fy  -3.4 | t6.750 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.706 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h 24.8 b 29.9 t 27.1 sl-100.00 fy   3.4 | 1 111 pl1 st-1.00 h  0.0 b  0.0 t  0.0 sl 0.00 fy  -3.4 | t6.767 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.722 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h 14.8 b 21.0 t 18.2 sl-100.00 fy   3.4 | 1 111 pl1 st-1.00 h  0.0 b  0.0 t -0.0 sl 0.00 fy  -3.4 | t6.783 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.737 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h 29.5 b 21.1 t 18.5 sl-100.00 fy   3.4 | 1 111 pl1 st-1.00 h  0.0 b  0.0 t  0.0 sl 0.00 fy  -3.4 | t6.800 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.753 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h 22.9 b 16.0 t 29.7 sl-100.00 fy   3.4 | 1 111 pl1 st-1.00 h  0.0 b  0.0 t  0.0 sl 0.00 fy  -3.4 | t6.817 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.769 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h 21.5 b 32.2 t 30.3 sl-100.00 fy   3.4 | 1 111 pl1 st-1.00 h  0.0 b  0.0 t  0.0 sl 0.00 fy  -3.4 | t6.833 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.785 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h 10.4 b 22.8 t 21.4 sl-100.00 fy   3.4 | 1 111 pl1 st-1.00 h  0.0 b  0.0 t  0.0 sl 0.00 fy  -3.4 | t6.850 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.801 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h 25.1 b 23.1 t 22.3 sl-100.00 fy   3.4 | 1 111 pl1 st-1.00 h  0.0 b  0.0 t  0.0 sl 0.00 fy  -3.4 | t6.867 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.817 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h 18.1 b 17.7 t 33.5 sl-100.00 fy   3.4 | 1 111 pl1 st-1.00 h -0.0 b  0.0 t  0.0 sl 0.00 fy  -3.4 | t6.883 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.832 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h 16.9 b 34.0 t 34.4 sl-100.00 fy   3.4 | 1 111 pl1 st-1.00 h  0.0 b  0.0 t  0.0 sl 0.00 fy  -3.4 | t6.900 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.848 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h  5.7 b 24.2 t 25.1 sl-100.00 fy   3.4 | 1 111 pl1 st-1.00 h -0.0 b  0.0 t  0.0 sl 0.00 fy  -3.4 | t6.917 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.864 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h 20.7 b 24.5 t 25.9 sl-100.00 fy   3.4 | 1 111 pl1 st-1.00 h  0.0 b  0.0 t  0.0 sl 0.00 fy  -3.4 | t6.933 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.880 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h 13.7 b 18.5 t 36.2 sl-100.00 fy   3.4 | 1 111 pl1 st-1.00 h  0.3 b  0.0 t  0.0 sl 0.00 fy  -3.4 | t6.950 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.896 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h 12.9 b 34.5 t 36.6 sl-100.00 fy   3.4 | 1 111 pl1 st-1.00 h  0.8 b  0.0 t  0.0 sl 0.00 fy  -3.4 | t6.967 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.912 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h  1.9 b 23.9 t 26.2 sl-100.00 fy   3.4 | 1 010 pl1 st-1.00 h  1.7 b  0.0 t 16.0 sl 0.01 fy  -3.4 | t6.983 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.927 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h  1.1 b 23.5 t 25.8 sl-100.00 fy   3.4 | 1 010 pl1 st-1.00 h  2.8 b  0.0 t 16.0 sl 0.00 fy  -3.4 | t7.000 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.943 mw1.00 lag 0.00 ht 0.00
+0 100 pl0 st-1.00 h -5.6 b 16.6 t 19.0 sl-100.00 fy   3.4 | 1 010 pl1 st-1.00 h  4.2 b  0.1 t 16.0 sl 0.00 fy  -3.4 | t7.017 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.959 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h  9.6 b 15.7 t 18.0 sl-100.00 fy   3.4 | 1 010 pl1 st-1.00 h  5.7 b  0.1 t 16.0 sl 0.00 fy  -3.4 | t7.033 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.975 mw1.00 lag 0.00 ht 0.00
+PLANT foot 0 swingU 0.98 shift 0.011 corr 0.010 scanned 1 touching 1 plan 1 err 0.007 lead 0.285 ballProbe 0
+0 100 pl1 st-1.00 h  0.3 b  6.1 t  8.3 sl-100.00 fy   3.4 | 1 010 pl1 st-1.00 h  7.3 b  0.2 t 16.0 sl 0.00 fy  -3.4 | t7.050 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.991 mw1.00 lag 0.00 ht 0.00
+0 100 pl1 st-1.00 h  0.0 b  5.4 t  7.5 sl 0.00 fy   3.4 | 1 010 pl1 st-1.00 h  8.9 b  0.4 t 16.0 sl 0.00 fy  -3.4 | t7.067 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.007 mw1.00 lag 0.00 ht 0.00
+0 100 pl1 st-1.00 h  0.0 b  4.8 t  6.6 sl 0.00 fy   3.4 | 1 010 pl1 st-1.00 h 10.4 b  0.5 t 16.0 sl 0.00 fy  -3.4 | t7.083 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.022 mw1.00 lag 0.00 ht 0.00
+0 100 pl1 st-1.00 h  0.0 b  3.8 t  5.2 sl 0.00 fy   3.4 | 1 010 pl1 st-1.00 h 11.7 b  0.6 t 16.0 sl 0.00 fy  -3.4 | t7.100 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.038 mw1.00 lag 0.00 ht 0.00
+0 100 pl1 st-1.00 h  0.0 b  2.5 t  3.5 sl 0.00 fy   3.4 | 1 010 pl1 st-1.00 h 12.9 b  0.8 t 16.0 sl 0.00 fy  -3.4 | t7.117 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.054 mw1.00 lag 0.00 ht 0.00
+0 100 pl1 st-1.00 h  0.0 b  1.4 t  1.9 sl 0.00 fy   3.4 | 1 000 pl1 st-1.00 h 13.9 b  0.9 t 16.0 sl-100.00 fy  -3.4 | t7.133 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.070 mw1.00 lag 0.00 ht 0.00
+0 111 pl1 st-1.00 h  0.0 b  0.6 t  0.8 sl 0.00 fy   3.4 | 1 000 pl1 st-1.00 h 14.6 b  1.0 t 16.0 sl-100.00 fy  -3.4 | t7.150 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.086 mw1.00 lag 0.00 ht 0.00
+0 111 pl1 st-1.00 h  0.0 b  0.1 t  0.1 sl 0.00 fy   3.4 | 1 000 pl1 st-1.00 h 15.0 b  1.1 t 16.0 sl-100.00 fy  -3.4 | t7.167 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.102 mw1.00 lag 0.00 ht 0.00
+0 111 pl1 st-1.00 h  0.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl1 st-1.00 h 15.1 b  1.1 t 16.0 sl-100.00 fy  -3.4 | t7.183 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.117 mw1.00 lag 0.00 ht 0.00
+0 111 pl1 st-1.00 h  0.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl1 st-1.00 h 15.2 b  1.3 t 16.0 sl-100.00 fy  -3.4 | t7.200 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.133 mw1.00 lag 0.00 ht 0.00
+0 111 pl1 st-1.00 h  0.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 18.6 b  4.8 t 19.3 sl-100.00 fy  -3.4 | t7.217 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.149 mw1.00 lag 0.00 ht 0.00
+0 111 pl1 st-1.00 h  0.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 20.8 b  7.4 t 21.5 sl-100.00 fy  -3.5 | t7.233 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.165 mw1.00 lag 0.00 ht 0.00
+SCAN foot 1 g: -0.32 -0.32 -0.48 -0.48 -0.48 -0.48 -0.48 -0.48 -0.64 -0.64 -0.64 -0.64 | stepped 1 shift -0.011 land -0.480 cost 0.011 gFoot -0.480 ball 0
+0 111 pl1 st-1.00 h  0.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 14.4 b  1.4 t 15.2 sl-100.00 fy  -3.5 | t7.250 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.181 mw1.00 lag 0.00 ht 0.00
+0 111 pl1 st-1.00 h  0.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 14.0 b 17.6 t 15.1 sl-100.00 fy  -3.5 | t7.267 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.197 mw1.00 lag 0.00 ht 0.00
+0 111 pl1 st-1.00 h  0.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h  9.4 b 13.8 t 11.1 sl-100.00 fy  -3.5 | t7.283 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.212 mw1.00 lag 0.00 ht 0.00
+0 111 pl1 st-1.00 h  0.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h  8.3 b 13.8 t 11.0 sl-100.00 fy  -3.5 | t7.300 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.228 mw1.00 lag 0.00 ht 0.00
+0 111 pl1 st-1.00 h  0.0 b  0.0 t -0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 20.9 b 11.7 t  8.9 sl-100.00 fy  -3.4 | t7.317 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.244 mw1.00 lag 0.00 ht 0.00
+0 111 pl1 st-1.00 h  0.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 19.5 b 11.7 t 25.2 sl-100.00 fy  -3.4 | t7.333 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.260 mw1.00 lag 0.00 ht 0.00
+0 111 pl1 st-1.00 h  0.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 10.3 b 20.1 t 17.9 sl-100.00 fy  -3.4 | t7.350 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.276 mw1.00 lag 0.00 ht 0.00
+0 111 pl1 st-1.00 h  0.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h  8.8 b 20.1 t 18.5 sl-100.00 fy  -3.4 | t7.367 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.292 mw1.00 lag 0.00 ht 0.00
+0 111 pl1 st-1.00 h -0.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 18.9 b 15.9 t 30.8 sl-100.00 fy  -3.4 | t7.383 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.307 mw1.00 lag 0.00 ht 0.00
+0 111 pl1 st-1.00 h  0.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 17.4 b 32.0 t 31.5 sl-100.00 fy  -3.4 | t7.400 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.323 mw1.00 lag 0.00 ht 0.00
+0 111 pl1 st-1.00 h  0.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h  6.8 b 23.1 t 23.2 sl-100.00 fy  -3.4 | t7.417 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.339 mw1.00 lag 0.00 ht 0.00
+0 111 pl1 st-1.00 h -0.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h  5.5 b 23.2 t 23.9 sl-100.00 fy  -3.4 | t7.433 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.355 mw1.00 lag 0.00 ht 0.00
+0 111 pl1 st-1.00 h  0.0 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 14.9 b 18.0 t 35.1 sl-100.00 fy  -3.4 | t7.450 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.371 mw1.00 lag 0.00 ht 0.00
+0 111 pl1 st-1.00 h  0.1 b  0.0 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 13.8 b 34.0 t 35.6 sl-100.00 fy  -3.4 | t7.467 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.387 mw1.00 lag 0.00 ht 0.00
+0 111 pl1 st-1.00 h  0.5 b  0.0 t -0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h  3.0 b 24.2 t 26.1 sl-100.00 fy  -3.4 | t7.483 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.402 mw1.00 lag 0.00 ht 0.00
+0 011 pl1 st-1.00 h  1.2 b  0.0 t  0.0 sl 0.01 fy   3.4 | 1 000 pl0 st-1.00 h  2.1 b 23.9 t 26.1 sl-100.00 fy  -3.4 | t7.500 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.418 mw1.00 lag 0.00 ht 0.00
+0 011 pl1 st-1.00 h  2.2 b  0.0 t -0.0 sl 0.01 fy   3.4 | 1 100 pl0 st-1.00 h -4.5 b 17.7 t 20.0 sl-100.00 fy  -3.4 | t7.517 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.434 mw1.00 lag 0.00 ht 0.00
+0 011 pl1 st-1.00 h  3.4 b  0.1 t  0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 10.7 b 17.0 t 19.4 sl-100.00 fy  -3.4 | t7.533 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.450 mw1.00 lag 0.00 ht 0.00
+0 011 pl1 st-1.00 h  4.9 b  0.1 t -0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h  6.5 b 12.7 t 31.1 sl-100.00 fy  -3.4 | t7.550 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.466 mw1.00 lag 0.00 ht 0.00
+0 011 pl1 st-1.00 h  6.4 b  0.2 t -0.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h  5.7 b 11.7 t 30.0 sl-100.00 fy  -3.4 | t7.567 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.482 mw1.00 lag 0.00 ht 0.00
+PLANT foot 1 swingU 0.99 shift -0.011 corr -0.011 scanned 1 touching 1 plan 1 err 0.011 lead 0.286 ballProbe 0
+0 011 pl1 st-1.00 h  8.0 b  0.3 t  0.0 sl 0.00 fy   3.4 | 1 100 pl1 st-1.00 h  0.2 b  5.9 t 24.0 sl-100.00 fy  -3.4 | t7.583 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.497 mw1.00 lag 0.00 ht 0.00
+0 011 pl1 st-1.00 h  9.5 b  0.4 t  0.0 sl 0.00 fy   3.4 | 1 100 pl1 st-1.00 h  0.0 b  5.4 t 23.3 sl 0.00 fy  -3.4 | t7.600 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.513 mw1.00 lag 0.00 ht 0.00
+0 011 pl1 st-1.00 h 11.0 b  0.5 t  0.0 sl 0.00 fy   3.4 | 1 100 pl1 st-1.00 h -0.0 b  4.4 t 22.0 sl 0.00 fy  -3.4 | t7.617 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.529 mw1.00 lag 0.00 ht 0.00
+0 011 pl1 st-1.00 h 12.3 b  0.7 t  0.0 sl 0.00 fy   3.4 | 1 100 pl1 st-1.00 h -0.0 b  3.3 t 20.5 sl 0.00 fy  -3.4 | t7.633 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.545 mw1.00 lag 0.00 ht 0.00
+0 000 pl1 st-1.00 h 13.3 b  0.8 t 16.0 sl-100.00 fy   3.4 | 1 100 pl1 st-1.00 h  0.0 b  2.0 t 18.8 sl 0.00 fy  -3.4 | t7.650 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.561 mw1.00 lag 0.00 ht 0.00
+0 000 pl1 st-1.00 h 14.2 b  1.0 t 16.0 sl-100.00 fy   3.4 | 1 100 pl1 st-1.00 h -0.0 b  0.9 t 17.2 sl 0.00 fy  -3.4 | t7.667 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.577 mw1.00 lag 0.00 ht 0.00
+0 000 pl1 st-1.00 h 14.8 b  1.0 t 16.0 sl-100.00 fy   3.4 | 1 110 pl1 st-1.00 h  0.0 b  0.4 t 16.5 sl 0.00 fy  -3.4 | t7.683 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.592 mw1.00 lag 0.00 ht 0.00
+0 000 pl1 st-1.00 h 15.2 b  1.1 t 16.0 sl-100.00 fy   3.4 | 1 110 pl1 st-1.00 h  0.0 b  0.1 t 16.1 sl 0.00 fy  -3.4 | t7.700 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.608 mw1.00 lag 0.00 ht 0.00
+0 000 pl1 st-1.00 h 15.2 b  1.2 t 16.0 sl-100.00 fy   3.4 | 1 110 pl1 st-1.00 h  0.0 b  0.0 t 16.0 sl 0.00 fy  -3.4 | t7.717 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.624 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h 17.3 b  3.4 t 18.1 sl-100.00 fy   3.4 | 1 110 pl1 st-1.00 h  0.0 b  0.0 t 16.0 sl 0.00 fy  -3.4 | t7.733 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.640 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h 19.4 b  5.8 t 20.1 sl-100.00 fy   3.4 | 1 110 pl1 st-1.00 h  0.0 b  0.0 t 16.0 sl 0.00 fy  -3.4 | t7.750 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.656 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h 14.9 b  1.6 t 15.5 sl-100.00 fy   3.4 | 1 110 pl1 st-1.00 h  0.0 b  0.0 t 16.0 sl 0.00 fy  -3.4 | t7.767 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.672 mw1.00 lag 0.00 ht 0.00
+SCAN foot 0 g: -0.32 -0.32 -0.32 -0.32 -0.32 -0.32 -0.48 -0.48 -0.48 -0.48 -0.48 -0.48 | stepped 1 shift -0.111 land -0.320 cost 0.111 gFoot -0.480 ball 0
+0 000 pl0 st-1.00 h 14.4 b 17.7 t 15.3 sl-100.00 fy   3.4 | 1 110 pl1 st-1.00 h  0.0 b  0.0 t 16.0 sl 0.00 fy  -3.4 | t7.783 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.687 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h 10.0 b 14.0 t 11.3 sl-100.00 fy   3.4 | 1 110 pl1 st-1.00 h  0.0 b  0.0 t 16.0 sl 0.00 fy  -3.4 | t7.800 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.703 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h  9.0 b 13.9 t 11.1 sl-100.00 fy   3.4 | 1 110 pl1 st-1.00 h  0.0 b  0.0 t 16.0 sl 0.00 fy  -3.4 | t7.817 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.719 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h 21.6 b 11.7 t  8.9 sl-100.00 fy   3.4 | 1 110 pl1 st-1.00 h  0.0 b  0.0 t 16.0 sl 0.00 fy  -3.4 | t7.833 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.735 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h 20.3 b 11.7 t 25.1 sl-100.00 fy   3.4 | 1 110 pl1 st-1.00 h  0.0 b  0.0 t 16.0 sl 0.00 fy  -3.4 | t7.850 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.751 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h 11.0 b 19.9 t 17.5 sl-100.00 fy   3.4 | 1 110 pl1 st-1.00 h -0.0 b  0.0 t 16.0 sl 0.00 fy  -3.4 | t7.867 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.767 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h  9.6 b 20.0 t 18.1 sl-100.00 fy   3.4 | 1 110 pl1 st-1.00 h  0.0 b  0.0 t 16.0 sl 0.00 fy  -3.4 | t7.883 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.782 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h 19.6 b 15.6 t 14.2 sl-100.00 fy   3.4 | 1 110 pl1 st-1.00 h -0.0 b  0.0 t 16.0 sl 0.00 fy  -3.4 | t7.900 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.798 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h 18.2 b 15.9 t 31.1 sl-100.00 fy   3.4 | 1 110 pl1 st-1.00 h  0.0 b  0.0 t 16.0 sl 0.00 fy  -3.4 | t7.917 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.814 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h  7.5 b 22.8 t 22.6 sl-100.00 fy   3.4 | 1 110 pl1 st-1.00 h  0.0 b  0.0 t 16.0 sl 0.00 fy  -3.4 | t7.933 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.830 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h  6.3 b 23.2 t 23.5 sl-100.00 fy   3.4 | 1 110 pl1 st-1.00 h  0.0 b  0.0 t 16.0 sl 0.00 fy  -3.4 | t7.950 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.846 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h 15.6 b 17.9 t 18.7 sl-100.00 fy   3.4 | 1 110 pl1 st-1.00 h  0.0 b  0.0 t 16.0 sl 0.00 fy  -3.4 | t7.967 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.862 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h 14.5 b 18.1 t 35.4 sl-100.00 fy   3.4 | 1 110 pl1 st-1.00 h  0.0 b -0.0 t 16.0 sl 0.00 fy  -3.4 | t7.983 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.877 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h  3.6 b 24.2 t 25.9 sl-100.00 fy   3.4 | 1 110 pl1 st-1.00 h  0.3 b  0.0 t 16.0 sl 0.00 fy  -3.4 | t8.000 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.893 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h  2.7 b 24.2 t 26.2 sl-100.00 fy   3.4 | 1 110 pl1 st-1.00 h  0.7 b  0.0 t 16.0 sl 0.00 fy  -3.4 | t8.017 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.909 mw1.00 lag 0.00 ht 0.00
+0 100 pl0 st-1.00 h -4.0 b 17.9 t 20.2 sl-100.00 fy   3.4 | 1 010 pl1 st-1.00 h  1.6 b  0.0 t 16.0 sl 0.00 fy  -3.4 | t8.033 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.925 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h 11.2 b 17.6 t 19.9 sl-100.00 fy   3.4 | 1 010 pl1 st-1.00 h  2.6 b  0.0 t 16.0 sl 0.00 fy  -3.4 | t8.050 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.941 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h  6.9 b 13.2 t 15.6 sl-100.00 fy   3.4 | 1 010 pl1 st-1.00 h  4.0 b  0.1 t 16.0 sl 0.00 fy  -3.4 | t8.067 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.957 mw1.00 lag 0.00 ht 0.00
+0 000 pl0 st-1.00 h  6.2 b 12.4 t 30.7 sl-100.00 fy   3.4 | 1 010 pl1 st-1.00 h  5.5 b  0.1 t 16.0 sl 0.00 fy  -3.4 | t8.083 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.972 mw1.00 lag 0.00 ht 0.00
+0 100 pl0 st-1.00 h  0.5 b  6.4 t 24.6 sl-100.00 fy   3.4 | 1 010 pl1 st-1.00 h  7.1 b  0.2 t 16.0 sl 0.00 fy  -3.4 | t8.100 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.988 mw1.00 lag 0.00 ht 0.00
+PLANT foot 0 swingU 0.00 shift -0.111 corr -0.110 scanned 1 touching 1 plan 1 err 0.012 lead 0.286 ballProbe 0
+0 100 pl1 st-1.00 h -0.0 b  5.5 t 23.6 sl 0.74 fy   3.4 | 1 010 pl1 st-1.00 h  8.6 b  0.3 t 16.0 sl 0.00 fy  -3.4 | t8.117 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.004 mw1.00 lag 0.00 ht 0.00
+0 100 pl1 st-1.00 h  0.0 b  4.9 t 22.7 sl 0.00 fy   3.4 | 1 010 pl1 st-1.00 h 10.1 b  0.5 t 16.0 sl 0.00 fy  -3.4 | t8.133 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.020 mw1.00 lag 0.00 ht 0.00
+0 100 pl1 st-1.00 h  0.0 b  4.0 t 21.5 sl 0.00 fy   3.4 | 1 010 pl1 st-1.00 h 11.5 b  0.6 t 16.0 sl 0.00 fy  -3.4 | t8.150 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.036 mw1.00 lag 0.00 ht 0.00
+0 100 pl1 st-1.00 h  0.0 b  2.7 t 19.7 sl 0.00 fy   3.4 | 1 010 pl1 st-1.00 h 12.7 b  0.8 t 16.0 sl 0.00 fy  -3.4 | t8.167 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.052 mw1.00 lag 0.00 ht 0.00
+0 100 pl1 st-1.00 h -0.0 b  1.5 t 18.0 sl 0.00 fy   3.4 | 1 000 pl1 st-1.00 h 13.8 b  0.9 t 16.0 sl-100.00 fy  -3.4 | t8.183 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.067 mw1.00 lag 0.00 ht 0.00
+0 110 pl1 st-1.00 h -0.0 b  0.7 t 16.9 sl 0.00 fy   3.4 | 1 000 pl1 st-1.00 h 14.5 b  1.0 t 16.0 sl-100.00 fy  -3.4 | t8.200 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.083 mw1.00 lag 0.00 ht 0.00
+0 110 pl1 st-1.00 h  0.0 b  0.1 t 16.1 sl 0.00 fy   3.4 | 1 000 pl1 st-1.00 h 15.0 b  1.1 t 16.0 sl-100.00 fy  -3.4 | t8.217 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.099 mw1.00 lag 0.00 ht 0.00
+0 110 pl1 st-1.00 h  0.0 b  0.0 t 16.0 sl 0.00 fy   3.4 | 1 000 pl1 st-1.00 h 15.1 b  1.1 t 16.0 sl-100.00 fy  -3.4 | t8.233 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.115 mw1.00 lag 0.00 ht 0.00
+0 110 pl1 st-1.00 h  0.0 b  0.0 t 16.0 sl 0.00 fy   3.4 | 1 000 pl1 st-1.00 h 15.2 b  1.2 t 16.0 sl-100.00 fy  -3.4 | t8.250 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.131 mw1.00 lag 0.00 ht 0.00
+0 110 pl1 st-1.00 h  0.0 b  0.0 t 16.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 18.4 b  4.6 t 19.1 sl-100.00 fy  -3.4 | t8.267 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.147 mw1.00 lag 0.00 ht 0.00
+0 110 pl1 st-1.00 h  0.0 b  0.0 t 16.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 20.9 b 23.4 t 21.6 sl-100.00 fy  -3.5 | t8.283 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.162 mw1.00 lag 0.00 ht 0.00
+SCAN foot 1 g: -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 | stepped 0 shift 0.000 land -9.000 cost 0.000 gFoot -0.160 ball 0
+0 110 pl1 st-1.00 h  0.0 b  0.0 t 16.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 14.6 b 17.5 t 15.3 sl-100.00 fy  -3.5 | t8.300 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.178 mw1.00 lag 0.00 ht 0.00
+0 110 pl1 st-1.00 h  0.0 b  0.0 t 16.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 30.2 b 17.8 t 15.3 sl-100.00 fy  -3.5 | t8.317 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.194 mw1.00 lag 0.00 ht 0.00
+0 110 pl1 st-1.00 h  0.0 b  0.0 t 16.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 25.5 b 13.9 t 11.2 sl-100.00 fy  -3.5 | t8.333 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.210 mw1.00 lag 0.00 ht 0.00
+0 110 pl1 st-1.00 h  0.0 b  0.0 t 16.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 24.5 b 13.9 t 27.1 sl-100.00 fy  -3.5 | t8.350 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.226 mw1.00 lag 0.00 ht 0.00
+0 110 pl1 st-1.00 h  0.0 b  0.0 t 16.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 14.5 b 21.1 t 18.3 sl-100.00 fy  -3.4 | t8.367 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.242 mw1.00 lag 0.00 ht 0.00
+0 110 pl1 st-1.00 h  0.0 b  0.0 t 16.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 13.1 b 21.1 t 18.6 sl-100.00 fy  -3.4 | t8.383 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.257 mw1.00 lag 0.00 ht 0.00
+0 110 pl1 st-1.00 h  0.0 b  0.0 t 16.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 22.6 b 16.1 t 13.9 sl-100.00 fy  -3.4 | t8.400 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.273 mw1.00 lag 0.00 ht 0.00
+0 110 pl1 st-1.00 h  0.0 b  0.0 t 16.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 21.1 b 32.2 t 30.5 sl-100.00 fy  -3.4 | t8.417 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.289 mw1.00 lag 0.00 ht 0.00
+0 110 pl1 st-1.00 h  0.0 b  0.0 t 16.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 10.2 b 23.0 t 21.8 sl-100.00 fy  -3.4 | t8.433 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.305 mw1.00 lag 0.00 ht 0.00
+0 110 pl1 st-1.00 h  0.0 b  0.0 t 16.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h  8.7 b 23.1 t 22.5 sl-100.00 fy  -3.4 | t8.450 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.321 mw1.00 lag 0.00 ht 0.00
+0 110 pl1 st-1.00 h  0.0 b  0.0 t 16.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 17.9 b 17.9 t 17.9 sl-100.00 fy  -3.4 | t8.467 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.337 mw1.00 lag 0.00 ht 0.00
+0 110 pl1 st-1.00 h  0.0 b  0.0 t 16.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 16.5 b 18.0 t 18.5 sl-100.00 fy  -3.4 | t8.483 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.352 mw1.00 lag 0.00 ht 0.00
+0 110 pl1 st-1.00 h  0.0 b -0.0 t 16.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 12.1 b 15.0 t 16.0 sl-100.00 fy  -3.4 | t8.500 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.368 mw1.00 lag 0.00 ht 0.00
+0 110 pl1 st-1.00 h  0.1 b -0.0 t 16.0 sl 0.00 fy   3.4 | 1 000 pl0 st-1.00 h 10.9 b 15.0 t 16.4 sl-100.00 fy  -3.4 | t8.517 L6 yaw   0.0 tr-0.00 v1.30 md 0.00, 1.00 ph0.384 mw1.00 lag 0.00 ht 0.00
+PLANT foot 1 swingU 0.99 shift 0.000 corr -0.001 scanned 1 touching 1 plan 0 err 0.000 lead 0.287 ballProbe 0
+SCAN foot 0 g: 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 | stepped 0 shift 0.000 land -9.000 cost 0.000 gFoot 0.000 ball 0
+PLANT foot 0 swingU 0.00 shift 0.000 corr -0.001 scanned 1 touching 1 plan 0 err 0.000 lead 0.283 ballProbe 0
+PLANT foot 1 swingU 0.00 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.283 ballProbe 0
+PLANT foot 0 swingU 1.00 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.285 ballProbe 0
+PLANT foot 1 swingU 0.00 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.285 ballProbe 0
+PLANT foot 0 swingU 0.99 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.287 ballProbe 0
+PLANT foot 1 swingU 0.00 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.282 ballProbe 0
+PLANT foot 0 swingU 0.99 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.284 ballProbe 0
+PLANT foot 1 swingU 0.00 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.281 ballProbe 0
+PLANT foot 1 swingU 0.97 shift 0.000 corr 0.004 scanned 0 touching 1 plan 0 err 0.000 lead 0.311 ballProbe 0
+PLANT foot 0 swingU 0.00 shift 0.000 corr -0.015 scanned 0 touching 1 plan 0 err 0.000 lead 0.311 ballProbe 0
+SCAN foot 1 g: 0.16 0.16 0.16 0.16 0.32 0.32 0.32 0.32 0.32 0.32 0.48 0.48 | stepped 1 shift -0.008 land 0.320 cost 0.008 gFoot 0.320 ball 0
+PLANT foot 1 swingU 1.00 shift -0.008 corr -0.008 scanned 1 touching 1 plan 1 err 0.033 lead 0.311 ballProbe 0
+SCAN foot 0 g: 0.32 0.32 0.32 0.48 0.48 0.48 0.48 0.48 0.48 0.64 0.64 0.64 | stepped 1 shift -0.058 land 0.480 cost 0.058 gFoot 0.480 ball 0
+PLANT foot 0 swingU 0.99 shift -0.058 corr -0.056 scanned 1 touching 1 plan 1 err 0.032 lead 0.311 ballProbe 0
+SCAN foot 1 g: 0.22 0.22 0.38 0.38 0.38 0.38 0.38 0.38 0.54 0.54 0.54 0.54 | stepped 1 shift -0.108 land 0.376 cost 0.108 gFoot 0.376 ball 0
+PLANT foot 1 swingU 0.98 shift -0.108 corr -0.104 scanned 1 touching 1 plan 1 err 0.032 lead 0.317 ballProbe 0
+SCAN foot 0 g: 0.16 0.32 0.32 0.32 0.32 0.32 0.32 0.48 0.48 0.48 0.48 0.48 | stepped 1 shift 0.081 land 0.480 cost 0.081 gFoot 0.480 ball 1
+PLANT foot 0 swingU 0.98 shift 0.081 corr 0.076 scanned 1 touching 1 plan 1 err 0.013 lead 0.321 ballProbe 0
+PIN foot 0 footZ 0.320 low 0.026 pz 0.026 pinZ -0.014 pin -0.014 ballz 0.026 toez 0.035 heelz 0.002 age 0.017
+PIN foot 0 footZ 0.320 low 0.019 pz 0.019 pinZ -0.019 pin -0.019 ballz 0.019 toez 0.027 heelz -0.001 age 0.033
+PIN foot 0 footZ 0.320 low 0.017 pz 0.017 pinZ -0.017 pin -0.017 ballz 0.017 toez 0.024 heelz -0.001 age 0.050
+PIN foot 0 footZ 0.320 low 0.014 pz 0.014 pinZ -0.014 pin -0.014 ballz 0.014 toez 0.020 heelz -0.000 age 0.067
+PIN foot 0 footZ 0.320 low 0.009 pz 0.009 pinZ -0.009 pin -0.009 ballz 0.009 toez 0.013 heelz -0.000 age 0.083
+PIN foot 0 footZ 0.320 low 0.005 pz 0.005 pinZ -0.005 pin -0.005 ballz 0.005 toez 0.007 heelz -0.000 age 0.100
+PIN foot 0 footZ 0.320 low 0.002 pz 0.002 pinZ -0.002 pin -0.002 ballz 0.002 toez 0.003 heelz -0.000 age 0.117
+PIN foot 0 footZ 0.320 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.133
+PIN foot 0 footZ 0.320 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.150
+PIN foot 0 footZ 0.320 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.167
+PIN foot 0 footZ 0.216 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.183
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.200
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.217
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.233
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.250
+SCAN foot 1 g: 0.32 0.32 0.32 0.32 0.32 0.32 0.48 0.48 0.48 0.48 0.48 0.48 | stepped 1 shift 0.031 land 0.480 cost 0.031 gFoot 0.480 ball 1
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.267
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.283
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.300
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.317
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.333
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.350
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.367
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.383
+PIN foot 0 footZ 0.160 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz -0.001 age 0.400
+PIN foot 0 footZ 0.056 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz -0.001 age 0.417
+PIN foot 0 footZ 0.000 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz -0.000 age 0.433
+PIN foot 0 footZ 0.000 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz 0.000 age 0.450
+PIN foot 0 footZ 0.000 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz 0.002 age 0.467
+PIN foot 0 footZ 0.000 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz 0.005 age 0.483
+PIN foot 0 footZ 0.000 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz 0.010 age 0.500
+PLANT foot 1 swingU 0.97 shift 0.031 corr 0.027 scanned 1 touching 1 plan 1 err 0.008 lead 0.324 ballProbe 0
+PIN foot 0 footZ 0.000 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz 0.015 age 0.517
+PIN foot 1 footZ 0.320 low 0.027 pz 0.027 pinZ -0.015 pin -0.015 ballz 0.027 toez 0.036 heelz 0.003 age 0.017
+PIN foot 0 footZ 0.000 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz 0.021 age 0.533
+PIN foot 1 footZ 0.320 low 0.021 pz 0.021 pinZ -0.021 pin -0.021 ballz 0.021 toez 0.029 heelz -0.001 age 0.033
+PIN foot 0 footZ 0.000 low -0.002 pz -0.002 pinZ 0.002 pin 0.002 ballz -0.001 toez -0.002 heelz 0.028 age 0.550
+PIN foot 1 footZ 0.320 low 0.017 pz 0.017 pinZ -0.017 pin -0.017 ballz 0.017 toez 0.024 heelz -0.001 age 0.050
+PIN foot 0 footZ 0.000 low -0.002 pz -0.002 pinZ 0.002 pin 0.002 ballz -0.001 toez -0.002 heelz 0.035 age 0.567
+PIN foot 1 footZ 0.320 low 0.015 pz 0.015 pinZ -0.015 pin -0.015 ballz 0.015 toez 0.021 heelz -0.000 age 0.067
+PIN foot 0 footZ 0.000 low -0.002 pz -0.002 pinZ 0.002 pin 0.002 ballz -0.002 toez -0.002 heelz 0.042 age 0.583
+PIN foot 1 footZ 0.320 low 0.010 pz 0.010 pinZ -0.010 pin -0.010 ballz 0.010 toez 0.014 heelz -0.000 age 0.083
+PIN foot 0 footZ 0.000 low -0.003 pz -0.003 pinZ 0.003 pin 0.003 ballz -0.002 toez -0.003 heelz 0.049 age 0.600
+PIN foot 1 footZ 0.320 low 0.006 pz 0.006 pinZ -0.006 pin -0.006 ballz 0.006 toez 0.008 heelz -0.000 age 0.100
+PIN foot 0 footZ 0.000 low -0.004 pz -0.004 pinZ 0.004 pin 0.004 ballz -0.002 toez -0.004 heelz 0.054 age 0.617
+PIN foot 1 footZ 0.320 low 0.002 pz 0.002 pinZ -0.002 pin -0.002 ballz 0.002 toez 0.003 heelz -0.000 age 0.117
+PIN foot 0 footZ -0.104 low -0.004 pz -0.004 pinZ 0.004 pin 0.004 ballz -0.002 toez -0.004 heelz 0.060 age 0.633
+PIN foot 1 footZ 0.216 low 0.000 pz 0.000 pinZ -0.000 pin -0.000 ballz 0.000 toez 0.000 heelz -0.000 age 0.133
+PIN foot 0 footZ -0.160 low -0.006 pz -0.006 pinZ 0.006 pin 0.006 ballz -0.003 toez -0.006 heelz 0.064 age 0.650
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.150
+PIN foot 0 footZ -0.160 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz 0.001 toez -0.001 heelz 0.072 age 0.667
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.167
+PIN foot 0 footZ -0.160 low 0.010 pz 0.010 pinZ -0.010 pin -0.010 ballz 0.012 toez 0.010 heelz 0.085 age 0.683
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.183
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.200
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.217
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.233
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.250
+SCAN foot 0 g: 0.32 0.32 0.32 0.32 0.32 0.32 0.32 0.32 0.32 0.32 0.32 0.32 | stepped 0 shift 0.000 land -9.000 cost 0.000 gFoot 0.320 ball 0
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.267
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.283
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.300
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.317
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.333
+PIN foot 1 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.350
+PIN foot 1 footZ 0.056 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.367
+PIN foot 1 footZ 0.000 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.383
+PIN foot 1 footZ 0.000 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.400
+PIN foot 1 footZ 0.000 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz -0.001 age 0.417
+PIN foot 1 footZ 0.000 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.433
+PIN foot 1 footZ 0.000 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz -0.000 age 0.450
+PIN foot 1 footZ 0.000 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz 0.001 age 0.467
+PIN foot 1 footZ 0.000 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz 0.005 age 0.483
+PIN foot 1 footZ 0.000 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz 0.009 age 0.500
+PLANT foot 0 swingU 0.96 shift 0.000 corr 0.001 scanned 1 touching 1 plan 0 err 0.000 lead 0.325 ballProbe 1
+PIN foot 1 footZ 0.000 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz 0.014 age 0.517
+PIN foot 1 footZ 0.000 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz 0.020 age 0.533
+PIN foot 1 footZ 0.000 low -0.002 pz -0.002 pinZ 0.002 pin 0.002 ballz -0.001 toez -0.002 heelz 0.027 age 0.550
+PIN foot 1 footZ 0.000 low -0.002 pz -0.002 pinZ 0.002 pin 0.002 ballz -0.001 toez -0.002 heelz 0.034 age 0.567
+PIN foot 1 footZ 0.000 low -0.002 pz -0.002 pinZ 0.002 pin 0.002 ballz -0.002 toez -0.002 heelz 0.041 age 0.583
+PIN foot 1 footZ -0.104 low -0.003 pz -0.003 pinZ 0.003 pin 0.003 ballz -0.001 toez -0.003 heelz 0.048 age 0.600
+PIN foot 1 footZ -0.160 low -0.004 pz -0.004 pinZ 0.004 pin 0.004 ballz -0.002 toez -0.004 heelz 0.054 age 0.617
+PIN foot 1 footZ -0.160 low -0.004 pz -0.004 pinZ 0.004 pin 0.004 ballz -0.002 toez -0.004 heelz 0.060 age 0.633
+PIN foot 1 footZ -0.160 low -0.006 pz -0.006 pinZ 0.006 pin 0.006 ballz -0.003 toez -0.006 heelz 0.063 age 0.650
+PIN foot 1 footZ -0.160 low -0.003 pz -0.003 pinZ 0.003 pin 0.003 ballz -0.000 toez -0.003 heelz 0.071 age 0.667
+PIN foot 1 footZ -0.160 low 0.008 pz 0.008 pinZ -0.008 pin -0.008 ballz 0.010 toez 0.008 heelz 0.083 age 0.683
+SCAN foot 1 g: 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 | stepped 0 shift 0.000 land -9.000 cost 0.000 gFoot 0.000 ball 0
+PLANT foot 1 swingU 0.00 shift 0.000 corr -0.011 scanned 0 touching 1 plan 0 err 0.000 lead 0.325 ballProbe 0
+SCAN foot 0 g: 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 | stepped 0 shift 0.000 land -9.000 cost 0.000 gFoot 0.000 ball 0
+PLANT foot 0 swingU 1.00 shift 0.000 corr -0.000 scanned 1 touching 1 plan 0 err 0.000 lead 0.325 ballProbe 0
+PLANT foot 1 swingU 0.99 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.325 ballProbe 0
+SCAN foot 0 g: -0.32 -0.32 -0.32 -0.32 -0.48 -0.48 -0.48 -0.48 -0.48 -0.48 -0.64 -0.64 | stepped 1 shift 0.067 land -0.480 cost 0.067 gFoot -0.480 ball 0
+PLANT foot 0 swingU 0.98 shift 0.067 corr 0.064 scanned 1 touching 1 plan 1 err 0.008 lead 0.327 ballProbe 0
+SCAN foot 1 g: -0.32 -0.32 -0.32 -0.48 -0.48 -0.48 -0.48 -0.48 -0.48 -0.64 -0.64 -0.64 | stepped 1 shift 0.017 land -0.480 cost 0.017 gFoot -0.480 ball 0
+PLANT foot 1 swingU 0.98 shift 0.017 corr 0.016 scanned 1 touching 1 plan 1 err 0.005 lead 0.328 ballProbe 0
+SCAN foot 0 g: -0.32 -0.32 -0.48 -0.48 -0.48 -0.48 -0.48 -0.48 -0.64 -0.64 -0.64 -0.64 | stepped 1 shift -0.017 land -0.480 cost 0.017 gFoot -0.480 ball 0
+PLANT foot 0 swingU 0.97 shift -0.017 corr -0.014 scanned 1 touching 1 plan 1 err 0.004 lead 0.328 ballProbe 0
+SCAN foot 1 g: -0.16 -0.32 -0.32 -0.32 -0.32 -0.32 -0.32 -0.48 -0.48 -0.48 -0.48 -0.48 | stepped 1 shift -0.067 land -0.320 cost 0.067 gFoot -0.480 ball 0
+PLANT foot 1 swingU 0.96 shift -0.067 corr -0.064 scanned 1 touching 1 plan 1 err 0.003 lead 0.328 ballProbe 0
+SCAN foot 0 g: -0.32 -0.32 -0.32 -0.32 -0.32 -0.32 -0.48 -0.48 -0.48 -0.48 -0.48 -0.48 | stepped 1 shift -0.117 land -0.320 cost 0.117 gFoot -0.480 ball 0
+PLANT foot 0 swingU 0.96 shift -0.117 corr -0.113 scanned 1 touching 1 plan 1 err 0.001 lead 0.328 ballProbe 0
+SCAN foot 1 g: -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 | stepped 0 shift 0.000 land -9.000 cost 0.000 gFoot -0.160 ball 0
+PLANT foot 1 swingU 1.00 shift 0.000 corr -0.001 scanned 1 touching 1 plan 0 err 0.000 lead 0.328 ballProbe 0
+SCAN foot 0 g: 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 | stepped 0 shift 0.000 land -9.000 cost 0.000 gFoot 0.000 ball 0
+PLANT foot 0 swingU 0.99 shift 0.000 corr -0.003 scanned 1 touching 1 plan 0 err 0.000 lead 0.328 ballProbe 0
+SCAN foot 1 g: 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 | stepped 0 shift 0.000 land -9.000 cost 0.000 gFoot 0.000 ball 0
+PLANT foot 1 swingU 0.99 shift 0.000 corr -0.000 scanned 1 touching 1 plan 0 err 0.000 lead 0.329 ballProbe 0
+PLANT foot 0 swingU 0.98 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.330 ballProbe 0
+PLANT foot 1 swingU 0.97 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.330 ballProbe 0
+PLANT foot 0 swingU 0.97 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.329 ballProbe 0
+PLANT foot 1 swingU 0.96 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.329 ballProbe 0
+PLANT foot 0 swingU 0.00 shift 0.000 corr -0.015 scanned 0 touching 1 plan 0 err 0.000 lead 0.329 ballProbe 0
+PLANT foot 1 swingU 0.99 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.329 ballProbe 0
+PLANT foot 1 swingU 0.98 shift 0.000 corr 0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.300 ballProbe 0
+SCAN foot 0 g: 0.00 0.00 0.16 0.16 0.16 0.16 0.16 0.16 0.32 0.32 0.32 0.32 | stepped 1 shift -0.106 land 0.160 cost 0.106 gFoot 0.160 ball 0
+PLANT foot 0 swingU 0.96 shift -0.106 corr -0.106 scanned 1 touching 1 plan 1 err -0.008 lead 0.297 ballProbe 0
+SCAN foot 1 g: 0.38 0.38 0.38 0.38 0.38 0.38 0.54 0.54 0.54 0.54 0.54 0.54 | stepped 1 shift 0.031 land 0.536 cost 0.031 gFoot 0.536 ball 1
+PLANT foot 1 swingU 0.99 shift 0.031 corr 0.030 scanned 1 touching 1 plan 1 err 0.000 lead 0.297 ballProbe 1
+PIN foot 1 footZ 0.320 low 0.053 pz 0.053 pinZ -0.030 pin -0.030 ballz 0.053 toez 0.074 heelz -0.001 age 0.017
+PIN foot 1 footZ 0.320 low 0.046 pz 0.046 pinZ -0.046 pin -0.046 ballz 0.046 toez 0.065 heelz -0.006 age 0.033
+PIN foot 1 footZ 0.320 low 0.037 pz 0.037 pinZ -0.037 pin -0.037 ballz 0.037 toez 0.054 heelz -0.007 age 0.050
+PIN foot 1 footZ 0.320 low 0.028 pz 0.028 pinZ -0.028 pin -0.028 ballz 0.028 toez 0.041 heelz -0.006 age 0.067
+PIN foot 1 footZ 0.320 low 0.017 pz 0.017 pinZ -0.017 pin -0.017 ballz 0.017 toez 0.026 heelz -0.006 age 0.083
+PIN foot 1 footZ 0.320 low 0.007 pz 0.007 pinZ -0.007 pin -0.007 ballz 0.007 toez 0.012 heelz -0.006 age 0.100
+PIN foot 1 footZ 0.320 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez 0.002 heelz -0.005 age 0.117
+PIN foot 1 footZ 0.320 low -0.003 pz -0.003 pinZ 0.003 pin 0.003 ballz -0.003 toez -0.002 heelz -0.005 age 0.133
+PIN foot 1 footZ 0.216 low -0.005 pz -0.005 pinZ 0.005 pin 0.005 ballz -0.005 toez -0.005 heelz -0.005 age 0.150
+PIN foot 1 footZ 0.160 low -0.005 pz -0.005 pinZ 0.005 pin 0.005 ballz -0.005 toez -0.005 heelz -0.005 age 0.167
+PIN foot 1 footZ 0.160 low -0.004 pz -0.004 pinZ 0.004 pin 0.004 ballz -0.004 toez -0.004 heelz -0.004 age 0.183
+PIN foot 1 footZ 0.160 low -0.004 pz -0.004 pinZ 0.004 pin 0.004 ballz -0.004 toez -0.004 heelz -0.004 age 0.200
+PIN foot 1 footZ 0.160 low -0.003 pz -0.003 pinZ 0.003 pin 0.003 ballz -0.003 toez -0.003 heelz -0.003 age 0.217
+SCAN foot 0 g: 0.32 0.32 0.32 0.48 0.48 0.48 0.48 0.48 0.48 0.64 0.64 0.64 | stepped 1 shift -0.056 land 0.480 cost 0.056 gFoot 0.480 ball 0
+PIN foot 1 footZ 0.160 low -0.003 pz -0.003 pinZ 0.003 pin 0.003 ballz -0.003 toez -0.003 heelz -0.003 age 0.233
+PIN foot 1 footZ 0.160 low -0.003 pz -0.003 pinZ 0.003 pin 0.003 ballz -0.003 toez -0.003 heelz -0.003 age 0.250
+PIN foot 1 footZ 0.160 low -0.002 pz -0.002 pinZ 0.002 pin 0.002 ballz -0.002 toez -0.002 heelz -0.002 age 0.267
+PIN foot 1 footZ 0.160 low -0.002 pz -0.002 pinZ 0.002 pin 0.002 ballz -0.002 toez -0.002 heelz -0.002 age 0.283
+PIN foot 1 footZ 0.160 low -0.002 pz -0.002 pinZ 0.002 pin 0.002 ballz -0.002 toez -0.002 heelz -0.002 age 0.300
+PIN foot 1 footZ 0.160 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz -0.001 age 0.317
+PIN foot 1 footZ 0.160 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz -0.001 age 0.333
+PIN foot 1 footZ 0.160 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz -0.001 age 0.350
+PIN foot 1 footZ 0.056 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz -0.001 age 0.367
+PIN foot 1 footZ 0.000 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz -0.001 age 0.383
+PIN foot 1 footZ 0.000 low -0.002 pz -0.002 pinZ 0.002 pin 0.002 ballz -0.002 toez -0.002 heelz -0.002 age 0.400
+PIN foot 1 footZ 0.000 low -0.002 pz -0.002 pinZ 0.002 pin 0.002 ballz -0.002 toez -0.002 heelz -0.002 age 0.417
+PIN foot 1 footZ 0.000 low -0.002 pz -0.002 pinZ 0.002 pin 0.002 ballz -0.002 toez -0.002 heelz -0.002 age 0.433
+PIN foot 1 footZ 0.000 low -0.003 pz -0.003 pinZ 0.003 pin 0.003 ballz -0.003 toez -0.003 heelz -0.002 age 0.450
+PIN foot 1 footZ 0.000 low -0.004 pz -0.004 pinZ 0.004 pin 0.004 ballz -0.004 toez -0.004 heelz -0.001 age 0.467
+PIN foot 1 footZ 0.000 low -0.005 pz -0.005 pinZ 0.005 pin 0.005 ballz -0.005 toez -0.005 heelz 0.002 age 0.483
+PIN foot 1 footZ 0.000 low -0.006 pz -0.006 pinZ 0.006 pin 0.006 ballz -0.006 toez -0.006 heelz 0.008 age 0.500
+PIN foot 1 footZ 0.000 low -0.007 pz -0.007 pinZ 0.007 pin 0.007 ballz -0.006 toez -0.007 heelz 0.016 age 0.517
+PIN foot 1 footZ 0.000 low -0.008 pz -0.008 pinZ 0.008 pin 0.008 ballz -0.007 toez -0.008 heelz 0.027 age 0.533
+PIN foot 1 footZ 0.000 low -0.009 pz -0.009 pinZ 0.009 pin 0.009 ballz -0.007 toez -0.009 heelz 0.039 age 0.550
+PLANT foot 0 swingU 0.97 shift -0.056 corr -0.056 scanned 1 touching 1 plan 1 err -0.003 lead 0.296 ballProbe 0
+PIN foot 1 footZ 0.000 low -0.010 pz -0.010 pinZ 0.010 pin 0.010 ballz -0.008 toez -0.010 heelz 0.052 age 0.567
+PIN foot 1 footZ 0.000 low -0.012 pz -0.012 pinZ 0.012 pin 0.012 ballz -0.008 toez -0.012 heelz 0.064 age 0.583
+PIN foot 1 footZ -0.104 low -0.013 pz -0.013 pinZ 0.013 pin 0.013 ballz -0.008 toez -0.013 heelz 0.077 age 0.600
+PIN foot 1 footZ -0.160 low -0.015 pz -0.015 pinZ 0.015 pin 0.015 ballz -0.008 toez -0.015 heelz 0.089 age 0.617
+PIN foot 1 footZ -0.160 low -0.016 pz -0.016 pinZ 0.016 pin 0.016 ballz -0.008 toez -0.016 heelz 0.100 age 0.633
+PIN foot 1 footZ -0.160 low -0.018 pz -0.018 pinZ 0.018 pin 0.018 ballz -0.008 toez -0.018 heelz 0.110 age 0.650
+PIN foot 1 footZ -0.160 low -0.019 pz -0.019 pinZ 0.019 pin 0.019 ballz -0.008 toez -0.019 heelz 0.117 age 0.667
+PIN foot 1 footZ -0.160 low -0.020 pz -0.020 pinZ 0.020 pin 0.020 ballz -0.007 toez -0.020 heelz 0.124 age 0.683
+PIN foot 1 footZ -0.160 low -0.021 pz -0.021 pinZ 0.021 pin 0.021 ballz -0.008 toez -0.021 heelz 0.126 age 0.700
+PIN foot 1 footZ -0.160 low -0.020 pz -0.020 pinZ 0.020 pin 0.020 ballz -0.007 toez -0.020 heelz 0.129 age 0.717
+PIN foot 1 footZ -0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz 0.015 toez -0.000 heelz 0.149 age 0.733
+SCAN foot 1 g: 0.32 0.48 0.48 0.48 0.48 0.48 0.48 0.64 0.64 0.64 0.64 0.64 | stepped 1 shift 0.081 land 0.640 cost 0.081 gFoot 0.640 ball 1
+PLANT foot 1 swingU 0.96 shift 0.081 corr 0.080 scanned 1 touching 1 plan 1 err -0.001 lead 0.295 ballProbe 1
+PIN foot 1 footZ 0.320 low 0.060 pz 0.060 pinZ -0.033 pin -0.033 ballz 0.060 toez 0.081 heelz 0.003 age 0.017
+PIN foot 1 footZ 0.320 low 0.051 pz 0.051 pinZ -0.051 pin -0.051 ballz 0.051 toez 0.071 heelz -0.002 age 0.033
+PIN foot 1 footZ 0.320 low 0.044 pz 0.044 pinZ -0.044 pin -0.044 ballz 0.044 toez 0.063 heelz -0.006 age 0.050
+PIN foot 1 footZ 0.320 low 0.035 pz 0.035 pinZ -0.035 pin -0.035 ballz 0.035 toez 0.050 heelz -0.007 age 0.067
+PIN foot 1 footZ 0.320 low 0.025 pz 0.025 pinZ -0.025 pin -0.025 ballz 0.025 toez 0.037 heelz -0.006 age 0.083
+PIN foot 1 footZ 0.320 low 0.015 pz 0.015 pinZ -0.015 pin -0.015 ballz 0.015 toez 0.022 heelz -0.006 age 0.100
+PIN foot 1 footZ 0.320 low 0.004 pz 0.004 pinZ -0.004 pin -0.004 ballz 0.004 toez 0.008 heelz -0.006 age 0.117
+PIN foot 1 footZ 0.320 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez 0.001 heelz -0.005 age 0.133
+PIN foot 1 footZ 0.320 low -0.004 pz -0.004 pinZ 0.004 pin 0.004 ballz -0.004 toez -0.003 heelz -0.005 age 0.150
+PIN foot 1 footZ 0.320 low -0.005 pz -0.005 pinZ 0.005 pin 0.005 ballz -0.005 toez -0.005 heelz -0.005 age 0.167
+PIN foot 1 footZ 0.320 low -0.004 pz -0.004 pinZ 0.004 pin 0.004 ballz -0.004 toez -0.004 heelz -0.004 age 0.183
+PIN foot 1 footZ 0.216 low -0.004 pz -0.004 pinZ 0.004 pin 0.004 ballz -0.004 toez -0.004 heelz -0.004 age 0.200
+PIN foot 1 footZ 0.160 low -0.004 pz -0.004 pinZ 0.004 pin 0.004 ballz -0.004 toez -0.004 heelz -0.004 age 0.217
+PIN foot 1 footZ 0.160 low -0.003 pz -0.003 pinZ 0.003 pin 0.003 ballz -0.003 toez -0.003 heelz -0.003 age 0.233
+SCAN foot 0 g: 0.32 0.32 0.32 0.32 0.32 0.48 0.48 0.48 0.48 0.48 0.48 0.64 | stepped 1 shift 0.000 land 0.480 cost 0.000 gFoot 0.480 ball 1
+PIN foot 1 footZ 0.160 low -0.003 pz -0.003 pinZ 0.003 pin 0.003 ballz -0.003 toez -0.003 heelz -0.003 age 0.250
+PIN foot 1 footZ 0.160 low -0.003 pz -0.003 pinZ 0.003 pin 0.003 ballz -0.003 toez -0.003 heelz -0.003 age 0.267
+PIN foot 1 footZ 0.160 low -0.002 pz -0.002 pinZ 0.002 pin 0.002 ballz -0.002 toez -0.002 heelz -0.002 age 0.283
+PIN foot 1 footZ 0.160 low -0.002 pz -0.002 pinZ 0.002 pin 0.002 ballz -0.002 toez -0.002 heelz -0.002 age 0.300
+PIN foot 1 footZ 0.160 low -0.002 pz -0.002 pinZ 0.002 pin 0.002 ballz -0.002 toez -0.002 heelz -0.002 age 0.317
+PIN foot 1 footZ 0.160 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz -0.001 age 0.333
+PIN foot 1 footZ 0.160 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz -0.001 age 0.350
+PIN foot 1 footZ 0.160 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz -0.001 age 0.367
+PIN foot 1 footZ 0.160 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz -0.001 age 0.383
+PIN foot 1 footZ 0.160 low -0.002 pz -0.002 pinZ 0.002 pin 0.002 ballz -0.002 toez -0.002 heelz -0.002 age 0.400
+PIN foot 1 footZ 0.160 low -0.002 pz -0.002 pinZ 0.002 pin 0.002 ballz -0.002 toez -0.002 heelz -0.002 age 0.417
+PIN foot 1 footZ 0.056 low -0.002 pz -0.002 pinZ 0.002 pin 0.002 ballz -0.002 toez -0.002 heelz -0.002 age 0.433
+PIN foot 1 footZ 0.000 low -0.002 pz -0.002 pinZ 0.002 pin 0.002 ballz -0.002 toez -0.002 heelz -0.002 age 0.450
+PIN foot 1 footZ 0.000 low -0.003 pz -0.003 pinZ 0.003 pin 0.003 ballz -0.003 toez -0.003 heelz -0.002 age 0.467
+PIN foot 1 footZ 0.000 low -0.004 pz -0.004 pinZ 0.004 pin 0.004 ballz -0.004 toez -0.004 heelz -0.001 age 0.483
+PIN foot 1 footZ 0.000 low -0.005 pz -0.005 pinZ 0.005 pin 0.005 ballz -0.005 toez -0.005 heelz 0.003 age 0.500
+PIN foot 1 footZ 0.000 low -0.006 pz -0.006 pinZ 0.006 pin 0.006 ballz -0.006 toez -0.006 heelz 0.010 age 0.517
+PIN foot 1 footZ 0.000 low -0.007 pz -0.007 pinZ 0.007 pin 0.007 ballz -0.007 toez -0.007 heelz 0.019 age 0.533
+PIN foot 1 footZ 0.000 low -0.008 pz -0.008 pinZ 0.008 pin 0.008 ballz -0.007 toez -0.008 heelz 0.030 age 0.550
+PIN foot 1 footZ 0.000 low -0.009 pz -0.009 pinZ 0.009 pin 0.009 ballz -0.008 toez -0.009 heelz 0.042 age 0.567
+PLANT foot 0 swingU 0.98 shift 0.000 corr -0.001 scanned 1 touching 1 plan 1 err 0.002 lead 0.295 ballProbe 1
+PIN foot 0 footZ 0.320 low 0.051 pz 0.051 pinZ -0.029 pin -0.029 ballz 0.051 toez 0.072 heelz -0.004 age 0.017
+PIN foot 1 footZ 0.000 low -0.011 pz -0.011 pinZ 0.011 pin 0.011 ballz -0.008 toez -0.011 heelz 0.055 age 0.583
+PIN foot 0 footZ 0.320 low 0.043 pz 0.043 pinZ -0.043 pin -0.043 ballz 0.043 toez 0.061 heelz -0.008 age 0.033
+PIN foot 1 footZ 0.000 low -0.012 pz -0.012 pinZ 0.012 pin 0.012 ballz -0.008 toez -0.012 heelz 0.068 age 0.600
+PIN foot 0 footZ 0.320 low 0.037 pz 0.037 pinZ -0.037 pin -0.037 ballz 0.037 toez 0.054 heelz -0.007 age 0.050
+PIN foot 1 footZ 0.000 low -0.014 pz -0.014 pinZ 0.014 pin 0.014 ballz -0.008 toez -0.014 heelz 0.080 age 0.617
+PIN foot 0 footZ 0.320 low 0.029 pz 0.029 pinZ -0.029 pin -0.029 ballz 0.029 toez 0.043 heelz -0.006 age 0.067
+PIN foot 1 footZ 0.000 low -0.015 pz -0.015 pinZ 0.015 pin 0.015 ballz -0.008 toez -0.015 heelz 0.092 age 0.633
+PIN foot 0 footZ 0.216 low 0.018 pz 0.018 pinZ -0.018 pin -0.018 ballz 0.018 toez 0.027 heelz -0.006 age 0.083
+PIN foot 1 footZ -0.104 low -0.017 pz -0.017 pinZ 0.017 pin 0.017 ballz -0.008 toez -0.017 heelz 0.102 age 0.650
+PIN foot 0 footZ 0.160 low 0.008 pz 0.008 pinZ -0.008 pin -0.008 ballz 0.008 toez 0.013 heelz -0.006 age 0.100
+PIN foot 1 footZ -0.160 low -0.018 pz -0.018 pinZ 0.018 pin 0.018 ballz -0.008 toez -0.018 heelz 0.112 age 0.667
+PIN foot 0 footZ 0.160 low 0.001 pz 0.001 pinZ -0.001 pin -0.001 ballz 0.001 toez 0.003 heelz -0.006 age 0.117
+PIN foot 1 footZ -0.160 low -0.020 pz -0.020 pinZ 0.020 pin 0.020 ballz -0.008 toez -0.020 heelz 0.118 age 0.683
+PIN foot 0 footZ 0.160 low -0.004 pz -0.004 pinZ 0.004 pin 0.004 ballz -0.004 toez -0.004 heelz -0.005 age 0.133
+PIN foot 1 footZ -0.160 low -0.021 pz -0.021 pinZ 0.021 pin 0.021 ballz -0.008 toez -0.021 heelz 0.124 age 0.700
+PIN foot 0 footZ 0.160 low -0.005 pz -0.005 pinZ 0.005 pin 0.005 ballz -0.005 toez -0.004 heelz -0.005 age 0.150
+PIN foot 1 footZ -0.160 low -0.021 pz -0.021 pinZ 0.021 pin 0.021 ballz -0.008 toez -0.021 heelz 0.126 age 0.717
+PIN foot 0 footZ 0.160 low -0.004 pz -0.004 pinZ 0.004 pin 0.004 ballz -0.004 toez -0.004 heelz -0.004 age 0.167
+PIN foot 1 footZ -0.160 low -0.018 pz -0.018 pinZ 0.018 pin 0.018 ballz -0.004 toez -0.018 heelz 0.132 age 0.733
+PIN foot 0 footZ 0.160 low -0.004 pz -0.004 pinZ 0.004 pin 0.004 ballz -0.004 toez -0.004 heelz -0.004 age 0.183
+PIN foot 0 footZ 0.160 low -0.004 pz -0.004 pinZ 0.004 pin 0.004 ballz -0.004 toez -0.004 heelz -0.004 age 0.200
+PIN foot 0 footZ 0.160 low -0.004 pz -0.004 pinZ 0.004 pin 0.004 ballz -0.004 toez -0.004 heelz -0.004 age 0.217
+SCAN foot 1 g: 0.32 0.32 0.32 0.32 0.32 0.32 0.32 0.32 0.32 0.32 0.32 0.32 | stepped 0 shift 0.000 land -9.000 cost 0.000 gFoot 0.320 ball 0
+PIN foot 0 footZ 0.160 low -0.003 pz -0.003 pinZ 0.003 pin 0.003 ballz -0.003 toez -0.003 heelz -0.003 age 0.233
+PIN foot 0 footZ 0.160 low -0.003 pz -0.003 pinZ 0.003 pin 0.003 ballz -0.003 toez -0.003 heelz -0.003 age 0.250
+PIN foot 0 footZ 0.160 low -0.002 pz -0.002 pinZ 0.002 pin 0.002 ballz -0.002 toez -0.002 heelz -0.002 age 0.267
+PIN foot 0 footZ 0.160 low -0.002 pz -0.002 pinZ 0.002 pin 0.002 ballz -0.002 toez -0.002 heelz -0.002 age 0.283
+PIN foot 0 footZ 0.160 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz -0.001 age 0.300
+PIN foot 0 footZ 0.056 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz -0.001 age 0.317
+PIN foot 0 footZ 0.000 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz -0.001 age 0.333
+PIN foot 0 footZ 0.000 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz -0.001 age 0.350
+PIN foot 0 footZ 0.000 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz -0.001 age 0.367
+PIN foot 0 footZ 0.000 low -0.002 pz -0.002 pinZ 0.002 pin 0.002 ballz -0.002 toez -0.002 heelz -0.002 age 0.383
+PIN foot 0 footZ 0.000 low -0.002 pz -0.002 pinZ 0.002 pin 0.002 ballz -0.002 toez -0.002 heelz -0.002 age 0.400
+PIN foot 0 footZ 0.000 low -0.002 pz -0.002 pinZ 0.002 pin 0.002 ballz -0.002 toez -0.002 heelz -0.002 age 0.417
+PIN foot 0 footZ 0.000 low -0.002 pz -0.002 pinZ 0.002 pin 0.002 ballz -0.002 toez -0.002 heelz -0.002 age 0.433
+PIN foot 0 footZ 0.000 low -0.003 pz -0.003 pinZ 0.003 pin 0.003 ballz -0.003 toez -0.003 heelz -0.003 age 0.450
+PIN foot 0 footZ 0.000 low -0.004 pz -0.004 pinZ 0.004 pin 0.004 ballz -0.004 toez -0.004 heelz -0.002 age 0.467
+PIN foot 0 footZ 0.000 low -0.005 pz -0.005 pinZ 0.005 pin 0.005 ballz -0.005 toez -0.005 heelz 0.001 age 0.483
+PIN foot 0 footZ 0.000 low -0.005 pz -0.005 pinZ 0.005 pin 0.005 ballz -0.005 toez -0.005 heelz 0.007 age 0.500
+PIN foot 0 footZ 0.000 low -0.007 pz -0.007 pinZ 0.007 pin 0.007 ballz -0.006 toez -0.007 heelz 0.016 age 0.517
+PIN foot 0 footZ 0.000 low -0.007 pz -0.007 pinZ 0.007 pin 0.007 ballz -0.007 toez -0.007 heelz 0.026 age 0.533
+PIN foot 0 footZ -0.104 low -0.009 pz -0.009 pinZ 0.009 pin 0.009 ballz -0.008 toez -0.009 heelz 0.038 age 0.550
+PLANT foot 1 swingU 0.97 shift 0.000 corr 0.000 scanned 1 touching 1 plan 0 err 0.000 lead 0.295 ballProbe 1
+PIN foot 0 footZ -0.160 low -0.010 pz -0.010 pinZ 0.010 pin 0.010 ballz -0.008 toez -0.010 heelz 0.050 age 0.567
+PIN foot 0 footZ -0.160 low -0.012 pz -0.012 pinZ 0.012 pin 0.012 ballz -0.008 toez -0.012 heelz 0.063 age 0.583
+PIN foot 0 footZ -0.160 low -0.013 pz -0.013 pinZ 0.013 pin 0.013 ballz -0.008 toez -0.013 heelz 0.076 age 0.600
+PIN foot 0 footZ -0.160 low -0.015 pz -0.015 pinZ 0.015 pin 0.015 ballz -0.008 toez -0.015 heelz 0.088 age 0.617
+PIN foot 0 footZ -0.160 low -0.016 pz -0.016 pinZ 0.016 pin 0.016 ballz -0.008 toez -0.016 heelz 0.099 age 0.633
+PIN foot 0 footZ -0.160 low -0.018 pz -0.018 pinZ 0.018 pin 0.018 ballz -0.008 toez -0.018 heelz 0.108 age 0.650
+PIN foot 0 footZ -0.160 low -0.019 pz -0.019 pinZ 0.019 pin 0.019 ballz -0.008 toez -0.019 heelz 0.117 age 0.667
+PIN foot 0 footZ -0.160 low -0.020 pz -0.020 pinZ 0.020 pin 0.020 ballz -0.008 toez -0.020 heelz 0.122 age 0.683
+PIN foot 0 footZ -0.160 low -0.021 pz -0.021 pinZ 0.021 pin 0.021 ballz -0.008 toez -0.021 heelz 0.127 age 0.700
+PIN foot 0 footZ -0.160 low -0.015 pz -0.015 pinZ 0.015 pin 0.015 ballz -0.002 toez -0.015 heelz 0.134 age 0.717
+PIN foot 0 footZ -0.160 low -0.004 pz -0.004 pinZ 0.004 pin 0.004 ballz 0.010 toez -0.004 heelz 0.144 age 0.733
+SCAN foot 0 g: 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 | stepped 0 shift 0.000 land -9.000 cost 0.000 gFoot 0.000 ball 0
+PLANT foot 0 swingU 0.95 shift 0.000 corr -0.001 scanned 1 touching 1 plan 0 err 0.000 lead 0.293 ballProbe 1
+PLANT foot 1 swingU 0.98 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.293 ballProbe 0
+SCAN foot 0 g: -0.16 -0.16 -0.16 -0.16 -0.16 -0.32 -0.32 -0.32 -0.32 -0.32 -0.32 -0.48 | stepped 1 shift 0.115 land -0.320 cost 0.115 gFoot -0.320 ball 0
+PLANT foot 0 swingU 0.97 shift 0.115 corr 0.114 scanned 1 touching 1 plan 1 err -0.001 lead 0.292 ballProbe 0
+SCAN foot 1 g: -0.32 -0.32 -0.48 -0.48 -0.48 -0.48 -0.48 -0.48 -0.64 -0.64 -0.64 -0.64 | stepped 1 shift -0.015 land -0.480 cost 0.015 gFoot -0.480 ball 0
+PLANT foot 1 swingU 0.99 shift -0.015 corr -0.016 scanned 1 touching 1 plan 1 err 0.008 lead 0.292 ballProbe 0
+SCAN foot 0 g: -0.32 -0.32 -0.32 -0.32 -0.32 -0.32 -0.48 -0.48 -0.48 -0.48 -0.48 -0.48 | stepped 1 shift -0.115 land -0.320 cost 0.115 gFoot -0.480 ball 0
+PLANT foot 0 swingU 0.98 shift -0.115 corr -0.114 scanned 1 touching 1 plan 1 err 0.006 lead 0.292 ballProbe 0
+SCAN foot 1 g: -0.32 -0.32 -0.32 -0.48 -0.48 -0.48 -0.48 -0.48 -0.48 -0.64 -0.64 -0.64 | stepped 1 shift 0.015 land -0.480 cost 0.015 gFoot -0.480 ball 0
+PLANT foot 1 swingU 0.96 shift 0.015 corr 0.015 scanned 1 touching 1 plan 1 err 0.005 lead 0.293 ballProbe 0
+SCAN foot 0 g: -0.32 -0.48 -0.48 -0.48 -0.48 -0.48 -0.48 -0.64 -0.64 -0.64 -0.64 -0.64 | stepped 1 shift -0.065 land -0.480 cost 0.065 gFoot -0.640 ball 0
+PLANT foot 0 swingU 0.99 shift -0.065 corr -0.066 scanned 1 touching 1 plan 1 err 0.006 lead 0.293 ballProbe 0
+SCAN foot 1 g: -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 | stepped 0 shift 0.000 land -9.000 cost 0.000 gFoot -0.160 ball 0
+PLANT foot 1 swingU 0.97 shift 0.000 corr -0.000 scanned 1 touching 1 plan 0 err 0.000 lead 0.293 ballProbe 0
+SCAN foot 0 g: 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 | stepped 0 shift 0.000 land -9.000 cost 0.000 gFoot 0.000 ball 0
+PLANT foot 0 swingU 0.96 shift 0.000 corr -0.001 scanned 1 touching 1 plan 0 err 0.000 lead 0.292 ballProbe 0
+PLANT foot 1 swingU 0.98 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.292 ballProbe 0
+PLANT foot 0 swingU 0.97 shift 0.000 corr -0.001 scanned 0 touching 1 plan 0 err 0.000 lead 0.292 ballProbe 0
+PLANT foot 1 swingU 0.95 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.291 ballProbe 0
+PLANT foot 0 swingU 0.98 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.292 ballProbe 0
+PLANT foot 1 swingU 0.96 shift 0.000 corr -0.001 scanned 0 touching 1 plan 0 err 0.000 lead 0.292 ballProbe 0
+PLANT foot 0 swingU 0.95 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.291 ballProbe 0
+PLANT foot 0 swingU 0.99 shift 0.000 corr 0.002 scanned 0 touching 1 plan 0 err 0.000 lead 0.299 ballProbe 0
+PLANT foot 1 swingU 0.00 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.299 ballProbe 0
+SCAN foot 0 g: 0.32 0.32 0.32 0.32 0.32 0.32 0.48 0.48 0.48 0.48 0.48 0.48 | stepped 1 shift 0.032 land 0.480 cost 0.032 gFoot 0.480 ball 1
+PLANT foot 0 swingU 1.00 shift 0.032 corr 0.031 scanned 1 touching 1 plan 1 err -0.002 lead 0.298 ballProbe 0
+PIN foot 0 footZ 0.320 low 0.055 pz 0.055 pinZ -0.031 pin -0.031 ballz 0.055 toez 0.076 heelz 0.000 age 0.017
+PIN foot 0 footZ 0.320 low 0.048 pz 0.048 pinZ -0.048 pin -0.048 ballz 0.048 toez 0.067 heelz -0.002 age 0.033
+PIN foot 0 footZ 0.320 low 0.044 pz 0.044 pinZ -0.044 pin -0.044 ballz 0.044 toez 0.060 heelz -0.001 age 0.050
+PIN foot 0 footZ 0.320 low 0.034 pz 0.034 pinZ -0.034 pin -0.034 ballz 0.034 toez 0.046 heelz -0.000 age 0.067
+PIN foot 0 footZ 0.320 low 0.022 pz 0.022 pinZ -0.022 pin -0.022 ballz 0.022 toez 0.031 heelz -0.000 age 0.083
+PIN foot 0 footZ 0.320 low 0.013 pz 0.013 pinZ -0.013 pin -0.013 ballz 0.013 toez 0.018 heelz -0.000 age 0.100
+PIN foot 0 footZ 0.320 low 0.004 pz 0.004 pinZ -0.004 pin -0.004 ballz 0.004 toez 0.006 heelz -0.000 age 0.117
+PIN foot 0 footZ 0.320 low 0.001 pz 0.001 pinZ -0.001 pin -0.001 ballz 0.001 toez 0.002 heelz -0.000 age 0.133
+PIN foot 0 footZ 0.216 low 0.000 pz 0.000 pinZ -0.000 pin -0.000 ballz 0.000 toez 0.000 heelz -0.000 age 0.150
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.167
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.183
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.200
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.217
+SCAN foot 1 g: 0.32 0.32 0.32 0.48 0.48 0.48 0.48 0.48 0.48 0.64 0.64 0.64 | stepped 1 shift -0.051 land 0.480 cost 0.051 gFoot 0.480 ball 0
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.233
+PIN foot 0 footZ 0.160 low 0.000 pz 0.000 pinZ -0.000 pin -0.000 ballz 0.000 toez 0.000 heelz 0.000 age 0.250
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.267
+PIN foot 0 footZ 0.160 low 0.000 pz 0.000 pinZ -0.000 pin -0.000 ballz 0.000 toez 0.000 heelz 0.000 age 0.283
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.300
+PIN foot 0 footZ 0.160 low 0.000 pz 0.000 pinZ -0.000 pin -0.000 ballz 0.000 toez 0.000 heelz 0.000 age 0.317
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.333
+PIN foot 0 footZ 0.160 low 0.000 pz 0.000 pinZ -0.000 pin -0.000 ballz 0.000 toez 0.000 heelz 0.000 age 0.350
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.367
+PIN foot 0 footZ 0.056 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.383
+PIN foot 0 footZ 0.000 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.400
+PIN foot 0 footZ 0.000 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.417
+PIN foot 0 footZ 0.000 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.433
+PIN foot 0 footZ 0.000 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.450
+PIN foot 0 footZ 0.000 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz 0.000 age 0.467
+PIN foot 0 footZ 0.000 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz 0.002 age 0.483
+PIN foot 0 footZ 0.000 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz 0.006 age 0.500
+PIN foot 0 footZ 0.000 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz 0.013 age 0.517
+PIN foot 0 footZ 0.000 low -0.002 pz -0.002 pinZ 0.002 pin 0.002 ballz -0.001 toez -0.002 heelz 0.022 age 0.533
+PIN foot 0 footZ 0.000 low -0.002 pz -0.002 pinZ 0.002 pin 0.002 ballz -0.001 toez -0.002 heelz 0.032 age 0.550
+PIN foot 0 footZ 0.000 low -0.003 pz -0.003 pinZ 0.003 pin 0.003 ballz -0.001 toez -0.003 heelz 0.043 age 0.567
+PIN foot 0 footZ 0.000 low -0.004 pz -0.004 pinZ 0.004 pin 0.004 ballz -0.001 toez -0.004 heelz 0.056 age 0.583
+PIN foot 0 footZ -0.104 low -0.005 pz -0.005 pinZ 0.005 pin 0.005 ballz -0.002 toez -0.005 heelz 0.068 age 0.600
+PLANT foot 1 swingU 0.00 shift -0.051 corr -0.051 scanned 1 touching 1 plan 1 err 0.002 lead 0.293 ballProbe 0
+PIN foot 0 footZ -0.160 low -0.007 pz -0.007 pinZ 0.007 pin 0.007 ballz -0.001 toez -0.007 heelz 0.080 age 0.617
+PIN foot 0 footZ -0.160 low -0.008 pz -0.008 pinZ 0.008 pin 0.008 ballz -0.001 toez -0.008 heelz 0.091 age 0.633
+PIN foot 0 footZ -0.160 low -0.010 pz -0.010 pinZ 0.010 pin 0.010 ballz -0.001 toez -0.010 heelz 0.102 age 0.650
+PIN foot 0 footZ -0.160 low -0.012 pz -0.012 pinZ 0.012 pin 0.012 ballz -0.001 toez -0.012 heelz 0.111 age 0.667
+PIN foot 0 footZ -0.160 low -0.013 pz -0.013 pinZ 0.013 pin 0.013 ballz -0.001 toez -0.013 heelz 0.120 age 0.683
+PIN foot 0 footZ -0.160 low -0.015 pz -0.015 pinZ 0.015 pin 0.015 ballz -0.001 toez -0.015 heelz 0.124 age 0.700
+PIN foot 0 footZ -0.160 low -0.015 pz -0.015 pinZ 0.015 pin 0.015 ballz -0.001 toez -0.015 heelz 0.130 age 0.717
+PIN foot 0 footZ -0.160 low -0.015 pz -0.015 pinZ 0.015 pin 0.015 ballz 0.000 toez -0.015 heelz 0.131 age 0.733
+PIN foot 0 footZ -0.160 low -0.011 pz -0.011 pinZ 0.011 pin 0.011 ballz 0.004 toez -0.011 heelz 0.136 age 0.750
+SCAN foot 0 g: 0.48 0.48 0.48 0.48 0.48 0.48 0.64 0.64 0.64 0.64 0.64 0.64 | stepped 1 shift 0.032 land 0.640 cost 0.032 gFoot 0.640 ball 1
+PLANT foot 0 swingU 0.98 shift 0.032 corr 0.031 scanned 1 touching 1 plan 1 err 0.004 lead 0.293 ballProbe 1
+PIN foot 0 footZ 0.320 low 0.060 pz 0.060 pinZ -0.033 pin -0.033 ballz 0.060 toez 0.081 heelz 0.003 age 0.017
+PIN foot 0 footZ 0.320 low 0.051 pz 0.051 pinZ -0.051 pin -0.051 ballz 0.051 toez 0.070 heelz -0.002 age 0.033
+PIN foot 0 footZ 0.320 low 0.046 pz 0.046 pinZ -0.046 pin -0.046 ballz 0.046 toez 0.063 heelz -0.001 age 0.050
+PIN foot 0 footZ 0.320 low 0.038 pz 0.038 pinZ -0.038 pin -0.038 ballz 0.038 toez 0.052 heelz -0.000 age 0.067
+PIN foot 0 footZ 0.320 low 0.027 pz 0.027 pinZ -0.027 pin -0.027 ballz 0.027 toez 0.037 heelz -0.000 age 0.083
+PIN foot 0 footZ 0.320 low 0.017 pz 0.017 pinZ -0.017 pin -0.017 ballz 0.017 toez 0.023 heelz -0.000 age 0.100
+PIN foot 0 footZ 0.320 low 0.008 pz 0.008 pinZ -0.008 pin -0.008 ballz 0.008 toez 0.011 heelz -0.000 age 0.117
+PIN foot 0 footZ 0.320 low 0.002 pz 0.002 pinZ -0.002 pin -0.002 ballz 0.002 toez 0.003 heelz -0.000 age 0.133
+PIN foot 0 footZ 0.216 low 0.001 pz 0.001 pinZ -0.001 pin -0.001 ballz 0.001 toez 0.001 heelz -0.000 age 0.150
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.167
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.183
+PIN foot 0 footZ 0.160 low 0.000 pz 0.000 pinZ -0.000 pin -0.000 ballz 0.000 toez 0.000 heelz 0.000 age 0.200
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.217
+PIN foot 0 footZ 0.160 low 0.000 pz 0.000 pinZ -0.000 pin -0.000 ballz 0.000 toez 0.000 heelz 0.000 age 0.233
+SCAN foot 1 g: 0.32 0.32 0.32 0.48 0.48 0.48 0.48 0.48 0.48 0.64 0.64 0.64 | stepped 1 shift -0.051 land 0.480 cost 0.051 gFoot 0.480 ball 0
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.250
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.267
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.283
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.300
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.317
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.333
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.350
+PIN foot 0 footZ 0.160 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.367
+PIN foot 0 footZ 0.056 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.383
+PIN foot 0 footZ 0.000 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.400
+PIN foot 0 footZ 0.000 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.417
+PIN foot 0 footZ 0.000 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.433
+PIN foot 0 footZ 0.000 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz -0.000 age 0.450
+PIN foot 0 footZ 0.000 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz 0.000 age 0.467
+PIN foot 0 footZ 0.000 low -0.000 pz -0.000 pinZ 0.000 pin 0.000 ballz -0.000 toez -0.000 heelz 0.001 age 0.483
+PIN foot 0 footZ 0.000 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz 0.004 age 0.500
+PIN foot 0 footZ 0.000 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz 0.010 age 0.517
+PIN foot 0 footZ 0.000 low -0.001 pz -0.001 pinZ 0.001 pin 0.001 ballz -0.001 toez -0.001 heelz 0.018 age 0.533
+PIN foot 0 footZ 0.000 low -0.002 pz -0.002 pinZ 0.002 pin 0.002 ballz -0.001 toez -0.002 heelz 0.028 age 0.550
+PIN foot 0 footZ 0.000 low -0.003 pz -0.003 pinZ 0.003 pin 0.003 ballz -0.001 toez -0.003 heelz 0.039 age 0.567
+PIN foot 0 footZ 0.000 low -0.003 pz -0.003 pinZ 0.003 pin 0.003 ballz -0.001 toez -0.003 heelz 0.051 age 0.583
+PIN foot 0 footZ 0.000 low -0.005 pz -0.005 pinZ 0.005 pin 0.005 ballz -0.002 toez -0.005 heelz 0.063 age 0.600
+PLANT foot 1 swingU 0.00 shift -0.051 corr -0.051 scanned 1 touching 1 plan 1 err 0.009 lead 0.293 ballProbe 0
+PIN foot 0 footZ -0.104 low -0.006 pz -0.006 pinZ 0.006 pin 0.006 ballz -0.001 toez -0.006 heelz 0.075 age 0.617
+PIN foot 0 footZ -0.160 low -0.008 pz -0.008 pinZ 0.008 pin 0.008 ballz -0.002 toez -0.008 heelz 0.087 age 0.633
+PIN foot 0 footZ -0.160 low -0.009 pz -0.009 pinZ 0.009 pin 0.009 ballz -0.001 toez -0.009 heelz 0.098 age 0.650
+PIN foot 0 footZ -0.160 low -0.011 pz -0.011 pinZ 0.011 pin 0.011 ballz -0.001 toez -0.011 heelz 0.107 age 0.667
+PIN foot 0 footZ -0.160 low -0.012 pz -0.012 pinZ 0.012 pin 0.012 ballz -0.001 toez -0.012 heelz 0.116 age 0.683
+PIN foot 0 footZ -0.160 low -0.014 pz -0.014 pinZ 0.014 pin 0.014 ballz -0.001 toez -0.014 heelz 0.122 age 0.700
+PIN foot 0 footZ -0.160 low -0.015 pz -0.015 pinZ 0.015 pin 0.015 ballz -0.001 toez -0.015 heelz 0.127 age 0.717
+PIN foot 0 footZ -0.160 low -0.016 pz -0.016 pinZ 0.016 pin 0.016 ballz -0.001 toez -0.016 heelz 0.130 age 0.733
+PIN foot 0 footZ -0.160 low -0.013 pz -0.013 pinZ 0.013 pin 0.013 ballz 0.002 toez -0.013 heelz 0.134 age 0.750
+PIN foot 0 footZ -0.160 low 0.001 pz 0.001 pinZ -0.001 pin -0.001 ballz 0.018 toez 0.001 heelz 0.148 age 0.767
+SCAN foot 0 g: 0.38 0.38 0.38 0.38 0.38 0.38 0.38 0.38 0.38 0.38 0.38 0.38 | stepped 0 shift 0.000 land -9.000 cost 0.000 gFoot 0.376 ball 0
+PLANT foot 0 swingU 0.00 shift 0.000 corr -0.000 scanned 1 touching 1 plan 0 err 0.000 lead 0.285 ballProbe 1
+SCAN foot 1 g: 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 | stepped 0 shift 0.000 land -9.000 cost 0.000 gFoot 0.000 ball 0
+PLANT foot 1 swingU 0.00 shift 0.000 corr -0.000 scanned 1 touching 1 plan 0 err 0.000 lead 0.287 ballProbe 0
+PLANT foot 0 swingU 0.99 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.289 ballProbe 0
+SCAN foot 1 g: 0.00 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.32 -0.32 -0.32 -0.32 -0.32 | stepped 1 shift -0.063 land -0.160 cost 0.063 gFoot -0.320 ball 0
+PLANT foot 1 swingU 1.00 shift -0.063 corr -0.062 scanned 1 touching 1 plan 1 err 0.014 lead 0.291 ballProbe 0
+SCAN foot 0 g: -0.32 -0.32 -0.32 -0.32 -0.48 -0.48 -0.48 -0.48 -0.48 -0.48 -0.64 -0.64 | stepped 1 shift 0.063 land -0.480 cost 0.063 gFoot -0.480 ball 0
+PLANT foot 0 swingU 0.00 shift 0.063 corr 0.062 scanned 1 touching 1 plan 1 err 0.012 lead 0.291 ballProbe 0
+SCAN foot 1 g: -0.48 -0.48 -0.48 -0.48 -0.48 -0.48 -0.64 -0.64 -0.64 -0.64 -0.64 -0.64 | stepped 1 shift -0.113 land -0.480 cost 0.113 gFoot -0.640 ball 0
+PLANT foot 1 swingU 0.00 shift -0.113 corr -0.112 scanned 1 touching 1 plan 1 err 0.012 lead 0.291 ballProbe 0
+SCAN foot 0 g: -0.32 -0.32 -0.32 -0.48 -0.48 -0.48 -0.48 -0.48 -0.48 -0.64 -0.64 -0.64 | stepped 1 shift 0.013 land -0.480 cost 0.013 gFoot -0.480 ball 0
+PLANT foot 0 swingU 0.99 shift 0.013 corr 0.013 scanned 1 touching 1 plan 1 err 0.011 lead 0.292 ballProbe 0
+SCAN foot 1 g: -0.48 -0.48 -0.48 -0.48 -0.48 -0.48 -0.64 -0.64 -0.64 -0.64 -0.64 -0.64 | stepped 1 shift -0.113 land -0.480 cost 0.113 gFoot -0.640 ball 0
+PLANT foot 1 swingU 0.00 shift -0.113 corr -0.112 scanned 1 touching 1 plan 1 err 0.011 lead 0.288 ballProbe 0
+SCAN foot 0 g: -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 | stepped 0 shift 0.000 land -9.000 cost 0.000 gFoot -0.160 ball 0
+PLANT foot 0 swingU 0.00 shift 0.000 corr -0.000 scanned 1 touching 1 plan 0 err 0.000 lead 0.288 ballProbe 0
+SCAN foot 1 g: 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 | stepped 0 shift 0.000 land -9.000 cost 0.000 gFoot 0.000 ball 0
+PLANT foot 1 swingU 0.00 shift 0.000 corr -0.001 scanned 1 touching 1 plan 0 err 0.000 lead 0.288 ballProbe 0
+PLANT foot 0 swingU 0.00 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.287 ballProbe 0
+PLANT foot 1 swingU 0.00 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.288 ballProbe 0
+PLANT foot 0 swingU 0.98 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.290 ballProbe 0
+PLANT foot 1 swingU 0.00 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.290 ballProbe 0
+PLANT foot 0 swingU 0.00 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.287 ballProbe 0
+PLANT foot 1 swingU 0.00 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.287 ballProbe 0

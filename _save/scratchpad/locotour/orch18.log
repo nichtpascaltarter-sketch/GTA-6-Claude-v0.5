@@ -1,0 +1,26 @@
+start 02:00:15
+build st7 rc 0
+-rwxr-xr-x 1 root root 12827648 Oct 13 02:26 bin/loco_st7.exe
+built st7 02:26:50
+run st7 exit 0
+[2366.773] locostairs trace 176 dn a28.86 v 1.30 ph0.86 mw1.00 | 0 pl0 h 19.7 b 38.3 t 38.9 g  0.00, -0.17 u28.959,29.203 pU29.390 st-1.00 SL -0.34 sh-0.01 sd1 bp0 fz  0.12 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.17,  0.00 u28.544,28.787 pU-99.000 st-1.00 SL -9.00 sh 0.00 sd0 bp0 fz  0.17
+[2370.180] locostairs trace 176 dn a28.90 v 1.30 ph0.89 mw1.00 | 0 pl0 h 34.6 b 38.3 t 56.6 g -0.17, -0.34 u29.115,29.356 pU29.390 st-1.00 SL -0.34 sh-0.01 sd1 bp0 fz  0.12 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.17,  0.00 u28.544,28.787 pU-99.000 st-1.00 SL -9.00 sh 0.00 sd0 bp0 fz  0.17
+[2370.191] locostairs trace 176 dn a28.94 v 1.30 ph0.92 mw1.00 | 0 pl0 h 13.7 b 35.6 t 37.4 g -0.17, -0.34 u29.245,29.482 pU29.390 st-1.00 SL -0.34 sh-0.01 sd1 bp0 fz -0.07 | 1 pl1 h  0.7 b  0.0 t 16.9 g  0.17,  0.00 u28.544,28.788 pU-99.000 st-1.00 SL -9.00 sh 0.00 sd0 bp0 fz  0.17
+[2370.200] locostairs trace 176 dn a28.99 v 1.30 ph0.95 mw1.00 | 0 pl0 h 29.1 b 34.4 t 36.4 g -0.34, -0.34 u29.338,29.573 pU29.390 st-1.00 SL -0.34 sh-0.01 sd1 bp0 fz -0.07 | 1 pl1 h  2.4 b  0.0 t 16.9 g  0.17,  0.00 u28.546,28.791 pU-99.000 st-1.00 SL -9.00 sh 0.00 sd0 bp0 fz  0.17
+[2370.207] locostairs trace 176 dn a29.03 v 1.30 ph0.98 mw1.00 | 0 pl0 h 10.0 b 15.0 t 33.7 g -0.34, -0.51 u29.385,29.621 pU29.390 st-1.00 SL -0.34 sh-0.01 sd1 bp0 fz -0.25 | 1 pl1 h  4.6 b  0.1 t 16.9 g  0.17,  0.00 u28.550,28.795 pU-99.000 st-1.00 SL -9.00 sh 0.00 sd0 bp0 fz  0.17
+[2370.216] locostairs trace 176 dn a29.07 v 1.30 ph0.02 mw1.00 | 0 pl1 h  0.0 b  4.2 t 22.6 g -0.17, -0.34 u29.396,29.635 pU-99.000 st-1.00 SL -9.00 sh 0.00 sd0 bp0 fz -0.17 | 1 pl1 h  7.1 b  0.3 t 16.9 g  0.34,  0.17 u28.557,28.799 pU-99.000 st-1.00 SL -9.00 sh 0.00 sd0 bp0 fz  0.34
+[2370.229] locostairs trace 176 dn a29.12 v 1.30 ph0.05 mw1.00 | 0 pl1 h  0.0 b  2.6 t 20.5 g -0.17, -0.34 u29.396,29.639 pU-99.000 st-1.00 SL -9.00 sh 0.00 sd0 bp0 fz -0.17 | 1 pl1 h  9.5 b  0.5 t 16.9 g  0.34,  0.17 u28.568,28.803 pU-99.000 st-1.00 SL -9.00 sh 0.00 sd0 bp0 fz  0.34
+[2370.229] locostairs up   steps  297 | slide cm/step mean 1.71 p90 3.52 max 30.00 | scuffs 21
+[2370.229] locostairs up   planted foot-frames 6093 | across a riser 87.4% | sunk 1 cm 1.3%, 3 cm 1.1% | lifted 0.5% | lowest sole -169.0 mm
+[2370.230] locostairs down steps  277 | slide cm/step mean 0.84 p90 3.16 max 8.08 | scuffs 28
+[2370.230] locostairs down planted foot-frames 5754 | across a riser 86.5% | sunk 1 cm 1.8%, 3 cm 1.7% | lifted 6.1% | lowest sole -169.0 mm
+[2370.230] locostairs trips 27 | peds cpu 2.45 ms per frame (mean over 3002 frames)
+[ 184.410] locostairs: station Calle Luna, stair top 1815.4 -638.0 17.6, foot 1848.1 -638.0 3.1, 32.7 m long
+[ 196.714] locostairs: 8 walkers
+[ 489.219] locostairs bigslide 180 up foot 0: 30.0 cm over 18 frames | biggest 7.8 cm at frame 9: planted 0 hold 0 stepT 0.63 age 0.00 rootRatio 0.87 v 0.68 a 22.67
+[2370.229] locostairs up   steps  297 | slide cm/step mean 1.71 p90 3.52 max 30.00 | scuffs 21
+[2370.229] locostairs up   planted foot-frames 6093 | across a riser 87.4% | sunk 1 cm 1.3%, 3 cm 1.1% | lifted 0.5% | lowest sole -169.0 mm
+[2370.230] locostairs down steps  277 | slide cm/step mean 0.84 p90 3.16 max 8.08 | scuffs 28
+[2370.230] locostairs down planted foot-frames 5754 | across a riser 86.5% | sunk 1 cm 1.8%, 3 cm 1.7% | lifted 6.1% | lowest sole -169.0 mm
+[2370.230] locostairs trips 27 | peds cpu 2.45 ms per frame (mean over 3002 frames)
+orch18 done 03:22:02

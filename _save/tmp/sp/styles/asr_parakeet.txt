@@ -1,0 +1,236 @@
+[OK ] parakeet  plain      REF: get in the car we have to go now is that the police
+                           HYP: get in the car we have to go now is that the police
+[OK ] parakeet  plain      REF: get in the car we have to go now is that the police
+                           HYP: get in the car we have to go now is that the police
+[OK ] parakeet  angry      REF: get in the car we have to go now is that the police
+                           HYP: get in the car we have to go now is that the police
+[OK ] parakeet  angry      REF: get in the car we have to go now is that the police
+                           HYP: get in the car we have to go now is that the police
+[ERR] parakeet  scared     REF: get in the car we have to go now is that the police
+                           HYP: get in the car we have to go now is not that the police
+[OK ] parakeet  scared     REF: get in the car we have to go now is that the police
+                           HYP: get in the car we have to go now is that the police
+[OK ] parakeet  calm       REF: get in the car we have to go now is that the police
+                           HYP: get in the car we have to go now is that the police
+[OK ] parakeet  calm       REF: get in the car we have to go now is that the police
+                           HYP: get in the car we have to go now is that the police
+[OK ] parakeet  sad        REF: get in the car we have to go now is that the police
+                           HYP: get in the car we have to go now is that the police
+[OK ] parakeet  sad        REF: get in the car we have to go now is that the police
+                           HYP: get in the car we have to go now is that the police
+[OK ] parakeet  happy      REF: get in the car we have to go now is that the police
+                           HYP: get in the car we have to go now is that the police
+[OK ] parakeet  happy      REF: get in the car we have to go now is that the police
+                           HYP: get in the car we have to go now is that the police
+[OK ] parakeet  shout      REF: get in the car we have to go now is that the police
+                           HYP: get in the car we have to go now is that the police
+[ERR] parakeet  shout      REF: get in the car we have to go now is that the police
+                           HYP: get in the car we have to go now is not that the police
+[OK ] parakeet  whisper    REF: get in the car we have to go now is that the police
+                           HYP: get in the car we have to go now is that the police
+[OK ] parakeet  whisper    REF: get in the car we have to go now is that the police
+                           HYP: get in the car we have to go now is that the police
+[OK ] parakeet  dj         REF: get in the car we have to go now is that the police
+                           HYP: get in the car we have to go now is that the police
+[OK ] parakeet  dj         REF: get in the car we have to go now is that the police
+                           HYP: get in the car we have to go now is that the police
+[OK ] parakeet  ad         REF: get in the car we have to go now is that the police
+                           HYP: get in the car we have to go now is that the police
+[OK ] parakeet  ad         REF: get in the car we have to go now is that the police
+                           HYP: get in the car we have to go now is that the police
+[OK ] parakeet  fineprint  REF: get in the car we have to go now is that the police
+                           HYP: get in the car we have to go now is that the police
+[OK ] parakeet  fineprint  REF: get in the car we have to go now is that the police
+                           HYP: get in the car we have to go now is that the police
+[OK ] parakeet  news       REF: get in the car we have to go now is that the police
+                           HYP: get in the car we have to go now is that the police
+[OK ] parakeet  news       REF: get in the car we have to go now is that the police
+                           HYP: get in the car we have to go now is that the police
+[OK ] parakeet  dispatch   REF: get in the car we have to go now is that the police
+                           HYP: get in the car we have to go now is that the police
+[OK ] parakeet  dispatch   REF: get in the car we have to go now is that the police
+                           HYP: get in the car we have to go now is that the police
+[OK ] parakeet  accent_south REF: get in the car we have to go now is that the police
+                           HYP: get in the car we have to go now is that the police
+[OK ] parakeet  accent_south REF: get in the car we have to go now is that the police
+                           HYP: get in the car we have to go now is that the police
+[OK ] parakeet  accent_newyork REF: get in the car we have to go now is that the police
+                           HYP: get in the car we have to go now is that the police
+[OK ] parakeet  accent_newyork REF: get in the car we have to go now is that the police
+                           HYP: get in the car we have to go now is that the police
+[ERR] parakeet  accent_latino REF: get in the car we have to go now is that the police
+                           HYP: get in the car we have to go now he said the police
+[OK ] parakeet  accent_latino REF: get in the car we have to go now is that the police
+                           HYP: get in the car we have to go now is that the police
+[OK ] parakeet  accent_caribbean REF: get in the car we have to go now is that the police
+                           HYP: get in the car we have to go now is that the police
+[OK ] parakeet  accent_caribbean REF: get in the car we have to go now is that the police
+                           HYP: get in the car we have to go now is that the police
+[OK ] parakeet  accent_british REF: get in the car we have to go now is that the police
+                           HYP: get in the car we have to go now is that the police
+[OK ] parakeet  accent_british REF: get in the car we have to go now is that the police
+                           HYP: get in the car we have to go now is that the police
+[OK ] parakeet  plain      REF: i told you the package has to be there by midnight
+                           HYP: i told you the package has to be there by midnight
+[OK ] parakeet  plain      REF: i told you the package has to be there by midnight
+                           HYP: i told you the package has to be there by midnight
+[OK ] parakeet  angry      REF: i told you the package has to be there by midnight
+                           HYP: i told you the package has to be there by midnight
+[OK ] parakeet  angry      REF: i told you the package has to be there by midnight
+                           HYP: i told you the package has to be there by midnight
+[OK ] parakeet  scared     REF: i told you the package has to be there by midnight
+                           HYP: i told you the package has to be there by midnight
+[OK ] parakeet  scared     REF: i told you the package has to be there by midnight
+                           HYP: i told you the package has to be there by midnight
+[OK ] parakeet  calm       REF: i told you the package has to be there by midnight
+                           HYP: i told you the package has to be there by midnight
+[OK ] parakeet  calm       REF: i told you the package has to be there by midnight
+                           HYP: i told you the package has to be there by midnight
+[OK ] parakeet  sad        REF: i told you the package has to be there by midnight
+                           HYP: i told you the package has to be there by midnight
+[OK ] parakeet  sad        REF: i told you the package has to be there by midnight
+                           HYP: i told you the package has to be there by midnight
+[OK ] parakeet  happy      REF: i told you the package has to be there by midnight
+                           HYP: i told you the package has to be there by midnight
+[OK ] parakeet  happy      REF: i told you the package has to be there by midnight
+                           HYP: i told you the package has to be there by midnight
+[OK ] parakeet  shout      REF: i told you the package has to be there by midnight
+                           HYP: i told you the package has to be there by midnight
+[OK ] parakeet  shout      REF: i told you the package has to be there by midnight
+                           HYP: i told you the package has to be there by midnight
+[OK ] parakeet  whisper    REF: i told you the package has to be there by midnight
+                           HYP: i told you the package has to be there by midnight
+[OK ] parakeet  whisper    REF: i told you the package has to be there by midnight
+                           HYP: i told you the package has to be there by midnight
+[OK ] parakeet  dj         REF: i told you the package has to be there by midnight
+                           HYP: i told you the package has to be there by midnight
+[OK ] parakeet  dj         REF: i told you the package has to be there by midnight
+                           HYP: i told you the package has to be there by midnight
+[OK ] parakeet  ad         REF: i told you the package has to be there by midnight
+                           HYP: i told you the package has to be there by midnight
+[OK ] parakeet  ad         REF: i told you the package has to be there by midnight
+                           HYP: i told you the package has to be there by midnight
+[OK ] parakeet  fineprint  REF: i told you the package has to be there by midnight
+                           HYP: i told you the package has to be there by midnight
+[OK ] parakeet  fineprint  REF: i told you the package has to be there by midnight
+                           HYP: i told you the package has to be there by midnight
+[OK ] parakeet  news       REF: i told you the package has to be there by midnight
+                           HYP: i told you the package has to be there by midnight
+[OK ] parakeet  news       REF: i told you the package has to be there by midnight
+                           HYP: i told you the package has to be there by midnight
+[ERR] parakeet  dispatch   REF: i told you the package has to be there by midnight
+                           HYP: i told you the package had to be there by midnight
+[OK ] parakeet  dispatch   REF: i told you the package has to be there by midnight
+                           HYP: i told you the package has to be there by midnight
+[OK ] parakeet  accent_south REF: i told you the package has to be there by midnight
+                           HYP: i told you the package has to be there by midnight
+[OK ] parakeet  accent_south REF: i told you the package has to be there by midnight
+                           HYP: i told you the package has to be there by midnight
+[OK ] parakeet  accent_newyork REF: i told you the package has to be there by midnight
+                           HYP: i told you the package has to be there by midnight
+[OK ] parakeet  accent_newyork REF: i told you the package has to be there by midnight
+                           HYP: i told you the package has to be there by midnight
+[OK ] parakeet  accent_latino REF: i told you the package has to be there by midnight
+                           HYP: i told you the package has to be there by midnight
+[OK ] parakeet  accent_latino REF: i told you the package has to be there by midnight
+                           HYP: i told you the package has to be there by midnight
+[OK ] parakeet  accent_caribbean REF: i told you the package has to be there by midnight
+                           HYP: i told you the package has to be there by midnight
+[OK ] parakeet  accent_caribbean REF: i told you the package has to be there by midnight
+                           HYP: i told you the package has to be there by midnight
+[ERR] parakeet  accent_british REF: i told you the package has to be there by midnight
+                           HYP: i told you the package had to be there by midnight
+[OK ] parakeet  accent_british REF: i told you the package has to be there by midnight
+                           HYP: i told you the package has to be there by midnight
+[OK ] parakeet  plain      REF: suspect is heading north on the highway in a red sedan
+                           HYP: suspect is heading north on the highway in a red sedan
+[OK ] parakeet  plain      REF: suspect is heading north on the highway in a red sedan
+                           HYP: suspect is heading north on the highway in a red sedan
+[OK ] parakeet  angry      REF: suspect is heading north on the highway in a red sedan
+                           HYP: suspect is heading north on the highway in a red sedan
+[OK ] parakeet  angry      REF: suspect is heading north on the highway in a red sedan
+                           HYP: suspect is heading north on the highway in a red sedan
+[OK ] parakeet  scared     REF: suspect is heading north on the highway in a red sedan
+                           HYP: suspect is heading north on the highway in a red sedan
+[OK ] parakeet  scared     REF: suspect is heading north on the highway in a red sedan
+                           HYP: suspect is heading north on the highway in a red sedan
+[OK ] parakeet  calm       REF: suspect is heading north on the highway in a red sedan
+                           HYP: suspect is heading north on the highway in a red sedan
+[OK ] parakeet  calm       REF: suspect is heading north on the highway in a red sedan
+                           HYP: suspect is heading north on the highway in a red sedan
+[OK ] parakeet  sad        REF: suspect is heading north on the highway in a red sedan
+                           HYP: suspect is heading north on the highway in a red sedan
+[OK ] parakeet  sad        REF: suspect is heading north on the highway in a red sedan
+                           HYP: suspect is heading north on the highway in a red sedan
+[OK ] parakeet  happy      REF: suspect is heading north on the highway in a red sedan
+                           HYP: suspect is heading north on the highway in a red sedan
+[OK ] parakeet  happy      REF: suspect is heading north on the highway in a red sedan
+                           HYP: suspect is heading north on the highway in a red sedan
+[OK ] parakeet  shout      REF: suspect is heading north on the highway in a red sedan
+                           HYP: suspect is heading north on the highway in a red sedan
+[OK ] parakeet  shout      REF: suspect is heading north on the highway in a red sedan
+                           HYP: suspect is heading north on the highway in a red sedan
+[OK ] parakeet  whisper    REF: suspect is heading north on the highway in a red sedan
+                           HYP: suspect is heading north on the highway in a red sedan
+[ERR] parakeet  whisper    REF: suspect is heading north on the highway in a red sedan
+                           HYP: suspect is edgar fundai wina red sedan
+[OK ] parakeet  dj         REF: suspect is heading north on the highway in a red sedan
+                           HYP: suspect is heading north on the highway in a red sedan
+[OK ] parakeet  dj         REF: suspect is heading north on the highway in a red sedan
+                           HYP: suspect is heading north on the highway in a red sedan
+[OK ] parakeet  ad         REF: suspect is heading north on the highway in a red sedan
+                           HYP: suspect is heading north on the highway in a red sedan
+[OK ] parakeet  ad         REF: suspect is heading north on the highway in a red sedan
+                           HYP: suspect is heading north on the highway in a red sedan
+[OK ] parakeet  fineprint  REF: suspect is heading north on the highway in a red sedan
+                           HYP: suspect is heading north on the highway in a red sedan
+[OK ] parakeet  fineprint  REF: suspect is heading north on the highway in a red sedan
+                           HYP: suspect is heading north on the highway in a red sedan
+[OK ] parakeet  news       REF: suspect is heading north on the highway in a red sedan
+                           HYP: suspect is heading north on the highway in a red sedan
+[OK ] parakeet  news       REF: suspect is heading north on the highway in a red sedan
+                           HYP: suspect is heading north on the highway in a red sedan
+[OK ] parakeet  dispatch   REF: suspect is heading north on the highway in a red sedan
+                           HYP: suspect is heading north on the highway in a red sedan
+[OK ] parakeet  dispatch   REF: suspect is heading north on the highway in a red sedan
+                           HYP: suspect is heading north on the highway in a red sedan
+[OK ] parakeet  accent_south REF: suspect is heading north on the highway in a red sedan
+                           HYP: suspect is heading north on the highway in a red sedan
+[OK ] parakeet  accent_south REF: suspect is heading north on the highway in a red sedan
+                           HYP: suspect is heading north on the highway in a red sedan
+[OK ] parakeet  accent_newyork REF: suspect is heading north on the highway in a red sedan
+                           HYP: suspect is heading north on the highway in a red sedan
+[OK ] parakeet  accent_newyork REF: suspect is heading north on the highway in a red sedan
+                           HYP: suspect is heading north on the highway in a red sedan
+[OK ] parakeet  accent_latino REF: suspect is heading north on the highway in a red sedan
+                           HYP: suspect is heading north on the highway in a red sedan
+[OK ] parakeet  accent_latino REF: suspect is heading north on the highway in a red sedan
+                           HYP: suspect is heading north on the highway in a red sedan
+[ERR] parakeet  accent_caribbean REF: suspect is heading north on the highway in a red sedan
+                           HYP: suspect is heading north and i win a red sedan
+[ERR] parakeet  accent_caribbean REF: suspect is heading north on the highway in a red sedan
+                           HYP: suspect is heading north and i win a red sedan
+[OK ] parakeet  accent_british REF: suspect is heading north on the highway in a red sedan
+                           HYP: suspect is heading north on the highway in a red sedan
+[OK ] parakeet  accent_british REF: suspect is heading north on the highway in a red sedan
+                           HYP: suspect is heading north on the highway in a red sedan
+== parakeet: overall WER 1.7% (21/1260)
+   accent_british WER   1.4%  (1/70)
+   accent_caribbean WER  11.4%  (8/70)
+   accent_latino WER   2.9%  (2/70)
+   accent_newyork WER   0.0%  (0/70)
+   accent_south WER   0.0%  (0/70)
+   ad           WER   0.0%  (0/70)
+   angry        WER   0.0%  (0/70)
+   calm         WER   0.0%  (0/70)
+   dispatch     WER   1.4%  (1/70)
+   dj           WER   0.0%  (0/70)
+   fineprint    WER   0.0%  (0/70)
+   happy        WER   0.0%  (0/70)
+   news         WER   0.0%  (0/70)
+   plain        WER   0.0%  (0/70)
+   sad          WER   0.0%  (0/70)
+   scared       WER   1.4%  (1/70)
+   shout        WER   1.4%  (1/70)
+   whisper      WER  10.0%  (7/70)
+SUMMARY parakeet=1.7%

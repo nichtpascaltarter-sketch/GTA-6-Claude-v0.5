@@ -1,0 +1,42 @@
+city snapshot-safe: batches 12 + 14 + 15 in one sign-off: shop windows only on the walls that face a street (the storefront back-wall gate, facade.hlsli:222), soft trash bags, and aviation beacons on the hand-built tall structures. 6 files on top of HEAD 67e6159 + batch 13 (snapshot 47), copied into the shared tree. Blobs written with git hash-object -w. MinGW syntax check in the shared tree: @SHAREDSYN@. facade.hlsli is HEAD's (with night B), changed in 3 lines: the shadeFacade signature, storefront, signBand. world.hlsl is HEAD's, changed in 1 line: the call.
+
+FILES, new blob (base blob: HEAD's, or batch 13's for buildmesh.cpp):
+- src/world/buildmesh.cpp 46cfe87e1fd22ba837e2baa996897135807acc74 (batch 13 f6747fb)
+- src/world/propmesh.cpp 19657a54ad8ee7c184b91f7860126270fa9b4c52 (HEAD e2e3022)
+- src/world/landmarks.cpp cb2b991fcfd0589a0ee83ef7d96ce1280767c0f5 (HEAD 38e1433)
+- src/world/leisure.cpp 8a227ddb9a69e5b38beaa7c71e3f926dc06fe5ea (HEAD 0279fc3)
+- src/shaders/facade.hlsli 07a30a1f90dfc397cabf6f62e61933538bf561f3 (HEAD d4fae17)
+- src/shaders/world.hlsl 32126ee5e320343657b5d39a2fb4fb898b409c14 (HEAD 4f3089a)
+
+CHANGELOG (player-facing)
+Batch 12, shop windows only on street walls:
+- The facade shader drew a shop facade's storefront on every wall of its ground floor: lit shop windows, the shop interior behind them, and the sign band above. That included the backs and sides of shop rows and walk-ups that face yards, alleys or a neighbour's wall. At the North Porto Sol corner, the walk-up's back wall showed a shop interior into a house's yard.
+- Now the storefront and its sign band stay on the walls that face a street: the shop's front, and any wall with a street or its sidewalk within 12 m in front of it (a corner shop's side street, a block's back on another street). The other ground-floor walls get the facade's ordinary windows.
+- How: buildmesh.cpp streetFacing() tests each wall of a storefront facade (the building's front, or a road edge other than a highway or ramp within 12 m out from the wall's middle). facadeWalls() gives the other walls vertex alpha 0.5. facade.hlsli (HEAD's): shadeFacade() takes that mark (world.hlsl passes i.color.a, which no facade used before), and storefront and signBand also need it > 0.75. Nothing else in the shader changed. Every facade wall goes through facadeWalls: the plain generator, the archetype massings and the interiors' cut walls. Interiors that own their shell keep alpha 1, as before.
+Batch 14, soft trash bags:
+- A kerbside pile is now six tied refuse sacks: four standing round the middle, one fallen over on them, one lying in front. They are glossy black, with a dark green one and a white kitchen sack. Each is lumpy where the rubbish presses against it, pressed flat at the bottom and drawn in to a knot with two ears; smooth normals carry the gloss over the lumps. They used to be hard black boxes.
+- propmesh.cpp: trashBag() (an 8 x 5 lathe per sack with a flat bottom, the knot and its ears) and the PROP_TRASH_BAGS case.
+Batch 15, aviation beacons (your queued item; I checked each case first):
+- Solaris One: its spire already had three blinking red lamps with aviation lights, and a tip lamp without one. The tip now gets its type-4 light. Red beacons now stand on the four corners of the tower top (468 m, where the crown's fins stand), on the same phase as the tip. Before, only the spire showed anything above the roof.
+- The Ferris wheel on the Sol Beach pier (the rim top 66 m above the sea; the wheel stands still) had no beacon. A blinking red lamp now sits on top of the rim, with its light.
+- The drop tower (70 m) and City Hall's tower (76 m) had their blinking lamps (pattern 1) but no aviation light; both now have one.
+- Already lit, unchanged:
+  - the three sugar-mill smokestacks (70 m): a lamp and a type-4 light each, though they blink at the slower pattern 7, 20 a minute, while the others are pattern 1;
+  - the radio mast (262 m);
+  - the port's STS cranes;
+  - the airport tower.
+- Not over 60 m, so none: the stadium (its roof ring is at 46 m, with the floodlights on the ring and no separate masts), the campus bell tower (48 m), the hospital towers (~47 m), the lighthouse (44 m). There are no bridge towers: the road bridges are flat, with no pylons.
+- Each new beacon is a lamp(): the small red MAT_EMISSIVE box of sitegeo.cpp, enlarged in the far LOD so it still reads as a point, with emissiveAnim pattern 1 and one phase per structure, plus a type-4 LightInstance ((1, 0.08, 0.04) x 1500, radius 20-25 m), like the sugar mill's and the spire's.
+
+FRAME COST
+- Beacons: 5 new lamps (12 triangles each, enlarged in the far LOD) and 8 type-4 lights.
+- Storefront gate: no geometry. streetFacing runs once per wall of a storefront facade, at cell generation (up to 5 road lookups per side or back wall).
+- Bags: 636 triangles per pile instead of 110 (106 per sack). Props have one mesh and a cull distance, with no distance LOD in props_render.cpp. The pile draws only within 60 m (x its scale) and casts no shadow, so the old 110-triangle pile would never be the one seen from afar. Piles within 60 m: tour stop 2: 0, stop 3: 0, stop 4: 1, stop 5: 1, the North Porto Sol showcase: 6 (+3.2k triangles there); 4,568 on the map. In game: @PROPS@
+
+TESTS. Build under test: /tmp/city/nt_dev23.exe = HEAD 67e6159 (with batches 11, 11b) + batch 13 + these files. Before: nt_dev23b = HEAD + batch 13.
+- worldcheck: passed, 0 overlapping pairs, 0 colliders and 0 props in drivable lanes (colliders 659,605 and props 419,246, as batch 13).
+- ASan + bounds worldcheck: 0 reports, passed (/tmp/city/wc_dev22_asan.txt).
+- MinGW: 0 errors, 0 warnings. MSVC-safety scan (clang -Wgnu -Wvla -Wpedantic, all of src/world): 0 diagnostics.
+- In-game shots, 19 before/after: @SHOTS@
+- Story regression: @REG@
+- Tours 2-5: @TOURS@

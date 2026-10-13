@@ -1,0 +1,8 @@
+Embedded 40 shader files.
+148 shaders, 0 failed
+[ 385.036] autoplay t=9.5 pos 1806.7 201.1 4.6 state 2 health 200 veh 1 speed 11.2 | peds 88 vehicles 63 wanted 0 | cpu ms player 0.06 ai 1.28 veh 0.66 peds 1.1
+[ 549.807] autoplay t=17.5 pos 1806.7 270.4 3.5 state 2 health 200 veh 1 speed 17.5 | peds 88 vehicles 65 wanted 0 | cpu ms player 0.05 ai 1.00 veh 0.68 peds 1.
+[ 461.606] autoplay t=13.5 pos 1791.3 160.9 6.5 state 0 health 188 veh -1 speed 0.0 | peds 97 vehicles 64 wanted 1 | cpu ms player 0.21 ai 1.06 veh 1.08 peds 1.
+590854d House garages stay on their own lots: no more garages reaching into the neighbour's house, shop or walk-up
+branch 'claude/neon-tide' set up to track 'origin/claude/neon-tide'.
+COMMITTED aab4bbc6904f4d6956bf12c2597edb12d29b53e8

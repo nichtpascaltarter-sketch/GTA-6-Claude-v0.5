@@ -1,0 +1,10 @@
+{
+  "id": "36",
+  "subject": "Switch the game to Direct3D 12 (user request)",
+  "description": "User request, re-confirmed after the 22:08 restart: D3D12 only, no D3D11 fallback. 22:40: port of /tmp/d3d12work complete, syntax-clean, zero D3D11 references (no --d3d11, no d3d11 lib; d3d12.dll loaded at run time; without a D3D12 device an error box 'Direct3D 12 required' and exit 1). -O1 build running. Next: rebase onto snapshot tree 970af15 via /tmp/d3d12exp/rebase.py, validate against scratchpad/snap_970af15.exe (D3D11 -O2 baseline) with tour slices, FP guns, UI shots, benchmark; then lead gives a renderer freeze window and it lands on the latest tree.",
+  "status": "completed",
+  "blocks": [
+    "40"
+  ],
+  "blockedBy": []
+}

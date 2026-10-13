@@ -1,0 +1,3 @@
+kc_top aerial 4469 -4233 260 180 75 60 10
+kc_air aerial 4469 -4233 130 200 38 55 10
+kc_marina aerial 4089 -4028 110 220 30 55 10

@@ -1,0 +1,54 @@
+World map generated in 17.18 s
+Road gen: 21 interchanges
+Road network: 6252 nodes, 10041 edges, 1732 signalized; hwy 60.1 km, streets 1186.7 km (2.02 s)
+Buildings: 36940 (towers 368, midrise 2449, condo 509, deco 844, shops 4788, strip 767, houses 22715, villas 794, warehouses 1673) in 1.46 s
+Lane graph: 26703 lanes, 60151 connectors (1219197 pts), 36936 walk nodes, 53395 walk links (0.28 s)
+Loaded 12 collision cells
+Simulating 5.0 minutes around (2700, 750) r=200 with 100 cars, 80 peds
+COLLISION t=58.84 imp 1261 at 2601.2 654.5
+   A 17: v=2.3 vT=0.0 conn 16026 node 1356 turn 1 ctl 1 u=5.6/10.8 lc -1 lat 0.00 nudge 0.00 obst 0.0(87) stop 1000000000.0 dummy 0
+   B 87: v=0.3 vT=0.0 conn 16029 node 1356 turn 2 ctl 1 u=3.4/15.8 lc -1 lat 0.00 nudge 0.00 obst -0.0(17) stop 1000000000.0 dummy 0
+  sim 60 s: collisions 1 (hard 0), red 0, stuck 0, deadlocks 0, ped hits 0, respawns 49 (wall 6 s)
+  sim 120 s: collisions 1 (hard 0), red 0, stuck 0, deadlocks 0, ped hits 0, respawns 132 (wall 13 s)
+STUCK t=150.6 car 71 at 2701.6 918.0 path 8098 u 68.0 lat -0.01 vT 15.5 stop 1000000000.0 obst 34.7(67) up 1.00
+STUCK t=156.3 car 71 at 2701.6 918.1 path 8098 u 68.1 lat -0.02 vT 16.0 stop 1000000000.0 obst 1000000000.0(-1) up 1.00
+  sim 180 s: collisions 1 (hard 0), red 0, stuck 2, deadlocks 0, ped hits 0, respawns 194 (wall 20 s)
+COLLISION t=184.45 imp 5920 at 2800.2 757.7
+   A 16: v=1.9 vT=0.0 lane 8611(e2706 d-1 i0) u=90.4/91.5 lc -1 lat 0.00 nudge 0.00 obst -0.0(57) stop 1000000000.0 dummy 0
+   B 57: v=2.7 vT=4.5 conn 17457 node 1472 turn 1 ctl 1 u=8.0/10.8 lc -1 lat 0.00 nudge 0.00 obst 1000000000.0(-1) stop 1000000000.0 dummy 0
+STATIC t=189.9 car 51 at 2556.5 949.5 v=8.6 imp 3197 path 7549 u 43.5 lat -4.24
+  sim 240 s: collisions 2 (hard 1), red 0, stuck 2, deadlocks 0, ped hits 0, respawns 261 (wall 27 s)
+DEADLOCK t=246.0 car 77 at 2593.4 848.4 conn 16056 turn 0 appr 3 node 1358 ctl 1 u 1.9/17.0 hold 0.0 committed 0 gateNode 1358 stopDist 1000000000.0 obst 0.4 (body 99) sig 4
+DEADLOCK t=247.0 car 99 at 2598.4 848.9 conn 16048 turn 2 appr 0 node 1358 ctl 1 u 8.2/15.8 hold 0.0 committed 0 gateNode 1358 stopDist 1000000000.0 obst 0.0 (body 77) sig 4
+DEADLOCK t=251.5 car 4 at 2605.4 851.6 conn 16051 turn 0 appr 1 node 1358 ctl 1 u 3.1/17.0 hold 0.0 committed 0 gateNode 1358 stopDist 1000000000.0 obst 2.6 (body 99) sig 4
+DEADLOCK t=254.9 car 10 at 2613.7 851.6 lane e2424 d-1 i0 u 86.3/91.5 stopU 86.4 next conn 16050 turn 1 ctl 1 gateNode 1358 stopDist 1000000000.0 obst 2.6 (body 4) sig 4
+DEADLOCK t=258.1 car 68 at 2622.0 851.6 lane e2424 d-1 i0 u 78.0/91.5 stopU 86.4 next conn 16051 turn 0 ctl 1 gateNode 1358 stopDist 6.2 obst 3.3 (body 10) sig 4
+DEADLOCK t=267.4 car 94 at 2700.7 651.6 conn 16548 turn 0 appr 1 node 1402 ctl 2 u 11.1/23.7 hold 0.0 committed 0 gateNode 1402 stopDist 1000000000.0 obst 3.0 (body 61) sig 0
+DEADLOCK t=267.9 car 61 at 2692.7 649.3 conn 16555 turn 2 appr 3 node 1402 ctl 2 u 4.6/21.1 hold 7.8 committed 0 gateNode 1402 stopDist 0.8 obst 2.5 (body 94) sig 0
+DEADLOCK t=269.4 car 37 at 2684.2 648.4 lane e2420 d1 i0 u 84.2/88.2 stopU 83.1 next conn 16553 turn 1 ctl 2 gateNode 1402 stopDist 1000000000.0 obst 1.8 (body 61) sig 0
+DEADLOCK t=270.4 car 63 at 2629.0 851.6 lane e2424 d-1 i0 u 71.0/91.5 stopU 86.4 next conn 16049 turn 2 ctl 1 gateNode 1358 stopDist 13.2 obst 2.5 (body 68) sig 4
+DEADLOCK t=271.7 car 78 at 2675.5 648.4 lane e2420 d1 i0 u 75.5/88.2 stopU 83.1 next conn 16553 turn 1 ctl 2 gateNode 1402 stopDist 5.3 obst 3.3 (body 37) sig 0
+DEADLOCK t=271.8 car 27 at 2636.1 851.6 lane e2424 d-1 i0 u 63.9/91.5 stopU 86.4 next conn 16051 turn 0 ctl 1 gateNode 1358 stopDist 20.0 obst 2.5 (body 63) sig 4
+DEADLOCK t=271.9 car 80 at 2708.3 651.6 conn 16548 turn 0 appr 1 node 1402 ctl 2 u 3.6/23.7 hold 0.0 committed 0 gateNode 1402 stopDist 1000000000.0 obst 2.6 (body 94) sig 0
+DEADLOCK t=272.7 car 64 at 2715.0 651.6 lane e2544 d-1 i0 u 85.0/88.2 stopU 83.1 next conn 16548 turn 0 ctl 2 gateNode 1402 stopDist 1000000000.0 obst 0.0 (body 122) sig 0
+DEADLOCK t=274.5 car 85 at 2643.9 851.6 lane e2424 d-1 i0 u 56.1/91.5 stopU 86.4 next conn 16051 turn 0 ctl 1 gateNode 1358 stopDist 28.2 obst 2.5 (body 27) sig 4
+DEADLOCK t=274.9 car 5 at 2650.2 851.6 lane e2424 d-1 i0 u 49.8/91.5 stopU 86.4 next conn 16050 turn 1 ctl 1 gateNode 1358 stopDist 34.2 obst 1.9 (body 85) sig 4
+DEADLOCK t=276.6 car 98 at 2584.9 848.4 lane e2343 d1 i0 u 84.9/91.5 stopU 86.4 next conn 16057 turn 2 ctl 1 gateNode 1358 stopDist 1000000000.0 obst 1.3 (body 109) sig 4
+DEADLOCK t=287.7 car 87 at 2722.3 651.6 lane e2544 d-1 i0 u 77.7/88.2 stopU 83.1 next conn 16546 turn 2 ctl 2 gateNode 1402 stopDist 3.0 obst 2.6 (body 64) sig 0
+DEADLOCK t=291.7 car 74 at 2705.0 622.0 lane e2541 d1 i1 u 72.0/88.2 stopU 83.1 next conn 16544 turn 0 ctl 2 gateNode 1402 stopDist 8.8 obst 3.3 (body 89) sig 2
+DEADLOCK t=294.8 car 90 at 2658.5 851.6 lane e2424 d-1 i0 u 41.5/91.5 stopU 86.4 next conn 16051 turn 0 ctl 1 gateNode 1358 stopDist 42.4 obst 3.3 (body 5) sig 4
+DEADLOCK t=295.2 car 14 at 2577.7 848.4 lane e2343 d1 i0 u 77.7/91.5 stopU 86.4 next conn 16057 turn 2 ctl 1 gateNode 1358 stopDist 6.3 obst 2.0 (body 98) sig 4
+DEADLOCK t=296.9 car 79 at 2668.4 648.4 lane e2420 d1 i0 u 68.4/88.2 stopU 83.1 next conn 16554 turn 0 ctl 2 gateNode 1402 stopDist 1000000000.0 obst 2.5 (body 78) sig 2
+DEADLOCK t=298.9 car 42 at 2730.4 651.6 lane e2544 d-1 i0 u 69.6/88.2 stopU 83.1 next conn 16546 turn 2 ctl 2 gateNode 1402 stopDist 11.1 obst 3.3 (body 87) sig 2
+
+==== Traffic metrics (300 s simulated, 100 cars, 80 peds, 8.33 vehicle-hours) ====
+collisions: 2 (0.24 per vehicle-hour), hard (>3000 Ns): 1 (0.12/veh-h)
+static impacts (walls/props >2500 Ns): 1, props broken: 0
+red-light violations: 0, stop-sign violations: 0
+stuck recoveries: 2, relocalizations: 3, deadlocks (>60 s waits): 22, respawns: 316
+pedestrians hit: 0
+average speed by road class (km/h):  boulevard 16.3 (1646 s)  avenue 12.8 (4227 s)  street 13.3 (20536 s)
+lane-center error (RMS, lanes, v>3 m/s): 0.090 m
+AI cost per 60 Hz tick: traffic 0.178 ms + peds 0.023 ms (avg), p50 0.192 ms, p99 0.360 ms, max 0.736 ms
+physics per 120 Hz step: 0.418 ms (100 cars)
+done

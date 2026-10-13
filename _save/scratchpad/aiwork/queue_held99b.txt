@@ -1,0 +1,2 @@
+bin/nt_ai99b.exe taxi:130:12:60:960x540
+bin/nt_ai99b.exe crashscene:150:12:60:960x540

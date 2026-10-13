@@ -1,0 +1,36 @@
+--- base_src/meshutil.cpp	2026-10-01 11:36:41.047111296 +0000
++++ dev/src/anim/meshutil.cpp	2026-10-01 12:09:09.878530708 +0000
+@@ -409,6 +409,12 @@
+     return first;
+ }
+ 
++// Strand card layer depth for the renderer's self-shadowing (MAT_HAIR param bits 20-22: 0 the outermost layer .. 7
++// the innermost) on the card vertices from `first` on (emitCard's return value).
++static inline void setCardDepth(MeshB& m, u32 first, u32 depth) {
++    for (u32 i = first; i < (u32)m.v.size(); i++) m.v[i].matParam = (m.v[i].matParam & ~(7u << 20)) | ((depth & 7u) << 20);
++}
++
+ void emitMesh(const MeshB& m, SkinnedMeshData& out) {
+     out.verts.clear();
+     out.indices.clear();
+@@ -419,6 +425,8 @@
+         vec3 t = b.t - n * dot(b.t, n);
+         if (length2(t) < 1e-10f) t = anyPerp(n);
+         t = normalize(t);
++        // an eyeball in the shader-pupil encoding (MAT_EYE param bit 1) carries its optical axis as the tangent, as is
++        if (b.mat == MAT_EYE && (b.matParam & 2u) && length2(b.t) > 1e-12f) t = normalize(b.t);
+         u8 bones[4], wts[4];
+         int sum = 0, best = 0;
+         for (int i = 0; i < 4; i++) {
+@@ -431,8 +439,9 @@
+         int fix = (int)wts[best] + (255 - sum);
+         wts[best] = (u8)Clamp(fix, 0, 255);
+         // character skin: material param bit 0 tells the skin shader that colour alpha = 1 - gloss and uv = the
+-        // crease channel (applySkinChannels) instead of a texture mapping (animals share MAT_SKIN without it)
+-        u32 param = b.mat == MAT_SKIN ? (b.matParam | 1u) : (b.matParam & ~kParamLodDetail);
++        // crease channel (applySkinChannels) instead of a texture mapping (animals share MAT_SKIN without it); the
++        // skin's other bits and the strand cards' depth bits (20-22) pass as they are (kParamLodDetail is a garment flag)
++        u32 param = b.mat == MAT_SKIN ? (b.matParam | 1u) : (b.mat == MAT_HAIR ? b.matParam : (b.matParam & ~kParamLodDetail));
+         out.addVertex(b.p, n, t, b.uv, packColor(b.col, b.alpha), makeMat(b.mat, param), bones, wts);
+     }
+     // strand cards last (the renderer draws them in a separate alpha-tested, two-sided pass)

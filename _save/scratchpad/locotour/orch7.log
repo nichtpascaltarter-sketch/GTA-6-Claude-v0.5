@@ -1,0 +1,26 @@
+start 10:06:41
+check done
+build after_st3 rc 0
+-rwxr-xr-x 1 root root 12410880 Oct  6 10:48 bin/loco_after_st3.exe
+built after_st3 10:48:11
+run after_st3 exit 0
+[1304.313] locostairs deep 180 dn foot 1: h -14.5 b   0.0 t   0.0 cm (g  0.17,  0.00,  0.00) | a 29.38 x 0.36 | v 1.25 along 1.25 yawOff  -0.9 | ph0.02 age0.50 ballProbe 0 strikeLead 0.31 pin 0.000 footZ 0.000
+[1304.313] locostairs deep 182 dn foot 1: h -16.9 b   0.0 t   0.0 cm (g  0.00, -0.17, -0.17) | a 28.75 x 0.29 | v 1.28 along 1.28 yawOff  -1.6 | ph0.73 age0.27 ballProbe 0 strikeLead 0.29 pin 0.000 footZ -0.169
+[1319.825] locostairs t 60: walkers (along / across the stair from its top, m): v7.8/-0.4 ^29.0/0.8 v6.4/-0.1 ^26.9/-0.3 v11.8/-0.4 v30.5/0.2 v8.0/0.2 v29.9/0.2 | trips 14
+[1472.555] locostairs t 70: walkers (along / across the stair from its top, m): v21.4/0.0 ^16.3/0.6 v19.1/0.1 ^13.1/-0.6 v25.3/0.1 ^26.2/-0.0 v20.2/0.2 ^26.8/0.4 | trips 16
+[1625.037] locostairs t 80: walkers (along / across the stair from its top, m): v33.4/0.2 ^3.3/-0.2 v31.8/0.4 v-0.3/-0.4 ^32.1/0.8 ^14.0/-0.4 v32.4/0.2 ^15.5/0.4 | trips 18
+[1796.322] locostairs t 90: walkers (along / across the stair from its top, m): ^22.5/-0.2 v6.7/0.3 ^24.8/0.1 v12.7/-0.5 ^18.4/0.3 ^2.8/-0.5 ^24.4/0.5 ^3.7/-0.3 | trips 22
+[1988.188] locostairs t 100: walkers (along / across the stair from its top, m): ^9.6/-0.2 v19.3/0.7 ^12.5/-0.3 v25.9/-0.1 ^5.7/0.2 v7.6/-0.6 ^12.0/0.1 v6.3/-0.4 | trips 24
+[2137.657] locostairs up   steps  299 | slide cm/step mean 1.92 p90 4.49 max 29.41 | scuffs 25
+[2137.658] locostairs up   planted foot-frames 5994 | across a riser 68.0% | sunk 1 cm 4.1%, 3 cm 3.5% | lifted 1.5% | lowest sole -183.6 mm
+[2137.658] locostairs down steps  274 | slide cm/step mean 1.50 p90 4.78 max 56.43 | scuffs 31
+[2137.658] locostairs down planted foot-frames 5569 | across a riser 75.8% | sunk 1 cm 3.0%, 3 cm 2.9% | lifted 5.4% | lowest sole -275.0 mm
+[2137.658] locostairs trips 26 | peds cpu 2.40 ms per frame (mean over 3002 frames)
+== after_st3
+[ 235.514] locostairs: 8 walkers
+[2137.657] locostairs up   steps  299 | slide cm/step mean 1.92 p90 4.49 max 29.41 | scuffs 25
+[2137.658] locostairs up   planted foot-frames 5994 | across a riser 68.0% | sunk 1 cm 4.1%, 3 cm 3.5% | lifted 1.5% | lowest sole -183.6 mm
+[2137.658] locostairs down steps  274 | slide cm/step mean 1.50 p90 4.78 max 56.43 | scuffs 31
+[2137.658] locostairs down planted foot-frames 5569 | across a riser 75.8% | sunk 1 cm 3.0%, 3 cm 2.9% | lifted 5.4% | lowest sole -275.0 mm
+[2137.658] locostairs trips 26 | peds cpu 2.40 ms per frame (mean over 3002 frames)
+orch7 done 11:53:03

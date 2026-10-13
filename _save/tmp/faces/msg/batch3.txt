@@ -1,0 +1,44 @@
+faces snapshot-safe — batch 3: beards that wrap the jaw, softer side hairlines, age at the temples, skin undertones, a softer lower lip
+
+Files (5). They are in the shared tree now, replacing my own files; on main 8ee5699 those still hold batch 2 (unchanged since 3319337). Copies are in /tmp/faces/batch3/. Blob hashes (git hash-object):
+- d66e004622369d9b3e8621aedff6410e165d908c  src/anim/face.cpp
+- 2692dce27c674e6275c36d4691c9e5dd31d7771d  src/anim/hair.cpp
+- 2247eae6d41d15b60740c3f0cb1df8924f392280  src/anim/character.cpp
+- 1905b986ea6ce5e1b6c1a736d435575e7a90d783  tests/anim/anim_test.cpp
+- 19139bed8a51fa666fceaacaac458488d0ccedfb  tests/anim/preview.cpp
+bodymesh.cpp, clothing.cpp, meshutil.cpp, character.h, anim_internal.h and the other anim sources are untouched. Verified trees: /tmp/faces/b3tree (main 3319337 plus the files; the game build, portraits and perf ran on it) and /tmp/faces/b3t8 (main 8ee5699 plus the files: anim_test and carview).
+
+What players see:
+Beards and stubble
+- A beard's back edge now follows the jaw: from the sideburn in front of the ear it runs back round the angle of the jaw, instead of stopping in a vertical cut in front of it. In profile a full beard no longer reads as a block stuck on the face.
+- The cheek line and the back edge wander a few millimetres (smooth noise), and under the jaw the beard thins out over the last rows above the neck instead of ending in a shelf.
+- Stubble and the shaved shadow follow the same outline, so Dex's new stubble wraps his jaw.
+Hairlines
+- The hairline curve runs smoothly through its control points instead of in straight segments, which put kinks into it (a notch at the temple in profile).
+- Women's sideburns are short curves instead of a man's V-shaped sideburn in front of the ear; men keep theirs, varying a little per person.
+- Hair over the ears (long hair, bobs, women's curls) now drops to the ear smoothly from the temple; with the softer sideburn it would otherwise have stepped, a horizontal line beside the eyes.
+Age
+- The temples hollow behind the eye socket's rim with age (more on lean faces, little on heavy ones).
+Skin and lips
+- Each person gets their own undertone at the same depth of skin: rosier on some, more olive or golden on others, golden more often on East Asian faces. The hue shifts a few percent at constant brightness.
+- The lower lip's border blends softly into the skin below it: the tight blend left a groove all round the lip that the baked shading drew as a dark outline.
+
+Tests run (final files):
+- anim_test: ALL PASSED on main 3319337 plus the files, and again on main 8ee5699 (the locomotion PR's animator.cpp and character.h changes) plus the files. tests/anim/carview.cpp, which includes preview.cpp, compiles on both.
+  - FaceShape gains a check that a full beard wraps the angle of the jaw: at least 40 beard-card vertices behind 86 degrees round the head, low on the jaw. Batch 3 has >= 90; batch-2 code has 8-19 and fails it.
+  - Mesh triangles average 34499 (batch 2: 34471; a few more beard cards round the jaw). Character mesh build time is unchanged (side by side: 134 -> 127 and 147 -> 143 ms).
+- O2 build of b3tree (/tmp/faces/nt_b3_o2.exe): exit 0.
+- Wine D3D12: a 30-portrait run with that exe logged no FATAL or vkd3d lines.
+- Crowd perf, tour stop 7 (club_night, 196 peds), cpu ms peds 3.07 with nt_b3_o2.exe (batch 2 measured 4.22, the base 4.74; the figure moves with the machine's load, but not up). That run logged no FATAL or vkd3d lines either.
+- preview.cpp gains PREVIEW_LIGHT=x,y,z (the key light's direction), for checking faces under a street lamp from above.
+
+Montages: main 3319337 vs batch 3, both on main's shaders. 0.5 m, 1 m and 4 m by day; 1 m and 4 m at night under the lamp. Folder: /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/faces/
+- b3_c0.png: Mari
+- b3_c1.png: Dex (with his new stubble)
+- b3_c27.png: young dark-skinned bearded man
+- b3_c7.png: old woman
+- b3_c17.png: older light-skinned woman
+- b3_c38.png: full beard
+Profile previews (the beard and hairline changes show best from the side): /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/faces/b3_profiles.png (main 3319337 above, batch 3 below: the bearded man, Dex, Mari, the old woman)
+
+Known, next: under the night lamp a thin curved line runs down the cheeks of bearded men (c27, c38 at 1 m). It predates my batches (it is in the shots from before batch 1). In preview renders lit from above it follows the upper edge of the beard shell, so it is mine: the hair shells get the garments' 1.2 mm rolled-hem lip at their edge and their own facet normals. That goes into batch 4 with an in-game A/B.

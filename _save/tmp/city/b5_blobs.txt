@@ -1,0 +1,7 @@
+buildings.h a2221ad7a06f731f6e6025364f0ac59bbe6a9a80 (HEAD a2221ad)
+buildings.cpp 8eb43d427ec384706ab5a2c0ef46e671fb17f7a1 (HEAD 8eb43d4)
+buildmesh.cpp f7d6ee6147ab788982e88f3858aaa16196b3953a (HEAD ac69f9b)
+facadedetail.cpp 37e7bad7410586dd4d619ea8244c5070033892c9 (HEAD c08ae64)
+cellgen.cpp a50f39b1c4ad06ba4d29f61c3e792a7ce4a1d2d0 (HEAD e157f83)
+blockstyle.cpp 729fab999a2d3164aa2df394a98e40a22af7ffee (HEAD c4331f3)
+massing.cpp d60313137fbc25abfe469242eaba0b6fa59e3157 (HEAD d603131)

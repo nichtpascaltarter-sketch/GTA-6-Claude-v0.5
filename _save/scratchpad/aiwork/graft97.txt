@@ -1,0 +1,6 @@
+18d30ae13fce633225e0e4f6e559fc29d427a9eb src/game/ai.cpp
+e3f9263e70fd8fd2226e0b9984025df86841fc5e src/game/ai_game.h
+4e6eaabfe0214f428b6d4187f0f8c02c290d2d72 src/game/app.cpp
+152d852bfd1d36ef388df24fa4657bb6b629fdd9 src/game/events.cpp
+267e0cf11c5c54fea85b3555c4ac9052b8a235c4 src/game/pedai.cpp
+ef101801a90ebff2f7d38ff49801302901023ad7 src/game/traffic.cpp

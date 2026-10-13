@@ -1,0 +1,26 @@
+[   0.009] Neon Tide starting. Data dir: C:\users\root\AppData\Local\NeonTide\
+[   0.890] DXGI is Wine's builtin implementation: presenting with sync interval 0 (no vsync)
+[   1.555] Direct3D 12 device created: adapter 'NVIDIA GeForce GTX 470', VRAM 16094 MB, feature level 11_1, resource binding tier 3, resource heap tier 2, typed UAV loads yes, tearing yes, bindless UAV arrays yes, 2 frames in flight
+[   1.564] gfx self-test on adapter 'NVIDIA GeForce GTX 470', VRAM 16094 MB, feature level 11_1, resource binding tier 3, resource heap tier 2, typed UAV loads yes, tearing yes, bindless UAV arrays yes, 2 frames in flight
+[   1.589] gfx self-test bindless + root constants + tables PASS  [5] = 1005030 (expect 1005030)
+[   1.598] gfx self-test draw: tables + root CBV + constants PASS  pixel 200 100 50 (expect 200 100 50)
+[   1.601] gfx self-test DrawInstancedIndirect              PASS  pixel 30 60 90 (expect 30 60 90)
+[   1.601] gfx self-test copy depth -> R32 texture          PASS  0.2500 (expect 0.25)
+[   1.609] gfx self-test read-only depth + depth SRV        PASS  0.2500 (expect 0.25)
+[   1.611] gfx self-test async compute + cross-queue fences PASS  [3] = 16 (expect 16), compute fence 1
+[   1.614] gfx self-test ExecuteIndirect: GPU-written dispatch PASS  102 (expect 102)
+[   1.614] gfx self-test ExecuteIndirect: constants + count SKIP  vkd3d has no root-constant arguments or dispatch count buffers
+[   1.616] gfx self-test ExecuteIndirect: multi-draw + count PASS  pixel 80 40 20 (expect 80 40 20)
+[   1.617] gfx self-test append counter + CopyStructureCount PASS  37 (expect 37: the counter restarts at 0 each pass)
+[   1.618] gfx self-test placed resources + aliasing        PASS  A 255 0, B 0 255 (heap 64 KB)
+[   1.624] gfx self-test mip generation (sRGB)              PASS  1x1 mip = 188 (expect ~188), 4 mips
+[   1.628] gfx self-test dependent dispatch chain, one list PASS  [3] = 67108864 (expect 67108864), 0 wrong
+[   1.632] gfx self-test root arguments across a UAV clear  PASS  [5] = 22 (expect 22), 0 wrong
+[   1.817] gfx self-test GPU wait with stray event signals  PASS  0 of 64 values wrong
+[   2.772] gfx self-test GPU waits polling every millisecond PASS  0 of 1536 values wrong in 24 readbacks
+[   2.777] gfx self-test per-draw constants -> instance data PASS  last pixel 140 110 155 99 (expect 140 110 155 99), 0 wrong
+[   2.785] gfx self-test bindless array + structured (PS)   PASS  pixel 110 8 55 88 (expect 110 8 55 88)
+[   2.793] gfx self-test table kept across a shader switch  PASS  0 channels wrong, 0 tables built for the subset shader (expect 0)
+[   2.793] gfx self-test: 0 failure(s), 8 pipelines, D3D12 debug-layer errors 0
+[   2.793] gfx self-test: 0 failure(s)
+[   4.888] Shutdown complete.

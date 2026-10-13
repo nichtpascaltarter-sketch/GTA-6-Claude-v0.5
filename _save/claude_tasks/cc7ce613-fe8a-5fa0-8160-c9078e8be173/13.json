@@ -1,0 +1,9 @@
+{
+  "id": "13",
+  "subject": "Enterable interiors (agent)",
+  "description": "Interiors agent launched: safehouses, diner, garage, club, police/hospital lobbies, shops, penthouse, warehouse; door cutouts, interior ambient hook, doors, NPC scenarios. Wire its hooks as they arrive.",
+  "activeForm": "Integrating interiors",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": []
+}

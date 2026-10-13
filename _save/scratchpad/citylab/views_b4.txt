@@ -1,0 +1,18 @@
+# batch 4: block houses (North City, Westbrook), folk Victorians (Okahatchee, Fort Castell, Harlow), MiMo carports, strip courts
+nc_cbs_air aerial 2550 3820 150 200 38 55 10
+oka_air aerial 120 6430 170 200 38 55 10
+wb_cbs_air aerial -1340 -860 150 200 38 55 10
+cbs_nc_box front 30564 17 2 4 60 10
+cbs_nc_box2 front 30569 17 2 -4 60 10
+cbs_nc_L front 30556 17 2 5 60 10
+cbs_wb_L front 13922 17 2 -5 60 10
+vic_oka_L1 front 22575 18 2 4 60 10
+vic_oka_L2 front 22465 20 2 -5 60 10
+vic_fc_box front 20910 24 2 4 60 10
+vic_fc_box2 front 20666 18 2 -4 60 10
+vic_har_L front 23278 18 2 5 60 10
+mimo_carport_a front 31190 16 2 7 62 10
+mimo_carport_b front 30597 16 2 -7 62 10
+strip_mission front 2273 30 3 -5 60 10
+strip_mimo front 2274 30 3 4 60 10
+strip_modern front 2270 30 3 -4 60 10

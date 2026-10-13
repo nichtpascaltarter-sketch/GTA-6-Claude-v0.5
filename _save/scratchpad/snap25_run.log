@@ -1,0 +1,8 @@
+Embedded 40 shader files.
+146 shaders, 0 failed
+[ 373.503] autoplay t=9.5 pos 1806.7 201.1 4.6 state 2 health 200 veh 1 speed 11.1 | peds 88 vehicles 63 wanted 0 | cpu ms player 0.04 ai 0.71 veh 0.87 peds 0.9
+[ 538.548] autoplay t=17.5 pos 1806.7 270.7 3.5 state 2 health 200 veh 1 speed 17.6 | peds 86 vehicles 66 wanted 0 | cpu ms player 0.04 ai 0.73 veh 0.74 peds 1.
+[ 387.778] autoplay t=13.5 pos 1791.3 160.9 6.5 state 0 health 188 veh -1 speed 0.0 | peds 97 vehicles 64 wanted 1 | cpu ms player 0.13 ai 0.66 veh 1.02 peds 1.
+e315ad9 Faces batch 2: no more "goggles" round the eyes; higher, softer brows; satin lips; no stripes in the hair at the temples
+branch 'claude/neon-tide' set up to track 'origin/claude/neon-tide'.
+COMMITTED 385f49441c6bc130ab9c50ba81d0b7a2e79b528e

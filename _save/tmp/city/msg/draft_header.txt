@@ -1,0 +1,9 @@
+city snapshot-safe: district architecture for the ordinary blocks (batches 1+2 together), MinGW-syntax-checked in the shared tree
+
+Files (all under src/world, all mine; two new files are included by my own files, not by main.cpp):
+  buildings.h, buildings.cpp (lot face ids; calls restyleBlocks / infillBlocks / logRepetition after planInteriors; includes blockstyle.cpp at its end)
+  buildmesh.cpp (roof finishes, archetype hook, tower crowns; includes massing.cpp)
+  facadedetail.cpp (archetype street-level details)
+  cellgen.cpp (rear parking lots and yards)
+  blockstyle.cpp (NEW: district palettes, restyle pass, block infill, repetition log)
+  massing.cpp (NEW: archetype massing, roofs, houses, porches, villas, stilt houses)

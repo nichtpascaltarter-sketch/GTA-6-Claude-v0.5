@@ -1,0 +1,106 @@
+[   0.009] Neon Tide starting. Data dir: C:\users\root\AppData\Local\NeonTide\
+[   0.603] D3D11 device created: feature level b100, adapter 'NVIDIA GeForce GTX 470', VRAM 16094 MB
+[   0.638] UI font 'Segoe UI Semibold' -> 'Liberation Sans'
+[   0.708] UI font 'Bahnschrift SemiBold Condensed' -> 'Liberation Sans'
+[   0.788] UI font 'Impact' -> 'Liberation Sans'
+[   0.857] Font atlas built in 0.22 s
+ALSA lib confmisc.c:855:(parse_card) cannot find card '0'
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_card_inum returned error: No such file or directory
+ALSA lib confmisc.c:422:(snd_func_concat) error evaluating strings
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_concat returned error: No such file or directory
+ALSA lib confmisc.c:1342:(snd_func_refer) error evaluating name
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5727:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2721:(snd_pcm_open_noupdate) Unknown PCM default
+ALSA lib confmisc.c:855:(parse_card) cannot find card '0'
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_card_inum returned error: No such file or directory
+ALSA lib confmisc.c:422:(snd_func_concat) error evaluating strings
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_concat returned error: No such file or directory
+ALSA lib confmisc.c:1342:(snd_func_refer) error evaluating name
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5727:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2721:(snd_pcm_open_noupdate) Unknown PCM default
+[   0.914] Audio: no output device - audio disabled
+[   0.914] Audio: no output device, continuing silently
+[   2.624] UI icon atlas: 88 icons + 13 weapons in 1644 ms
+[  23.894] Transit: SkyLine loop 8.60 km, 8 stations, 4299 samples
+[  23.932] Sites: 91 pads, 324 elements, 23 roads, 21 buildings requested (0.06 s)
+[  25.788] World map generated in 24.87 s
+[  26.569] Road gen: 22 interchanges
+[  31.525] Road network: 6284 nodes, 10029 edges, 1734 signalized; hwy 61.7 km, streets 1189.5 km (5.71 s)
+[  39.344] Transit: 0 buildings cleared from the SkyLine corridor
+[  39.346] Buildings: 35634 (towers 348, midrise 2352, condo 468, deco 823, shops 4704, strip 657, houses 21766, villas 914, warehouses 1638) in 7.54 s
+[  39.347] Sites: 66 highway billboards
+[  39.356] Sites: 139 silos, 49 windmills
+[  39.390] Transit: SkyLine profile 12.9..25.5 m above the street, 273 piers (0 straddle bents) (0.03 s)
+[  39.406] Transit: station Calle Luna       s    691 at (1850, -629) rail 16.6 street 3.1 exits -1/+1
+[  39.406] Transit: station Solaris          s   1891 at (3050, -629) rail 15.0 street 1.5 exits -1/+1
+[  39.406] Transit: station Civic Center     s   3068 at (3275, 400) rail 14.9 street 1.5 exits -1/+1
+[  39.406] Transit: station Midtown          s   3868 at (3275, 1200) rail 15.0 street 1.6 exits -1/+1
+[  39.406] Transit: station Canvas District  s   4644 at (2750, 1529) rail 16.4 street 2.2 exits -1/+1
+[  39.406] Transit: station Palmetto Flats   s   5744 at (1650, 1529) rail 17.0 street 3.5 exits -1/+1
+[  39.406] Transit: station Airport          s   6567 at (979, 1300) rail 17.7 street 4.3 exits -1/+1
+[  39.406] Transit: station Westbrook        s   8067 at (979, -200) rail 17.8 street 4.4 exits -1/+1
+[  39.412] Site runway 09L|27R  from (-1180, 2080) to (820, 2080) z 4.6 width 60
+[  39.413] Site runway 09R|27L  from (-1100, 780) to (700, 780) z 4.6 width 45
+[  39.413] Site terminal             at (628, 1440, 4.6)
+[  39.413] Site control tower        at (730, 1832, 4.6)
+[  39.413] Site container ship       at (4625, -800, 0.0)
+[  39.413] Site container ship       at (4616, -330, 0.0)
+[  39.413] Site port gate            at (4008, -160, 3.0)
+[  39.413] Site Key Coral marina     at (4039, -4035, 0.0)
+[  39.413] Site beach club           at (4873, -3866, 1.2)
+[  39.413] Site beach club           at (4808, -4183, 2.2)
+[  39.413] Site Solaris One          at (3350, -750, 1.4)
+[  39.413] Site stadium              at (3565, 445, 1.6)
+[  39.413] Site City Hall            at (3000, 372, 2.0)
+[  39.413] Site Canvas Park          at (3100, 1800, 1.7)
+[  39.413] Site Sol Beach Pier from (5414, 1250) to (5840, 1250) deck z 5.6
+[  39.413] Site Ferris wheel         at (5504, 1270, 5.6)
+[  39.413] Site lighthouse           at (-2206, -8000, 0.5)
+[  39.413] Site radio mast           at (-6744, 7248, 166.1)
+[  39.413] Site sugar mill           at (1430, 7500, 8.1)
+[  39.413] Site Rio Sol marina       at (2280, 188, 0.0)
+[  39.413] Site Okahatchee boat ramp at (-515, 6822, 7.7)
+[  39.413] Site Sawgrass tower       at (-4873, 420, 0.6)
+[  39.413] Sites finalized: 721 elements (0.07 s)
+[  39.420] Interiors: 18 planned (convenience 7, gun shops 2) in 6.6 ms
+[  39.432]   interior 'Mari's Apartment' kind 0 building 4623 at (1742.99, 359.27, 3.79) ax (1.0000, 0.0000) x -6.35..6.35 depth 11.50 ceil 4.07: 3 rooms, 5 openings, 3 doors, 5 portals, 0 npc points
+[  39.436]   interior 'Mama Lucha's' kind 2 building 3184 at (1344.20, 340.74, 4.30) ax (-1.0000, -0.0000) x -7.52..7.52 depth 16.00 ceil 4.20: 4 rooms, 5 openings, 4 doors, 5 portals, 22 npc points
+[  39.438]   interior 'Rook's Garage' kind 3 building 4135 at (1653.58, 2361.70, 4.24) ax (1.0000, 0.0000) x -10.06..10.06 depth 20.00 ceil 7.79: 3 rooms, 6 openings, 4 doors, 6 portals, 5 npc points
+[  39.439]   interior 'Dex's Trailer' kind 1 building 2710 at (1313.66, 2666.61, 4.66) ax (1.0000, 0.0000) x -7.80..7.80 depth 17.92 ceil 2.25: 3 rooms, 7 openings, 3 doors, 7 portals, 0 npc points
+[  39.439]   interior 'Police Headquarters' kind 5 building 9005 at (3164.81, -240.27, 1.87) ax (1.0000, 0.0000) x -12.31..8.80 depth 16.00 ceil 3.77: 2 rooms, 7 openings, 2 doors, 7 portals, 13 npc points
+[  39.439]   interior 'Tidewater General Hospital' kind 6 building 4058 at (1708.83, 1165.32, 3.62) ax (1.0000, 0.0000) x -11.37..8.12 depth 16.00 ceil 3.89: 2 rooms, 7 openings, 2 doors, 7 portals, 12 npc points
+[  39.439]   interior 'Palmetto Arms' kind 7 building 1627 at (884.67, 2892.03, 4.89) ax (0.0000, 1.0000) x -5.49..5.49 depth 14.00 ceil 4.20: 2 rooms, 4 openings, 2 doors, 4 portals, 3 npc points
+[  39.439]   interior 'Northside Arms' kind 7 building 9515 at (3284.66, 3989.33, 2.06) ax (0.0000, 1.0000) x -5.95..5.95 depth 14.00 ceil 3.92: 2 rooms, 5 openings, 2 doors, 5 portals, 3 npc points
+[  39.439]   interior 'Threads' kind 9 building 31459 at (5153.21, -280.72, 1.90) ax (-1.0000, 0.0000) x -9.32..6.66 depth 15.00 ceil 4.03: 2 rooms, 7 openings, 2 doors, 7 portals, 4 npc points
+[  39.439]   interior 'Port Isle Warehouse' kind 12 building 35619 at (4034.00, -820.00, 3.15) ax (-0.0000, 1.0000) x -23.22..23.22 depth 38.00 ceil 8.93: 2 rooms, 10 openings, 4 doors, 10 portals, 4 npc points
+[  39.439]   interior 'TideStop Mart' kind 8 building 3289 at (1449.11, -259.30, 4.30) ax (-1.0000, -0.0000) x -6.22..6.22 depth 17.00 ceil 3.45: 2 rooms, 4 openings, 2 doors, 4 portals, 5 npc points
+[  39.439]   interior 'Bodega La Luna' kind 8 building 6217 at (2248.50, 540.78, 2.92) ax (-1.0000, -0.0000) x -5.89..5.89 depth 17.00 ceil 3.52: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+[  39.439]   interior 'Canvas Corner Market' kind 8 building 8637 at (2981.20, 1582.59, 2.26) ax (0.0000, 1.0000) x -8.23..4.94 depth 17.00 ceil 3.44: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+[  39.439]   interior 'Sunrise Food Mart' kind 8 building 31117 at (5280.88, 595.64, 2.76) ax (1.0000, -0.0000) x -7.70..7.70 depth 17.00 ceil 4.20: 2 rooms, 4 openings, 2 doors, 4 portals, 5 npc points
+[  39.439]   interior 'Northside Quick Stop' kind 8 building 6466 at (2352.84, 3761.68, 3.08) ax (1.0000, 0.0000) x -6.39..6.39 depth 17.00 ceil 3.53: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+[  39.439]   interior 'Flats Food & Fuel' kind 8 building 1225 at (458.12, 3265.33, 5.16) ax (1.0000, 0.0000) x -5.58..5.58 depth 17.00 ceil 4.20: 2 rooms, 1 openings, 2 doors, 1 portals, 5 npc points
+[  39.439]   interior 'Grove Pantry' kind 8 building 12229 at (2168.80, -3111.40, 2.24) ax (0.0207, -0.9998) x -6.20..9.30 depth 17.00 ceil 3.81: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+[  39.439]   interior 'Club Riptide' kind 4 building -1 at (5424.10, 900.00, 0.94) ax (0.0000, -1.0000) x -55.00..17.00 depth 32.00 ceil 4.00: 4 rooms, 0 openings, 0 doors, 0 portals, 32 npc points
+[  39.561] Material library: 57 layers at 256^2
+[  39.600] Props: 69 prototypes, 33370 verts
+[  47.561] Vehicle assets: 45 models in 6.28 s
+[  72.469] Character assets: 86 characters in 24.91 s
+[  72.470] Game assets built in 31.19 s
+[  72.521] Story place near (4450, -4200): no building frontage found, using the street
+[  72.551] Story place near (3800, 200): no building frontage found, using the street
+[  72.556] Story places resolved in 79.6 ms (diner 1342 342, Mari's 1745 358, Rook's 1657 2360, Pulse FM 3344 662, boatyard 1650 239, river 1644 140, sawgrass dock -5016 -74)
+[  72.557] Missions registered: 46
+[  73.606] Lane graph: 26689 lanes, 59925 connectors (1215620 pts), 36764 walk nodes, 53083 walk links, dead-end turning circles moved 0 / obstructed 0 (1.05 s)
+[  74.344] UI map: base 2560x2560 in 600 ms, 10029 roads (46398 pts) in 43 ms, 30 labels in 95 ms
+[  74.344] hudInit done in 738 ms
+[  74.344] Init done in 73.43 s (shaders: 0 compiled in 0.00 s)
+[  74.357] Interior 'Mari's Apartment' built: 15962 triangles, 12 lights, 25 colliders, 3 door leaves in 1.8 ms
+[  74.375] Interior 'Mama Lucha's' built: 32333 triangles, 24 lights, 55 colliders, 5 door leaves in 3.7 ms
+[  77.442] Interior 'Bodega La Luna' built: 113408 triangles, 18 lights, 14 colliders, 3 door leaves in 181.2 ms
+[ 519.505] Saved Z:\tmp\fx\aw1\awn_close.bmp
+[ 579.065] Saved Z:\tmp\fx\aw1\awn_head.bmp
+[ 618.680] Saved Z:\tmp\fx\aw1\street_ctrl.bmp
+[ 626.338] Shutdown complete.
+X connection to :105 broken (explicit kill or server shutdown).

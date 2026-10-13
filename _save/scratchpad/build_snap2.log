@@ -1,0 +1,8 @@
+In file included from src/main.cpp:42:
+src/game/app.cpp: In member function 'std::string Game::App::shotPath(const std::string&)':
+src/game/app.cpp:201: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
+  201 |         if (const char* dir = Platform::argValue("shotdir")) path = std::string(dir) + name + ".bmp";
+      | 
+src/game/app.cpp:201: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
+-rwxr-xr-x 1 root root 2734080 Sep 29 22:16 bin/nt_chars.exe
+exit 0

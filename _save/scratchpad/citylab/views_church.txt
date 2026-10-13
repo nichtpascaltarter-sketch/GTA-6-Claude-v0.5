@@ -1,0 +1,4 @@
+church_mission front 2272 30 3 -6 60 10
+church_board front 22606 30 3 6 60 10
+church_brick front 22504 28 3 -6 60 10
+church_aframe front 2252 30 3 6 60 10

@@ -1,0 +1,12 @@
+
+=== country seed 1696: 109 bpm, key 0 scale 0, variant 0, 96 bars, 213.9 s, swing 0.00
+  form: Intro4 Verse16 Chorus16 Verse16 Chorus16 Solo8 Chorus16 Outro4
+  MIX rms -18.3 dB, centroid 2764 Hz, peak 0.82
+  track 0 Drums  notes  1666                                  rms  -21.7 dB  centroid  3468 Hz  peak 0.73
+  track 1 Pluck  notes   297 range  31- 48 outKey  0.0% steps  49% leaps  13%  rms  -23.0 dB  centroid  1182 Hz  peak 0.54
+  track 2 Pluck  notes  3281 range  41- 69 outKey  0.0% steps  10% leaps  21%  rms  -23.9 dB  centroid  3929 Hz  peak 0.67
+  track 3 Sub    notes    49 range  64- 79 outKey  0.0% steps  62% leaps   2%  rms  -31.4 dB  centroid   588 Hz  peak 0.14
+  track 4 Sub    notes    71 range  68- 84 outKey  5.6% steps  64% leaps   0%  rms  -33.1 dB  centroid  2151 Hz  peak 0.26
+  track 5 Pluck  notes     0 range 127-  0 outKey  0.0% steps   0% leaps   0%  rms -120.0 dB  centroid     0 Hz  peak 0.00
+  track 6 Pluck  notes    96 range  62- 81 outKey  4.2% steps  81% leaps   0%  rms  -36.9 dB  centroid  3874 Hz  peak 0.42
+  track 7 Vox    notes   312 range  55- 74 outKey  0.0% steps  62% leaps  11%  rms  -24.3 dB  centroid   598 Hz  peak 0.34

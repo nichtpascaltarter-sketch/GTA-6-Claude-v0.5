@@ -1,0 +1,10 @@
+{
+  "id": "32",
+  "subject": "Animation agent: rear doors (snapshot 21), then locomotion polish",
+  "description": "Animation agent done (wind-down 13:35): stair gait merged (PR #39); stair follow-up signed off, queued for snapshot 41. Parked: change 1 (separation velocity; resume/animation.md sections 12-13, sep_vel.py, push0/push1 trees, locopush test), the -233 mm no-plan plant, the 43 cm slide, in-game ascent overshoot.",
+  "status": "completed",
+  "blocks": [
+    "40"
+  ],
+  "blockedBy": []
+}

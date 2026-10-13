@@ -1,0 +1,115 @@
+Transit: SkyLine loop 8.60 km, 8 stations, 4299 samples; 3 ferry piers
+Sites: 91 pads, 532 elements, 23 roads, 21 buildings requested (0.04 s)
+World map generated in 15.47 s
+Road gen: 18 interchanges, 50 ramps (22 left out where they could not come down in time)
+Road gen: 1 arterial ends at a lone on/off ramp given a turnaround
+Road network: 6224 nodes, 9558 edges, 1690 signalized; hwy 61.7 km, streets 1167.6 km (3.10 s)
+Transit: 0 buildings cleared from the SkyLine corridor
+Buildings: 35685 (towers 366, midrise 2297, condo 426, deco 697, shops 4595, strip 644, houses 22133, villas 910, warehouses 1652) in 1.47 s
+Sites: 72 highway billboards
+Sites: 147 silos, 50 windmills
+Sites: 250 beach access paths
+Transit: 3 ferry piers, 1 routes, 4.24 km of water path (0.00 s)
+Transit: ferry pier Sol Beach  base (4836, -1250) length 90 deck 2.3 berth (4741, -1250)
+Transit: ferry pier Port Isle  base (4280, -1044) length 26 deck 2.3 berth (4280, -1075)
+Transit: ferry pier Key Coral  base (4350, -2973) length 58 deck 2.3 berth (4350, -2910)
+Transit: 4 bus routes, 63 stops (51 new shelters) (0.01 s); rejects class 1229 cut 1977 deck 57 road 99 avoid 0 pad 0 furn 311 stop 5
+Transit: bus 3   Airport      8.2 km, 17 stops, 4 buses, headway 6.3 min
+Transit: bus 7   Calle Luna   6.4 km, 15 stops, 3 buses, headway 6.7 min
+Transit: bus 9   Sol Beach    7.1 km, 15 stops, 4 buses, headway 5.5 min
+Transit: bus 12  Bayshore     8.3 km, 20 stops, 4 buses, headway 6.6 min
+Transit: Sol Beach Streetcar 6.24 km, 16 stops, 65 junctions (32 signalled, 29 stop signs), 228 poles, 4 streetcars, headway 4.9 min (0.00 s)
+Transit: streetcar stop 47th St              s     27 shelter (5175.0, 1602.1, 1.8) travel (-0.00, -1.00)
+Transit: streetcar stop 43rd St              s    416 shelter (5231.0, 1221.9, 1.8) travel (-0.00, -1.00)
+Transit: streetcar stop 39th St              s    805 shelter (5239.0, 833.9, 1.7) travel (0.00, -1.00)
+Transit: streetcar stop 35th St              s   1180 shelter (5207.0, 462.6, 1.8) travel (-0.00, -1.00)
+Transit: streetcar stop 31st St              s   1566 shelter (5223.0, 81.9, 2.0) travel (-0.00, -1.00)
+Transit: streetcar stop 27th St              s   1950 shelter (5231.0, -298.1, 1.9) travel (-0.00, -1.00)
+Transit: streetcar stop 23rd St              s   2329 shelter (5215.0, -676.9, 1.8) travel (-0.00, -1.00)
+Transit: streetcar stop 19th St              s   2714 shelter (5199.0, -1058.2, 1.9) travel (0.00, -1.00)
+Transit: streetcar stop Ferry Terminal       s   3141 shelter (4941.4, -1196.2, 2.4) travel (0.00, 1.00)
+Transit: streetcar stop 21st St              s   3535 shelter (4973.4, -807.2, 2.8) travel (0.00, 1.00)
+Transit: streetcar stop 25th St              s   3920 shelter (4981.5, -425.5, 2.5) travel (0.30, 0.95)
+Transit: streetcar stop 29th St              s   4299 shelter (4997.4, -47.2, 2.0) travel (0.00, 1.00)
+Transit: streetcar stop 33rd St              s   4676 shelter (4965.4, 324.8, 2.4) travel (-0.00, 1.00)
+Transit: streetcar stop 37th St              s   5063 shelter (4997.4, 704.8, 2.6) travel (0.00, 1.00)
+Transit: streetcar stop 41st St              s   5443 shelter (4994.0, 1086.6, 1.9) travel (-0.30, 0.95)
+Transit: streetcar stop 45th St              s   5845 shelter (4949.4, 1479.5, 2.9) travel (0.00, 1.00)
+Transit: SkyLine profile 12.9..25.4 m above the street, 274 piers (0 straddle bents) (0.04 s)
+Transit: station Calle Luna       s    691 at (1850, -629) rail 16.5 street 3.1 exits -1/+1
+Transit: station Solaris          s   1891 at (3050, -629) rail 15.0 street 1.5 exits -1/+1
+Transit: station Civic Center     s   3068 at (3275, 400) rail 14.9 street 1.5 exits -1/+1
+Transit: station Midtown          s   3868 at (3275, 1200) rail 15.0 street 1.6 exits -1/+1
+Transit: station Canvas District  s   4644 at (2750, 1529) rail 16.4 street 2.2 exits -1/+1
+Transit: station Palmetto Flats   s   5744 at (1650, 1529) rail 17.0 street 3.5 exits -1/+1
+Transit: station Airport          s   6567 at (979, 1300) rail 17.7 street 4.3 exits -1/+1
+Transit: station Westbrook        s   8067 at (979, -200) rail 17.8 street 4.4 exits -1/+1
+Site runway 09L|27R  from (-1180, 2080) to (820, 2080) z 4.6 width 60
+Site runway 09R|27L  from (-1100, 780) to (700, 780) z 4.6 width 45
+Site terminal             at (628, 1440, 4.6)
+Site control tower        at (730, 1832, 4.6)
+Site container ship       at (4625, -800, 0.0)
+Site container ship       at (4616, -330, 0.0)
+Site port gate            at (4008, -160, 3.0)
+Site Key Coral marina     at (4039, -4035, 0.0)
+Site beach club           at (4873, -3866, 1.2)
+Site beach club           at (4808, -4183, 2.2)
+Site Solaris One          at (3350, -750, 1.4)
+Site stadium              at (3565, 445, 1.6)
+Site City Hall            at (3000, 372, 2.0)
+Site Canvas Park          at (3100, 1800, 1.7)
+Site Sol Beach Pier from (5414, 1250) to (5840, 1250) deck z 5.6
+Site Ferris wheel         at (5504, 1270, 5.6)
+Site lighthouse           at (-2206, -8000, 0.5)
+Site radio mast           at (-6744, 7248, 166.1)
+Site sugar mill           at (1430, 7500, 8.1)
+Site Rio Sol marina       at (2280, 188, 0.0)
+Site Okahatchee boat ramp at (-515, 6822, 7.7)
+Site Sawgrass tower       at (-4873, 420, 0.6)
+Sites finalized: 1374 elements (0.05 s)
+Interiors: 29 planned (convenience 7, gun shops 2) in 5.5 ms
+  interior 'Mari's Apartment' kind 0 building 28215 at (1752.63, 459.28, 3.71) ax (1.0000, 0.0000) x -6.26..6.26 depth 11.50 ceil 3.57: 3 rooms, 5 openings, 3 doors, 5 portals, 0 npc points
+  interior 'Mama Lucha's' kind 2 building 26769 at (1332.49, 340.78, 4.32) ax (-1.0000, -0.0000) x -7.61..7.61 depth 16.00 ceil 3.98: 4 rooms, 5 openings, 4 doors, 5 portals, 21 npc points
+  interior 'Rook's Garage' kind 3 building 27327 at (1556.01, 2165.34, 4.29) ax (1.0000, 0.0000) x -9.20..9.20 depth 20.00 ceil 7.53: 3 rooms, 5 openings, 4 doors, 5 portals, 5 npc points
+  interior 'Dex's Trailer' kind 1 building 26284 at (1356.37, 2668.10, 4.58) ax (1.0000, 0.0000) x -6.25..6.25 depth 23.53 ceil 2.25: 3 rooms, 7 openings, 3 doors, 7 portals, 0 npc points
+  interior 'Police Headquarters' kind 5 building 32195 at (3046.38, -540.34, 1.92) ax (1.0000, 0.0000) x -12.80..10.83 depth 16.00 ceil 5.05: 2 rooms, 13 openings, 2 doors, 13 portals, 14 npc points
+  interior 'Tidewater General Hospital' kind 6 building 27654 at (1750.52, 1165.40, 3.52) ax (1.0000, 0.0000) x -8.55..11.41 depth 16.00 ceil 3.90: 2 rooms, 8 openings, 2 doors, 8 portals, 12 npc points
+  interior 'Palmetto Arms' kind 7 building 25246 at (884.61, 2991.00, 4.87) ax (0.0000, 1.0000) x -7.38..4.43 depth 14.00 ceil 4.01: 2 rooms, 5 openings, 2 doors, 5 portals, 3 npc points
+  interior 'Northside Arms' kind 7 building 33106 at (3284.62, 3981.51, 2.05) ax (0.0000, 1.0000) x -6.65..6.65 depth 14.00 ceil 4.20: 2 rooms, 5 openings, 2 doors, 5 portals, 3 npc points
+  interior 'Threads' kind 9 building 19701 at (5141.16, -280.63, 1.88) ax (-1.0000, 0.0000) x -5.68..8.51 depth 15.00 ceil 3.91: 2 rooms, 6 openings, 2 doors, 6 portals, 4 npc points
+  interior 'Port Isle Warehouse' kind 12 building 35670 at (4034.00, -820.00, 3.15) ax (-0.0000, 1.0000) x -23.22..23.22 depth 38.00 ceil 8.93: 2 rooms, 10 openings, 4 doors, 10 portals, 4 npc points
+  interior 'TideStop Mart' kind 8 building 26875 at (1477.85, -259.29, 4.21) ax (-1.0000, -0.0000) x -5.20..5.20 depth 17.00 ceil 4.16: 2 rooms, 4 openings, 2 doors, 4 portals, 5 npc points
+  interior 'Bodega La Luna' kind 8 building 29787 at (2247.79, 540.73, 2.92) ax (-1.0000, -0.0000) x -7.21..4.33 depth 17.00 ceil 3.76: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+  interior 'Canvas Corner Market' kind 8 building 32647 at (3090.55, 1396.30, 2.22) ax (0.0000, 1.0000) x -7.61..7.61 depth 17.00 ceil 3.72: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+  interior 'Sunrise Food Mart' kind 8 building 19743 at (5227.62, 641.71, 1.78) ax (0.0000, 1.0000) x -7.96..7.96 depth 17.00 ceil 3.43: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+  interior 'Northside Quick Stop' kind 8 building 30037 at (2270.22, 3761.66, 3.18) ax (1.0000, 0.0000) x -6.06..6.06 depth 17.00 ceil 3.79: 2 rooms, 4 openings, 2 doors, 4 portals, 5 npc points
+  interior 'Flats Food & Fuel' kind 8 building 24858 at (513.68, 3361.63, 5.18) ax (1.0000, 0.0000) x -7.16..7.16 depth 17.00 ceil 4.20: 2 rooms, 1 openings, 2 doors, 1 portals, 5 npc points
+  interior 'Grove Pantry' kind 8 building 1182 at (2175.56, -3114.24, 2.23) ax (0.0207, -0.9998) x -6.96..6.96 depth 17.00 ceil 2.80: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+  interior 'Palm Motors' kind 17 building 31661 at (2790.48, 1275.94, 2.58) ax (0.0000, 1.0000) x -9.18..9.18 depth 20.00 ceil 4.04: 2 rooms, 7 openings, 3 doors, 7 portals, 5 npc points
+  interior 'Tide Customs Calle Luna' kind 18 building 29734 at (2246.38, -140.70, 3.08) ax (1.0000, 0.0000) x -9.44..5.66 depth 18.00 ceil 4.17: 1 rooms, 5 openings, 2 doors, 5 portals, 3 npc points
+  interior 'Tide Customs Sol Beach' kind 18 building 19812 at (5127.28, 1999.35, 1.92) ax (-1.0000, 0.0000) x -8.01..8.01 depth 18.00 ceil 3.72: 1 rooms, 6 openings, 2 doors, 6 portals, 3 npc points
+  interior 'Sunwash Car Wash' kind 19 building 28412 at (1779.00, 1490.81, 3.60) ax (0.0000, 1.0000) x -7.74..7.74 depth 20.00 ceil 4.44: 1 rooms, 5 openings, 3 doors, 5 portals, 2 npc points
+  interior 'Key Coral Villa' kind 0 building 23721 at (4426.48, -4048.24, 1.65) ax (0.7949, -0.6067) x -7.41..7.41 depth 12.00 ceil 2.80: 3 rooms, 5 openings, 3 doors, 5 portals, 0 npc points
+  interior 'Sol Beach Condo Lobby' kind 20 building 19795 at (5114.61, 1619.32, 1.86) ax (-1.0000, 0.0000) x -5.88..5.88 depth 10.00 ceil 4.20: 2 rooms, 4 openings, 2 doors, 4 portals, 2 npc points
+  interior 'Sol Beach Condo' kind 21 building 19795 at (5114.61, 1619.32, 31.52) ax (-1.0000, 0.0000) x -9.80..5.88 depth 12.00 ceil 2.61: 6 rooms, 4 openings, 5 doors, 4 portals, 0 npc points
+  interior 'Downtown Penthouse Lobby' kind 20 building 32955 at (3340.49, -838.84, 1.86) ax (1.0000, 0.0000) x -7.53..2.51 depth 10.00 ceil 4.20: 2 rooms, 3 openings, 2 doors, 3 portals, 2 npc points
+  interior 'Downtown Penthouse' kind 21 building 32955 at (3340.49, -838.84, 69.05) ax (1.0000, 0.0000) x -12.56..7.53 depth 14.00 ceil 2.63: 6 rooms, 4 openings, 5 doors, 4 portals, 0 npc points
+  interior 'Club Riptide' kind 4 building -1 at (5424.10, 900.00, 0.94) ax (0.0000, -1.0000) x -55.00..17.00 depth 32.00 ceil 4.00: 4 rooms, 0 openings, 0 doors, 0 portals, 32 npc points
+  interior 'Solaris One' kind 10 building -1 at (3350.00, -786.00, 1.89) ax (1.0000, -0.0000) x -18.40..18.40 depth 31.00 ceil 8.30: 3 rooms, 4 openings, 4 doors, 4 portals, 17 npc points
+  interior 'Solaris One Penthouse' kind 11 building -1 at (3365.30, -759.93, 457.34) ax (0.5442, 0.8390) x -18.24..18.24 depth 36.48 ceil 8.20: 4 rooms, 4 openings, 1 doors, 4 portals, 15 npc points
+worldcheck: 2129 cells, 464230 colliders, 405912 props
+
+[lanes] colliders intruding into drivable lanes: 0, props standing in lanes: 0; dead-end turning circles without room: 0, obstructed: 1 (21 pulled back to fit)
+  turning circle at dead end (-1200.0, 5100.0) obstructed by static box at (-1205.1, 5095.7, 6.8) he (4.2, 0.4, 0.7)
+
+[falls] road edges with a fall of more than 1.2 m: guarded 125416 m, unguarded 0 m
+
+[steps] lane surface vs physics ground: 1589354 samples, 0 off by more than 0.45 m at 0 places
+
+[grades] road profile segments steeper than 16%:
+  0 segments
+
+[crossings] roads crossing without a junction less than 4.5 m apart:
+  0 crossings
+
+worldcheck: FAILED

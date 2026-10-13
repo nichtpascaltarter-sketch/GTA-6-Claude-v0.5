@@ -1,0 +1,28 @@
+wc build (dev14) Tue Oct  6 11:17:07 UTC 2026
+wc build (dev14) rc=0 Tue Oct  6 11:19:26 UTC 2026
+wc run (dev14) exit 0: 2771 overlapping building pairs (2 of them envelope into envelope) Tue Oct  6 11:20:15 UTC 2026
+wc build (dev14 fp_before2) Tue Oct  6 11:24:59 UTC 2026
+wc build (dev14 fp_before2) rc=0 Tue Oct  6 11:27:14 UTC 2026
+wc run (dev14 fp_before2) exit 0: 2771 overlapping building pairs (2 of them envelope into envelope) Tue Oct  6 11:32:30 UTC 2026
+wc build (dev14 fp_b) Tue Oct  6 11:46:29 UTC 2026
+wc build (dev14 fp_b) rc=0 Tue Oct  6 11:48:38 UTC 2026
+wc run (dev14 fp_b) exit 0: 2769 overlapping building pairs (0 of them envelope into envelope) (peak 314 MB) Tue Oct  6 11:49:21 UTC 2026
+wc build (dev15 fp_a) Tue Oct  6 11:49:21 UTC 2026
+wc build (dev15 fp_a) rc=0 Tue Oct  6 11:51:22 UTC 2026
+wc run (dev15 fp_a) exit 1: 1 overlapping building pairs (0 of them envelope into envelope) (peak 313 MB) Tue Oct  6 11:52:37 UTC 2026
+wcfp2 done Tue Oct  6 11:52:37 UTC 2026
+near tc done Tue Oct  6 11:54:59 UTC 2026
+wc rebuild (dev14 fp_b) rc=0 Tue Oct  6 11:57:28 UTC 2026
+wc rebuild (dev15 fp_a) rc=0 Tue Oct  6 11:59:07 UTC 2026
+wcnear2 built Tue Oct  6 11:59:07 UTC 2026
+near tc2 done Tue Oct  6 12:00:44 UTC 2026
+near inf done Tue Oct  6 12:04:33 UTC 2026
+wc build (dev15 fp_a2) rc=0 Tue Oct  6 12:04:59 UTC 2026
+wc run (dev15 fp_a2) exit 1: 1 overlapping building pairs (0 of them envelope into envelope) Tue Oct  6 12:05:43 UTC 2026
+wc build (dev15 fp_a3) rc=0 Tue Oct  6 12:08:09 UTC 2026
+wc run (dev15 fp_a3) exit 0: 0 overlapping building pairs (0 of them envelope into envelope) Tue Oct  6 12:08:52 UTC 2026
+wc build (dev14 fp_b4) rc=0 Tue Oct  6 12:11:15 UTC 2026
+wc run (dev14 fp_b4) exit 0: 2769 overlapping building pairs (0 of them envelope into envelope) Tue Oct  6 12:11:54 UTC 2026
+wc build (dev15 fp_a4) rc=0 Tue Oct  6 12:13:42 UTC 2026
+wc run (dev15 fp_a4) exit 0: 0 overlapping building pairs (0 of them envelope into envelope) Tue Oct  6 12:14:18 UTC 2026
+wcstats done Tue Oct  6 12:14:18 UTC 2026

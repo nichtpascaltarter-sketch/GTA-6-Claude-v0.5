@@ -1,0 +1,9 @@
+{
+  "id": "2",
+  "subject": "M2: World generation (terrain, coast, districts, roads, lots, buildings, streaming)",
+  "description": "Master plan: 20km world with metropolis, suburbs, countryside, wetlands, coast, islands, keys; road graph; frontage lots; procedural buildings with many styles and LODs; cell streaming in worker threads.",
+  "activeForm": "World agent: airport, port, Key Coral, landmarks",
+  "status": "in_progress",
+  "blocks": [],
+  "blockedBy": []
+}

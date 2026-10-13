@@ -1,0 +1,18 @@
+Embedded 35 shader files.
+In file included from src/anim/anim_all.cpp:7,
+                 from src/main.cpp:49:
+src/anim/face.cpp: In function 'void Anim::detail::buildHeadGrid(BuildCtx&)':
+src/anim/face.cpp:614:28: error: expected unqualified-id before '=' token
+  614 |                 float near = j < H.rowMouthHi ? 1.f - sstep(0.f, 2.5f, (float)(H.rowMouthLo - j)) : 1.f - sstep(0.f, 2.5f, (float)(j - H.rowMouthHi));
+      |                            ^
+src/anim/face.cpp:615:91: error: invalid type argument of unary '*' (have 'float')
+  615 |                 float ck = sstep(0.68f, 1.02f, uc) * (1.f - sstep(1.3f, 1.8f, uc)) * near * front;
+      |                                                                                           ^~~~~~~
+In file included from src/audio/audio_all.cpp:10,
+                 from src/main.cpp:53:
+src/audio/radio.cpp: In function 'void Audio::detail::radio::initStation(int)':
+src/audio/radio.cpp:634: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
+  634 |                     for (auto& o : s.catalog)
+      | 
+src/audio/radio.cpp:634: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
+exit 1

@@ -1,0 +1,83 @@
+[   0.000] Neon Tide starting. Data dir: C:\users\root\AppData\Local\NeonTide\
+[   0.503] D3D11 device created: feature level b100, adapter 'NVIDIA GeForce GTX 470', VRAM 16095 MB
+[   0.520] UI font 'Segoe UI Semibold' -> 'Liberation Sans'
+[   0.601] UI font 'Bahnschrift SemiBold Condensed' -> 'Liberation Sans'
+[   0.682] UI font 'Impact' -> 'Liberation Sans'
+[   0.760] Font atlas built in 0.25 s
+ALSA lib confmisc.c:855:(parse_card) cannot find card '0'
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_card_inum returned error: No such file or directory
+ALSA lib confmisc.c:422:(snd_func_concat) error evaluating strings
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_concat returned error: No such file or directory
+ALSA lib confmisc.c:1342:(snd_func_refer) error evaluating name
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5727:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2721:(snd_pcm_open_noupdate) Unknown PCM default
+ALSA lib confmisc.c:855:(parse_card) cannot find card '0'
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_card_inum returned error: No such file or directory
+ALSA lib confmisc.c:422:(snd_func_concat) error evaluating strings
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_concat returned error: No such file or directory
+ALSA lib confmisc.c:1342:(snd_func_refer) error evaluating name
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5727:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2721:(snd_pcm_open_noupdate) Unknown PCM default
+[   0.805] Audio: no output device - audio disabled
+[   0.805] Audio: no output device, continuing silently
+[   3.637] UI icon atlas: 66 icons + 13 weapons in 2693 ms
+[  45.688] World map generated in 44.88 s
+[  46.639] Road gen: 21 interchanges
+[  52.486] Road network: 6252 nodes, 10041 edges, 1732 signalized; hwy 60.1 km, streets 1186.7 km (6.80 s)
+[  64.287] Buildings: 36940 (towers 368, midrise 2449, condo 509, deco 844, shops 4788, strip 767, houses 22715, villas 794, warehouses 1673) in 11.57 s
+[  64.652] Material library: 52 layers at 256^2
+[  64.715] Props: 51 prototypes, 14371 verts
+[  66.742] Vehicle 0: Sakaki Minnow (22996 tris)
+[  67.140] Vehicle 1: Hoshida Kiko (22628 tris)
+[  67.498] Vehicle 2: Aether Glint (22182 tris)
+[  67.942] Vehicle 3: Brennan Harbor (23906 tris)
+[  68.469] Vehicle 4: Hoshida Seiran (26200 tris)
+[  68.811] Vehicle 5: Nordwerk Falke 7 (24534 tris)
+[  69.381] Vehicle 6: Brennan Governor (23116 tris)
+[  69.809] Vehicle 7: Ardent Cavell GT (22404 tris)
+[  70.175] Vehicle 8: Hoshida Kaito (22038 tris)
+[  70.620] Vehicle 9: Brennan Sawgrass (27064 tris)
+[  71.298] Vehicle 10: Hoshida Kumo (26924 tris)
+[  71.734] Vehicle 11: Nordwerk Ostgrat X5 (26912 tris)
+[  72.136] Vehicle 12: Sakaki Tanuki (23532 tris)
+[  72.518] Vehicle 13: Brennan Palomino (26084 tris)
+[  72.966] Vehicle 14: Hoshida Tekko (24516 tris)
+[  73.381] Vehicle 15: Brennan Cutter '74 (22184 tris)
+[  73.643] Vehicle 16: Ardent Kestrel (21516 tris)
+[  73.917] Vehicle 17: Nordwerk Spree GT (19762 tris)
+[  74.300] Vehicle 18: Sakaki Kaze (18266 tris)
+[  74.691] Vehicle 19: Castiglia Orsa V12 (23018 tris)
+[  75.063] Vehicle 20: Aether Arclight (20870 tris)
+[  75.491] Vehicle 21: Ridley Scorch 392 (22306 tris)
+[  76.100] Vehicle 22: Ridley Gatorback '70 (22780 tris)
+[  76.567] Vehicle 23: Hoshida Tomo (27066 tris)
+[  77.141] Vehicle 24: Brennan Governor Patrol (28122 tris)
+[  77.711] Vehicle 25: Brennan Sawgrass Pursuit (31584 tris)
+[  78.154] Vehicle 26: Brennan Governor Cab (25276 tris)
+[  78.381] Vehicle 27: Dunmore Stevedore (25520 tris)
+[  78.809] Vehicle 28: Dunmore Parcel P70 (26586 tris)
+[  79.030] Vehicle 29: Dunmore Packhorse 26 (22882 tris)
+[  79.235] Vehicle 30: Dunmore Longbow 9 (25100 tris)
+[  79.509] Vehicle 31: Dunmore Compactor (22478 tris)
+[  79.713] Vehicle 32: Dunmore Lifeline (21974 tris)
+[  80.064] Vehicle 33: Dunmore Guardian Pumper (25172 tris)
+[  81.191] Vehicle 34: Civitas Boulevard (27684 tris)
+[  81.272] Vehicle 35: Sakaki Raijin 1000 (4972 tris)
+[  81.345] Vehicle 36: Ridley Sundowner 1800 (7400 tris)
+[  81.402] Vehicle 37: Sakaki Mochi 125 (3080 tris)
+[  81.539] Vehicle 38: Coralline Marine Sunchaser 24 (9596 tris)
+[  81.634] Vehicle 39: Coralline Marine Bonefish 28 (10656 tris)
+[  81.642] Vehicle 40: Sakaki Wavekite (3992 tris)
+[  81.677] Vehicle 41: Okahatchee Boatworks Skimmer (7672 tris)
+[  81.816] Vehicle 42: Corbett Aero Tern 180 (8366 tris)
+[  81.872] Vehicle 43: Vesper Rotorcraft Kite 4 (7440 tris)
+[  82.012] Vehicle 44: Vesper Rotorcraft Kite 4 Patrol (8356 tris)
+[  85.059] UI map: base 2560x2560 in 2696 ms, 10041 roads (46248 pts) in 127 ms, 30 labels in 224 ms
+[  85.060] hudInit done in 3048 ms
+[  85.061] Init done in 84.26 s (shaders: 0 compiled in 0.00 s)
+[ 690.232] Saved Z:\tmp\vm2n_24_fl.bmp
+[ 778.816] Saved Z:\tmp\vm2n_25_fr.bmp
+[ 873.084] Saved Z:\tmp\vm2n_32_rl.bmp
+X connection to :99 broken (explicit kill or server shutdown).

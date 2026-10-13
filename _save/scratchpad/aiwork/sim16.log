@@ -1,0 +1,127 @@
+Sites: 91 pads, 324 elements, 23 roads, 21 buildings requested (0.06 s)
+World map generated in 16.74 s
+Road gen: 22 interchanges
+Road network: 6284 nodes, 10030 edges, 1734 signalized; hwy 61.7 km, streets 1189.6 km (2.18 s)
+Buildings: 36321 (towers 358, midrise 2411, condo 496, deco 859, shops 4885, strip 730, houses 21906, villas 942, warehouses 1707) in 2.64 s
+Sites: 65 highway billboards
+Sites: 117 silos, 53 windmills
+Site runway 09L|27R  from (-1180, 2080) to (820, 2080) z 4.6 width 60
+Site runway 09R|27L  from (-1100, 780) to (700, 780) z 4.6 width 45
+Site terminal             at (628, 1440, 4.6)
+Site control tower        at (730, 1832, 4.6)
+Site container ship       at (4625, -800, 0.0)
+Site container ship       at (4616, -330, 0.0)
+Site port gate            at (4008, -160, 3.0)
+Site Key Coral marina     at (4039, -4035, 0.0)
+Site beach club           at (4873, -3866, 1.2)
+Site beach club           at (4808, -4183, 2.2)
+Site Solaris One          at (3350, -750, 1.4)
+Site stadium              at (3565, 445, 1.6)
+Site City Hall            at (3000, 372, 2.0)
+Site Canvas Park          at (3100, 1800, 1.7)
+Site Sol Beach Pier from (5414, 1250) to (5840, 1250) deck z 5.6
+Site Ferris wheel         at (5504, 1270, 5.6)
+Site lighthouse           at (-2206, -8000, 0.5)
+Site radio mast           at (-6744, 7248, 166.1)
+Site sugar mill           at (1430, 7500, 8.1)
+Site Rio Sol marina       at (2280, 188, 0.0)
+Site Okahatchee boat ramp at (-515, 6822, 7.7)
+Site Sawgrass tower       at (-4873, 420, 0.6)
+Sites finalized: 559 elements (0.01 s)
+Lane graph: 26691 lanes, 59937 connectors (1215703 pts), 36768 walk nodes, 53089 walk links, dead-end turning circles moved 8 / obstructed 16 (1.51 s)
+Loaded 16 collision cells
+Simulating 4.0 minutes around (2390, 960) r=300 with 110 cars, 40 peds
+LATDEV t=7.2 car 57 (Spree GT) at 2407.6 681.6 lane 96 u 269.8 latErr -0.91 v 29.8 vT 29.9 steer 0.16 diag e 0.22 psi 0.01 ff -0.00 st -0.04
+LATDEV t=7.5 car 93 (Governor) at 2120.7 973.5 lane 102 u 260.4 latErr -0.91 v 28.4 vT 29.7 steer 0.22 diag e -0.01 psi -0.05 ff 0.00 st 0.04
+LATDEV t=8.3 car 16 (Harbor) at 2132.8 972.4 lane 102 u 248.3 latErr -0.91 v 27.5 vT 30.0 steer 0.16 diag e -0.33 psi -0.02 ff 0.00 st 0.06
+STATIC t=19.5 car 48 at 2302.0 895.2 v=1.2 imp 3338 path 41723 u 10.2 lat 1.06
+STUCK t=23.3 car 48 at 2301.8 895.2 z 2.78 path 41723 u 10.4 lat 1.00 vT 2.9 stop 1000000000.0 obst 1000000000.0(-1) up 1.00 gear 1 wheels 4 sleep 0 imp 21 col 1006 thr 0.63
+LATDEV t=33.1 car 48 (Harbor) at 2301.6 881.4 lane 6862 u 18.6 latErr -3.23 v 3.1 vT 9.2 steer 1.00 diag e -3.41 psi -0.13 ff 0.00 st 1.12
+LATDEV t=42.0 car 43 (Raijin 1000) at 2236.4 943.8 lane 6544 u 36.4 latErr -0.90 v 12.6 vT 19.0 steer 0.39 diag e 0.00 psi 0.00 ff 0.00 st 0.00
+STUCK t=58.6 car 93 at 2301.6 895.4 z 2.78 path 41723 u 10.6 lat 1.16 vT 3.0 stop 1000000000.0 obst 1000000000.0(-1) up 1.00 gear 1 wheels 4 sleep 0 imp 11 col 1006 thr 0.65
+  sim 60 s: collisions 0 (hard 0), red 0, stuck 2, deadlocks 0, ped hits 0, respawns 54 (wall 12 s)
+LATDEV t=68.6 car 93 (Minnow) at 2301.0 885.3 lane 6862 u 14.7 latErr -2.63 v 3.0 vT 9.6 steer 1.00 diag e -3.67 psi -0.95 ff 0.00 st 1.97
+LATDEV t=81.8 car 19 (Mochi 125) at 2408.0 1095.3 lane 7078 u 45.3 latErr 0.91 v 9.5 vT 13.6 steer -0.34 diag e 0.00 psi 0.00 ff 0.00 st 0.00
+LATDEV t=82.0 car 107 (Ostgrat X5) at 2374.5 1030.5 lane 91 u 80.7 latErr -0.91 v 27.5 vT 36.0 steer 0.20 diag e -0.00 psi 0.00 ff -0.00 st -0.00
+STATIC t=86.9 car 98 at 2302.1 895.3 v=1.2 imp 3499 path 41723 u 10.1 lat 1.20
+STUCK t=90.6 car 98 at 2302.0 895.3 z 2.78 path 41723 u 10.3 lat 1.18 vT 2.9 stop 1000000000.0 obst 1000000000.0(-1) up 1.00 gear 1 wheels 4 sleep 0 imp 19 col 1006 thr 0.64
+LATDEV t=91.0 car 55 (Raijin 1000) at 2337.3 1155.9 lane 6562 u 62.7 latErr 0.91 v 13.5 vT 13.5 steer -0.28 diag e 0.00 psi 0.00 ff 0.00 st 0.00
+LATDEV t=99.5 car 98 (Kumo) at 2297.9 886.7 lane 6861 u 36.7 latErr -3.69 v 3.0 vT 4.4 steer -1.00 diag e -4.19 psi -2.76 ff 0.00 st 3.93
+  sim 120 s: collisions 0 (hard 0), red 0, stuck 3, deadlocks 0, ped hits 0, respawns 108 (wall 27 s)
+LATDEV t=127.8 car 19 (Mochi 125) at 2411.4 1192.7 lane 7091 u 42.7 latErr 0.92 v 9.7 vT 14.2 steer -0.35 diag e 0.00 psi 0.00 ff 0.00 st 0.00
+LATDEV t=129.7 car 61 (Mochi 125) at 2499.3 741.3 lane 7567 u 8.7 latErr -0.90 v 3.7 vT 11.8 steer 0.37 diag e 0.00 psi 0.00 ff 0.00 st 0.00
+DEADLOCK t=130.9 car 31 at 2411.8 750.8 conn 15022 turn 2 appr 1 node 1271 ctl 2 u 5.0/30.4 hold 6.0 committed 1 gateNode 1271 stopDist 1000000000.0 obst 2.5 (body 102) sig 0
+   -> car 102 lane e2218 d1 i0 u 2.5/91.5 v=0.0 vT=0.2 stop 1000000000.0 obst 2.6(31) wait 32.9 gateConn -1 gateNode 1271 stopDone 0 lat 0.13
+   -> car 31 conn 15022 turn 2 node 1271 u 5.0/30.4 hold 6.0 committed 1 v=0.0 vT=0.0 stop 1000000000.0 obst 2.5(102) wait 60.0 gateConn 15022 gateNode 1271 stopDone 0 lat -0.16
+   -> car 102 lane e2218 d1 i0 u 2.5/91.5 v=0.0 vT=0.2 stop 1000000000.0 obst 2.6(31) wait 32.9 gateConn -1 gateNode 1271 stopDone 0 lat 0.13
+   -> car 31 conn 15022 turn 2 node 1271 u 5.0/30.4 hold 6.0 committed 1 v=0.0 vT=0.0 stop 1000000000.0 obst 2.5(102) wait 60.0 gateConn 15022 gateNode 1271 stopDone 0 lat -0.16
+   -> car 102 lane e2218 d1 i0 u 2.5/91.5 v=0.0 vT=0.2 stop 1000000000.0 obst 2.6(31) wait 32.9 gateConn -1 gateNode 1271 stopDone 0 lat 0.13
+LATDEV t=131.0 car 2 (Sawgrass) at 2389.6 865.6 lane 99 u 654.0 latErr -0.92 v 29.1 vT 38.7 steer 0.24 diag e 0.05 psi -0.04 ff -0.00 st 0.03
+STATIC t=131.9 car 59 at 2301.6 894.5 v=0.8 imp 11053 path 41723 u 10.3 lat 0.25
+DEADLOCK t=133.6 car 60 at 2424.3 751.6 lane e2218 d-1 i0 u 75.7/83.3 stopU 78.2 next conn 15024 turn 0 ctl 2 gateNode 1271 stopDist 0.4 obst 7.8 (body 31) sig 0
+   -> car 31 conn 15022 turn 2 node 1271 u 5.0/30.4 hold 6.0 committed 1 v=0.0 vT=0.0 stop 1000000000.0 obst 2.5(102) wait 62.7 gateConn 15022 gateNode 1271 stopDone 0 lat -0.16
+   -> car 102 lane e2218 d1 i0 u 2.5/91.5 v=0.5 vT=0.3 stop 1000000000.0 obst 2.6(31) wait 35.6 gateConn -1 gateNode 1271 stopDone 0 lat 0.14
+   -> car 31 conn 15022 turn 2 node 1271 u 5.0/30.4 hold 6.0 committed 1 v=0.0 vT=0.0 stop 1000000000.0 obst 2.5(102) wait 62.7 gateConn 15022 gateNode 1271 stopDone 0 lat -0.16
+   -> car 102 lane e2218 d1 i0 u 2.5/91.5 v=0.5 vT=0.3 stop 1000000000.0 obst 2.6(31) wait 35.6 gateConn -1 gateNode 1271 stopDone 0 lat 0.14
+   -> car 31 conn 15022 turn 2 node 1271 u 5.0/30.4 hold 6.0 committed 1 v=0.0 vT=0.0 stop 1000000000.0 obst 2.5(102) wait 62.7 gateConn 15022 gateNode 1271 stopDone 0 lat -0.16
+STUCK t=135.6 car 59 at 2301.6 894.5 z 2.78 path 41723 u 10.4 lat 0.24 vT 2.7 stop 1000000000.0 obst 1000000000.0(-1) up 1.00 gear 1 wheels 6 sleep 0 imp 35 col 1006 thr 0.59
+LATDEV t=141.0 car 2 (Sawgrass) at 2367.1 1224.3 lane 92 u 274.8 latErr 1.42 v 38.7 vT 38.7 steer 0.03 diag e 0.05 psi -0.04 ff -0.00 st 0.03
+LATDEV t=150.7 car 61 (Mochi 125) at 2491.4 650.7 lane 7048 u 8.6 latErr -0.91 v 3.6 vT 11.8 steer 0.38 diag e 0.00 psi 0.00 ff 0.00 st 0.00
+LATDEV t=153.6 car 59 (Parcel P70) at 2289.4 882.8 lane 6862 u 17.2 latErr 8.96 v 3.0 vT 8.9 steer -1.00 diag e 8.74 psi -0.11 ff 0.00 st -1.21
+DEADLOCK t=154.2 car 63 at 2430.6 751.6 lane e2218 d-1 i0 u 69.4/83.3 stopU 78.2 next conn 15022 turn 2 ctl 2 gateNode 1271 stopDist 6.4 obst 1.9 (body 60) sig 0
+   -> car 60 lane e2218 d-1 i0 u 75.7/83.3 v=0.0 vT=0.2 stop 0.4 obst 7.9(31) wait 80.7 gateConn 15024 gateNode 1271 stopDone 1 lat 0.00
+   -> car 31 conn 15022 turn 2 node 1271 u 5.2/30.4 hold 6.0 committed 1 v=0.0 vT=0.0 stop 1000000000.0 obst 2.5(102) wait 83.4 gateConn 15022 gateNode 1271 stopDone 0 lat -0.16
+   -> car 102 lane e2218 d1 i0 u 2.4/91.5 v=0.0 vT=0.2 stop 1000000000.0 obst 2.5(31) wait 46.9 gateConn -1 gateNode 1271 stopDone 0 lat 0.34
+   -> car 31 conn 15022 turn 2 node 1271 u 5.2/30.4 hold 6.0 committed 1 v=0.0 vT=0.0 stop 1000000000.0 obst 2.5(102) wait 83.4 gateConn 15022 gateNode 1271 stopDone 0 lat -0.16
+   -> car 102 lane e2218 d1 i0 u 2.4/91.5 v=0.0 vT=0.2 stop 1000000000.0 obst 2.5(31) wait 46.9 gateConn -1 gateNode 1271 stopDone 0 lat 0.34
+LATDEV t=155.0 car 16 (Raijin 1000) at 2410.6 628.8 lane 97 u 322.6 latErr -0.95 v 18.5 vT 40.3 steer 0.32 diag e 0.00 psi 0.00 ff 0.00 st 0.00
+DEADLOCK t=158.7 car 90 at 2373.5 748.4 lane e2161 d1 i0 u 73.5/83.3 stopU 78.2 next conn 15030 turn 0 ctl 2 gateNode 1271 stopDist 0.4 obst 20.1 (body 102) sig 0
+   -> car 102 lane e2218 d1 i0 u 2.3/91.5 v=0.5 vT=0.3 stop 1000000000.0 obst 2.6(31) wait 48.3 gateConn -1 gateNode 1271 stopDone 0 lat 0.42
+   -> car 31 conn 15022 turn 2 node 1271 u 5.2/30.4 hold 6.0 committed 1 v=0.0 vT=0.0 stop 1000000000.0 obst 2.6(102) wait 87.8 gateConn 15022 gateNode 1271 stopDone 0 lat -0.16
+   -> car 102 lane e2218 d1 i0 u 2.3/91.5 v=0.5 vT=0.3 stop 1000000000.0 obst 2.6(31) wait 48.3 gateConn -1 gateNode 1271 stopDone 0 lat 0.42
+   -> car 31 conn 15022 turn 2 node 1271 u 5.2/30.4 hold 6.0 committed 1 v=0.0 vT=0.0 stop 1000000000.0 obst 2.6(102) wait 87.8 gateConn 15022 gateNode 1271 stopDone 0 lat -0.16
+   -> car 102 lane e2218 d1 i0 u 2.3/91.5 v=0.5 vT=0.3 stop 1000000000.0 obst 2.6(31) wait 48.3 gateConn -1 gateNode 1271 stopDone 0 lat 0.42
+LATDEV t=158.9 car 19 (Mochi 125) at 2536.2 1249.3 lane 7602 u 36.2 latErr -0.91 v 9.0 vT 15.9 steer 0.33 diag e 0.00 psi 0.00 ff 0.00 st 0.00
+LATDEV t=169.4 car 57 (Kumo) at 2396.2 804.2 lane 99 u 592.2 latErr -0.91 v 27.7 vT 39.7 steer 0.16 diag e 0.11 psi -0.04 ff -0.00 st 0.02
+DEADLOCK t=176.6 car 102 at 2402.1 747.8 lane e2218 d1 i0 u 2.1/91.5 stopU 86.4 next conn 15324 turn 0 ctl 1 gateNode 1271 stopDist 1000000000.0 obst 2.6 (body 31) sig 4
+   -> car 31 conn 15022 turn 2 node 1271 u 5.4/30.4 hold 6.0 committed 1 v=0.0 vT=0.0 stop 1000000000.0 obst 2.6(102) wait 105.7 gateConn 15022 gateNode 1271 stopDone 0 lat -0.16
+   -> car 102 lane e2218 d1 i0 u 2.1/91.5 v=0.5 vT=0.3 stop 1000000000.0 obst 2.6(31) wait 60.0 gateConn -1 gateNode 1271 stopDone 0 lat 0.57
+   -> car 31 conn 15022 turn 2 node 1271 u 5.4/30.4 hold 6.0 committed 1 v=0.0 vT=0.0 stop 1000000000.0 obst 2.6(102) wait 105.7 gateConn 15022 gateNode 1271 stopDone 0 lat -0.16
+   -> car 102 lane e2218 d1 i0 u 2.1/91.5 v=0.5 vT=0.3 stop 1000000000.0 obst 2.6(31) wait 60.0 gateConn -1 gateNode 1271 stopDone 0 lat 0.57
+   -> car 31 conn 15022 turn 2 node 1271 u 5.4/30.4 hold 6.0 committed 1 v=0.0 vT=0.0 stop 1000000000.0 obst 2.6(102) wait 105.7 gateConn 15022 gateNode 1271 stopDone 0 lat -0.16
+LATDEV t=179.4 car 57 (Kumo) at 2367.9 1157.8 lane 92 u 208.2 latErr -1.26 v 39.6 vT 39.7 steer -0.01 diag e 0.11 psi -0.04 ff -0.00 st 0.02
+  sim 180 s: collisions 0 (hard 0), red 0, stuck 4, deadlocks 5, ped hits 0, respawns 177 (wall 46 s)
+DEADLOCK t=180.3 car 7 at 2437.9 751.6 lane e2218 d-1 i0 u 62.1/83.3 stopU 78.2 next conn 15024 turn 0 ctl 2 gateNode 1271 stopDist 13.8 obst 2.5 (body 63) sig 0
+   -> car 63 lane e2218 d-1 i0 u 69.4/83.3 v=0.0 vT=0.2 stop 6.4 obst 1.9(60) wait 86.1 gateConn 15022 gateNode 1271 stopDone 0 lat 0.00
+   -> car 60 lane e2218 d-1 i0 u 75.7/83.3 v=0.0 vT=0.2 stop 0.4 obst 8.2(31) wait 106.8 gateConn 15024 gateNode 1271 stopDone 1 lat 0.00
+   -> car 31 conn 15022 turn 2 node 1271 u 5.4/30.4 hold 6.0 committed 1 v=0.0 vT=0.0 stop 1000000000.0 obst 2.5(102) wait 109.3 gateConn 15022 gateNode 1271 stopDone 0 lat -0.16
+   -> car 102 lane e2218 d1 i0 u 2.1/91.5 v=0.4 vT=0.3 stop 1000000000.0 obst 2.6(31) wait 60.6 gateConn -1 gateNode 1271 stopDone 0 lat 0.61
+   -> car 31 conn 15022 turn 2 node 1271 u 5.4/30.4 hold 6.0 committed 1 v=0.0 vT=0.0 stop 1000000000.0 obst 2.5(102) wait 109.3 gateConn 15022 gateNode 1271 stopDone 0 lat -0.16
+LATDEV t=193.4 car 43 (Raijin 1000) at 2297.5 641.5 lane 6850 u 8.5 latErr 0.90 v 5.1 vT 12.7 steer -0.30 diag e 0.00 psi 0.00 ff 0.00 st 0.00
+DEADLOCK t=194.2 car 91 at 2401.5 754.9 conn 15027 turn 2 appr 2 node 1271 ctl 2 u 13.3/30.4 hold 18.0 committed 0 gateNode 1271 stopDist 2.5 obst 0.0 (body 102) sig 2
+   -> car 102 lane e2218 d1 i0 u 2.0/91.5 v=0.0 vT=0.2 stop 1000000000.0 obst 2.5(31) wait 71.4 gateConn -1 gateNode 1271 stopDone 0 lat 0.63
+   -> car 31 conn 15022 turn 2 node 1271 u 5.5/30.4 hold 6.0 committed 1 v=0.0 vT=0.0 stop 1000000000.0 obst 2.5(102) wait 123.1 gateConn 15022 gateNode 1271 stopDone 0 lat -0.16
+   -> car 102 lane e2218 d1 i0 u 2.0/91.5 v=0.0 vT=0.2 stop 1000000000.0 obst 2.5(31) wait 71.4 gateConn -1 gateNode 1271 stopDone 0 lat 0.63
+   -> car 31 conn 15022 turn 2 node 1271 u 5.5/30.4 hold 6.0 committed 1 v=0.0 vT=0.0 stop 1000000000.0 obst 2.5(102) wait 123.1 gateConn 15022 gateNode 1271 stopDone 0 lat -0.16
+   -> car 102 lane e2218 d1 i0 u 2.0/91.5 v=0.0 vT=0.2 stop 1000000000.0 obst 2.5(31) wait 71.4 gateConn -1 gateNode 1271 stopDone 0 lat 0.63
+STATIC t=225.0 car 50 at 2302.2 895.3 v=1.3 imp 3732 path 41723 u 10.1 lat 1.23
+DEADLOCK t=227.8 car 49 at 2362.8 748.4 lane e2161 d1 i0 u 62.8/83.3 stopU 78.2 next conn 15030 turn 0 ctl 2 gateNode 1271 stopDist 12.5 obst 2.6 (body 90) sig 0
+   -> car 90 lane e2161 d1 i0 u 73.5/83.3 v=0.0 vT=0.2 stop 0.4 obst 18.7(102) wait 129.2 gateConn 15030 gateNode 1271 stopDone 1 lat -0.00
+   -> car 102 conn 15030 turn 0 node 1271 u 17.7/33.5 hold 0.0 committed 0 v=0.8 vT=0.7 stop 1000000000.0 obst 3.2(31) wait 0.0 gateConn -1 gateNode 1271 stopDone 0 lat 0.74
+   -> car 31 conn 15022 turn 2 node 1271 u 6.0/30.4 hold 6.0 committed 1 v=0.0 vT=0.0 stop 1000000000.0 obst 2.9(102) wait 155.9 gateConn 15022 gateNode 1271 stopDone 0 lat -0.16
+   -> car 102 conn 15030 turn 0 node 1271 u 17.7/33.5 hold 0.0 committed 0 v=0.8 vT=0.7 stop 1000000000.0 obst 3.2(31) wait 0.0 gateConn -1 gateNode 1271 stopDone 0 lat 0.74
+   -> car 31 conn 15022 turn 2 node 1271 u 6.0/30.4 hold 6.0 committed 1 v=0.0 vT=0.0 stop 1000000000.0 obst 2.9(102) wait 155.9 gateConn 15022 gateNode 1271 stopDone 0 lat -0.16
+STUCK t=228.7 car 50 at 2302.0 895.3 z 2.78 path 41723 u 10.3 lat 1.20 vT 3.1 stop 1000000000.0 obst 1000000000.0(-1) up 1.00 gear 1 wheels 4 sleep 0 imp 19 col 1006 thr 0.64
+LATDEV t=236.1 car 83 (Mochi 125) at 2269.7 943.8 lane 6544 u 69.7 latErr -0.91 v 10.8 vT 17.5 steer 0.33 diag e 0.00 psi 0.00 ff 0.00 st 0.00
+LATDEV t=237.6 car 50 (Kumo) at 2297.8 886.7 lane 6861 u 36.7 latErr -3.76 v 3.0 vT 4.4 steer -1.00 diag e -4.26 psi -2.76 ff 0.00 st 3.94
+
+==== Traffic metrics (240 s simulated, 110 cars, 40 peds, 7.33 vehicle-hours) ====
+collisions: 0 (0.00 per vehicle-hour), hard (>3000 Ns): 0 (0.00/veh-h)
+static impacts (walls/props >2500 Ns): 4, props broken: 0
+red-light violations: 0, stop-sign violations: 0
+stuck recoveries: 5, relocalizations: 35, deadlocks (>60 s waits): 8, respawns: 245
+pedestrians hit: 0
+average speed by road class (km/h):  highway 76.1 (626 s)  boulevard 15.8 (6605 s)  avenue 16.0 (4459 s)  street 13.1 (11113 s)
+lane-center error (RMS, lanes, v>3 m/s): 0.086 m
+AI cost per 60 Hz tick: traffic 0.315 ms + peds 0.015 ms (avg), p50 0.315 ms, p99 0.600 ms, max 0.870 ms
+physics per 120 Hz step: 0.796 ms (110 cars)

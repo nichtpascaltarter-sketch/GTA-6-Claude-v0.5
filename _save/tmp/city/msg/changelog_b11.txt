@@ -1,0 +1,24 @@
+Batch 11 - house garages kept on their own lots (the North Porto Sol overlap)
+- Cause: a house with a garage (seed % 10 < 7, every villa) got a 6.4 m garage wing or carport (0.5 m eave) beside it
+  on the side seed & 64, but the lot placement centred the house with 1.75-5.9 m spare per side: 15,293 of 16,260
+  wings (94%) reached past their lot line, 11,543 by more than 2 m - into the neighbour's garage, house, shop or
+  mid-rise. In North Porto Sol b31204's garage stood 2.55 m into the corner walk-up's lot, 1.3 m off its back wall.
+- buildings.h: garageKind(b) - 1 the wing or carport, 2 a driveway strip beside the house (the frame and raised houses
+  as before, and now a lot too narrow for the wing), 0 none; houseGarage(), garageSide(), kGarageWingRoom 7.1 m,
+  kGarageStripRoom 4.6 m.
+- buildings.cpp (lot placement): a garage house sits off its lot's middle, away from the garage side, keeping a 1.8 m
+  side yard; narrows by up to 40% to keep the wing; else the strip; where even the strip has no room it keeps no garage
+  (its seed's garage digit moves past 6 - population.cpp's parked car follows the same rule). Never towards a two-way
+  dead end (the lane graph's turning circle wants 4.2 m round a half circle of up to 6.5 m): there it stays centred,
+  narrower or with the strip.
+- buildmesh.cpp: the wing, the carport or the strip by garageKind. blockstyle.cpp: pavedRects marks the strip (no
+  phantom garage rectangle beside the frame and raised houses); back garage rows no deeper than their plot (one stood
+  0.42 m into a house's back part).
+- Result: 15,760 wings or carports (was 16,262), 726 driveway strips (282), 6,607 houses without a garage (6,549).
+- Interiors: 'Bodega La Luna' moves to the next shop east (b29652 -> b29653, 12.5 m): interiors.cpp's garageIntrudes
+  had rejected b29653 because a neighbour's garage reached into it. Grove Pantry (a villa host) shifts 0.97 m and Key
+  Coral Villa 0.16 m with their houses. The other 26 interiors are unchanged. The stick-up encounter reads the bodega
+  live (encounters.cpp); its test runs at the new bodega: @ENC@.
+- worldcheck: a new footprint pass (every building's envelope and its ground-standing collision boxes against every
+  other building's, all cells): 2,769 overlapping pairs before (none envelope into envelope), 0 after; turning circles
+  unchanged (21 pulled back, 0 obstructed).

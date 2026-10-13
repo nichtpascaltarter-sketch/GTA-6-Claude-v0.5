@@ -1,0 +1,15 @@
+newgame 1780 160
+mari_apt 1780 300
+boatyard_w 2030 290
+marina_mid 2280 188
+diner 1330 330
+solaris_one 3350 -750
+stadium 3565 440
+cityhall 3000 330
+pier_base 5430 1250
+airport_heli 652 1112
+airport_planes 600 1000
+sawgrass_dock -5000 -60
+boardwalk -5060 190
+port_gate 4008 -160
+port_blvd 4060 -400

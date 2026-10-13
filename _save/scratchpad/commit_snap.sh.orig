@@ -1,0 +1,15 @@
+#!/bin/sh
+# Commit the last build-verified snapshot tree on top of HEAD (message from $1), then re-sync the index to HEAD
+# (working tree untouched: later edits simply stay modified).
+set -e
+SP=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad
+cd /home/user/GTA-6-Claude-v0.5
+TREE=$(cat $SP/snap_tree_ok)
+MSG="$1
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Fsx2GTrhwusdowbWY9LHRP"
+C=$(git commit-tree $TREE -p HEAD -m "$MSG")
+git update-ref refs/heads/claude/neon-tide $C
+git reset -q
+git log --oneline -1

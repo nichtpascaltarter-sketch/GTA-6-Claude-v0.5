@@ -1,0 +1,9 @@
+{
+  "id": "17",
+  "subject": "Scorecard 3: district tour on the environment-pass build, then grade",
+  "description": "Renderer reports the environment pass ready (near-camera ambient root cause fixed: GenerateMips black cube mips under Wine). District tour running on d4f7134 (tour_run2.sh, WINEPREFIX /tmp/wine_tour, shots /tmp/tour). Grade Scorecard 3 from the tour shots + first-person/transit verification, append to PROGRESS.md.",
+  "activeForm": "Running the Scorecard 3 district tour",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": []
+}

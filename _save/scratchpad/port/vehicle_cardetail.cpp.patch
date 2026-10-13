@@ -1,0 +1,45 @@
+--- src/sim/vehicle_cardetail.cpp	2026-10-01 10:43:38.316224624 +0000
++++ /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/rear/src/sim/vehicle_cardetail.cpp	2026-10-01 14:57:23.037274412 +0000
+@@ -1520,18 +1520,34 @@
+     return v;
+ }
+ 
+-// The cabin's ceiling over a seated occupant's head (hip point at y, on the seat's line x = seatX): the headliner (a
+-// lining's thickness under the roof, or the rear window's glass) at its lowest over the top of the head - a driver's
+-// from just behind the hip point to 11 cm ahead of it, a passenger's (sitting back) from 30 cm behind it to 2 cm
+-// behind - and, for a front seat, the sun visor's underside where it reaches back over that. Out under the open sky
+-// (the body's top well under the roof's: behind a pickup's cab) is no ceiling - 9 when over the hip point itself.
++// The rear seats' line (their hip points' x): the front pair's, moved in where the rear wheel wells' inner walls
++// (emitArches, behind the cabin's wheel-house trims) rise beside the rear seat's hips - an occupant's hips and elbows
++// want 0.3 m either side of his hip point
++inline float rearSeatX(const CarBody& b, const InteriorLayout& I) {
++    const CarSpec& s = b.s;
++    if (!b.archOn(1)) return I.seatX;
++    const float xWall = s.trackR - s.wheelW * 0.5f - 0.05f, hipZ = I.zFloor + I.hipH - 0.02f;
++    float top = -1.f;   // the wall's highest along the hips (from behind them to the thighs)
++    for (int k = 0; k <= 7; k++) {
++        float e = fabsf(I.yHipR - 0.2f + 0.05f * k - b.yWr);
++        if (e < b.Ra) top = Max(top, s.wheelR + sqrtf(b.Ra * b.Ra - e * e));
++    }
++    return top < hipZ - 0.05f ? I.seatX : Clamp(xWall - 0.3f, 0.25f, I.seatX);
++}
++
++// The cabin's ceiling over a seated occupant's head (hip point at y, on the seats' line: seatX, the rear ones'
++// rearSeatX): the headliner (a lining's thickness under the roof, or the rear window's glass) at its lowest over the
++// top of the head - a driver's from just behind the hip point to 11 cm ahead of it, a passenger's (sitting back) from
++// 30 cm behind it to 2 cm behind - and, for a front seat, the sun visor's underside where it reaches back over that.
++// Out under the open sky (the body's top well under the roof's: behind a pickup's cab) is no ceiling - 9 when over
++// the hip point itself.
+ inline float cabinCeilZ(const CarBody& b, const InteriorLayout& I, float y, bool front, bool driver) {
+-    const float open = b.s.zRoof - 0.25f;
+-    if (b.topZAt(y, I.seatX) < open) return 9.f;
++    const float open = b.s.zRoof - 0.25f, x = front ? I.seatX : rearSeatX(b, I);
++    if (b.topZAt(y, x) < open) return 9.f;
+     const float y0 = driver ? y - 0.03f : y - 0.3f, y1 = driver ? y + 0.11f : y - 0.02f;
+     float z = 9.f;
+     for (int k = 0; k <= 7; k++) {
+-        float t = b.topZAt(lerp(y0, y1, k / 7.f), I.seatX);
++        float t = b.topZAt(lerp(y0, y1, k / 7.f), x);
+         if (t >= open) z = Min(z, t);
+     }
+     z -= 0.015f;

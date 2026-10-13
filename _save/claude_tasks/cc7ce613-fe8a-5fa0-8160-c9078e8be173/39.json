@@ -1,0 +1,9 @@
+{
+  "id": "39",
+  "subject": "Live cockpit: moving steering wheel and gauge needles",
+  "description": "Rim as a live part turned by Animator::wheelTurn(); speed/rpm needles on the player's vehicle; driver's AnimInput.wheelC/N/R from each vehicle's steerWheelPos/Axis/Radius (in snapshot cca50c8, verifying via its first-person smoke shots). dd402cf shots (old placement): hands rest low on the rim; dial faces read as pale blue mirrors -> faces now near-black with a faint backlight (working tree, next snapshot).",
+  "activeForm": "Building the live cockpit",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": []
+}

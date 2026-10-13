@@ -1,0 +1,13 @@
+955f2a0b8befe165de902791367637cc4b8f5cd7 src/game/ai.cpp
+321e33e90d1fcfcd1b89bcae047858ec1e3aec58 src/game/ai_core.h
+a2b6290bfc99eee7e39b5ef9e4bf08a9d1c2b741 src/game/ai_game.h
+3e075ca6a77fb098150b576c8db234991119e287 src/game/app.cpp
+9bda81be1367976959e5e1068ce45fd514614370 src/game/barks.cpp
+1e506ec4bece859cfad14d1340d67fa428ac776a src/game/events.cpp
+c456b4736d21e6917a94cb973e43bc52345232c0 src/game/pedai.cpp
+7d7038cd2f354b49b6e0d6de3f3c427ec03755fd src/game/pednav.cpp
+becaad9f5c472219dc5ccf7bae405c5d8dabdb3f src/game/police.cpp
+ccc9d6cbb34a5bd275215424130dc06fb668ae2f src/game/traffic.cpp
+c0b6ea2dbaf6b9be65a7f641c0d38c69e56bf7da src/game/traffic_core.cpp
+f066727401fbb94c54ffd8ed005415d46036f3cd src/game/wildlife.cpp
+c938d5b47e96be03c996b07ef88db115fbe32f89 src/game/wildlife.h

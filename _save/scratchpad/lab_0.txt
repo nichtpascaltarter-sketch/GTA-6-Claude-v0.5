@@ -1,0 +1,10 @@
+
+=== synthwave seed 1234: 100 bpm, key 7 scale 0, variant 1, 88 bars, 213.7 s, swing 0.00
+  form: Intro8 Verse8 Chorus16 Verse8 Chorus16 Bridge8 Chorus16 Outro8
+  MIX rms -16.9 dB, centroid 2447 Hz, peak 0.96
+  track 0 Drums  notes  1335                                  rms  -19.7 dB  centroid  3819 Hz  peak 0.88
+  track 1 Sub    notes   984 range  36- 55 outKey  0.0% steps  46% leaps  49%  rms  -20.7 dB  centroid   188 Hz  peak 0.46
+  track 2 Sub    notes   396 range  54- 74 outKey  0.0% steps   6% leaps  43%  rms  -21.9 dB  centroid   771 Hz  peak 0.43
+  track 3 Sub    notes  1144 range  62- 83 outKey  0.0% steps   1% leaps   7%  rms  -26.6 dB  centroid  1187 Hz  peak 0.37
+  track 4 Sub    notes   219 range  62- 86 outKey  0.0% steps  67% leaps   7%  rms  -23.4 dB  centroid  1536 Hz  peak 0.29
+  track 5 Fm     notes    80 range  72- 90 outKey  0.0% steps  67% leaps   9%  rms  -34.6 dB  centroid  2808 Hz  peak 0.23

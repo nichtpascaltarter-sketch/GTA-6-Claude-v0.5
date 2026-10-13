@@ -1,0 +1,21 @@
+People dress for the place, the hour and the weather; small towns feel lived in; no more puddles under a clear sky
+
+- Wardrobe: swimwear only on the sand, in the water and on the beach front on dry days; cover-ups and summer clothes
+  on the streets behind the beach; nobody in swimwear in the rain away from the water. After dark the nightlife
+  districts dress for a night out (club lines, dancers and patrons, door staff in black) with their hands free.
+  Office clothes thin out after hours; runners wear sportswear, sightseers tourist clothes, anglers, birders and marsh
+  hands outdoor clothes. 29 dedicated looks (night out, door staff, sportswear, beach cover-ups), kept out of the
+  civilian pools so mission crowds are unchanged. Every spawn path goes through it: ambient walkers, venues, queues,
+  groups, benches, the beach, club doors and interiors, transit stops, airboat tours, two story scenes and street
+  events (a night takeover's crowd went from a bikini and pink trunks to a red dress and a print shirt). Someone
+  whose outfit no longer suits the weather or the hour leaves out of sight and is replaced.
+- Small towns, suburbs and the countryside: a local quota that counts the stores, homes and workshops nearby (open
+  country half of it), plus places people gather: store owners and customers out front, cars at the pumps and in
+  strip-mall lots, motel guests, porches, yard work, neighbours chatting, family cars in driveways (never spawned onto
+  someone standing there), anglers on the docks and at the lake landing, smoke breaks at the workshops, and an
+  airboat crew, rangers and early birders at the Sawgrass visitor center at dawn. Peds at the tour's rural stops:
+  Sawgrass 19 -> 31, Grove 46 -> 80, Lake Town 31 -> 71, Fort Castell 32 -> 46, with CPU at or below the city stops.
+- Weather: an instant weather change settles the ground, so an earlier rain no longer leaves puddles on lawns and
+  streets under a clear sky (the Key Coral marina's "flooded" verge). The Key Coral bait shop and fishing spot moved
+  from a residential verge to the marina itself, and the Key Coral marina place resolves at the marina's landing.
+- --popdebug census; the viewer's --facecam / --viewerlamp test options for face close-ups (inert without the flags).

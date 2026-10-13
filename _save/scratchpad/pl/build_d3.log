@@ -1,0 +1,10 @@
+Embedded 35 shader files.
+In file included from src/anim/anim_all.cpp:15,
+                 from src/main.cpp:49:
+src/anim/animator.cpp: In member function 'void Anim::Animator::update(const Anim::AnimInput&, float, bool)':
+src/anim/animator.cpp:1160: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
+ 1160 |             if (in.listening && idleVar < 0 && canVary) idleNext = Min(idleNext, 1.2f);
+      | 
+src/anim/animator.cpp:1160: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
+Terminated
+exit 143

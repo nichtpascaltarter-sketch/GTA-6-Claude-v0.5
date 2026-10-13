@@ -1,0 +1,31 @@
+start Tue Oct  6 01:30:13 UTC 2026
+dev10 syntax ok (0 warnings) Tue Oct  6 01:30:32 UTC 2026
+dev10 build rc=0 Tue Oct  6 01:49:20 UTC 2026
+dev10 exe ready Tue Oct  6 01:49:20 UTC 2026
+jobs10 replaced by jobs10b (2nd dev9 regression first) Tue Oct  6 01:56:15 UTC 2026
+jobs10b replaced by jobs10c (bagman triage dev9 vs main 8fb1e66, then batch 8) Tue Oct  6 02:07:10 UTC 2026
+jobs10c start Tue Oct  6 02:07:10 UTC 2026
+m8 build rc=0 Tue Oct  6 02:15:10 UTC 2026
+start bagman dev9 #1 Tue Oct  6 02:18:10 UTC 2026
+jobs10c and jobs11b stopped; jobs13 takes over (triage rest, then batches 6+8+9 on nt_dev13) Tue Oct  6 02:35:35 UTC 2026
+jobs13 takes over (waiting for bagman dev9 #1) Tue Oct  6 02:35:35 UTC 2026
+bagman dev9 #1 done: 0 passed, 0 segfaults Tue Oct  6 02:38:25 UTC 2026
+start bagman m8 #1 Tue Oct  6 02:38:25 UTC 2026
+bagman m8 #1 rc=0: 0 passed, 0 segfaults Tue Oct  6 02:51:11 UTC 2026
+start bagman dev9 #2 Tue Oct  6 02:51:11 UTC 2026
+bagman dev9 #2 rc=0: 0 passed, 0 segfaults Tue Oct  6 03:04:45 UTC 2026
+start bagman m8 #2 Tue Oct  6 03:04:45 UTC 2026
+jobs13b takes over (waiting for bagman m8 #2) Tue Oct  6 03:07:33 UTC 2026
+bagman m8 #2 done: 0 passed, 0 segfaults Tue Oct  6 03:11:03 UTC 2026
+start bagman dev9 #3 Tue Oct  6 03:11:03 UTC 2026
+bagman dev9 #3 rc=0: 0 passed, 0 segfaults Tue Oct  6 03:18:28 UTC 2026
+start bagman m8 #3 Tue Oct  6 03:18:28 UTC 2026
+bagman m8 #3 rc=0: 0 passed, 0 segfaults Tue Oct  6 04:01:27 UTC 2026
+triage done Tue Oct  6 04:01:27 UTC 2026
+start dev13 shots Tue Oct  6 04:01:27 UTC 2026
+dev13 shots done: 43 of 43, 0 segfaults Tue Oct  6 05:10:06 UTC 2026
+start dev13 regression Tue Oct  6 05:10:06 UTC 2026
+dev13 regression done: 27 passed, 0 segfaults Tue Oct  6 06:22:07 UTC 2026
+start tour 2-5 (dev13) Tue Oct  6 06:22:07 UTC 2026
+start tour 13-15 (dev13) Tue Oct  6 07:34:56 UTC 2026
+jobs13 done Tue Oct  6 08:25:32 UTC 2026

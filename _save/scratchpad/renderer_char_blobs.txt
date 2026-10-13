@@ -1,0 +1,4 @@
+# renderer character-shading backlog (items 1-3, 5), on top of phase 3 (files unchanged since 06580c3; PROGRESS.md = phase 3's + the character bullet); git hash-object -w; NOT yet copied into the working tree: run DRY=1 sh /tmp/fx/integrate_c1.sh, then sh /tmp/fx/integrate_c1.sh, after phase 3 is in
+ad2ceab27f06c94702852ff7dd342efb67340328 src/shaders/lighting.hlsl
+ea97d07d04a1317b74034cea2e52e36f5c6c8228 src/shaders/dynamic.hlsl
+bd82595b2dd67529544071fca3078b0089897c18 PROGRESS.md

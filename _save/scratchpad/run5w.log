@@ -1,0 +1,186 @@
+[   0.004] Neon Tide starting. Data dir: C:\users\root\AppData\Local\NeonTide\
+[   0.849] D3D11 device created: feature level b100, adapter 'NVIDIA GeForce GTX 470', VRAM 16094 MB
+[   0.858] UI font 'Segoe UI Semibold' -> 'Liberation Sans'
+[   0.963] UI font 'Bahnschrift SemiBold Condensed' -> 'Liberation Sans'
+[   1.117] UI font 'Impact' -> 'Liberation Sans'
+[   1.204] Font atlas built in 0.35 s
+[   1.314] Compiled ui.hlsl:vsUI (vs_5_0) in 0.02 s
+[   1.674] Compiled ui.hlsl:psUI (ps_5_0) in 0.36 s
+[   1.685] Compiled ui.hlsl:vsUIFull (vs_5_0) in 0.01 s
+[   1.699] Compiled ui.hlsl:psUIDown (ps_5_0) in 0.01 s
+[   1.718] Compiled ui.hlsl:psUIBlur (ps_5_0) in 0.01 s
+ALSA lib confmisc.c:855:(parse_card) cannot find card '0'
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_card_inum returned error: No such file or directory
+ALSA lib confmisc.c:422:(snd_func_concat) error evaluating strings
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_concat returned error: No such file or directory
+ALSA lib confmisc.c:1342:(snd_func_refer) error evaluating name
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5727:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2721:(snd_pcm_open_noupdate) Unknown PCM default
+ALSA lib confmisc.c:855:(parse_card) cannot find card '0'
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_card_inum returned error: No such file or directory
+ALSA lib confmisc.c:422:(snd_func_concat) error evaluating strings
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_concat returned error: No such file or directory
+ALSA lib confmisc.c:1342:(snd_func_refer) error evaluating name
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5727:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2721:(snd_pcm_open_noupdate) Unknown PCM default
+[   2.048] Audio: no output device - audio disabled
+[   2.048] Audio: no output device, continuing silently
+[   4.498] UI icon atlas: 86 icons + 13 weapons in 2428 ms
+[  28.972] Sites: 91 pads, 324 elements, 23 roads, 21 buildings requested (0.05 s)
+[  31.232] World map generated in 29.18 s
+[  32.139] Road gen: 22 interchanges
+[  37.635] Road network: 6284 nodes, 10030 edges, 1734 signalized; hwy 61.7 km, streets 1189.6 km (6.38 s)
+[  47.935] Buildings: 36093 (towers 358, midrise 2400, condo 485, deco 838, shops 4829, strip 693, houses 21872, villas 928, warehouses 1686) in 10.19 s
+[  47.961] Sites: 66 highway billboards
+[  47.962] Sites: 112 silos, 55 windmills
+[  47.981] Site runway 09L|27R  from (-1180, 2080) to (820, 2080) z 4.6 width 60
+[  47.990] Site runway 09R|27L  from (-1100, 780) to (700, 780) z 4.6 width 45
+[  47.990] Site terminal             at (628, 1440, 4.6)
+[  47.990] Site control tower        at (730, 1832, 4.6)
+[  47.990] Site container ship       at (4625, -800, 0.0)
+[  47.990] Site container ship       at (4616, -330, 0.0)
+[  47.990] Site port gate            at (4008, -160, 3.0)
+[  47.990] Site Key Coral marina     at (4039, -4035, 0.0)
+[  47.991] Site beach club           at (4873, -3866, 1.2)
+[  47.991] Site beach club           at (4808, -4183, 2.2)
+[  47.991] Site Solaris One          at (3350, -750, 1.4)
+[  47.991] Site stadium              at (3565, 445, 1.6)
+[  47.991] Site City Hall            at (3000, 372, 2.0)
+[  47.991] Site Canvas Park          at (3100, 1800, 1.7)
+[  47.991] Site Sol Beach Pier from (5414, 1250) to (5840, 1250) deck z 5.6
+[  47.996] Site Ferris wheel         at (5504, 1270, 5.6)
+[  48.000] Site lighthouse           at (-2206, -8000, 0.5)
+[  48.000] Site radio mast           at (-6744, 7248, 166.1)
+[  48.000] Site sugar mill           at (1430, 7500, 8.1)
+[  48.000] Site Rio Sol marina       at (2280, 188, 0.0)
+[  48.000] Site Okahatchee boat ramp at (-515, 6822, 7.7)
+[  48.000] Site Sawgrass tower       at (-4873, 420, 0.6)
+[  48.000] Sites finalized: 557 elements (0.04 s)
+[  48.099] Compiled post.hlsl:vsFullscreen (vs_5_0) in 0.04 s
+[  53.393] Compiled lighting.hlsl:csLighting (cs_5_0) in 5.26 s
+[  53.545] Compiled sky.hlsl:csTransmittance (cs_5_0) in 0.14 s
+[  54.465] Compiled sky.hlsl:csMultiScatter (cs_5_0) in 0.91 s
+[  54.582] Compiled sky.hlsl:csSkyView (cs_5_0) in 0.11 s
+[  54.655] Compiled sky.hlsl:csAerialPerspective (cs_5_0) in 0.07 s
+[  55.587] Compiled sky.hlsl:csSkySH (cs_5_0) in 0.93 s
+[  55.755] Compiled post.hlsl:csLumReduce (cs_5_0) in 0.16 s
+[  55.784] Compiled post.hlsl:csExposure (cs_5_0) in 0.03 s
+[  55.832] Compiled post.hlsl:csBloomDown (cs_5_0) in 0.05 s
+[  55.857] Compiled post.hlsl:csBloomUp (cs_5_0) in 0.02 s
+[  56.103] Compiled taa.hlsl:csTAA (cs_5_0) in 0.24 s
+[  56.216] Compiled post.hlsl:psTonemap (ps_5_0) in 0.11 s
+[  56.335] Compiled motionblur.hlsl:csTileMax (cs_5_0) in 0.12 s
+[  56.385] Compiled motionblur.hlsl:csNeighborMax (cs_5_0) in 0.04 s
+[  56.530] Compiled motionblur.hlsl:csMotionBlur (cs_5_0) in 0.14 s
+[  56.570] Compiled terrain.hlsl:vsTerrain (vs_5_0) in 0.04 s
+[  56.594] Compiled terrain.hlsl:vsTerrainShadow (vs_5_0) in 0.02 s
+[  57.464] Compiled terrain.hlsl:psTerrain (ps_5_0) in 0.87 s
+[  58.367] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.90 s
+[  59.073] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.69 s
+[  60.024] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.94 s
+[  60.807] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.78 s
+[  61.505] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.70 s
+[  62.302] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.80 s
+[  62.778] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.47 s
+[  67.913] Compiled matgen.hlsl:csGenerate (cs_5_0) in 5.13 s
+[  71.658] Compiled matgen.hlsl:csGenerate (cs_5_0) in 3.09 s
+[  72.882] Compiled matgen.hlsl:csGenerate (cs_5_0) in 1.15 s
+[  73.872] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.50 s
+[  74.536] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.49 s
+[  75.836] Compiled matgen.hlsl:csGenerate (cs_5_0) in 1.12 s
+[  78.390] Compiled matgen.hlsl:csGenerate (cs_5_0) in 2.26 s
+[  78.983] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.58 s
+[  79.234] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.25 s
+[  79.972] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.28 s
+[  80.282] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.31 s
+[  80.551] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.23 s
+[  80.879] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.32 s
+[  81.137] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.25 s
+[  81.321] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.18 s
+[  81.800] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.32 s
+[  82.360] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.54 s
+[  82.446] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.09 s
+[  83.205] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.45 s
+[  83.327] Compiled matgen.hlsl:csGenerate (cs_5_0) in 0.11 s
+[  84.484] Compiled matgen.hlsl:csGenerate (cs_5_0) in 1.11 s
+[  84.485] Material library: 53 layers at 256^2
+[  84.585] Compiled world.hlsl:vsWorld (vs_5_0) in 0.10 s
+[  85.025] Compiled world.hlsl:vsWorldShadow (vs_5_0) in 0.06 s
+[  87.140] Compiled world.hlsl:psWorld (ps_5_0) in 1.55 s
+[  87.265] Compiled water.hlsl:vsWater (vs_5_0) in 0.12 s
+[  88.696] Compiled water.hlsl:psWater (ps_5_0) in 1.38 s
+[  88.805] Compiled water.hlsl:csWaveNormals (cs_5_0) in 0.11 s
+[  91.894] Compiled clouds.hlsl:csShapeNoise (cs_5_0) in 2.72 s
+[  92.985] Compiled clouds.hlsl:csDetailNoise (cs_5_0) in 1.02 s
+[  93.872] Compiled clouds.hlsl:csWeather (cs_5_0) in 0.89 s
+[  94.386] Compiled clouds.hlsl:csCloudTrace (cs_5_0) in 0.50 s
+[  94.939] Compiled clouds.hlsl:csCloudReconstruct (cs_5_0) in 0.15 s
+[  95.059] Compiled clouds.hlsl:csCloudShadow (cs_5_0) in 0.11 s
+[  95.639] Compiled props.hlsl:vsProp (vs_5_0) in 0.14 s
+[  95.923] Compiled props.hlsl:vsPropShadow (vs_5_0) in 0.24 s
+[  97.201] Compiled props.hlsl:psProp (ps_5_0) in 1.08 s
+[  97.379] Compiled props.hlsl:psPropShadow (ps_5_0) in 0.11 s
+[ 101.611] Compiled foliage.hlsl:csFoliage (cs_5_0) in 4.15 s
+[ 101.756] Props: 51 prototypes, 22665 verts
+[ 102.400] Compiled dynamic.hlsl:vsRigid (vs_5_0) in 0.64 s
+[ 103.356] Compiled dynamic.hlsl:vsSkinned (vs_5_0) in 0.12 s
+[ 104.126] Compiled dynamic.hlsl:vsRigidShadow (vs_5_0) in 0.13 s
+[ 105.015] Compiled dynamic.hlsl:vsSkinnedShadow (vs_5_0) in 0.04 s
+[ 105.427] Compiled dynamic.hlsl:psDynamic (ps_5_0) in 0.40 s
+[ 106.030] Compiled dynamic.hlsl:psGlass (ps_5_0) in 0.45 s
+[ 106.204] Compiled particles.hlsl:csEmit (cs_5_0) in 0.06 s
+[ 106.756] Compiled particles.hlsl:csSimulate (cs_5_0) in 0.14 s
+[ 107.246] Compiled particles.hlsl:csKeys (cs_5_0) in 0.05 s
+[ 108.026] Compiled particles.hlsl:csSortLocal (cs_5_0) in 0.25 s
+[ 108.297] Compiled particles.hlsl:csSortGlobal (cs_5_0) in 0.05 s
+[ 109.062] Compiled particles.hlsl:csSortMerge (cs_5_0) in 0.18 s
+[ 112.986] Compiled particles.hlsl:csGenAtlas (cs_5_0) in 3.49 s
+[ 113.585] Compiled particles.hlsl:vsParticle (vs_5_0) in 0.60 s
+[ 113.699] Compiled particles.hlsl:psParticle (ps_5_0) in 0.11 s
+[ 113.730] Compiled decals.hlsl:vsDecal (vs_5_0) in 0.02 s
+[ 113.923] Compiled decals.hlsl:psDecal (ps_5_0) in 0.18 s
+[ 113.986] Compiled decals.hlsl:vsSkid (vs_5_0) in 0.03 s
+[ 114.074] Compiled decals.hlsl:psSkid (ps_5_0) in 0.08 s
+[ 116.315] Compiled decals.hlsl:csGenDecals (cs_5_0) in 2.24 s
+[ 116.490] Compiled hiz.hlsl:csHiZFirst (cs_5_0) in 0.17 s
+[ 116.602] Compiled hiz.hlsl:csHiZDown (cs_5_0) in 0.10 s
+[ 116.648] Compiled hiz.hlsl:csColorDown (cs_5_0) in 0.03 s
+[ 117.061] Compiled gtao.hlsl:csGTAO (cs_5_0) in 0.41 s
+[ 117.211] Compiled gtao.hlsl:csGTAOTemporal (cs_5_0) in 0.15 s
+[ 117.705] Compiled gtao.hlsl:csGTAOBlur (cs_5_0) in 0.49 s
+[ 117.968] Compiled ssr.hlsl:csSSRTrace (cs_5_0) in 0.26 s
+[ 118.172] Compiled ssr.hlsl:csSSRResolve (cs_5_0) in 0.19 s
+[ 118.957] Compiled envprobe.hlsl:psProbeLight (ps_5_0) in 0.78 s
+[ 119.050] Compiled envprobe.hlsl:csPrefilter (cs_5_0) in 0.09 s
+[ 119.504] Compiled envprobe.hlsl:csProbeSH (cs_5_0) in 0.45 s
+[ 120.009] Compiled fog.hlsl:csFogInject (cs_5_0) in 0.50 s
+[ 120.050] Compiled fog.hlsl:csFogIntegrate (cs_5_0) in 0.03 s
+[ 120.071] Compiled overhead.hlsl:vsOverhead (vs_5_0) in 0.01 s
+[ 120.086] Compiled overhead.hlsl:psOverhead (ps_5_0) in 0.01 s
+[ 120.116] Compiled rain.hlsl:csOverheadHeight (cs_5_0) in 0.03 s
+[ 120.292] Compiled rain.hlsl:vsRain (vs_5_0) in 0.18 s
+[ 120.486] Compiled rain.hlsl:vsSplash (vs_5_0) in 0.19 s
+[ 120.535] Compiled rain.hlsl:vsBolt (vs_5_0) in 0.05 s
+[ 120.564] Compiled rain.hlsl:psRain (ps_5_0) in 0.02 s
+[ 120.588] Compiled rain.hlsl:psSplash (ps_5_0) in 0.02 s
+[ 120.613] Compiled rain.hlsl:psBolt (ps_5_0) in 0.02 s
+[ 121.041] Compiled grass.hlsl:csGrassPlace (cs_5_0) in 0.42 s
+[ 121.219] Compiled grass.hlsl:vsGrass (vs_5_0) in 0.17 s
+[ 121.314] Compiled grass.hlsl:psGrass (ps_5_0) in 0.09 s
+[ 124.626] Vehicle assets: 45 models in 2.65 s
+[ 134.307] Character assets: 86 characters in 9.68 s
+[ 134.312] Game assets built in 12.34 s
+[ 134.318] Story places resolved in 4.3 ms (boatyard 1650 239, river 1644 140, sawgrass dock -5016 -74)
+[ 134.324] Missions registered: 36
+[ 135.815] Lane graph: 26691 lanes, 59937 connectors (1215831 pts), 36768 walk nodes, 53089 walk links, dead-end turning circles moved 0 / obstructed 0 (1.49 s)
+[ 136.905] UI map: base 2560x2560 in 913 ms, 10030 roads (46402 pts) in 31 ms, 30 labels in 141 ms
+[ 136.905] hudInit done in 1085 ms
+[ 136.905] Init done in 134.86 s (shaders: 114 compiled in 62.30 s)
+[ 756.566] Saved Z:\tmp\world\d_calleluna.bmp
+[1182.228] Saved Z:\tmp\world\d_beach_n.bmp
+[1603.296] Saved Z:\tmp\world\d_suburb.bmp
+[2067.900] Saved Z:\tmp\world\d_north.bmp
+X connection to :99 broken (explicit kill or server shutdown).
+done

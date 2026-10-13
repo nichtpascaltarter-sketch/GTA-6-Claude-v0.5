@@ -1,0 +1,9 @@
+{
+  "id": "19",
+  "subject": "Wire the new settings into gameplay",
+  "description": "All settings wired: input bindings/Y-sens/toggles/pad layouts, camera prefs, frame cap, ducking, reduced flashing (muzzle, lightning, strobes, interior flicker/TV), colour-blind post matrix, Run Benchmark.",
+  "activeForm": "Wiring settings into gameplay",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": []
+}

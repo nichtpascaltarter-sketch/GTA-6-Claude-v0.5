@@ -1,0 +1,25 @@
+Hurt pedestrians and good samaritans, braced falls, coloured mission markers, crowd hands, speedway ground
+
+- Hurt pedestrians: a passer-by knocked down at very low health stays down on their back, writhing and calling for
+  help. Up to two people stop, one kneeling beside them and one on the phone to the emergency line; an ambulance
+  comes, its medic kneels with them, and once seen to they get up and leave in the ambulance (or, with nobody coming,
+  get up on their own after a couple of minutes and limp off). Limping or badly hurt pedestrians move slower (about
+  1 m/s, 1.7 m/s fleeing). New autoplay: hurt.
+- Braced falls: trips, street shoves, police tackles, the player's kick and melee knock-downs brace for the fall
+  first (arms out, chin tucked, tipping into the push) and the ragdoll takes over from that pose; shots, blasts, cars,
+  falls and dives away from cars still go over at once. Nothing of the fall (flinch, stagger, brace) carries into the
+  get-up.
+- Injury animation: holding a wounded thigh bends the body over it, and the balancing arms bend at the elbows as
+  they come up.
+- Mission markers: the glow holds a fixed, soft brightness on screen whatever the exposure, so markers no longer
+  turn into a blown-out white wall at night; mission start markers are see-through too.
+- Missions: a cutscene's first frame already looks through its first shot (the camera sat a frame at the last scene's
+  far-away position, and streaming dropped the interior the cast was staged in); in Wake the car gets clear of the
+  burning diner before the talk.
+- Characters: crowd LOD hands become mittens that keep the hand's length and grip, and far beards are painted onto
+  the face; a jacket's colour decides its cloth (no more near-black olive denim), and an untucked top over a belt
+  follows the hips below it. Locs meander across the scalp and curls stand off afros.
+- Places: the speedway's pit and grandstand strips are paved and the infield mown (wild grass grew through them), and
+  the campus Spanish moss is thinner and darker.
+- Police: the K9 dog close by in sight of a suspect counts as having found them.
+- Test rig: the Direct3D 12 port's validation runs get a Wine slot of their own (NT_D3D12_SLOT).

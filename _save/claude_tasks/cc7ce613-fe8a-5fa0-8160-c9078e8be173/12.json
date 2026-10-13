@@ -1,0 +1,9 @@
+{
+  "id": "12",
+  "subject": "Integrated play-test + Scorecard 2",
+  "description": "Run walk/drive/shoot/traffic/wanted autoplay on the snapshot exe (nice'd Wine), review screenshots and telemetry (incl. new memory numbers), fix issues, then append Scorecard 2 to PROGRESS.md.",
+  "activeForm": "Play-testing integrated build",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": []
+}

@@ -1,0 +1,42 @@
+city snapshot-safe: batch 3 (motels, strip malls, farms and neighbourhood churches; a lighter far LOD). It is copied into the shared tree on top of main 06580c3 and MinGW-syntax-checked there.
+
+FILES (src/world). Five change against 06580c3; buildings.cpp and buildmesh.cpp are copied but byte-identical to HEAD:
+@BLOBS@
+
+CHANGELOG (player-facing)
+@CHANGELOG@
+
+TESTS
+The build under test is /tmp/city/nt_base4.exe: an export of 06580c3 plus exactly these 7 files.
+- Story regression (missiontest story, 27 missions): 27 passed, 0 failed. Identical to batch 2's 27/27, mission by mission.
+- Story places resolve to the same positions as before: diner, Mari's, Rook's, Pulse FM, boatyard, river, sawgrass dock. Building and infill counts are unchanged (35617 lots, 3457 back buildings). worldcheck passed.
+- District views: the 20 in-game views were taken on this build. @VIEWS@
+- Tour stops 2-5 (--gfxstats, 960x540, measured on the pre-06580c3 tree). Draws, mean/max, before -> after:
+  - downtown: 763/839 -> 773/847
+  - Solaris: 630/645 -> 629/646
+  - Midtown park: 462/529 -> 459/535
+  - Sol Beach condos: 748/789 -> 652/671
+  AI, vehicle and ped CPU are within noise.
+- Building triangles (citylab), main before batch 1 -> batch 2 -> batch 3:
+  - near ring (420 m) at tour stops 2/3/4/5: 135k/84k/268k/173k -> 116k/78k/222k/163k (unchanged in batch 3);
+  - far ring (2.3 km): 87k/85k/88k/29k -> 142k/142k/144k/49k -> 124k/119k/131k/49k;
+  - whole-map far LOD: 0.60 M -> 1.22 M -> 1.01 M;
+  - Key Solano near ring: 322k -> 392k -> 443k (the motels).
+- Repetition: debug log metric 13.7% (before batch 1) -> 4.3% -> 3.9%; form twins 14.4% -> 3.8% -> 3.2%.
+
+EVIDENCE ($S = the session scratchpad)
+- In-game new types: $S/city/sheets/game_b3_new_types/{motels_strips_ingame,farms_ingame}.png
+- Clay before/after: $S/city/sheets/clay_new_types/{motels_strips,farms,churches,islands_1,islands_2}.png
+- Tour stops 2-5 before/after: $S/city/sheets/tour_b3/tour_stops_2_5.png
+- District views: $S/city/sheets/game_b3/*.png (before = main before batch 1, so the renderer changes since then also show)
+
+PROPOSAL (renderer; I can't change shaders): at tour stop 3 the restyled tower's storefront reads darker than on the old main. The facade shader multiplies the shop interior by the facade's glass tint (facade.hlsli ~line 359: glassTint = glassC), and a tower has one glass colour for its curtain wall and its lobby. As a stopgap, blockstyle.cpp lightens the tint 45% toward clear on storefront towers. A one-line fix in the shader would be: float3 glassTint = storefront ? lerp(glassC, float3(0.86, 0.9, 0.92), 0.6) : glassC; - the stopgap can then go.
+
+NEXT: batch 4 is in $S/dev4 (06580c3 + batch-4 world files). It passes the MinGW check, and nt_dev4.exe is built and queued for in-game runs:
+- 1950s block houses with carports and awnings;
+- folk Victorians;
+- front-bay ranches and L bungalows;
+- tile roof blends;
+- yard trees no longer inside buildings or porches;
+- strip-mall forecourts on the ground.
+Citylab: form twins 3.2% -> 2.6%, log metric 3.9% -> 2.9%.

@@ -1,0 +1,175 @@
+diff --git a/PROGRESS.md b/PROGRESS.md
+index 75932eaf14d2883aa0aebfd5d7a7afbd848eb8d6..9dcbec4f3a5b99e322377eef17fe3fde91d4c4a3 100644
+--- a/PROGRESS.md
++++ b/PROGRESS.md
+@@ -254,14 +254,19 @@ Everything (code, models, textures, animation, audio, music, voices, map) is gen
+   null). Dynamic buffers write into per-frame upload pages (map/discard semantics; contents stay valid until
+   rewritten); initial data goes through staging pages. Every release waits for the fences of the work that may use
+   the object plus frames-in-flight + 1 frames. Released views and buffers are kept marked dead in a quarantine,
+-  so code that binds one again stops with a fatal error naming it instead of reading freed memory.
++  so code that binds one again stops with a fatal error naming it instead of reading freed memory. CPU waits
++  (frame pacing, `waitIdle`, readbacks) end only when the fence reaches the value: the shared auto-reset wait event
++  just wakes the loop. (When the event ended the wait, a wait that timed out just before its fence completed left
++  the event signalled; every later wait then returned one submission early, and screenshots copied out memory the
++  GPU had not written yet: full-screen noise of old vertex and index data, seen on the slow test rig.)
+ - Beyond D3D11, available to the renderer: async compute queue (`beginAsyncCompute` / `submitAsyncCompute`,
+   `Context::wait` for cross-queue fences), ExecuteIndirect (`createCommandSignature`, count buffers, root-constant
+   arguments), placed resources and aliasing (`createHeap`, `createPlacedTexture/Buffer`, `aliasingBarrier`,
+   `discard`), root constants, bindless.
+-- Tests and tools: `--gfxselftest` (and `tests/gfx`) runs 14 checks on the device (bindless + root constants,
++- Tests and tools: `--gfxselftest` (and `tests/gfx`) runs 16 checks on the device (bindless + root constants,
+   tables, indirect draws and dispatches, async compute, append counters, read-only depth, placed resources,
+-  sRGB mip generation, a long dependent dispatch chain, root arguments across a UAV clear); `--d3ddebug` enables the
++  sRGB mip generation, a long dependent dispatch chain, root arguments across a UAV clear, CPU waits under stray
++  event signals and under 1 ms polling); `--d3ddebug` enables the
+   debug layer (Windows Graphics Tools); `--gputimers`/`--synctimers` per-pass timings; `--gfxsync` and
+   `--gfxsplit[=pass,...]` for GPU-fault and hazard hunting.
+ - Test rig (Wine 9.0, its vkd3d 1.10, lavapipe): no debug layer. Root signatures may not mix root descriptors with
+diff --git a/src/gfx/gfx.cpp b/src/gfx/gfx.cpp
+index 45708de45bae8913f9037f030f44e72159f86d7e..1369a0860ed20e2db05c1d55b9f92cf25c94e29c 100644
+--- a/src/gfx/gfx.cpp
++++ b/src/gfx/gfx.cpp
+@@ -140,7 +140,8 @@ struct DeviceState {
+     ID3D12CommandQueue* queue[QUEUE_COUNT] = {};
+     ID3D12Fence* fence[QUEUE_COUNT] = {};
+     u64 fenceValue[QUEUE_COUNT] = {};        // last value signaled
+-    HANDLE fenceEvent = nullptr;
++    HANDLE fenceEvent = nullptr;             // auto-reset, shared by every CPU wait (waitForFenceValue)
++    u32 fenceWaitPollMs = 2000;              // a waiting thread checks for device removal this often
+     IDXGISwapChain3* swap = nullptr;
+     bool allowTearing = false;
+     int lastSyncInterval = -1;               // of the previous Present
+@@ -587,11 +588,21 @@ ID3D12CommandAllocator* acquireAllocator(QueueKind q) {
+ 
+ void waitForFenceValue(QueueKind q, u64 v) {
+     if (v == 0 || g.fence[q]->GetCompletedValue() >= v) return;
++    // Only the fence value ends a wait. The event is shared and auto-reset: a wait that timed out and then found its
++    // fence complete left the event signalled, and when the event alone ended a wait, the next wait returned at once,
++    // before its GPU work had run; its own registration then signalled the event later, so every wait after it ended
++    // one registration early too. Readbacks (screenshots, photo mode) copied out memory the GPU had not written yet.
++    // A leftover signal now costs one more pass through the loop.
++    ResetEvent(g.fenceEvent);
+     checkHR(g.fence[q]->SetEventOnCompletion(v, g.fenceEvent), "SetEventOnCompletion");
+     double t0 = Platform::timeSeconds();
+     bool warned = false;
+-    while (WaitForSingleObject(g.fenceEvent, 2000) == WAIT_TIMEOUT) {
+-        if (g.fence[q]->GetCompletedValue() >= v) break;
++    while (g.fence[q]->GetCompletedValue() < v) {
++        DWORD w = WaitForSingleObject(g.fenceEvent, g.fenceWaitPollMs);
++        if (w == WAIT_OBJECT_0) continue;
++        if (w != WAIT_TIMEOUT)
++            FatalError("Direct3D 12: waiting for the GPU failed (WaitForSingleObject returned %lu, error %lu)", (unsigned long)w,
++                       (unsigned long)GetLastError());
+         HRESULT reason = g.dev->GetDeviceRemovedReason();
+         if (FAILED(reason)) deviceLost("a GPU wait", reason);
+         if (!warned && Platform::timeSeconds() - t0 > 60.0) {
+diff --git a/src/gfx/gfx_tools.cpp b/src/gfx/gfx_tools.cpp
+index f804e179f427f14c9359bf194241f695bf4102d8..a61968b9198cc5ab1ff35ca946b58222c487c77a 100644
+--- a/src/gfx/gfx_tools.cpp
++++ b/src/gfx/gfx_tools.cpp
+@@ -239,6 +239,32 @@ static bool runningOnWine() {
+     return nt && GetProcAddress(nt, "wine_get_version") != nullptr;
+ }
+ 
++// Self-test 14: signals the shared fence event every millisecond while a wait is in progress, the way the signals of
++// earlier waits can arrive late
++static std::atomic<bool> g_straySignals{false};
++static DWORD WINAPI straySignalThread(void*) {
++    while (g_straySignals.load()) {
++        SetEvent(g.fenceEvent);
++        Sleep(1);
++    }
++    return 0;
++}
++
++// h -> h * 1664525 + 1013904223 (mod 2^32) applied n times, as one map h -> a * h + c (the csSpin results)
++static void lcgSteps(u32 n, u32& a, u32& c) {
++    u32 ma = 1664525u, mc = 1013904223u;   // the map applied 2^k times
++    a = 1;
++    c = 0;
++    for (; n; n >>= 1) {
++        if (n & 1) {
++            a *= ma;
++            c = c * ma + mc;
++        }
++        mc = mc * ma + mc;
++        ma *= ma;
++    }
++}
++
+ int selfTest() {
+     int failures = 0;
+     auto check = [&](bool ok, const char* name, const std::string& detail) {
+@@ -623,6 +649,48 @@ int selfTest() {
+         releaseShader(csReadGlobal);
+     }
+ 
++    // 14) 15) CPU waits end when the fence reaches its value, whatever happens to the shared wait event: a readback
++    //     right after long GPU work (screenshots, photo mode) gets the finished results. 14: a second thread signals
++    //     the event every millisecond during the wait. 15: waits that poll every millisecond, so they time out and
++    //     race the completion of their fence again and again.
++    {
++        ComputeShader csSpin = loadCS("gfxtest.hlsl", "csSpin");
++        Buffer out = createBuffer(N * 4, 4, BUF_STRUCTURED | BUF_UAV, nullptr, "selftest spin out");
++        auto spinRound = [&](u32 steps, u32 seed) {
++            u32 rc[2] = {steps, seed};
++            ctx->setCS(csSpin);
++            ctx->setRootConstants(true, 0, 2, rc);
++            ctx->csSetUAVs(0, 1, &out.uav);
++            ctx->dispatch(1, 1, 1);
++            unbindCSResources(1, 1);
++            std::vector<u32> r(N, 0);
++            readbackBuffer(out.buf, r.data(), N * 4);
++            u32 a, c;
++            lcgSteps(steps, a, c);
++            int bad = 0;
++            for (u32 i = 0; i < N; i++) bad += r[i] != a * (i ^ seed) + c;
++            return bad;
++        };
++        const u32 kSteps = 2000000;   // tens of milliseconds on a software rasterizer, a few on a GPU
++        g_straySignals = true;
++        HANDLE th = CreateThread(nullptr, 0, straySignalThread, nullptr, 0, nullptr);
++        int bad14 = spinRound(kSteps, 0x5a5a);
++        g_straySignals = false;
++        if (th) {
++            WaitForSingleObject(th, INFINITE);
++            CloseHandle(th);
++        }
++        check(th && bad14 == 0, "GPU wait with stray event signals", StrFormat("%d of %u values wrong", bad14, N));
++        u32 poll = g.fenceWaitPollMs;
++        g.fenceWaitPollMs = 1;
++        int bad15 = 0;
++        for (u32 k = 0; k < 24; k++) bad15 += spinRound(kSteps / 8, 100 + k);
++        g.fenceWaitPollMs = poll;
++        check(bad15 == 0, "GPU waits polling every millisecond", StrFormat("%d of %u values wrong in 24 readbacks", bad15, N * 24));
++        out.release();
++        releaseShader(csSpin);
++    }
++
+     releaseShader(csBindless);
+     releaseShader(csWriteSeq);
+     releaseShader(csDouble);
+diff --git a/src/shaders/gfxtest.hlsl b/src/shaders/gfxtest.hlsl
+index de25adeb6898c9734ded602f9f7b2bc449c40cb9..929011ff95ccaa50ccec9fe195a118c82d4686ee 100644
+--- a/src/shaders/gfxtest.hlsl
++++ b/src/shaders/gfxtest.hlsl
+@@ -1,5 +1,5 @@
+ // Shaders of the graphics layer self-test (gfx::selfTest, --gfxselftest): bindless arrays, root constants, the
+-// slot tables, async compute, ExecuteIndirect, append counters and read-only depth.
++// slot tables, async compute, ExecuteIndirect, append counters, read-only depth and long GPU work for the CPU waits.
+ #include "bindless.hlsli"
+ 
+ cbuffer TestCB : register(b1) {
+@@ -75,3 +75,12 @@ float4 psSolid(float4 pos : SV_Position) : SV_Target { return float4(gRootConsta
+ StructuredBuffer<uint> tGlobal : register(t40);
+ [numthreads(64, 1, 1)]
+ void csReadGlobal(uint3 id : SV_DispatchThreadID) { uSeq[id.x] = tGlobal[id.x] + gRootConstants[0].x; }
++
++// ---- long GPU work for the CPU-wait checks: gRootConstants[0].x steps of an integer LCG per thread, seeded with the
++//      thread index ^ gRootConstants[0].y (gfx::selfTest computes the same values with the LCG's closed form)
++[numthreads(64, 1, 1)]
++void csSpin(uint3 id : SV_DispatchThreadID) {
++    uint h = id.x ^ gRootConstants[0].y;
++    for (uint i = 0; i < gRootConstants[0].x; i++) h = h * 1664525u + 1013904223u;
++    uSeq[id.x] = h;
++}

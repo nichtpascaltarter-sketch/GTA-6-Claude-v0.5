@@ -1,0 +1,8 @@
+2a70fff7e8c23caa814429b519b616babf730102 src/game/ai.cpp
+04f602bbd94f9fe2ee19c6d7fc74c1407d88ec4c src/game/ai_game.h
+d8ab90d326f6ec25676943873511101549ea56c7 src/game/app.cpp
+57720843ed3141daaaa398df6cc5649680f712e6 src/game/barks.cpp
+042f1715e83a5cbe287cdd21bc20001239c28a24 src/game/pedai.cpp
+77d62c2cbc32ab2e10b4ae11cacde46a2fe1007e src/game/police.cpp
+2112f63b6210f273545819c8595e6e777fab1f6b src/game/traffic.cpp
+d7169247aa57fb4f6580d48231d64fc49e127721 src/game/traffic_core.cpp

@@ -1,0 +1,9 @@
+{
+  "id": "1",
+  "subject": "M1: Engine foundation (platform, math, D3D11 wrapper, shaders, test harness)",
+  "description": "Win32 window/input (raw mouse, keyboard, XInput), timer, job system, math lib, D3D11 device + shader compile/cache via d3dcompiler_47, screenshot/automation CLI flags, build.sh + build.bat, run under Wine for verification.",
+  "activeForm": "Building engine foundation",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": []
+}

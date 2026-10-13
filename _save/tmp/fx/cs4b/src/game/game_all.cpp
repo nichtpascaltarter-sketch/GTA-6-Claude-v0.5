@@ -1,0 +1,61 @@
+// Gameplay layer (unity include). Included by app.cpp when characters, vehicles and audio are available.
+#include "input.cpp"
+#include "assets.cpp"
+#include "carry.cpp"          // props in the hands (after assets.cpp: its mesh helpers)
+#include "weaponmods.cpp"      // weapon components + tints (meshes, prices, fitted-component queries)
+// wildlife: animal models + procedural animation, simulation (before combat.cpp / gameworld.cpp, which call it)
+#include "animal_models.cpp"
+#include "wildlife.cpp"
+#include "peds.cpp"
+#include "ragdoll.cpp"
+#include "vehicles.cpp"
+#include "combat.cpp"
+#include "melee.cpp"
+#include "social.cpp"
+#include "camera.cpp"
+#include "fpweapon.cpp"       // first-person gun holds (after the camera update)
+#include "player.cpp"
+#include "police.cpp"
+#include "ai.cpp"
+#include "population.cpp"
+// AI: lane/sidewalk graphs and driver/pedestrian cores (ai_core.h), game-side brains, barks, ambient events
+#include "lanes.cpp"
+#include "traffic_core.cpp"
+#include "pednav.cpp"
+#include "barks.cpp"
+#include "traffic.cpp"
+#include "pedai.cpp"
+#include "events.cpp"
+#include "ambient.cpp"
+#include "progress.cpp"
+#include "hudbridge.cpp"
+#include "route.cpp"
+#include "savegame.cpp"
+#include "weather.cpp"
+#include "missions.cpp"
+// story module (missions, open world, economy): helpers first, registry and glue last
+#include "mission_util.cpp"
+#include "mission_ai.cpp"
+#include "mission_menu.cpp"
+#include "story_base.cpp"
+#include "switching.cpp"
+#include "story_act1.cpp"
+#include "story_act2.cpp"
+#include "story_act3.cpp"
+#include "activities.cpp"
+#include "shops.cpp"
+#include "economy.cpp"
+#include "phone_game.cpp"
+#include "strangers.cpp"
+#include "encounters.cpp"     // street encounters (random events around the player in free roam)
+#include "story_act4.cpp"     // Act 4 "Undertow" (after either Act 3 ending)
+#include "fishing.cpp"        // fishing from piers and boats, the bait shops and their trophy board
+#include "airboat_tours.cpp"  // Sawgrass airboat tours with Jonah (side activity: gators, tourists, tips)
+#include "story.cpp"
+#include "missiontest.cpp"
+#include "openworld.cpp"
+#include "interiors_game.cpp"   // enterable interiors: streaming, doors, NPCs, render submission
+#include "transit_models.cpp"   // SkyLine cars and ferry models
+#include "transit_game.cpp"     // public transit: SkyLine metro, buses, ferries (update + render submission)
+#include "holdups.cpp"          // store hold-ups on the interiors' shop clerks
+#include "gameworld.cpp"
