@@ -1,6 +1,44 @@
 # Neon Tide save point: how to resume
 
-## Latest save: 2026-10-06, about 16:10 UTC (usage limit nearly reached)
+## Latest save: 2026-10-13, about 13:20 UTC (usage pause; the agents finished their current items first)
+- Save branch: `claude/neon-tide-save`, at 80ab067 plus this RESTORE.md update.
+- **Verified work on `main` at af8a066** (PR #46 merged; snapshots 45-48):
+  - street life 4 (reactions to the player's car, run-pasts, night wariness);
+  - AI peds through car doors, with seat claims, so partners use their own doors;
+  - taxis that stop at the hailer and wait at pick-up and drop-off;
+  - traffic stops and fender benders that play out;
+  - night phases A and B (lit interiors, night exposure, moon and stars);
+  - the hand clasp, stair landings and quick steps;
+  - buzz cuts and the eye region;
+  - city batch 13 (roofs, ranch rows, villas).
+- **PR #47 is OPEN** (`claude/neon-tide` head 0d67933, CI green), with snapshots 49-51:
+  - 49: stair-aware standing;
+  - 50: city batches 12, 14 and 15 (storefronts on street walls only, soft trash bags, aviation beacons on landmarks);
+  - 51: night phase C (road-luminaire lamps, sodium/LED blocks, tower beacons, varied office lights).
+  - It waits on ONE fix: Codex P2 comment 4257933215 on src/anim/animator.cpp:773. When stairSeen crosses 1.5 s mid-step,
+    the cached stair fit (stepFitLand/Shift/Ball) is kept; clear it when the fit is abandoned. The animation agent's
+    resume notes have the steps.
+  - After the fix: snapshot it onto PR #47, reply on and resolve the thread, post "@codex review", and merge when clean.
+- **Uncommitted WIP in the shared tree** (saved under `_save/`): AI set 17 (ai.cpp, ai_game.h, app.cpp, events.cpp,
+  pedai.cpp), partly tested.
+- **All five agents are parked.** Each has `_save/scratchpad/resume/<name>.md` with a PARKED section:
+  - AI: rebuild set 17 on the new HEAD, run aiwork/queue_held97.txt plus breakdown and copreturn, then sign off.
+  - Animation: the PR #47 fix first, then the fast-turn hover (patches/turn.py), then the abrupt-stop short landing.
+  - City: MAT_PLASTIC props (cones, barriers, dumpster parts; propmesh.cpp ~639/737/759) may render black, so check
+    in game. Also: beacon blink sync, a second bag variant, bigger Solaris corner beacons.
+  - Night:
+    - shop interiors (`_save/tmp/night/park_shop_interior.diff`);
+    - neon bloom and vehicle lights;
+    - the sodium share (38% of blocks);
+    - round-tower beacons.
+  - Faces: rebase on the post-48 HEAD, then lips (prototype in /tmp/faces/dev21, which has getenv knobs and must not ship
+    as is), then ears.
+- **Standing requests:**
+  - auto-merge every verified snapshot (PR, CI, Codex, fix real findings, merge);
+  - 5 showcase screenshots every check-in. The next set is 0.
+- **Hourly trigger** trig_01RwYwGX7T8o7bTnhQdcFoxC is DISABLED. Re-arm it on resume.
+
+## Previous save: 2026-10-06, about 16:10 UTC (usage limit nearly reached)
 - **Verified work is on `main` at 894e7fb** (PRs up to #42). The latest merges:
   - AI street life 2 and 3: car alarms, tip-offs, asking the way, parking tickets.
   - The animation stair gait and its follow-up.
