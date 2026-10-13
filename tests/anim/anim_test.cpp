@@ -1885,7 +1885,9 @@ void testFaces() {
 // Face shape round the eyes and the mouth (face.cpp, bodymesh.cpp, hair.cpp): the head grid's normals round the eyes
 // change smoothly between neighbours (the lid-row fans at the corners used to fold into pleats, and the lid mound met
 // the socket in a groove); the brows sit above the lids' fold with skin between; the corneas sit behind the brow
-// ridge's front in profile; and a full beard's volume builds up gradually from the lips (no shelf under the lower lip).
+// ridge's front in profile; under the brow the face rises to the ridge as a slope (no ledge) and between the brows the
+// midline is no groove (together they made the eye region read as goggles under a lamp); and a full beard's volume
+// builds up gradually from the lips (no shelf under the lower lip).
 // Face hair coverage as the renderer composites strand cards (psHairCard): each card dithers its coverage against its
 // own offset of the pixel's threshold, so cards overlapping at a point cover it together, 1 - prod(1 - c). The card's
 // coverage at (uv) is hairCardCoverage's sub-pixel average (mean strand width, tips fading, the card's side edges and
@@ -2095,6 +2097,7 @@ void testFaceHairCoverage() {
 void testFaceShape() {
     using namespace Anim::detail;
     float worstJump = 0.f, worstMean = 0.f, minGap = 1e9f, minDepth = 1e9f, worstShelf = 0.f, worstTint = 0.f, worstTrench = 0.f;
+    float worstSteep = 0.f, worstGroove = 0.f;
     int minJaw = 1 << 30;
     for (u32 k = 0; k < 10; k++) {
         CharacterDesc d = randomCharacter(5300u + k * 7919u, (int)(k % 7));
@@ -2204,6 +2207,18 @@ void testFaceShape() {
             float trench = 0.5f * (frontAt(xr, e.z + dzr) + frontAt(xr, e.z - dzr)) - frontAt(xr, e.z);
             CHECK(trench < 0.004f, "face shape: a trench beside the eye (k %u: %.1f mm deep)", k, trench * 1000.f);
             worstTrench = Max(worstTrench, trench);
+            // under the brow, through the eye's centre, the face rises from the lid to the brow ridge as a slope (its
+            // steepest rise per millimetre of height), not a ledge; and between the brows the midline is no groove
+            // behind the brows' heads (half way out to the eye). Either way a lamp or a high sun would leave a hard dark
+            // band across the face, the eye sockets joined into goggles
+            float steep = 0.f, groove = 0.f;
+            for (float dz = 0.006f; dz < 0.022f; dz += 0.001f)
+                steep = Max(steep, (frontAt(e.x, e.z + dz + 0.001f) - frontAt(e.x, e.z + dz)) / 0.001f);
+            for (float dz = 0.004f; dz <= 0.0141f; dz += 0.001f) groove = Max(groove, frontAt(0.5f * e.x, e.z + dz) - frontAt(0.f, e.z + dz));
+            CHECK(steep < 2.f, "face shape: a ledge under the brow (k %u: the face steps %.1f mm forward per mm of height)", k, steep);
+            CHECK(groove < 0.002f, "face shape: a groove between the brows (k %u: the midline %.1f mm behind the brows' heads)", k, groove * 1000.f);
+            worstSteep = Max(worstSteep, steep);
+            worstGroove = Max(worstGroove, groove);
         }
         // a full beard next to the lips: the shell's height over the skin within 6 mm of the lower lip
         if (d.facialHair == FH_BEARD && d.gender == MALE) {
@@ -2241,9 +2256,10 @@ void testFaceShape() {
         }
     }
     printf("face shape: eye-region normals worst %.0f deg (mean <= %.1f), brow >= %.1f mm above the fold, brow tint <= %.2f of the forehead, "
-           "corneas >= %.1f mm behind the brow, trench beside the eyes <= %.1f mm, beard shell <= %.1f mm over the skin by the lips, >= %d beard card "
-           "vertices round the jaw's angle\n",
-           worstJump, worstMean, minGap * 1000.f, worstTint, minDepth * 1000.f, worstTrench * 1000.f, worstShelf * 1000.f, minJaw);
+           "corneas >= %.1f mm behind the brow, trench beside the eyes <= %.1f mm, rise under the brow <= %.2f mm/mm, groove between the brows "
+           "<= %.1f mm, beard shell <= %.1f mm over the skin by the lips, >= %d beard card vertices round the jaw's angle\n",
+           worstJump, worstMean, minGap * 1000.f, worstTint, minDepth * 1000.f, worstTrench * 1000.f, worstSteep, worstGroove * 1000.f, worstShelf * 1000.f,
+           minJaw);
 }
 
 // Driving: the hands must stay on the steering wheel rim (absolute interior geometry) for any character size.

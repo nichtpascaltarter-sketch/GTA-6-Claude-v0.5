@@ -602,6 +602,33 @@ void step(GameWorld& g, int vi, float dt) {
 // door - the caller's plain climb-in clip, as before
 namespace ai_board {
 
+// a seat somebody is getting into through its door this moment (PS_ENTERING, the clip running): Vehicle::seats only has
+// them once the clip is over (step's warp), so the seat choices that lead to begin() ask this as well - two officers back
+// to one car went for the driver's door together and both played the clip into the one seat. The claim ends with the
+// clip: in, called off (step), or the claimant down or gone
+bool claimed(const GameWorld& g, int veh, int seat, int except) {
+    if (veh < 0 || veh >= (int)g.vehicles.size()) return false;
+    u32 vu = g.vehicles[veh].uid;
+    for (int i = 0; i < (int)g.peds.size() && i < (int)g.ai.ped.size(); i++) {
+        const Ped& q = g.peds[i];
+        const PedAI& qa = g.ai.ped[i];
+        if (i != except && q.used && qa.uid == q.uid && q.state == PS_ENTERING && qa.boardVeh == veh && qa.boardVehUid == vu && qa.boardSeat == seat)
+            return true;
+    }
+    return false;
+}
+
+// GameWorld::freeSeat leaving out the seats somebody is getting into: the driver's (0), or a passenger's; -1 if none
+int openSeat(const GameWorld& g, int veh, bool driver, int except) {
+    if (veh < 0 || veh >= (int)g.vehicles.size() || !g.vehicles[veh].used) return -1;
+    const Vehicle& v = g.vehicles[veh];
+    int ns = Min((int)g.vassets[v.model].spec.seats.size(), 8);
+    if (driver) return ns > 0 && v.seats[0] < 0 && !claimed(g, veh, 0, except) ? 0 : -1;
+    for (int s = 1; s < ns; s++)
+        if (v.seats[s] < 0 && !claimed(g, veh, s, except)) return s;
+    return -1;
+}
+
 bool begin(GameWorld& g, int id, int veh, int seat) {
     if (id < 0 || id >= (int)g.peds.size() || id >= (int)g.ai.ped.size() || veh < 0 || veh >= (int)g.vehicles.size() || seat < 0 || seat >= 8)
         return false;

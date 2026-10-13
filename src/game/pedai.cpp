@@ -20,6 +20,8 @@ void greetPart(GameWorld& g, int a, int b, float gap);
 namespace ai_board {
 bool begin(GameWorld& g, int id, int veh, int seat);
 void boarded(GameWorld& g, int id, int veh, int seat);
+bool claimed(const GameWorld& g, int veh, int seat, int except);       // (somebody getting into that seat through its door)
+int openSeat(const GameWorld& g, int veh, bool driver, int except);    // (freeSeat without those)
 }  // namespace ai_board
 
 namespace pedai_detail {
@@ -1335,7 +1337,7 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                             int seat = -1;
                             const Vehicles::VehicleModel& rsp = vassets[vehicles[rc].model].spec;
                             for (int s2 = 1; s2 < Min((int)rsp.seats.size(), 8) && seat < 0; s2++) {
-                                if (vehicles[rc].seats[s2] >= 0) continue;
+                                if (vehicles[rc].seats[s2] >= 0 || ai_board::claimed(*this, rc, s2, id)) continue;
                                 bool taken = false;
                                 for (int j = 0; j < (int)peds.size() && j < (int)ai.ped.size() && !taken; j++)
                                     taken = j != id && peds[j].used && ai.ped[j].uid == peds[j].uid && ai.ped[j].activity == ACT_RIDE_ALONG &&
@@ -2108,8 +2110,8 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                             const Vehicles::VehicleModel& ts = vassets[v.model].spec;
                             int seat = -1;
                             for (int k = Min((int)ts.seats.size(), 8) - 1; k >= 1 && seat < 0; k--)
-                                if (v.seats[k] < 0 && !ts.seats[k].exitLeft) seat = k;
-                            if (seat < 0) seat = freeSeat(tv, false);
+                                if (v.seats[k] < 0 && !ts.seats[k].exitLeft && !ai_board::claimed(*this, tv, k, id)) seat = k;
+                            if (seat < 0) seat = ai_board::openSeat(*this, tv, false, id);
                             if (seat <= 0 || seat >= (int)ts.seats.size()) {
                                 pa.targetVeh = -1;
                                 break;
@@ -2200,7 +2202,7 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                                 //  through it: ai_board; no seat free: gone on foot as before)
                                 const Vehicle& ev = vehicles[hv];
                                 const Vehicles::VehicleModel& es = vassets[ev.model].spec;
-                                int seat = freeSeat(hv, false);
+                                int seat = ai_board::openSeat(*this, hv, false, id);   // (two medics: one seat each)
                                 vec3 vp = ev.sim.body.pos.toVec3();
                                 vec2 goal = vp.xy();
                                 if (seat > 0 && seat < (int)es.seats.size()) {
@@ -2433,7 +2435,8 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                 case ACT_ROADRAGE: {
                     // the player crashed into our car: storm over, shout, maybe throw a punch, then drive off
                     int hv = pa.homeVeh;
-                    bool carOk = hv >= 0 && hv < (int)vehicles.size() && vehicles[hv].used && !vehicles[hv].exploded && vehicles[hv].seats[0] < 0;
+                    bool carOk = hv >= 0 && hv < (int)vehicles.size() && vehicles[hv].used && !vehicles[hv].exploded && vehicles[hv].seats[0] < 0 &&
+                                 !ai_board::claimed(*this, hv, 0, id);
                     bool plOk = pl && pl->health > 0.f;
                     // the other way round - they knocked somebody down (the player, or anybody else on foot): the one they hit
                     int sv = pa.sorryFor >= 0 ? pa.sorryFor : player;
@@ -2567,7 +2570,8 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                 case ACT_ERRAND: {
                     // delivery: to the door, a while there, back to the van and away
                     int hv = pa.homeVeh;
-                    bool carOk = hv >= 0 && hv < (int)vehicles.size() && vehicles[hv].used && !vehicles[hv].exploded && vehicles[hv].seats[0] < 0;
+                    bool carOk = hv >= 0 && hv < (int)vehicles.size() && vehicles[hv].used && !vehicles[hv].exploded && vehicles[hv].seats[0] < 0 &&
+                                 !ai_board::claimed(*this, hv, 0, id);
                     if (!carOk || pa.actTimer <= 0.f) {
                         pa.activity = ACT_WALK;
                         pa.homeVeh = -1;
@@ -2664,7 +2668,7 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                     // blinks, waits for a gap and pulls out (traffic.cpp)
                     int hv = pa.homeVeh;
                     bool carOk = hv >= 0 && hv < (int)vehicles.size() && vehicles[hv].used && !vehicles[hv].exploded && !vehicles[hv].sim.wrecked &&
-                                 vehicles[hv].seats[0] < 0 && vehicles[hv].parked && !vehicles[hv].playerUsed;
+                                 vehicles[hv].seats[0] < 0 && !ai_board::claimed(*this, hv, 0, id) && vehicles[hv].parked && !vehicles[hv].playerUsed;
                     if (!carOk || pa.actTimer <= 0.f) {
                         pa.activity = ACT_WALK;
                         pa.homeVeh = -1;
@@ -2794,7 +2798,7 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                         int n = Min((int)vassets[cv.model].spec.seats.size(), 8);
                         const int order[3] = {3, 2, 1};
                         for (int k : order)
-                            if (seat < 0 && k < n && cv.seats[k] < 0) seat = k;
+                            if (seat < 0 && k < n && cv.seats[k] < 0 && !ai_board::claimed(*this, car, k, id)) seat = k;
                         if (seat < 0) carOk = false;
                     }
                     if (!carOk) {
@@ -3254,9 +3258,9 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                     if (hva.copBreak == 2) hva.copBreak = 3;   // (the first one whose time is up calls it)
                     // back in through the door they got out of (another free one if that seat was taken meanwhile)
                     int ns = Min((int)hs.seats.size(), 8);
-                    int seat = pa.breakSeat < ns && hvv.seats[pa.breakSeat] < 0 ? pa.breakSeat : -1;
+                    int seat = pa.breakSeat < ns && hvv.seats[pa.breakSeat] < 0 && !ai_board::claimed(*this, hv, pa.breakSeat, id) ? pa.breakSeat : -1;
                     for (int k = 0; k < ns && seat < 0; k++)
-                        if (hvv.seats[k] < 0) seat = k;
+                        if (hvv.seats[k] < 0 && !ai_board::claimed(*this, hv, k, id)) seat = k;
                     if (seat < 0) {
                         pa.activity = ACT_WALK;
                         pa.navOk = false;
