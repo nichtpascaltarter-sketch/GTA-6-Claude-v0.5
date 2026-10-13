@@ -1957,6 +1957,89 @@ static float accumCoverage(const std::vector<CardGeo>& cards, vec3 p) {
     }
     return 1.f - T;
 }
+// Buzz cuts (hair.cpp): short hair over the scalp rather than a smooth painted cap. At LOD0 a buzz cut carries short
+// strand cards (its grain up close, a soft silhouette and a soft front edge) within the scalp cards' triangle budget,
+// lying close over the head's surface (the hair shell, or the skin past the hairline: nothing stands off the head); the
+// crowd LODs drop them.
+static vec3 closestOnTriangle(vec3 p, vec3 a, vec3 b, vec3 c) {
+    vec3 ab = b - a, ac = c - a, ap = p - a;
+    float d1 = dot(ab, ap), d2 = dot(ac, ap);
+    if (d1 <= 0.f && d2 <= 0.f) return a;
+    vec3 bp = p - b;
+    float d3 = dot(ab, bp), d4 = dot(ac, bp);
+    if (d3 >= 0.f && d4 <= d3) return b;
+    float vc = d1 * d4 - d3 * d2;
+    if (vc <= 0.f && d1 >= 0.f && d3 <= 0.f) return a + ab * (d1 / (d1 - d3));
+    vec3 cp = p - c;
+    float d5 = dot(ab, cp), d6 = dot(ac, cp);
+    if (d6 >= 0.f && d5 <= d6) return c;
+    float vb = d5 * d2 - d1 * d6;
+    if (vb <= 0.f && d2 >= 0.f && d6 <= 0.f) return a + ac * (d2 / (d2 - d6));
+    float va = d3 * d6 - d5 * d4;
+    if (va <= 0.f && d4 - d3 >= 0.f && d5 - d6 >= 0.f) return b + (c - b) * ((d4 - d3) / ((d4 - d3) + (d5 - d6)));
+    float den = 1.f / (va + vb + vc);
+    return a + ab * (vb * den) + ac * (vc * den);
+}
+void testBuzzCut() {
+    using namespace Anim::detail;
+    int minTris = 1 << 30, maxTris = 0;
+    float worst = 0.f, worstFrac = 0.f;
+    for (u32 k = 0; k < 6; k++) {
+        CharacterDesc d = randomCharacter(8300u + k * 7919u, (int)(k % 7));
+        d.hairStyle = HAIR_BUZZ;
+        d.hat = -1;
+        Skeleton sk;
+        buildSkeleton(d, sk);
+        SkinnedMeshData L[2];
+        buildCharacterMeshLods(d, sk, L, 2);
+        const SkinnedMeshData& m = L[0];
+        auto onHead = [](const VtxSkinned& v) {
+            for (int i = 0; i < 4; i++)
+                if (v.bones[i] == B_HEAD && v.weights[i] >= 200) return true;
+            return false;
+        };
+        // the head's surface: its skin and the hair shell (the scalp under the hair is hidden)
+        std::vector<vec3> tri;
+        int tris = 0;
+        for (size_t t = 0; t + 2 < m.indices.size(); t += 3) {
+            const VtxSkinned& v = m.verts[m.indices[t]];
+            u32 mat = v.mat & 0xffu, kind = (v.mat >> 8) & 15u;
+            if (mat == MAT_HAIR && kind == CARD_SCALP) tris++;
+            if ((mat == MAT_SKIN || (mat == MAT_HAIR && kind == 0u)) && onHead(v))
+                for (int j = 0; j < 3; j++) tri.push_back(m.verts[m.indices[t + j]].pos);
+        }
+        // how far the cards' points lie off that surface
+        float off = 0.f;
+        int n = 0, over4 = 0;
+        for (const VtxSkinned& v : m.verts) {
+            if ((v.mat & 0xffu) != MAT_HAIR || ((v.mat >> 8) & 15u) != CARD_SCALP) continue;
+            float best = 1e9f;
+            for (size_t j = 0; j + 2 < tri.size(); j += 3) {
+                if (length2(tri[j] - v.pos) > 0.03f * 0.03f) continue;
+                best = Min(best, length2(closestOnTriangle(v.pos, tri[j], tri[j + 1], tri[j + 2]) - v.pos));
+            }
+            best = sqrtf(best);
+            off = Max(off, best);
+            n++;
+            if (best > 0.004f) over4++;
+        }
+        int lodCards = 0;
+        for (const VtxSkinned& v : L[1].verts)
+            if ((v.mat & 0xffu) == MAT_HAIR && ((v.mat >> 8) & 15u) != 0u) lodCards++;
+        const float frac = n > 0 ? (float)over4 / (float)n : 1.f;
+        CHECK(tris >= 1000 && tris <= 4400, "buzz cut: %d scalp card triangles (k %u)", tris, k);
+        // (the farthest are a few at the temples' corners, where the head's surface falls away under the hairline)
+        CHECK(off < 0.01f && frac < 0.03f, "buzz cut: card points up to %.1f mm off the head, %.1f%% over 4 mm (k %u)", off * 1000.f, frac * 100.f, k);
+        CHECK(lodCards == 0, "buzz cut: %d strand card vertices left at LOD1 (k %u)", lodCards, k);
+        minTris = Min(minTris, tris);
+        maxTris = Max(maxTris, tris);
+        worst = Max(worst, off);
+        worstFrac = Max(worstFrac, frac);
+    }
+    printf("buzz cut: scalp cards %d..%d triangles; card points at most %.1f mm off the head, at most %.1f%% over 4 mm\n", minTris, maxTris,
+           worst * 1000.f, worstFrac * 100.f);
+}
+
 void testFaceHairCoverage() {
     using namespace Anim::detail;
     float browLo = 1.f, browHi = 0.f, lashLo = 1.f, lashHi = 0.f;
@@ -2457,6 +2540,7 @@ int main(int argc, char** argv) {
     run("Faces", testFaces);
     run("FaceShape", testFaceShape);
     run("FaceHairCoverage", testFaceHairCoverage);
+    run("BuzzCut", testBuzzCut);
     run("Mesh", testMesh);
     run("ClothingClip", testClothingClip);
     printf("%s (%d failures)\n", gFail ? "FAILED" : "ALL PASSED", gFail);

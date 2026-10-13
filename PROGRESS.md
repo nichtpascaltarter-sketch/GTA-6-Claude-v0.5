@@ -125,6 +125,15 @@ Everything (code, models, textures, animation, audio, music, voices, map) is gen
   lit at night, a tower's tinted glass filters lamp light only half as much, a bookcase stands in some rooms, and
   shop shelves and rails hold muted colours. The tonemap's sharpening stays within each pixel's neighbourhood range
   (no pale line along dark brows, lash lines or window frames).
+- Night exposure and sky (post.cpp, post.hlsl, skycommon.hlsli, renderer.cpp, lighting.hlsl): at night the exposure
+  no longer opens beyond EV 1.8, so a moonlit suburb or a park stays night-dark instead of being lifted to dusk grey
+  (lamp pools, shop fronts and lit rooms still set the exposure where they fill the frame). Night vision in the
+  tonemap: below a few cd/m2 colours fade and shift towards blue (the Purkinje shift: reds darken first), fully at
+  moonlight levels, while lamp pools, signs and lit rooms keep their colour; the white balance turns neutral at night.
+  The moon is a bright disc with a soft aureole in the haze; some 3,000 stars, drawn as pixel-wide points
+  with a five-magnitude spread, fade under the city's light pollution, near the moon and low in the haze; the natural
+  night sky is a deeper blue. The probe's bounce light near the camera is weaker and reaches 80 m instead of 280 m at
+  night, so unlit corners stay dark, and backlit grass no longer glows in moonlight.
 - Audio (src/audio, done by agent): WASAPI mixer (192 voices, 3D, doppler, reverb, ducking), 79 synthesized SFX,
   9 engine kinds, sirens/horns/skids/rotors/boats, ambience beds, procedural music engine, 9 radio stations with DJs,
   ads and talk (live timelines), dynamic mission score. Formant TTS voices (src/audio/speech*).
