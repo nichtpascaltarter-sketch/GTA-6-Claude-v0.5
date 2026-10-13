@@ -264,7 +264,9 @@ float3 shopInterior(float3 roomPos, float3 dir, float3 roomSize, uint h) {
     return c * lerp(1.0, 0.65, saturate(t / (D * 1.6)));
 }
 
-FacadeResult shadeFacade(uint id, float2 uv, float3 N, float3 T, float3 B, float3 rel, float3 worldP) {
+// streetMark: the wall's vertex alpha - 1 on a wall that looks onto a street, 0.5 on the sides and backs that don't
+// (world/buildmesh.cpp facadeWalls): the storefront and its sign band stay off their ground floor
+FacadeResult shadeFacade(uint id, float2 uv, float3 N, float3 T, float3 B, float3 rel, float3 worldP, float streetMark) {
     FacadeGPU f = facadeInfo(id);
     Texture2DArray<float4> albedoArr = matAlbedoArray();
     Texture2DArray<float4> normalArr = matNormalArray();
@@ -312,7 +314,7 @@ FacadeResult shadeFacade(uint id, float2 uv, float3 N, float3 T, float3 B, float
     float winW = bay * f.winW;
     float winH = fh * f.winH;
     float sill = f.sillH;
-    bool storefront = ground && (flags & 1u);
+    bool storefront = ground && (flags & 1u) && streetMark > 0.75;
     if (storefront) { winW = bay * 0.92; sill = 0.35; winH = fh - 1.3; }
     if (style == 1 && !storefront) { winW = bay - 0.12; winH = fh - 0.1; sill = 0.05; }       // curtain wall
     if (style == 2 && !storefront) { winW = bay; sill = fh * 0.38; winH = fh * 0.45; }        // ribbon
@@ -323,7 +325,7 @@ FacadeResult shadeFacade(uint id, float2 uv, float3 N, float3 T, float3 B, float
     // Industrial: only some bays have windows
     if (style == 4 && hashF(roomHash + 9u) < 0.5 && !storefront) inWin = false;
     // Sign band above storefronts
-    bool signBand = (flags & 2u) && ground && fy > fh - 1.05 && fy < fh - 0.15;
+    bool signBand = (flags & 2u) && streetMark > 0.75 && ground && fy > fh - 1.05 && fy < fh - 0.15;
 
     // Frame around the window
     float frameW = style == 1 ? 0.06 : 0.09;

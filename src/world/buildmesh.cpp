@@ -33,6 +33,7 @@ struct Ctx {
     u32 trimMat = 0;                             // painted porch posts, rails and brackets (0: bare wood), per building
     int porchPosts = 0;                          // housePorch's posts: 0 slim, 1 Craftsman (column on a pier, knee wall), 2 round columns
     u32 pierCol = 0, pierMat = 0;                // the Craftsman porch's piers and knee wall (brick, stone or the wall's cladding)
+    const Building* bld = nullptr;               // the building (facadeWalls: which walls look onto a street)
 };
 
 // The material of a porch's posts, rails, brackets and ceiling: painted in town (plaster takes the trim colour: the wood
@@ -116,13 +117,38 @@ std::vector<vec2> roundFP(vec2 c, float r, int seg, float rot) {
     return p;
 }
 
-// Facade walls around a footprint from z0 to z1. v is measured from vBase (building base).
+// Whether the facade wall a -> b of a storefront facade (the footprint CCW: its outside to the right) looks onto a street:
+// the building's front, and a wall with a street or its sidewalk within 12 m in front of it (a corner building's side, a
+// block's back on another street). The shop windows stay on these: facadeWalls marks the others (facade.hlsli).
+bool streetFacing(const Ctx& x, u32 facadeId, vec2 a, vec2 b) {
+    if (!x.bld || !gRoads || !gBuildings || facadeId >= gBuildings->facades.size() || !(gBuildings->facades[facadeId].flags & 1u)) return true;
+    const vec2 t = b - a;
+    const float len = length(t);
+    if (len < 0.05f) return true;
+    const vec2 n(t.y / len, -t.x / len);
+    if (dot(n, x.bld->front) > 0.5f) return true;
+    const vec2 m = (a + b) * 0.5f;
+    for (float d = 2.f; d <= 12.f; d += 2.5f) {
+        float s, dd, side;
+        int e = gRoads->nearestEdge(m + n * d, 30.f, &s, &dd, &side);
+        if (e < 0) continue;
+        const RoadEdge& ed = gRoads->edges[e];
+        if (ed.cls == RC_HIGHWAY || ed.cls == RC_RAMP) continue;
+        if (dd < ed.halfWidth + ed.sidewalk + 0.3f) return true;
+    }
+    return false;
+}
+
+// Facade walls around a footprint from z0 to z1. v is measured from vBase (building base). A wall that does not look onto
+// a street gets vertex alpha 0.5: the facade shader keeps a storefront's shop windows and sign band off its ground floor.
 void facadeWalls(Ctx& x, const std::vector<vec2>& fp, float z0, float z1, float vBase, u32 facadeId, float bay, u32 color = kWhite) {
     int n = (int)fp.size();
+    const u32 color0 = color;
     for (int i = 0; i < n; i++) {
         vec2 a = fp[i], b = fp[(i + 1) % n];
         float len = length(b - a);
         if (len < 0.05f) continue;
+        color = streetFacing(x, facadeId, a, b) ? color0 : (color0 & 0x00ffffffu) | 0x80000000u;
         // stretch bays to fit the wall exactly; each wall starts on a bay boundary so windows sit centered and whole
         // (facadedetail.cpp aligns sills, frames and storefront mullions with this grid)
         float bays = Max(1.f, roundf(len / bay));
@@ -1029,6 +1055,7 @@ void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& 
     x.props = props;
     x.lights = lights;
     x.interior = b.interior;
+    x.bld = &b;
     roofFinish(b, x.roofCol, x.roofMat);
     if (b.interior >= 0 && interiorOwnsShell(b.interior)) return;   // the whole structure streams with its interior
     if (b.siteElem >= 0) return;   // hand-built by its site element (places.h): hotels, hospitals, campus halls, chapels
