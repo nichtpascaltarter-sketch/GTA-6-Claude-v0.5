@@ -20,6 +20,7 @@ struct StreamCell {
     AABB bounds;  // cell-relative
     double lastUsed = 0;
     std::vector<World::LightInstance> lights;
+    std::vector<vec2> lightArm;   // per light: a street lamp's arm direction (towards the road it lights), 0 = unknown
     std::vector<World::PropInstance> props;
     std::vector<World::CollisionBox> collision;
 };
@@ -177,6 +178,40 @@ struct WorldRenderer {
         }
     }
 
+    // Street lamps hang off a pole on an arm over the road: the direction from the pole to the lamp tells the road
+    // side, which gets most of the light (gatherLights: road-lighting distribution, lights.hlsli streetLampPattern)
+    static void computeLampArms(StreamCell* c) {
+        c->lightArm.assign(c->lights.size(), vec2(0.f));
+        for (size_t i = 0; i < c->lights.size(); i++) {
+            const World::LightInstance& li = c->lights[i];
+            if (li.type != 0) continue;
+            float best = 16.f;
+            for (const World::PropInstance& pi : c->props) {
+                if (pi.type != World::PROP_STREETLIGHT && pi.type != World::PROP_STREETLIGHT_DOUBLE && pi.type != World::PROP_POWER_POLE) continue;
+                vec2 d = li.pos.xy() - pi.pos.xy();
+                float dz = li.pos.z - pi.pos.z, d2 = dot(d, d);
+                if (d2 < best && d2 > 0.25f && dz > 4.f && dz < 16.f) {
+                    best = d2;
+                    c->lightArm[i] = d * (1.f / sqrtf(d2));
+                }
+            }
+        }
+    }
+
+    // Street lamp colours: installations change block to block (a 160 m grid): high-pressure sodium (~2050 K,
+    // orange), warm-white LED (3000 K), neutral (4000 K) and cool-white (5000 K) LED, at the world's luminance.
+    // props.hlsl picks the same colour for the lamp's lens from its position (lampColorAt).
+    static vec3 streetLampColor(vec3 pos, vec3 worldColor) {
+        u32 h = (u32)(int)floorf(pos.x / 160.f) * 73856093u ^ (u32)(int)floorf(pos.y / 160.f) * 19349663u;
+        h ^= h >> 13;
+        h *= 0x5bd1e995u;
+        h ^= h >> 15;
+        float r = (float)(h & 1023u) / 1023.f;
+        vec3 k = r < 0.38f ? vec3(1.f, 0.46f, 0.11f) : (r < 0.62f ? vec3(1.f, 0.61f, 0.31f) : (r < 0.86f ? vec3(1.f, 0.76f, 0.52f) : vec3(1.f, 0.87f, 0.74f)));
+        float lumW = 0.2126f * worldColor.x + 0.7152f * worldColor.y + 0.0722f * worldColor.z;
+        return k * (lumW / (0.2126f * k.x + 0.7152f * k.y + 0.0722f * k.z));
+    }
+
     void upload(StreamCell* c) {
         World::CellGeometry* g = c->geo;
         u32 nOpaque = (u32)g->opaque.indices.size(), nDecal = (u32)g->decals.indices.size();
@@ -203,6 +238,7 @@ struct WorldRenderer {
             nearUploads++;
         }
         c->props = std::move(g->props);
+        if (c->lod == 0) computeLampArms(c);
         c->collision = std::move(g->collision);
         if (c->lod == 0 && Phys::gCollision) Phys::gCollision->addCell(key(c->cx, c->cy, 0), c->collision, c->props);
         delete g;
@@ -374,7 +410,8 @@ struct WorldRenderer {
                         brokenPoles.push_back(pi.pos);
                 }
             }
-            for (const World::LightInstance& li : c->lights) {
+            for (size_t lix = 0; lix < c->lights.size(); lix++) {
+                const World::LightInstance& li = c->lights[lix];
                 if (!brokenPoles.empty() && li.type == 0) {
                     bool off = false;
                     for (const vec3& p : brokenPoles) {
@@ -409,8 +446,14 @@ struct WorldRenderer {
                 LightGPU g;
                 g.pos = rp;
                 g.radius = li.radius;
-                g.color = li.color * k;
-                if (li.cone > 0.f && length2(li.dir) > 0.5f) {
+                g.color = (li.type == 0 ? streetLampColor(li.pos, li.color) : li.color) * k;
+                vec2 arm = li.type == 0 && lix < c->lightArm.size() ? c->lightArm[lix] : vec2(0.f);
+                if (length2(arm) > 0.5f) {
+                    // road lighting: full cut-off at 80 degrees from the nadir, peak towards the road
+                    g.dir = normalize(vec3(arm.x * 0.3f, arm.y * 0.3f, -1.f));
+                    g.spotCos = 0.17f;
+                    g.spotInner = 3.f;
+                } else if (li.cone > 0.f && length2(li.dir) > 0.5f) {
                     // cone stores cos of the outer angle as (1 - cone) for wide down-facing street lamps
                     g.spotCos = Clamp(1.f - li.cone * 4.f, -0.95f, 0.99f);
                     g.spotInner = Min(0.999f, g.spotCos + 0.25f);

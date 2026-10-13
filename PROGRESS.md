@@ -134,6 +134,15 @@ Everything (code, models, textures, animation, audio, music, voices, map) is gen
   with a five-magnitude spread, fade under the city's light pollution, near the moon and low in the haze; the natural
   night sky is a deeper blue. The probe's bounce light near the camera is weaker and reaches 80 m instead of 280 m at
   night, so unlit corners stay dark, and backlit grass no longer glows in moonlight.
+- Street and building lights at night (world_render.cpp, lights.hlsli, props.hlsl, facade.hlsli): street lamps throw
+  their light like a full cut-off road luminaire: the intensity rises from the nadir to a peak about 60 degrees out
+  along the road and ends by 80 degrees (the pool has an edge, no light above), and behind the pole, over the
+  pavement and the houses, only about a third (the arm from pole to lamp tells the road side), so poles and the
+  facades behind them are no longer floodlit by their own lamp. Installations change block to block: high-pressure
+  sodium (orange), warm-white, neutral and cool-white LED, with the lamp's lens glowing in the same colour. Buildings
+  over 60 m carry red aviation beacons at their roof corners, flashing in the rhythm of the beacons on masts and
+  spires. Offices lit outside working hours have only some of their fixtures on, and office light levels vary over two
+  stops.
 - Audio (src/audio, done by agent): WASAPI mixer (192 voices, 3D, doppler, reverb, ducking), 79 synthesized SFX,
   9 engine kinds, sirens/horns/skids/rotors/boats, ambience beds, procedural music engine, 9 radio stations with DJs,
   ads and talk (live timelines), dynamic mission score. Formant TTS voices (src/audio/speech*).
