@@ -732,11 +732,12 @@ void buildPropPrototype(PropType type, int variant, PropPrototype& p) {
             break;
         }
         case PROP_BARRIER: {
-            // water-filled plastic barrier segment (orange/white)
-            u32 c0 = (variant & 1) ? packRGBA8(0.95f, 0.95f, 0.93f, 1) : packRGBA8(1.f, 0.42f, 0.08f, 1);
-            m.box(vec3(0, 0, 0.25f), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(0.95f, 0.26f, 0.25f), c0, makeMat(MAT_PLASTIC), false);
-            m.box(vec3(0, 0, 0.72f), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(0.95f, 0.16f, 0.22f), c0, makeMat(MAT_PLASTIC), false);
-            m.box(vec3(0, 0, 0.72f), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(0.96f, 0.17f, 0.05f), packRGBA8(0.95f, 0.95f, 0.95f, 1), makeMat(MAT_PLASTIC), false);
+            // water-filled plastic barrier segment (orange/white). The painted material takes the vertex colour (MAT_PLASTIC is
+            // the vehicles' fixed black trim, albedo 0.03 whatever the tint), so the colours are scaled for its 0.6 albedo
+            u32 c0 = (variant & 1) ? packRGBA8(1.f, 1.f, 0.98f, 1) : packRGBA8(1.f, 0.28f, 0.03f, 1);
+            m.box(vec3(0, 0, 0.25f), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(0.95f, 0.26f, 0.25f), c0, metal, false);
+            m.box(vec3(0, 0, 0.72f), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(0.95f, 0.16f, 0.22f), c0, metal, false);
+            m.box(vec3(0, 0, 0.72f), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(0.96f, 0.17f, 0.05f), packRGBA8(1.f, 1.f, 1.f, 1), metal, false);
             p.radius = 1.1f;
             p.lodDistance = 90.f;
             break;
@@ -754,11 +755,12 @@ void buildPropPrototype(PropType type, int variant, PropPrototype& p) {
             break;
         }
         case PROP_CONE: {
-            u32 orange = packRGBA8(1.f, 0.35f, 0.05f, 1);
+            // orange with a white band on a black rubber base; the painted material, as the barrier's (MAT_PLASTIC renders black)
+            u32 orange = packRGBA8(1.f, 0.24f, 0.02f, 1);
             m.box(vec3(0, 0, 0.02f), vec3(1, 0, 0), vec3(0, 1, 0), vec3(0, 0, 1), vec3(0.19f, 0.19f, 0.02f), packRGBA8(0.1f, 0.1f, 0.1f, 1), makeMat(MAT_RUBBER), false);
-            m.cylinder(vec3(0, 0, 0.04f), 0.15f, 0.1f, 0.24f, 10, orange, makeMat(MAT_PLASTIC), false);
-            m.cylinder(vec3(0, 0, 0.28f), 0.1f, 0.075f, 0.12f, 10, packRGBA8(0.95f, 0.95f, 0.95f, 1), makeMat(MAT_PLASTIC), false);
-            m.cylinder(vec3(0, 0, 0.4f), 0.075f, 0.02f, 0.3f, 10, orange, makeMat(MAT_PLASTIC), false);
+            m.cylinder(vec3(0, 0, 0.04f), 0.15f, 0.1f, 0.24f, 10, orange, metal, false);
+            m.cylinder(vec3(0, 0, 0.28f), 0.1f, 0.075f, 0.12f, 10, packRGBA8(1.f, 1.f, 1.f, 1), metal, false);
+            m.cylinder(vec3(0, 0, 0.4f), 0.075f, 0.02f, 0.3f, 10, orange, metal, false);
             p.radius = 0.4f;
             p.lodDistance = 70.f;
             p.castsShadow = false;
