@@ -641,6 +641,7 @@ void Renderer::render(const Camera& cam, const Environment& env, float dt) {
             g.spotInner = dl.headlight ? 2.f : dl.spotInner;
             if (length(g.pos) < 400.f && fr.testSphere(g.pos, g.radius)) lightsFrame.push_back(g);
         }
+        world->reduceFlashing = settings.reduceFlashing;
         world->gatherLights(cam.pos, nightFactor, env.gameSeconds, env.timeOfDay, fr, lightsFrame, kMaxLights);
         if (!lightsFrame.empty()) gfx::updateBuffer(lightBuf, lightsFrame.data(), (u32)(lightsFrame.size() * sizeof(LightGPU)));
         lightCB.data.count = (u32)lightsFrame.size();

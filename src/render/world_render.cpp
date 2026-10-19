@@ -38,6 +38,7 @@ struct WorldRenderer {
     float nearRadius = 420.f;
     float farRadius = 2300.f;
     int maxInFlight = 6;
+    bool reduceFlashing = false;  // accessibility (renderer settings): blinking aviation lights pulse slowly instead
     std::atomic<int> inFlight{0};
     int uploadsPerFrame = 4;
     int drawnCells = 0;
@@ -426,7 +427,15 @@ struct WorldRenderer {
                     case 0: k = SmoothStep(0.05f, 0.35f, night); break;           // street
                     case 1: k = SmoothStep(0.2f, 0.6f, night); break;             // building / canopy
                     case 2: k = 0.25f + 0.75f * night; break;                     // neon
-                    case 4: k = night * (fmodf(time + li.pos.x * 0.01f, 1.6f) < 0.25f ? 1.f : 0.f); break;
+                    case 4: {   // aviation obstruction light: in step with its lamp (world.hlsl emissiveAnim pattern 1, same phase)
+                        float ph = (float)li.phase / 256.f;
+                        if (reduceFlashing) k = night * (0.55f + 0.25f * sinf(time * 1.2f + ph * 6.2832f)) / 1.6f;   // the lamp's slow pulse
+                        else {
+                            float f = time * 0.8f + ph;
+                            k = night * (f - floorf(f) < 0.18f ? 1.f : 0.f);   // 1.25 s period, 18% on
+                        }
+                        break;
+                    }
                     case 5: {   // shop window spill: shops close between 22:00 and 01:00, some keep display lighting on
                         u32 h = (u32)(int)floorf(li.pos.x * 2.f) * 73856093u ^ (u32)(int)floorf(li.pos.y * 2.f) * 19349663u;
                         h ^= h >> 15;

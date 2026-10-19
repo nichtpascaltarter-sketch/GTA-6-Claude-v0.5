@@ -127,8 +127,10 @@ void genRadioMast(const SiteElem& e, G& g) {
         cyl(g, b + vec3(0, 0, H), 0.9f, 0.6f, 12.f, detail ? 8 : 5, rgb(0.9f), M(MAT_METAL_PAINTED), true);
         for (int k = 1; k <= 4; k++) {
             float z = H * k / 4.f;
-            lamp(g, b + vec3(0, 0, z + (k == 4 ? 12.5f : 0.3f)), detail ? 0.6f : 2.5f, vec3(1.f, 0.05f, 0.02f), 1.f, k == 4 ? EA_BLINK : EA_SLOWBLINK, (u32)k * 40u);
-            light(g, b + vec3(0, 0, z + (k == 4 ? 12.5f : 0.3f)), vec3(1.f, 0.08f, 0.04f) * 2000.f, 30.f, 4);
+            // every level flashes together on pattern 1, as the aviation light's blink in the renderer (the lower levels used
+            // the slow blink, and the levels went up the mast in turn)
+            lamp(g, b + vec3(0, 0, z + (k == 4 ? 12.5f : 0.3f)), detail ? 0.6f : 2.5f, vec3(1.f, 0.05f, 0.02f), 1.f, EA_BLINK, 40);
+            beaconLight(g, b + vec3(0, 0, z + (k == 4 ? 12.5f : 0.3f)), vec3(1.f, 0.08f, 0.04f) * 2000.f, 30.f, 40);
         }
         collide(g, b + vec3(0, 0, H * 0.5f), vec2(1, 0), vec3(1.5f, 1.5f, H * 0.5f));
         // transmitter building with the station call sign
@@ -202,8 +204,9 @@ void genSugarMill(const SiteElem& e, G& g) {
         std::vector<vec2> prof = {vec2(3.6f, 0.f), vec2(2.4f, 62.f), vec2(2.8f, 64.f), vec2(2.8f, 68.f), vec2(2.5f, 70.f)};
         bandedLathe(g, vec3(sc, z), prof, {brick, rgb(0.95f, 0.95f, 0.95f), rgb(0.12f), rgb(0.12f)}, detail ? 16 : 8, M(MAT_BRICK));
         collide(g, vec3(sc, z + 34.f), X, vec3(3.f, 3.f, 34.f));
-        lamp(g, vec3(sc, z + 70.5f), detail ? 0.5f : 2.f, vec3(1.f, 0.05f, 0.02f), 1.f, EA_SLOWBLINK, (u32)k * 60u);
-        light(g, vec3(sc, z + 70.5f), vec3(1.f, 0.08f, 0.04f) * 1500.f, 20.f, 4);
+        // the three stacks flash together on pattern 1, as their lights (they used the slow blink, one after the other)
+        lamp(g, vec3(sc, z + 70.5f), detail ? 0.5f : 2.f, vec3(1.f, 0.05f, 0.02f), 1.f, EA_BLINK, 60);
+        beaconLight(g, vec3(sc, z + 70.5f), vec3(1.f, 0.08f, 0.04f) * 1500.f, 20.f, 60);
     }
     // four concrete sugar silos
     for (int k = 0; k < 4; k++) {

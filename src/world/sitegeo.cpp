@@ -221,6 +221,13 @@ void light(G& g, vec3 p, vec3 color, float radius, u8 type, vec3 dir = vec3(0), 
     li.type = type;
     g.lights->push_back(li);
 }
+// Aviation beacon light (LightInstance type 4): the renderer blinks it on emissiveAnim pattern 1's timing, so it takes its
+// lamp's phase (the lamp(..., EA_BLINK, phase) at the same place) and the light and the lamp switch together
+void beaconLight(G& g, vec3 p, vec3 color, float radius, u32 phase) {
+    if (!g.lights) return;
+    light(g, p, color, radius, 4);
+    g.lights->back().phase = (u8)(phase & 255u);
+}
 // Emissive lamp: a small box (LOD0) or an enlarged sprite-like box (far LOD) so it still reads as a point of light
 void lamp(G& g, vec3 p, float size, vec3 color, float strength = 0.8f, u32 anim = EA_NONE, u32 phase = 0) {
     float s = g.detail ? size : Max(size * 2.5f, 0.9f);

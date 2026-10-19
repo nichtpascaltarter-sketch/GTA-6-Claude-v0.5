@@ -1888,6 +1888,98 @@ void testFaces() {
 // ridge's front in profile; under the brow the face rises to the ridge as a slope (no ledge) and between the brows the
 // midline is no groove (together they made the eye region read as goggles under a lamp); and a full beard's volume
 // builds up gradually from the lips (no shelf under the lower lip).
+// Lip colour (face.cpp): the vermilion against the skin under it, as CIELAB of the vertex albedo. Lips are redder
+// than the skin round the mouth and less yellow: a rose rather than a salmon or coral (skin-colour measurements put the
+// lower lip about 8-10 a* redder than the chin and 5-7 b* less yellow, and on light and medium skin 8-13 L* darker; on
+// deep skin the inner lower lip is often lighter and pinker than the skin). With age the lips fade towards the skin.
+// Over clean-shaven faces (the chin's skin is measured): the middle of the lower lip against the chin 8-22 mm below
+// the lips; each face also built 40 years older.
+static vec3 linToLab(vec3 lin) {
+    float X = 0.4124f * lin.x + 0.3576f * lin.y + 0.1805f * lin.z;
+    float Y = 0.2126f * lin.x + 0.7152f * lin.y + 0.0722f * lin.z;
+    float Z = 0.0193f * lin.x + 0.1192f * lin.y + 0.9505f * lin.z;
+    auto f = [](float t) { return t > 0.008856f ? cbrtf(t) : 7.787f * t + 16.f / 116.f; };
+    float fx = f(X / 0.9505f), fy = f(Y), fz = f(Z / 1.089f);
+    return vec3(116.f * fy - 16.f, 500.f * (fx - fy), 200.f * (fy - fz));
+}
+// the lower lip's middle and the chin under it (CIELAB); false when the chin is covered (a beard) or no lip is found
+static bool lipAndChin(const CharacterDesc& d, vec3& lipLab, vec3& chinLab) {
+    using namespace Anim::detail;
+    Skeleton sk;
+    buildSkeleton(d, sk);
+    SkinnedMeshData m;
+    buildCharacterMesh(d, sk, m);
+    auto lin = [](u32 c) { return vec3((c & 255) / 255.f, ((c >> 8) & 255) / 255.f, ((c >> 16) & 255) / 255.f); };
+    auto region = [](const VtxSkinned& v) { return ((v.mat & 0xffu) == MAT_SKIN && ((v.mat >> 8) & 1u)) ? (int)((v.mat >> 9) & 7u) : -1; };
+    float zmin = 1e9f, zmax = -1e9f, xmax = 0.f, ym = 0.f;
+    int nl = 0;
+    for (const VtxSkinned& v : m.verts)
+        if (region(v) == 1) {
+            zmin = Min(zmin, v.pos.z);
+            zmax = Max(zmax, v.pos.z);
+            xmax = Max(xmax, fabsf(v.pos.x));
+            ym += v.pos.y;
+            nl++;
+        }
+    if (nl == 0) return false;
+    ym /= (float)nl;
+    const float zMid = zmin + 0.45f * (zmax - zmin);
+    vec3 lo(0.f), chin(0.f);
+    int nlo = 0, nch = 0;
+    for (const VtxSkinned& v : m.verts) {
+        int r = region(v);
+        if (r == 1 && fabsf(v.pos.x) < 0.5f * xmax && v.pos.z < zMid) {
+            lo += lin(v.color);
+            nlo++;
+        } else if (r == 0 && fabsf(v.pos.x) < 0.012f && v.pos.y > ym - 0.012f && v.pos.z < zmin - 0.008f && v.pos.z > zmin - 0.022f) {
+            chin += lin(v.color);
+            nch++;
+        }
+    }
+    if (nlo == 0 || nch == 0) return false;
+    lipLab = linToLab(lo / (float)nlo);
+    chinLab = linToLab(chin / (float)nch);
+    return true;
+}
+void testLipColour() {
+    using namespace Anim::detail;
+    float dbMax = -1e9f, daMin = 1e9f, dlMax = -1e9f, fadeMin = 1e9f;
+    int n = 0;
+    for (u32 k = 0; k < 30 && n < 12; k++) {
+        CharacterDesc d = randomCharacter(6100u + k * 7919u, (int)(k % 7));
+        if (d.facialHair >= 0) continue;
+        d.hat = -1;
+        d.glasses = -1;
+        d.age = Min(d.age, 0.3f);
+        vec3 L, C;
+        if (!lipAndChin(d, L, C)) continue;
+        float dl = L.x - C.x, da = L.y - C.y, db = L.z - C.z;
+        CHECK(da > 3.f, "lips: the lower lip no redder than the chin (k %u: da* %+.1f)", k, da);
+        CHECK(db < -3.f, "lips: the lower lip as yellow as the chin, salmon rather than rose (k %u: db* %+.1f)", k, db);
+        if (C.x > 35.f) {
+            CHECK(dl < -3.f, "lips: the lower lip no darker than the chin on light or medium skin (k %u: dL* %+.1f)", k, dl);
+            dlMax = Max(dlMax, dl);
+        }
+        daMin = Min(daMin, da);
+        dbMax = Max(dbMax, db);
+        // the same face 40 years older: paler lips
+        CharacterDesc o = d;
+        o.age = d.age + 0.65f;
+        vec3 Lo, Co;
+        if (lipAndChin(o, Lo, Co)) {
+            // (relative: on deep skin the lips are close to the skin's colour to begin with)
+            float fade = 1.f - (Lo.y - Co.y) / Max(da, 0.1f);
+            CHECK(fade > 0.1f, "lips: old lips as red as young ones (k %u: da* %+.1f young, %+.1f old)", k, da, Lo.y - Co.y);
+            fadeMin = Min(fadeMin, fade);
+        }
+        n++;
+    }
+    CHECK(n >= 8, "lips: only %d faces measured", n);
+    printf("lips: %d faces, lower lip vs chin da* >= %+.1f, db* <= %+.1f, dL* <= %+.1f (light and medium skin); 40 years older "
+           "da* at least %.0f%% less\n",
+           n, daMin, dbMax, dlMax, fadeMin * 100.f);
+}
+
 // Face hair coverage as the renderer composites strand cards (psHairCard): each card dithers its coverage against its
 // own offset of the pixel's threshold, so cards overlapping at a point cover it together, 1 - prod(1 - c). The card's
 // coverage at (uv) is hairCardCoverage's sub-pixel average (mean strand width, tips fading, the card's side edges and
@@ -2557,6 +2649,7 @@ int main(int argc, char** argv) {
     run("FaceShape", testFaceShape);
     run("FaceHairCoverage", testFaceHairCoverage);
     run("BuzzCut", testBuzzCut);
+    run("LipColour", testLipColour);
     run("Mesh", testMesh);
     run("ClothingClip", testClothingClip);
     printf("%s (%d failures)\n", gFail ? "FAILED" : "ALL PASSED", gFail);

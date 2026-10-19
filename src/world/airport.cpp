@@ -1136,7 +1136,7 @@ void genControlTower(const SiteElem& e, G& g) {
           M(MAT_PLASTER), false);
     cyl(g, base + vec3(-2.f, 0.5f, antBase), 0.15f, 0.08f, 12.f, 6, rgb(0.85f, 0.15f, 0.1f), M(MAT_METAL_PAINTED), false);
     lamp(g, base + vec3(-2.f, 0.5f, antBase + 12.3f), 0.5f, vec3(1.f, 0.06f, 0.03f), 1.f, EA_BLINK, 17);
-    light(g, base + vec3(-2.f, 0.5f, antBase + 12.3f), vec3(1.f, 0.1f, 0.05f) * 600.f, 14.f, 4);
+    beaconLight(g, base + vec3(-2.f, 0.5f, antBase + 12.3f), vec3(1.f, 0.1f, 0.05f) * 600.f, 14.f, 17);
     light(g, base + vec3(0, 0, cabZ + 3.f), vec3(0.6f, 1.f, 0.8f) * 800.f, 14.f, 1);
     // name band
     if (detail) {

@@ -701,6 +701,7 @@ void rooftopAntennas(Ctx& x, vec2 c, vec2 ax, float hx, float hy, float z, Rng& 
         li.dir = vec3(0);
         li.cone = 0;
         li.type = 4;  // aviation beacon
+        li.phase = 0;  // the lamp's: param 1u is pattern 1, phase 0
         x.lights->push_back(li);
     }
 }

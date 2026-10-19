@@ -766,10 +766,10 @@ void genStsCrane(const SiteElem& e, G& g) {
     }
     // Warning / aviation lights and apron floodlights under the girder
     vec3 tip = hinge + bdir * boomLen + Z * 1.6f;
-    lamp(g, tip, 0.6f, vec3(1.f, 0.06f, 0.03f), 1.f, EA_BLINK, e.seed & 255u);
-    lamp(g, apex + Z * 1.2f, 0.6f, vec3(1.f, 0.06f, 0.03f), 1.f, EA_BLINK, (e.seed + 60u) & 255u);
+    lamp(g, tip, 0.6f, vec3(1.f, 0.06f, 0.03f), 1.f, EA_BLINK, e.seed & 255u);   // the boom tip and the apex flash together
+    lamp(g, apex + Z * 1.2f, 0.6f, vec3(1.f, 0.06f, 0.03f), 1.f, EA_BLINK, e.seed & 255u);
     lamp(g, P(backX, 0.f, girderZ + 2.f), 0.5f, vec3(1.f, 0.06f, 0.03f), 0.9f);
-    light(g, apex + Z * 1.2f, vec3(1.f, 0.08f, 0.04f) * 900.f, 18.f, 4);
+    beaconLight(g, apex + Z * 1.2f, vec3(1.f, 0.08f, 0.04f) * 900.f, 18.f, e.seed & 255u);
     for (int k = 0; k < 3; k++) {
         vec3 lp = P(-20.f + k * 22.f, 0.f, girderZ - 2.2f);
         light(g, lp, vec3(1.f, 0.9f, 0.75f) * 22000.f, 70.f, 1, vec3(0, 0, -1), 0.35f);
