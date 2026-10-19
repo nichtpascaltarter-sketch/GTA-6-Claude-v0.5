@@ -354,7 +354,7 @@ void genFerrisWheel(const SiteElem& e, G& g) {
         }
     // the aviation beacon on the top of the rim (the wheel stands still: 60 m over the deck)
     lamp(g, hub + Z * (R + 0.6f), 0.6f, vec3(1.f, 0.05f, 0.02f), 1.f, EA_BLINK, (e.seed >> 3) & 255u);
-    light(g, hub + Z * (R + 0.6f), vec3(1.f, 0.08f, 0.04f) * 1500.f, 20.f, 4);
+    beaconLight(g, hub + Z * (R + 0.6f), vec3(1.f, 0.08f, 0.04f) * 1500.f, 20.f, (e.seed >> 3) & 255u);
     // hub + axle
     rod(g, hub - Y * 2.2f, hub + Y * 2.2f, 1.1f, 10, rgb(0.8f), M(MAT_METAL_BRUSHED));
     lamp(g, hub + Y * 2.3f, 0.9f, vec3(1.f, 0.9f, 0.5f), 0.8f, EA_PULSE, 0);
@@ -443,7 +443,7 @@ void genDropTower(const SiteElem& e, G& g) {
     }
     lathe(g, b + vec3(0, 0, H), {vec2(3.2f, 0.f), vec2(3.2f, 1.5f), vec2(1.f, 3.5f), vec2(0.f, 4.f)}, 12, rgb(0.9f, 0.2f, 0.25f), M(MAT_METAL_PAINTED), false);
     lamp(g, b + vec3(0, 0, H + 4.2f), 0.7f, vec3(1.f, 0.1f, 0.05f), 1.f, EA_BLINK, 3);
-    light(g, b + vec3(0, 0, H + 4.2f), vec3(1.f, 0.08f, 0.04f) * 1500.f, 20.f, 4);   // (its aviation beacon)
+    beaconLight(g, b + vec3(0, 0, H + 4.2f), vec3(1.f, 0.08f, 0.04f) * 1500.f, 20.f, 3);   // (its aviation beacon)
     // seat ring parked high on the tower
     float rz = e.z + H * 0.72f;
     lathe(g, vec3(e.c, rz), {vec2(2.2f, 0.f), vec2(4.2f, 0.4f), vec2(4.2f, 1.6f), vec2(2.2f, 1.9f)}, 16, rgb(0.95f, 0.8f, 0.1f), M(MAT_METAL_PAINTED), false);

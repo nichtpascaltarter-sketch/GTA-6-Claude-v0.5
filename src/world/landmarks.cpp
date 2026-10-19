@@ -107,21 +107,21 @@ void genSolaris(const SiteElem& e, G& g) {
         beam(g, b0, t0, 0.35f, 0.35f, rgb(1.f, 0.7f, 0.25f, 0.8f), emMat(EA_PULSE, (u32)c * 20u));
         beam(g, b1, t0, 0.35f, 0.35f, rgb(1.f, 0.7f, 0.25f, 0.8f), emMat(EA_PULSE, (u32)c * 20u));
     }
-    // spire
+    // spire; its beacons, the tip's and the tower top's flash together (phase 90), as on a real tower
     cyl(g, vec3(e.c, zt), 2.6f, 0.25f, 96.f, detail ? 10 : 6, rgb(0.85f, 0.86f, 0.88f), M(MAT_METAL_BRUSHED), false);
     for (int k = 0; k < 3; k++) {
         float zz = zt + 36.f + k * 28.f;
-        lamp(g, vec3(e.c, zz), 0.9f, vec3(1.f, 0.05f, 0.02f), 1.f, EA_BLINK, (u32)k * 30u);
-        light(g, vec3(e.c, zz), vec3(1.f, 0.08f, 0.04f) * 1500.f, 25.f, 4);
+        lamp(g, vec3(e.c, zz), 0.9f, vec3(1.f, 0.05f, 0.02f), 1.f, EA_BLINK, 90);
+        beaconLight(g, vec3(e.c, zz), vec3(1.f, 0.08f, 0.04f) * 1500.f, 25.f, 90);
     }
     lamp(g, vec3(e.c, zt + 96.5f), 1.1f, vec3(1.f, 0.05f, 0.02f), 1.f, EA_BLINK, 90);
-    light(g, vec3(e.c, zt + 96.5f), vec3(1.f, 0.08f, 0.04f) * 1500.f, 25.f, 4);
+    beaconLight(g, vec3(e.c, zt + 96.5f), vec3(1.f, 0.08f, 0.04f) * 1500.f, 25.f, 90);
     // aviation beacons on the four corners of the tower top, where the crown's fins stand (one phase with the spire tip)
     for (int c = 0; c < 4; c++) {
         const float a = topRot + kHalfPi * c + kPi * 0.25f;
         const vec3 bp(e.c + vec2(cosf(a), sinf(a)) * (topHalf * 1.1f + 0.6f), zt + 0.8f);
         lamp(g, bp, 0.6f, vec3(1.f, 0.05f, 0.02f), 1.f, EA_BLINK, 90);
-        light(g, bp, vec3(1.f, 0.08f, 0.04f) * 1500.f, 25.f, 4);
+        beaconLight(g, bp, vec3(1.f, 0.08f, 0.04f) * 1500.f, 25.f, 90);
     }
     // name on the podium and entrance canopy (south)
     if (detail) {
@@ -394,7 +394,7 @@ void genCityHall(const SiteElem& e, G& g) {
           M(MAT_METAL_BRUSHED), false);
     cyl(g, vec3(tc, z0 + tH + 11.2f), 0.08f, 0.04f, 3.f, 5, rgb(0.8f), M(MAT_METAL_BRUSHED), false);
     lamp(g, vec3(tc, z0 + tH + 14.3f), 0.35f, vec3(1.f, 0.08f, 0.04f), 1.f, EA_BLINK, 5);
-    light(g, vec3(tc, z0 + tH + 14.3f), vec3(1.f, 0.08f, 0.04f) * 1500.f, 20.f, 4);   // (the spire's aviation beacon)
+    beaconLight(g, vec3(tc, z0 + tH + 14.3f), vec3(1.f, 0.08f, 0.04f) * 1500.f, 20.f, 5);   // (the spire's aviation beacon)
     // formal lawns: four parterres flanking the central alley toward the fountain, hedged, with palms
     for (int qx = -1; qx <= 1; qx += 2)
         for (int qy = 0; qy < 2; qy++) {

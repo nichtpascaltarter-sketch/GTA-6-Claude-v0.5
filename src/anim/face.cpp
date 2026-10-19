@@ -689,17 +689,29 @@ void buildHeadGrid(BuildCtx& c) {
             vec3 col = c.skin;
             if (rd.kind == RK_LIP || rd.kind == RK_MOUTHLO || rd.kind == RK_MOUTHHI) {
                 float u = ath / L.thMC;
-                float lipMask = 1.f - sstep(0.85f, 1.12f, u);
+                float lipMask = 1.f - sstep(0.85f, 1.12f, u), borderMask = 1.f;
                 float ao = fabsf(rd.off);
-                if (rd.kind == RK_LIP) lipMask *= rd.off < 0.f ? 1.f - sstep(5.2f, 5.8f, ao) : 1.f - sstep(3.7f, 4.3f, ao);
+                // the vermilion border: crisp on young lips, softer with age (the white roll above it flattens). A
+                // softened border's skin-side row takes a little of the lip's colour but stays skin
+                const float ageK = Saturate(c.d->age), soft = 0.4f * ageK;
+                if (rd.kind == RK_LIP)
+                    borderMask = rd.off < 0.f ? 1.f - sstep(5.2f - soft, 5.8f + soft, ao) : 1.f - sstep(3.7f - soft, 4.3f + soft, ao);
+                lipMask *= borderMask;
                 if (lipMask > 0.f) {
                     float inner = rd.kind != RK_LIP ? 1.f : 1.f - sstep(1.1f, 3.3f, ao);   // 1 at the mouth line
-                    col = lerp(col, lerp(c.lipCol, c.lipInner, inner * (rd.off < 0.f ? 0.85f : 0.65f)), lipMask);
+                    vec3 lipC = lerp(c.lipCol, c.lipInner, inner * (rd.off < 0.f ? 0.85f : 0.65f));
+                    // with age the lips fade towards the skin round them
+                    lipC = lerp(lipC, c.skin * 0.9f, 0.35f * ageK);
+                    // a rose rather than a salmon or coral: lips are redder than the skin and less yellow (in CIELAB
+                    // the lower lip sits some 5-7 b* below the chin); taken straight from the skin tone they had its
+                    // yellow (anim_test LipColour)
+                    lipC = mulColor(lipC, vec3(0.96f, 1.f, 1.22f));
+                    col = lerp(col, lipC, lipMask);
                     // the seam between the closed lips and the wet inner edge read darker
                     float inMouth = 1.f - sstep(0.8f, 1.02f, u);
                     if (rd.kind != RK_LIP) col = col * Lerp(1.f, 0.62f, inMouth);
                     else if (ao < 1.7f) col = col * Lerp(1.f, 0.88f, inMouth);
-                    v.flags |= BuildCtx::F_LIP;
+                    if (borderMask > 0.5f) v.flags |= BuildCtx::F_LIP;
                 }
             }
             {
@@ -1888,7 +1900,7 @@ static float paintSkinDetail(BuildCtx& c) {
                 float at = v.pa > kPi ? kTwoPi - v.pa : v.pa;
                 float um = at / Max(c.head.thetaMouth, 1e-3f);
                 float cor = sstep(0.6f, 1.05f, um);
-                col = col * (1.f - 0.18f * cor);
+                col = col * (1.f - 0.25f * cor);
                 bool lower = v.pb < c.head.phiMouth;
                 float midW = (1.f - sstep(0.15f, 0.75f, um));
                 if (lower) {
