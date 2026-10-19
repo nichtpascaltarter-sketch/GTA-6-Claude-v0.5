@@ -505,7 +505,7 @@ VSOut vsParticle(uint vid : SV_VertexID, uint inst : SV_InstanceID) {
             float win = saturate(1.0 - sq(d2 / (L.radius * L.radius)));
             float3 Ld = d * rsqrt(max(d2, 1e-6));
             float ang = lightAngular(L, Ld);
-            float coneShare = L.spotCos <= -1.0 ? 1.0 : (L.spotInner > 1.5 ? 0.03 : 0.5 - 0.5 * L.spotCos);
+            float coneShare = L.spotCos <= -1.0 ? 1.0 : (L.spotInner > 2.5 ? 0.4 : (L.spotInner > 1.5 ? 0.03 : 0.5 - 0.5 * L.spotCos));
             float inside = saturate(rad2 / max(d2, 1e-4));
             ang = lerp(ang, coneShare, inside);
             float phase = min(0.7975 / pow(1.2025 - 0.9 * dot(-Ld, Vc), 1.5), 4.0);

@@ -264,7 +264,9 @@ float3 shopInterior(float3 roomPos, float3 dir, float3 roomSize, uint h) {
     return c * lerp(1.0, 0.65, saturate(t / (D * 1.6)));
 }
 
-FacadeResult shadeFacade(uint id, float2 uv, float3 N, float3 T, float3 B, float3 rel, float3 worldP) {
+// streetMark: the wall's vertex alpha - 1 on a wall that looks onto a street, 0.5 on the sides and backs that don't
+// (world/buildmesh.cpp facadeWalls): the storefront and its sign band stay off their ground floor
+FacadeResult shadeFacade(uint id, float2 uv, float3 N, float3 T, float3 B, float3 rel, float3 worldP, float streetMark) {
     FacadeGPU f = facadeInfo(id);
     Texture2DArray<float4> albedoArr = matAlbedoArray();
     Texture2DArray<float4> normalArr = matNormalArray();
@@ -312,7 +314,7 @@ FacadeResult shadeFacade(uint id, float2 uv, float3 N, float3 T, float3 B, float
     float winW = bay * f.winW;
     float winH = fh * f.winH;
     float sill = f.sillH;
-    bool storefront = ground && (flags & 1u);
+    bool storefront = ground && (flags & 1u) && streetMark > 0.75;
     if (storefront) { winW = bay * 0.92; sill = 0.35; winH = fh - 1.3; }
     if (style == 1 && !storefront) { winW = bay - 0.12; winH = fh - 0.1; sill = 0.05; }       // curtain wall
     if (style == 2 && !storefront) { winW = bay; sill = fh * 0.38; winH = fh * 0.45; }        // ribbon
@@ -323,7 +325,7 @@ FacadeResult shadeFacade(uint id, float2 uv, float3 N, float3 T, float3 B, float
     // Industrial: only some bays have windows
     if (style == 4 && hashF(roomHash + 9u) < 0.5 && !storefront) inWin = false;
     // Sign band above storefronts
-    bool signBand = (flags & 2u) && ground && fy > fh - 1.05 && fy < fh - 0.15;
+    bool signBand = (flags & 2u) && streetMark > 0.75 && ground && fy > fh - 1.05 && fy < fh - 0.15;
 
     // Frame around the window
     float frameW = style == 1 ? 0.06 : 0.09;
@@ -473,8 +475,9 @@ FacadeResult shadeFacade(uint id, float2 uv, float3 N, float3 T, float3 B, float
         // ceiling fixture or a corner lamp, darker corners, the shade or panels glowing); room light levels vary over
         // three stops (a reading lamp .. a bright kitchen), a TV alone lights a room dimly.
         float shopNits = lerp(160.0, 14.0, gExposure.w);
+        // (offices lit outside working hours, by cleaners or a late shift, have only some of their fixtures on)
         float lampNits = storefront ? shopNits * (0.45 + 0.9 * hashF(lh + 14u))
-                       : (office ? 12.0 * exp2(hashF(lh + 14u) - 0.5)
+                       : (office ? 12.0 * exp2(hashF(lh + 14u) * 2.0 - 1.2) * (officeLit ? 1.0 : 0.45)
                                  : 10.0 * exp2(hashF(lh + 14u) * 3.0 - 1.8) * (lamp.kind == 1u ? 0.55 : (lamp.kind == 3u ? 0.3 : 1.0)));
         float3 emLamp = 0;
         if (lit) emLamp = (storefront ? room : rv.albedo * rv.lamp + rv.glow) * lightC * lampNits;
@@ -543,6 +546,23 @@ FacadeResult shadeFacade(uint id, float2 uv, float3 N, float3 T, float3 B, float
         }
         float3 recv = r.isWindow ? max(outAlbedo, 0.12) : outAlbedo;   // glass: lit mullions / frit
         r.emissive += recv * wash * (nightA / PI);
+        // Aviation obstruction lights: buildings over 60 m carry red beacons at the roof line where each of the first
+        // four walls starts (the corners of a rectangular tower), all of a building's flashing together in the rhythm
+        // of the world's beacons on masts and spires (world.hlsl emissiveAnim pattern 1), a gentle pulse with reduced
+        // flashing. Widened with distance so a far tower keeps a pixel-sized red point. Wall k's u starts at
+        // (floor(k * 1000 / bay) + 0.002) * bay (world/buildmesh.cpp facadeWalls).
+        float wk = floor(uv.x / 1000.0 + 0.5);
+        if (xl.x > 60.0 && wk < 3.5) {
+            float lw = max(0.16, length(rel) * 0.0011);
+            float2 dq = float2(uv.x - (floor(wk * 1000.0 / bay) + 0.002) * bay - 0.3, uv.y - (xl.x - 0.5));
+            float beacon = saturate(1.5 - length(dq) / lw);
+            if (beacon > 0.0) {
+                float ph = hashF(seed + 91u), t = gTime.x;
+                float flash = gRenderFlags.x > 0.5 ? 0.55 + 0.25 * sin(t * 1.2 + ph * 6.2832) : (frac(t * 0.8 + ph) < 0.18 ? 1.6 : 0.03);
+                r.emissive += float3(1.0, 0.1, 0.05) * beacon * flash * 1000.0 * nightA;
+                if (beacon > 0.5) outAlbedo = float3(0.6, 0.06, 0.03);
+            }
+        }
     }
     r.albedo = outAlbedo;
     r.normal = outN;

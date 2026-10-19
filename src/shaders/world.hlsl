@@ -243,7 +243,7 @@ GBufferOut psWorld(VSOut i, bool front : SV_IsFrontFace) {
     float extra = 0;
     if ((uint)m.flags & 4) {
         // Procedural building facade (windows with interior mapping)
-        FacadeResult f = shadeFacade(param, i.uv, N, T, B, i.rel, worldP);
+        FacadeResult f = shadeFacade(param, i.uv, N, T, B, i.rel, worldP, i.color.a);
         albedo = f.albedo * i.color.rgb;
         if (f.isWindow) albedo = f.albedo;
         n = f.normal;
