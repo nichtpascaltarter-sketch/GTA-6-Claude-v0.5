@@ -182,8 +182,21 @@ struct App {
         if (const char* d = Platform::argValue("renderevery")) renderEvery = Max(1, atoi(d));
         if (const char* d = Platform::argValue("tourstart")) tourFirst = Max(0, atoi(d));
         if (const char* d = Platform::argValue("tourcount")) tourCount = Max(1, atoi(d));
+        // --world=hand: the hand-built world embedded in the exe (docs/HANDBUILT_WORLD.md; stage 0 holds the terrain only).
+        // A bad value keeps the procedural world.
+        {
+            std::string worldErr;
+            if (!World::selectWorldKind(Platform::argValue("world"), &worldErr)) LOG("%s: keeping the procedural world", worldErr.c_str());
+        }
         // Generate the world on a background thread while the loading screen animates
         loader = std::thread([this] {
+            if (World::isHandWorld()) {
+                std::string err;
+                if (!World::loadHandWorld(Platform::argValue("worldfile"), map, roads, buildings, &err)) FatalError("Hand-built world: %s", err.c_str());
+                loadStage = 3;
+                loadDone = true;
+                return;
+            }
             map.generate();
             World::gMap = &map;
             loadStage = 1;
@@ -219,7 +232,7 @@ struct App {
         }
         if (const char* ff = Platform::argValue("fog")) env.fogDensity = (float)atof(ff);
 #ifdef HAVE_GAMEPLAY
-        game.init(&renderer, &env, &map, &roads, &buildings);
+        if (!World::isHandWorld()) game.init(&renderer, &env, &map, &roads, &buildings);   // (stage 0's hand world has nothing to play)
         game.rig.footFirstPerson = Platform::hasArg("firstperson");   // start in the on-foot first-person view (tests)
         if (const char* ws = Platform::argValue("weaponshowcase")) {   // --weaponshowcase x,y,z (test render of every gun)
             double x = 0, y = 0, z = 0;
@@ -246,6 +259,8 @@ struct App {
         LOG("Init done in %.2f s (shaders: %d compiled in %.2f s)", TimeSeconds() - loadStart, gfx::shaderCompileCount(), gfx::shaderCompileSeconds());
         if (!shots.empty() || Platform::argValue("viewer")) {
             showDebug = !autotest || Platform::hasArg("debugtext");
+        } else if (World::isHandWorld()) {
+            LOG("Hand world: stage 0 holds the terrain only; free camera, no menu and no game");
         } else {
 #ifdef HAVE_GAMEPLAY
             if (Platform::hasArg("play") || !autoplay.empty()) startNewGame();
@@ -6787,6 +6802,7 @@ struct App {
             if (state == AS_MENU || (state == AS_PLAYING && menu.screen != UI::MENU_NONE)) {
                 prepareMenuData();
                 UI::MenuAction act = UI::Menus::update(menu, in, dt);
+                Updater::menuFrame(menu, act);   // update notice; "Restart now" quits, then WinMain installs and restarts
                 quit = handleMenuAction(act);
             }
 #endif

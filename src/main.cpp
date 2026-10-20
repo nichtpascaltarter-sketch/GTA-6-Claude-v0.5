@@ -43,6 +43,9 @@
 #include "world/interiorgarages.cpp"
 #include "world/interiorresidences.cpp"
 #include "world/interiors.cpp"
+#include "world/gridcodec.cpp"
+#include "world/worldbin.cpp"
+#include "world/handworld.cpp"
 #include "sim/physics.cpp"
 #include "render/renderer.cpp"
 // Content modules developed in parallel; compiled in when present.
@@ -67,12 +70,23 @@
 #include "ui/ui_all.cpp"
 #define HAVE_GAME_UI 1
 #endif
+#include "platform/update_logic.cpp"
+#include "platform/updater.cpp"
 #include "game/app.cpp"
 
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
+    // a downloaded update installs before any window exists, and the new version takes over in a new process
+    int updateExit = 0;
+    if (Updater::beforeStart(updateExit)) return updateExit;
     static Game::App app;
     if (!app.init()) return 1;
+    Updater::startCheck();   // a newer release downloads in the background (never in automated runs)
     app.run();
+    bool restart = Updater::stop();   // the main menu's "Restart now"
+#ifdef HAVE_GAME_UI
+    if (restart) app.saveSettings();
+#endif
     app.shutdown();
+    if (restart) Updater::restart();   // installs the downloaded update and starts the game again
     return 0;
 }

@@ -2,6 +2,7 @@
 // map, settings pages, save/load slot lists with confirmation, quit dialogs and the loading screen. Immediate-mode:
 // every frame processes keyboard / mouse / gamepad input and draws the active page over the live game frame.
 #include "ui_internal.h"
+#include "../core/version.h"
 
 namespace UI {
 namespace menus_ui {
@@ -541,6 +542,82 @@ void drawLoading(MenuState& st, const Layout& L, float dt, float t) {
 }
 
 // ------------------------------------------------------------------------------------------------------------------
+// Game version and update notice: the top-right corner of the main menu (with its button), one line in the pause menu
+u32 updateAccent(const UpdateNotice& u) { return u.kind == UPD_DOWNLOADING ? kCyan : (u.kind == UPD_READY ? kPink : kGold); }
+
+MenuAction drawUpdateCorner(const MenuState& st, const Layout& L, const Nav& n, float a, float t) {
+    MenuAction act;
+    float sc = L.s;
+    TextStyle vs = style(FONT_BODY, 16.f * sc, withAlpha(kTextMute, a), ALIGN_RIGHT);
+    text(L.right, L.top - 8.f * sc, "Version " NT_VERSION, vs);
+    const UpdateNotice& u = st.update;
+    if (u.kind == UPD_NONE) return act;
+    bool downloading = u.kind == UPD_DOWNLOADING, ready = u.kind == UPD_READY;
+    float w = 500.f * sc, pad = 22.f * sc, h = (downloading ? 92.f : 166.f) * sc;
+    float x = L.right - w, y = L.top + 22.f * sc;
+    panel(x, y, w, h, a);
+    roundRect(x, y + 14.f * sc, 4.f * sc, h - 28.f * sc, 2.f * sc, withAlpha(updateAccent(u), a));
+    TextStyle ts = style(FONT_HEADING, 22.f * sc, withAlpha(kWhite, a));
+    ts.tracking = 0.08f;
+    std::string ver = upper(u.version);
+    std::string title = downloading ? "DOWNLOADING UPDATE " + ver + "..." : "UPDATE " + ver + (ready ? " IS READY" : " AVAILABLE");
+    float tw = textWidth(title.c_str(), ts);
+    if (tw > w - 2.f * pad) ts.size *= (w - 2.f * pad) / tw;   // (a long version number)
+    text(x + pad, y + pad, title.c_str(), ts);
+    if (downloading) {
+        // the bar, and the percentage at its right end
+        float p = u.progress, bh = 6.f * sc, by = y + h - pad - bh, bx = x + pad, bw = w - 2.f * pad;
+        if (p >= 0.f) {
+            TextStyle ps = style(FONT_HEADING, 18.f * sc, withAlpha(kCyan, a), ALIGN_RIGHT);
+            std::string pct = StrFormat("%d%%", (int)(Saturate(p) * 100.f));
+            bw -= textWidth("100%", ps) + 12.f * sc;
+            text(x + w - pad, by + bh * 0.5f - ps.size * 0.56f, pct.c_str(), ps);
+        }
+        roundRect(bx, by, bw, bh, bh * 0.5f, C(1.f, 1.f, 1.f, 0.12f * a));
+        if (p > 0.f) {
+            roundRectGradient(bx, by, Max(bh, bw * Saturate(p)), bh, bh * 0.5f, withAlpha(kPink, a), C(0.8f, 0.2f, 1.f, a));
+        } else if (p < 0.f) {   // size not known yet: a segment sweeps along the bar
+            float seg = bw * 0.25f;
+            roundRect(bx + (bw - seg) * (0.5f + 0.5f * sinf(t * 2.4f)), by, seg, bh, bh * 0.5f, withAlpha(kPink, a));
+        }
+        return act;
+    }
+    TextStyle bs = style(FONT_BODY, 19.f * sc, withAlpha(kTextDim, a));
+    text(x + pad, y + pad + 36.f * sc, ready ? "It installs the next time you start Neon Tide." : "It could not be downloaded automatically.", bs);
+    // the button: a click, U on the keyboard or Y on a controller
+    const char* label = ready ? "RESTART NOW" : "OPEN DOWNLOAD PAGE";
+    const char* key = n.pad ? "Y" : "U";
+    TextStyle ls = style(FONT_HEADING, 20.f * sc, kWhite);
+    ls.tracking = 0.08f;
+    float gh = 26.f * sc, gw = promptWidth(key, n.pad, gh), bh = 46.f * sc;
+    float bw = gw + textWidth(label, ls) + 44.f * sc, bx = x + pad, by = y + h - pad - bh;
+    bool dialogFree = I.dialog == DLG_NONE;
+    bool hov = dialogFree && inRect(n.mouse, bx, by, bw, bh);
+    if (hov) selectionBar(bx, by, bw, bh, a);
+    else roundRect(bx, by, bw, bh, 6.f * sc, C(1.f, 1.f, 1.f, 0.07f * a), 1.f * sc, withAlpha(kWhite, 0.18f * a));
+    drawPrompt(bx + 14.f * sc, by + (bh - gh) * 0.5f, key, n.pad, gh, a);
+    ls.color = withAlpha(hov ? kWhite : kText, a);
+    text(bx + gw + 28.f * sc, by + bh * 0.5f - ls.size * 0.56f, label, ls);
+    bool pressed = dialogFree && n.in && (n.in->pressed(KEY_U) || n.in->pad.pressed(PAD_Y));
+    if ((hov && n.click) || pressed) act.type = ready ? MA_UPDATE_RESTART : MA_UPDATE_PAGE;
+    return act;
+}
+
+void drawUpdateLine(const MenuState& st, const Layout& L, float a) {
+    const UpdateNotice& u = st.update;
+    if (u.kind == UPD_NONE) return;
+    const char* v = u.version.c_str();
+    std::string line;
+    if (u.kind == UPD_DOWNLOADING && u.progress >= 0.f) line = StrFormat("Downloading update %s... %d%%", v, (int)(Saturate(u.progress) * 100.f));
+    else if (u.kind == UPD_DOWNLOADING) line = StrFormat("Downloading update %s...", v);
+    else if (u.kind == UPD_READY) line = StrFormat("Update %s is ready, it installs the next time you start Neon Tide.", v);
+    else line = StrFormat("Update %s available: the main menu opens its download page.", v);
+    float sc = L.s, y = L.H - 62.f * sc;
+    circle(L.left + 6.f * sc, y + 11.f * sc, 5.f * sc, withAlpha(updateAccent(u), a));
+    text(L.left + 20.f * sc, y, line.c_str(), style(FONT_BODY, 18.f * sc, withAlpha(kTextDim, a)));
+}
+
+// ------------------------------------------------------------------------------------------------------------------
 // Main menu
 struct MainItem { const char* label; int id; };
 
@@ -603,6 +680,8 @@ MenuAction drawMain(MenuState& st, const Layout& L, const Nav& n, float dt, floa
         }
     }
     if (I.dialog == DLG_NONE && n.back) openDialog(DLG_QUIT_GAME, -1);
+    MenuAction upd = drawUpdateCorner(st, L, n, a, t);
+    if (act.type == MA_NONE) act = upd;
     // footer
     TextStyle fs = style(FONT_BODY, 16.f * sc, withAlpha(kTextMute, a));
     text(L.left, L.H - 58.f * sc, "NEON TIDE  -  A story of Porto Sol, Palmera.  All characters and places are fictional.", fs);
@@ -1244,6 +1323,8 @@ void buildItems(GameSettings& gs, int cat, std::vector<SetItem>& items) {
         toggle("Show Radar", "Shows the radar and the health and armor bars.", &gs.showRadar);
         toggle("Show HUD", "Shows the rest of the heads-up display.", &gs.showHud);
         boptions("Units", "Speed and distance units.", &gs.metricUnits, "Imperial", "Metric");
+        toggle("Automatic Updates", "Looks for a new version of Neon Tide when the game starts and downloads it in the background. It "
+               "installs the next time you start the game.", &gs.autoUpdate);
         break;
     }
     action("Restore Defaults", "Resets every option on this page to its default value.", SA_RESTORE_DEFAULTS);
@@ -1277,7 +1358,7 @@ void restoreDefaults(GameSettings& gs, int cat) {
         gs.colorblindMode = d.colorblindMode; gs.reduceFlashing = d.reduceFlashing; gs.musicDucking = d.musicDucking;
         break;
     default:
-        gs.showRadar = d.showRadar; gs.showHud = d.showHud; gs.metricUnits = d.metricUnits;
+        gs.showRadar = d.showRadar; gs.showHud = d.showHud; gs.metricUnits = d.metricUnits; gs.autoUpdate = d.autoUpdate;
         break;
     }
 }
@@ -2128,6 +2209,7 @@ MenuAction updatePause(MenuState& st, const Layout& L, const Nav& n, float dt, f
         MenuScreen want = tabScreen(tab);
         if (st.screen != want) st.screen = want;
     }
+    if (tab != PT_MAP) drawUpdateLine(st, L, a);
     // footer prompts
     if (tab == PT_MAP) {
         PromptItem pi[] = {{"LMB", "A", st.hasWaypoint ? "Waypoint" : "Set Waypoint"}, {"RMB", "X", "Clear"}, {"WHEEL", "RT", "Zoom"},

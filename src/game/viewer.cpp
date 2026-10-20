@@ -511,6 +511,14 @@ struct Viewer {
                 wb(vec2(3185, -1319), UI::BLIP_POLICE_STATION, "PSPD Solaris");
                 m.canContinue = true;
                 m.canSave = true;
+                // update notice by shot name: updget (downloading, 42%), updready (Restart now), updfail (download page);
+                // updlong: a long version number at 99%
+                m.update = UI::UpdateNotice();
+                if (has("updget") || has("updready") || has("updfail")) {
+                    m.update.kind = has("updget") ? UI::UPD_DOWNLOADING : (has("updready") ? UI::UPD_READY : UI::UPD_AVAILABLE);
+                    m.update.version = has("updlong") ? "0.10.10-rc.10" : "0.02.7";
+                    m.update.progress = has("updlong") ? 0.99f : 0.42f;
+                }
                 m.money = hs.money;
                 m.timeOfDay = 17.6f;
                 m.day = 12;
@@ -597,6 +605,8 @@ struct Viewer {
                     else if (key == "back") in.keys[KEY_BACK] = true;
                     else if (key == "space") in.keys[KEY_SPACE] = true;
                     else if (key == "h") in.keys[KEY_H] = true;
+                    else if (key == "u") in.keys[KEY_U] = true;
+                    else if (key == "pady") in.pad.buttons |= PAD_Y;
                 }
                 prevIn = in;
             }

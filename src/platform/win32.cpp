@@ -12,6 +12,7 @@
 #include <mmsystem.h>
 #include <psapi.h>
 #include <cstdarg>
+#include "../core/version.h"
 #include "platform.h"
 
 namespace Platform {
@@ -279,15 +280,24 @@ void parseCommandLine() {
     LocalFree(argvW);
 }
 
+void initLog(bool append) {
+    if (!g_freq.QuadPart) {
+        QueryPerformanceFrequency(&g_freq);
+        QueryPerformanceCounter(&g_start);
+        SetUnhandledExceptionFilter(crashHandler);
+        parseCommandLine();
+        // User data dir + log
+        std::string dir = userDataDir();
+        g_logFile = fopen((dir + "log.txt").c_str(), append ? "a" : "w");
+        LOG("Neon Tide starting (version %s). Data dir: %s", NT_VERSION, dir.c_str());
+        return;
+    }
+    std::lock_guard<std::mutex> lk(g_logMutex);
+    if (!g_logFile) g_logFile = fopen((userDataDir() + "log.txt").c_str(), "a");
+}
+
 bool init(const char* title, int width, int height, bool fullscreen, bool hidden) {
-    QueryPerformanceFrequency(&g_freq);
-    QueryPerformanceCounter(&g_start);
-    SetUnhandledExceptionFilter(crashHandler);
-    parseCommandLine();
-    // User data dir + log
-    std::string dir = userDataDir();
-    g_logFile = fopen((dir + "log.txt").c_str(), "w");
-    LOG("Neon Tide starting. Data dir: %s", dir.c_str());
+    initLog(false);
 
     // DPI awareness (per-monitor v2 when available)
     HMODULE user32 = GetModuleHandleA("user32.dll");
@@ -341,6 +351,7 @@ void shutdown() {
     if (g_hwnd) DestroyWindow(g_hwnd);
     g_hwnd = nullptr;
     LOG("Shutdown complete.");
+    std::lock_guard<std::mutex> lk(g_logMutex);   // (another thread may still log)
     if (g_logFile) fclose(g_logFile);
     g_logFile = nullptr;
 }

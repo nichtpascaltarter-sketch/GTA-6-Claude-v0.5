@@ -259,6 +259,7 @@ struct GameSettings {
     // Gameplay
     bool showRadar = true, showHud = true;
     bool metricUnits = true;
+    bool autoUpdate = true;              // look for, download and install new versions of the game (updater)
     // Accessibility
     int subtitleSize = 1;                // 0 small, 1 medium, 2 large, 3 extra large
     float subtitleBackground = 0.f;      // 0..1 opacity of the box behind subtitles
@@ -296,6 +297,8 @@ enum MenuActionType : u8 {
     MA_SETTINGS_CHANGED,   // settings were edited (apply live)
     MA_SET_WAYPOINT, MA_CLEAR_WAYPOINT,
     MA_RUN_BENCHMARK,      // Settings > Display & Graphics > Run Benchmark, confirmed by the player
+    MA_UPDATE_RESTART,     // main menu "Restart now": install the downloaded update and start again
+    MA_UPDATE_PAGE,        // main menu "Open download page": the update could not be downloaded
 };
 
 struct MenuAction {
@@ -315,6 +318,15 @@ struct StatsEntry {
     std::string name, value;
 };
 
+// A newer version of the game (filled by the game from the updater): the main menu shows it in a corner, with
+// "Restart now" once it is ready or "Open download page" when it could not be downloaded; the pause menu in one line.
+enum UpdateNoticeKind : u8 { UPD_NONE = 0, UPD_DOWNLOADING, UPD_READY, UPD_AVAILABLE };
+struct UpdateNotice {
+    UpdateNoticeKind kind = UPD_NONE;
+    std::string version;     // the new version, e.g. "0.02.7"
+    float progress = -1.f;   // UPD_DOWNLOADING: 0..1, < 0 while the size is unknown
+};
+
 // Front-end state (the game owns the instance and passes it every frame).
 struct MenuState {
     MenuScreen screen = MENU_NONE;
@@ -332,6 +344,7 @@ struct MenuState {
     std::string loadingTip;
     bool canContinue = false;              // main menu shows "Continue"
     bool canSave = true;                   // pause menu offers "Save Game" (false during missions)
+    UpdateNotice update;                   // a newer version downloading, ready or available
     // internal UI state (owned by the menu code)
     int cursor = 0, tab = 0;
     float anim = 0.f;

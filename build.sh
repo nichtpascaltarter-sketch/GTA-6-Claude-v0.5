@@ -11,6 +11,21 @@ if [ ! -x build/embed_shaders ] || [ tools/embed_shaders.cpp -nt build/embed_sha
   g++ -O2 -std=c++17 tools/embed_shaders.cpp -o build/embed_shaders
 fi
 ./build/embed_shaders src/shaders build/gen/shaders_embedded.h
+# The hand-built world (docs/HANDBUILT_WORLD.md): tools/worldc compiles world/ into build/gen/world.bin and world.rc,
+# and the resource object embeds it in the exe (src/world/handworld.cpp reads it with --world=hand)
+WORLDC_SRC="tools/worldc.cpp src/world/ntw.h src/world/ntw.cpp src/world/gridcodec.h src/world/gridcodec.cpp src/world/worldbin.h src/world/worldbin.cpp"
+# (several builds share build/: every output goes through a temp file and a rename, and nothing is redone while the
+# resource is newer than worldc and everything under world/)
+if [ ! -x build/worldc ] || [ -n "$(find $WORLDC_SRC -newer build/worldc 2>/dev/null)" ]; then
+  g++ -O2 -std=c++17 -I. tools/worldc.cpp -o build/worldc.$$
+  mv -f build/worldc.$$ build/worldc
+fi
+if [ ! -f build/gen/world_res.o ] || [ build/worldc -nt build/gen/world_res.o ] || [ -n "$(find world -newer build/gen/world_res.o 2>/dev/null)" ]; then
+  ./build/worldc --world=world --out=build/gen/world.bin
+  (cd build/gen && ${WINDRES:-x86_64-w64-mingw32-windres} world.rc -O coff -o world_res.o.$$)
+  mv -f build/gen/world_res.o.$$ build/gen/world_res.o
+fi
+WORLD_OBJ=build/gen/world_res.o
 OPT="-O2 -DNDEBUG"
 # Keep the unity build's peak memory near 1.2 GB (several builds may run at once on small machines)
 GCCMEM="--param ggc-min-expand=20 --param ggc-min-heapsize=32768"
@@ -18,6 +33,12 @@ STRIP="-s"
 if [ "$1" = "debug" ]; then OPT="-O0 -g"; STRIP=""; fi
 # QUICK=1: -O1 for iteration builds on a busy test machine (about a third less compile time; not for timings)
 if [ "${QUICK:-0}" = 1 ] && [ "$1" != "debug" ]; then OPT="-O1 -DNDEBUG"; fi
+# VERSION=0.02.7: a release build carries its version (src/core/version.h; the updater compares it with the releases)
+VER=
+if [ -n "$VERSION" ]; then
+  case "$VERSION" in *[!0-9A-Za-z.+-]*) echo "VERSION may only use 0-9 A-Z a-z . + -" >&2; exit 1;; esac
+  VER="-DNT_VERSION=\"$VERSION\""
+fi
 # Machines that run several builds at once (the automated test rig) serialize them: each compile peaks near 2.1 GB.
 # Opt in by creating /tmp/neontide_build.lock; the lock is released when this script exits.
 if [ -e /tmp/neontide_build.lock ] && command -v flock >/dev/null 2>&1; then
@@ -40,8 +61,9 @@ if [ -e /tmp/neontide_build.lock ] && command -v flock >/dev/null 2>&1; then
     exec 7>&-
   fi
 fi
-$CXX -std=c++17 $OPT $EXTRA $GCCMEM -march=x86-64-v2 -mfpmath=sse -fno-strict-aliasing -Wall -Wno-unused-function -Wno-unused-variable \
+$CXX -std=c++17 $OPT $VER $EXTRA $GCCMEM -march=x86-64-v2 -mfpmath=sse -fno-strict-aliasing -Wall -Wno-unused-function -Wno-unused-variable \
   -Wno-missing-braces -Wno-unused-but-set-variable -Wno-class-memaccess -Ibuild/gen \
   src/main.cpp -o ${OUT:-bin/NeonTide.exe} $STRIP -static -static-libgcc -static-libstdc++ -mwindows \
-  -ldxgi -luuid -lole32 -loleaut32 -lwinmm -lshell32 -luser32 -lgdi32 -lkernel32 -lavrt
+  $WORLD_OBJ \
+  -ldxgi -luuid -lole32 -loleaut32 -lwinmm -lshell32 -luser32 -lgdi32 -lkernel32 -lavrt -lwinhttp -lbcrypt
 ls -la ${OUT:-bin/NeonTide.exe}

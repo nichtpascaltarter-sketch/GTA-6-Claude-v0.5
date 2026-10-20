@@ -1,7 +1,8 @@
 # The hand-built world: architecture proposal
 
-Status: v1. The lead approved decisions D1-D7 on 2026-10-19 (section 14), and section 12 holds the AI agent's
-requirements. The user's word overrides any of it.
+Status: v1.1. The lead approved decisions D1-D7 on 2026-10-19 (section 14), and section 12 holds the AI agent's
+requirements. v1.1 (2026-10-20) adds the details and checks the AI agent sent when it agreed to 12.7, and the kit's
+stair and door geometry from the animation agent (4.9). The user's word overrides any of it.
 Author: the city agent. Date: 2026-10-19.
 Scope: replace the procedural world of Palmera with a hand-authored one, keeping only the terrain.
 
@@ -462,6 +463,36 @@ Every floor of every building is a stacked layout. Here is how each part is repr
 Because collision and nav are per layout, all instances of a layout share them, transformed at load. A midrise with six
 identical typical floors has one navmesh and one collision set.
 
+### 4.9 Stairs and doors: the kit's geometry
+
+The library is built to the stair and door geometry the walk animation handles well. The animation agent measured it on
+6 body types, at the AI's stair pace: 0.45-0.6 m/s along a flight, one tread per step. (At the flat-ground 1.2-1.4 m/s,
+walkers take two or three treads a step.) Its measure is the share of planted-foot frames with the sole 3 cm or more
+inside a step: 0-1.1 % at the defaults below, 4-7 % near the warnings, 7-40 % past the errors.
+
+The defaults are what library items are built to. The validator (9.1) rejects anything past an error limit, and lists
+the warnings without failing the check.
+
+| Element | Default | Error | Warning |
+|---|---|---|---|
+| Straight flights, porch steps | risers 0.17-0.18 m, treads 0.28-0.30 m | a tread under 0.25 m at the walking line | risers outside 0.15-0.22 m; treads outside 0.26-0.33 m (0.24 m leaves the forefoot over the nosing going down) |
+| Switchbacks (a 180° landing) | flights 0.9-1.2 m wide; the landing as deep as the flight is wide | a landing shallower than the flight is wide, or than 0.9 m | – |
+| L stairs (a 90° landing) | flights and landing 0.9-1.0 m | as switchbacks | flights or landing outside 0.9-1.0 m (0.8 or 1.2 m costs 3-3.5 %) |
+| Winders | three 30° winders, the walking line 0.6 m from the inner corner, so a flight at least 1.2 m wide | a walking line under 0.5 m from the inner corner | a flight under 1.2 m wide; winders on a busy stair (lobby, shop, office), where a landing is better |
+| Spirals | 1.6-2.0 m across, the walking line 0.55-0.6 m from the centre, 26-30° per tread (0.28 m or more at the walking line), risers 0.19-0.22 m | a walking line under 0.5 m from the centre, or a tread under 0.25 m there | a walking line under 0.55 m, or a tread under 0.28 m there |
+| Curved stairs | a radius of 2 m or more, which walks like a straight flight | the walking-line limits of spirals | a radius under 2 m (1-1.5 m costs 3 % going down) |
+| Doors | 0.8 m clear or more, and 0.9 m where the path turns right behind the door; a level landing at least 0.9 m deep in front of a door at a stair | under 0.8 m clear; a landing at a door shallower than 0.9 m | under 0.9 m clear with a turn right behind the door |
+| Corridors, dead-end landings | 1.0 m or more, to turn round in (a walker turning on the spot steps within about 0.85 m) | under 1.0 m | – |
+| Escalators | a moving floor: walkers stand on it, and the animator gets no walking speed while they ride | – | – |
+
+- **The walking line** is where walkers go on a flight: the middle of the flight, or the stair's `walk=`, measured from
+  the centre on spirals and curved stairs and from the inner corner on winders. The tread at the walking line is its
+  length over the number of treads.
+- **Clear width** is the walkable opening: a door's `w`.
+- Stair landings follow the depth rule. The 1.0 m turning space applies to corridors and to landings where walkers turn
+  round, at dead ends. The measurements found 0.9 m L-stair landings the best fit, so a 1.0 m rule there would reject
+  the best case.
+
 ---
 
 ## 5. Hand-made at 35k buildings: the library, variety and configuration
@@ -729,7 +760,9 @@ rules. Section 12 has the AI agent's requirements for them.
 parks, forecourts, through-block passages). That replaces `SiteSet::walks`.
 
 **Buildings.** Each layout carries a navmesh with off-mesh links: doors, stair flights, lift stops and seats. Placement
-adds the entrance links: from a building's exterior doors to the nearest walk node, compiled per placement.
+adds the entrance links, compiled per placement: from a building's exterior doors through the parcel's gates to the
+nearest walk node. A link never runs straight across a fence or wall, because steering can't find a 1 m gate in a 20 m
+picket fence.
 
 **Paths.** Peds route on three levels:
 1. walk graph to an entrance;
@@ -815,22 +848,32 @@ Inside, only loaded floors have navmeshes, and the rest of the route is abstract
 - Doors fit their walls, and door swings don't hit furniture.
 - Furniture lies inside its room, doesn't overlap, and keeps a clear path from every door: navmesh connectivity per room.
 - Collision and nav compile. Every scenario point is on the navmesh.
+- Stairs and doors keep the kit's limits (4.9). Errors: a tread under 0.25 m at the walking line; a walking line under
+  0.5 m from the centre or the inner corner; a landing shallower than its flight is wide or than 0.9 m, at a door too;
+  a door under 0.8 m clear; a corridor or dead-end landing under 1.0 m. The soft limits of 4.9 are warnings.
+
+Errors fail the check. Warnings are listed in the report and on the floor-plan previews (9.2), but don't fail it.
 
 **Placement checks.** These run per building:
 - Inside its parcel. No overlap with any other building, road, path or dressing collider.
-- Its entrances reach a walk node within 30 m along paths.
+- Its entrances reach a walk node within 30 m along paths, through gates: no entrance link crosses a fence or wall.
 - Its options and overrides name real elements.
 - Its units fit their slots.
 
 **Roads, walks and spots** (the AI agent's checks, section 12.6):
 - the network is connected; every lane continues across every junction or ends at a legal dead end, and every approach
   has a movement out;
+- no two carriageways overlap: two edges inside each other's half width for more than ~10 m outside the junction boxes
+  are rejected (today's generator has one at Sol Beach, 5050,490, where a boulevard and a street share ~60 m and the
+  stop junction deadlocks traffic);
 - moves match the lane counts;
 - signal plans give every movement a green and every crossing a walk, and their cycles add up;
+- no phase gives a green to two conflicting movements, except permissive turns that yield;
+- a node without `approaches=` has at most one leg per compass sector;
 - crossings link both kerbs;
 - bus stops are on lanes with a kerb, and parking bays don't overlap a nostop or a curb cut;
 - every parcel with a driveway reaches a road;
-- walk links don't end in walls, and no sidewalk runs over 250 m without a crossing;
+- walk links don't end in walls or cross a fence or wall, and no sidewalk runs over 250 m without a crossing;
 - spots are neither inside geometry nor on a lane;
 - every walkable surface has a level;
 - a summary line, as today's load log: lanes, connectors, walk nodes and walk links, and the authored overrides by
@@ -1126,8 +1169,10 @@ cuts; grade separation. Beyond it (4.4 shows them in a file):
 5. **Signal plans** (kind `signal`, lib/signals). Phases by movement and by crossing, with green, amber and all-red,
    protected or permissive turns, and walk and flash times. A movement is the approach leg by compass and the turn
    (`n_l`; `n_lp` is a protected left); the compiler names the legs by bearing, and the node's `approaches` fixes skewed
-   ones. `plan=auto`, the default, keeps today's planner. Signal heads are derived from the stop lines, and `head`
-   overrides them.
+   ones; the validator flags two legs in one compass sector on a node without `approaches`. `plan=auto`, the default,
+   keeps today's planner. An authored plan must give every movement and crossing its green, and no phase may give a
+   green to two conflicting movements, except permissive turns that yield: otherwise a merged leg passes the first test
+   and then locks the box. Signal heads are derived from the stop lines, and `head` overrides them.
 6. **Highways.** Ramps are edges (`class=ramp`) with lane adds and drops. `shoulder=both:3.00` for breakdowns and
    police stops. `median=4.00:barrier`: no U-turns, no crossing on foot. Grade separation from `profile` and `deck`.
 7. **Kerbside.** `parkbay` (parallel, angle or perpendicular, metered, disabled), `nostop` with its reason, `loading`
@@ -1140,6 +1185,10 @@ cuts; grade separation. Beyond it (4.4 shows them in a file):
 10. **Dead ends.** `bulb=<radius>` on the node, or none, in which case long vehicles avoid it.
 11. **z everywhere.** Every lane, connector and stop takes its z from the edge `profile` and `deck`. Lanes on a deck
     don't conflict with the lanes under it.
+12. **No overlapping carriageways.** Two edges may not run inside each other's half width for more than ~10 m outside
+    the junction boxes. Today's generator has such a pair at Sol Beach (a 3-lane boulevard, edge 3287, on a street, edge
+    3284, for ~60 m), and its stop junction (node 2478) deadlocks traffic. The AI agent's `tools/traffic_sim --overlaps`
+    lists today's cases.
 
 ### 12.3 Sidewalks, crossings, jaywalking, frontage
 
@@ -1153,8 +1202,9 @@ cuts; grade separation. Beyond it (4.4 shows them in a file):
 4. **Jaywalking** keeps today's rule (narrow, slow, at least 12 m from a junction) on the authored widths and classes.
    `nojaywalk` marks fences and guard rails, and a median barrier implies it.
 5. **Obstacles** (bins, lamps, planters, hydrants, newspaper boxes, signal poles, benches). Each catalog piece carries a
-   simple collider (`collide=box|cylinder`), and walkers steer round them as today. The sidewalk's clear width is
-   derived: its width less the furniture strip the placed props take.
+   simple collider (`collide=box|cylinder`) at its real size, height included, and walkers steer round them as today.
+   The sidewalk's clear width is derived per stretch and per side: its width less the furniture the placed props take,
+   with a break wherever that changes, so a kiosk or a terrace narrows only its own few metres.
 6. **Frontage** is derived per placement by the compiler: windows with their unit's kind from the fit-out (bakery, bar,
    clothes), entrances with their public hours, and café terraces, kiosks, ATMs, vending machines and phone booths as
    spots.
@@ -1169,7 +1219,8 @@ cuts; grade separation. Beyond it (4.4 shows them in a file):
 2. **Zones** replace `World::Region` for the AI: tagged polygons in the district file for the region (roles, density
    tables, local lines, the event mix, patrol density), gang turf, use (nightlife, beach, business, industrial,
    residential), and pedestrian and traffic density by hour and day. The audio and wildlife zones of 7.7 are the same
-   set.
+   set. Until a district has zones, the AI reads the baked region grid; once any zone exists, zones override the grid
+   inside their polygons.
 3. **Police anchors** in places.ntw: stations with their bays, garage exit, booking door and release point; K9 and SWAT
    bases; patrol loops, foot beats and break spots; helipads and boat launches; roadblock sites, which are derived at
    chokepoints as today, and authored where those read badly. Patrol density comes from police zones.
@@ -1192,30 +1243,37 @@ cuts; grade separation. Beyond it (4.4 shows them in a file):
    lookups), and height queries answer per level.
 2. **Stairs** are off-mesh links with rise, run and tread count (`stair ... treads=16 rise=0.18`; outdoor `steps` the
    same). Walkers climb a tread per step (about 0.5 m/s up and 0.55 m/s down) once the animator's slow-pace fix lands.
+   The kit's stair and door geometry (4.9) is built to that pace. Escalators are moving floors that walkers stand on.
 3. **Doors** carry their kind for the clip (hinged, pair, sliding, revolving, roll-up), lock rules with public hours,
-   and a runtime state (locked, open, broken). Exterior doors join the walk graph (7.5), so today's street-door logic
-   uses the real doors.
+   and a runtime state (locked, open, broken), answered by an O(1), deterministic call. Exterior doors join the walk
+   graph (7.5), so today's street-door logic uses the real doors.
 4. **Lifts** are off-mesh links with a car capacity, a call point and the stops. NPCs call, wait, ride and get out on
    their floor.
 5. **Rooms** have a type and a capacity. Indoor spots take the outdoor kinds plus desk, counter service and queue,
    browse, bed, sofa, kitchen, washroom, bar and dance.
 6. **Police and crime indoors.** Entry points are the exterior doors; exits and roof routes follow the doors, stairs and
    fire entrances; each shop's `counter` and back room (`room type=store`) serve hold-ups. The room-clearing order is
-   derived from the door graph, and cover from the furniture, with `spot kind=cover` where that falls short.
+   derived from the door graph, and cover from the furniture, with `spot kind=cover` where that falls short. Furniture
+   colliders carry their real heights (`collide=box` gives them), so the AI tells low cover from high.
 7. **Occupancy** (7.6) also exposes the next transitions (who leaves for work at 8, who comes home at 6), so doors let
    people out and in at the right times, and per-building "in" and "out" counts for the crowds at entrances. Both are
-   runtime calls, not data.
+   runtime calls, not data. Like the door state, they are O(1) and deterministic: the AI polls them about once a second
+   for every building within ~150 m.
 
 ### 12.6 Validation
 
 The validator (9.1) checks the AI's data:
 - lanes that lead nowhere, and approaches with no movement out;
+- overlapping carriageways: two edges inside each other's half width for more than ~10 m outside the junction boxes;
 - moves that don't match the lane count;
 - signal plans that never give a movement or a crossing its green;
+- phases that give a green to two conflicting movements, except permissive turns that yield;
+- two legs in one compass sector on a node without `approaches`;
 - crossings with no walk phase;
 - a bus stop on a lane with no kerb;
 - parking bays overlapping a nostop or a curb cut;
 - walk links that end in walls, and sidewalks with no crossing for over 250 m;
+- entrance or walk links that cross a fence or wall (they go door, gate, walk node);
 - spots inside geometry or on a lane;
 - doors that join one room only;
 - stairs and lifts that miss a floor;
@@ -1226,7 +1284,8 @@ links`), plus the count of authored overrides by record type, so a district's co
 
 ### 12.7 What is derived, deferred or runtime
 
-Nothing the AI asked for is dropped. These asks are met other than by a record:
+Nothing the AI asked for is dropped. These asks are met other than by a record. The AI agent agreed to all of them on
+2026-10-20, and its details are folded into 12.2-12.6 and 9.1:
 
 | Ask | How it is met |
 |---|---|
@@ -1234,17 +1293,17 @@ Nothing the AI asked for is dropped. These asks are met other than by a record:
 | Multi-level garages | in the format (levels, ramps). The pilot builds surface lots; garage interiors with ramps follow it |
 | `moves dir=` | implied by `at`: the lanes arriving at `n1` are the `fwd` ones |
 | Signal heads | derived from the stop lines; `head` where they don't suit |
-| Signal movement names | `<approach>_<turn>`, compass approaches by bearing, `approaches=` for skewed junctions |
-| Kerb side and building side of sidewalk links | derived, as today |
-| Sidewalk clear width | derived from the furniture strip the props take |
+| Signal movement names | `<approach>_<turn>`, compass approaches by bearing, `approaches=` for skewed junctions; the validator flags two legs in one sector without it, and conflicting greens in one phase |
+| Kerb side and building side of sidewalk links | derived by the AI in `LaneGraph::build`, path links included, as today |
+| Sidewalk clear width | derived per stretch and per side from the furniture the props take, with breaks along the edge |
 | Frontage (windows, entrances, terraces) | derived from fit-outs, doors and spots |
-| Zones in the pilot | the AI reads the baked region grid until zones are authored; density profiles are optional and default to today's tables |
+| Zones in the pilot | the AI reads the baked region grid until zones are authored, and zones override it inside their polygons once any exists; density profiles are optional and default to today's tables |
 | Event anchors and roadblock sites | derived, as today; anchors only as extras |
 | Spot wardrobe filters | after the pilot (`roles` and `ages` are in v1) |
-| Cover points and room-clearing order | derived from the furniture and the door graph; `spot kind=cover` overrides |
+| Cover points and room-clearing order | derived from the furniture (colliders at their real heights) and the door graph; `spot kind=cover` overrides |
 | Level ids | assigned by the compiler, never written |
-| Door state, occupancy transitions, in and out counts | runtime calls (7.6), not data |
-| A navmesh outdoors | not planned: outdoors stays the walk graph, and props are colliders |
+| Door state, occupancy transitions, in and out counts | runtime calls (7.6), O(1) and deterministic, polled about once a second within ~150 m |
+| A navmesh outdoors | not planned: outdoors stays the walk graph, props are colliders, and entrance links go door, gate, walk node |
 
 ---
 
