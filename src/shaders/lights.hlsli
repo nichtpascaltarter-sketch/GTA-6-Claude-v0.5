@@ -27,8 +27,11 @@ float streetLampPattern(float3 axis, float3 d) {
     return vert * lat;
 }
 
-// Low-beam headlight pattern: sharp cut-off just below the horizon with a raised right-hand (kerb side)
-// shoulder, wide horizontal spread and a hot core on the road; faint spill above the cut-off.
+// Low-beam headlight pattern (fwd: the lamp's aim, ~1.7 degrees down on a car): a sharp cut-off 0.7 degrees above the
+// aim on the oncoming side (the road is lit out to ~35 m) rising on the kerb side, the most intense just under the
+// cut-off and slightly right (1.6x the light's nominal intensity), falling off towards the foreground (half at 3.4
+// degrees under the cut-off) so the road is lit evenly from a few metres to the cut-off instead of a hot puddle in
+// front of the bumper; a wide horizontal spread and faint spill above.
 float headlightPattern(float3 fwd, float3 d) {
     float3 side = cross(fwd, float3(0, 0, 1));
     float sl = length(side);
@@ -37,12 +40,13 @@ float headlightPattern(float3 fwd, float3 d) {
     float z = dot(d, fwd);
     if (z <= 0.05) return 0.0;
     float x = dot(d, side) / z, y = dot(d, up) / z;
-    float cutLine = -0.035 + 0.045 * smoothstep(0.0, 0.25, x);
-    float below = smoothstep(cutLine + 0.012, cutLine - 0.012, y);
-    float wide = exp(-x * x / 0.2);
-    float core = exp(-x * x / 0.018 - sq(y + 0.06) / 0.0035);
-    float spill = 0.05 * exp(-(x * x + y * y) / 0.25);
-    return saturate(below * (wide * 0.5 + core * 1.3) + spill) * smoothstep(0.05, 0.3, z);
+    float cutLine = 0.012 + 0.035 * smoothstep(0.0, 0.25, x);
+    float below = smoothstep(cutLine + 0.008, cutLine - 0.008, y);
+    float a = max(cutLine - y, 0.0);
+    float vert = 1.0 / (1.0 + sq(a / 0.06));
+    float hor = exp(-x * x / 0.25) * 0.7 + exp(-sq(x - 0.06) / 0.02) * 0.9;   // peak ~1.6x the light's intensity
+    float spill = 0.03 * exp(-(x * x + y * y) / 0.25);
+    return (below * vert * hor + spill) * smoothstep(0.05, 0.3, z);
 }
 
 // Angular attenuation of a light for the direction Lv (normalized, surface -> light).

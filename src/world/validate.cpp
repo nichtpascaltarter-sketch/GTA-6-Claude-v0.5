@@ -6,6 +6,7 @@
 #include <atomic>
 #include <filesystem>
 #include <map>
+#include <memory>
 #include <set>
 #include <thread>
 #include <unordered_map>
@@ -54,6 +55,12 @@ const std::vector<CheckInfo> kChecks = {
     {"stair.width", "warning: an L stair's flights outside 0.9-1.0 m, or winders on a flight under 1.2 m"},
     {"stair.radius", "warning: a curved stair walked at a radius under 2 m"},
     {"stair.busy", "warning: winders on a busy stair (in a lobby, shop or office)"},
+    // across a plan's floors (docs/HANDBUILT_WORLD.md 9.1)
+    {"stair.floors", "a stair doesn't join the floors it claims: not upward, its ends outside the rooms it names, or its treads not climbing the floors' difference in height"},
+    {"lift.stops", "a lift stops at a floor whose layout doesn't have the same lift (id, place, size and stops)"},
+    {"floor.access", "a floor's hatch doesn't come up from a lower floor into one of its rooms"},
+    {"door.height", "a door taller than its floor"},
+    {"window.height", "a window whose top (sill + h) is above its floor's height"},
 };
 
 // ---------------------------------------------------------------------------------------------------- small helpers
@@ -1163,6 +1170,48 @@ struct WorldChecks {
                 else floorRef(r, i);
             }
         wayIn();
+        planPass();
+    }
+
+    // The plan pass reads documents, not facts: every plan with the layouts of its floors, parsed again from the text
+    // this run read (each once)
+    void planPass() {
+        std::map<size_t, std::unique_ptr<Ntw::Document>> docs;
+        const auto docOf = [this, &docs](size_t i) -> const Ntw::Document* {
+            std::unique_ptr<Ntw::Document>& d = docs[i];
+            if (!d && files[i].readOk && files[i].res.valid) {
+                d.reset(new Ntw::Document());
+                std::vector<Ntw::Error> errs;
+                if (!Ntw::parse(files[i].text.data(), files[i].text.size(), Ntw::schemaOpensBlock, *d, errs)) d.reset();
+            }
+            return d.get();
+        };
+        std::set<std::string> said;   // (a layout several floors or plans use reports a finding once)
+        for (size_t i = 0; i < files.size(); i++) {
+            const FileResult& r = files[i].res;
+            if (!r.valid || r.defs.empty() || r.defs.front().cls != "plan") continue;
+            const Ntw::Document* plan = docOf(i);
+            if (!plan) continue;
+            std::vector<PlanFloor> floors;
+            for (const Ntw::Record& rec : plan->records) {
+                if (rec.type != "floor" || rec.id.empty()) continue;
+                PlanFloor f;
+                f.rec = &rec;
+                const auto it = index.ids.find(rec.value("layout", ""));
+                if (it != index.ids.end() && it->second.def->cls == "layout") {
+                    f.layout = docOf(it->second.file);
+                    f.layoutKey = it->second.file;
+                }
+                floors.push_back(f);
+            }
+            std::vector<PlanFinding> found;
+            checkPlanFloors(r.defs.front().id, floors, found);
+            for (const PlanFinding& p : found) {
+                const size_t to = p.inPlan ? i : p.layoutKey;
+                if (!said.insert(std::to_string(to) + ":" + std::to_string(p.d.line) + ":" + p.d.check + ":" + p.d.message).second) continue;
+                add(files[to].world, p.d.line, p.d.severity, p.d.check.c_str(), p.d.message);
+            }
+        }
     }
 
     // A layout that nothing leads into (no door out, no stair, no lift) is fine where every plan floor built from it

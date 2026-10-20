@@ -83,6 +83,9 @@ struct RoadNetwork {
     std::vector<std::vector<int>> hash;
 
     void generate(WorldMap& map);
+    // Junction radii (nodes of degree 3 and more), the edges' cut-backs and the derived control: generate()'s last pass
+    // over the graph, which the hand-built roads' compiler runs too (worldmodel.h). Needs the edges' widths and lengths.
+    void finishJunctions();
     // Nearest edge to p (xy). Returns -1 if none within maxDist.
     int nearestEdge(vec2 p, float maxDist, float* outS = nullptr, float* outDist = nullptr, float* outSide = nullptr) const;
     // Road surface height if p lies on a paved road/intersection/bridge deck; returns false otherwise.

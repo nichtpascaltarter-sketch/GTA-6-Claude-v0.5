@@ -1,0 +1,4 @@
+ntw 1 district district=sb
+bounds poly=600.00,0.00;1000.00,0.00;1000.00,300.00;600.00,300.00
+zone sb.audio.surf kind=audio poly=600.00,0.00;1000.00,0.00;1000.00,300.00;600.00,300.00 tags=surf
+trunk node=tr.n00002

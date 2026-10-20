@@ -235,7 +235,10 @@ GBufferOut psDynamic(VSOut i, bool front : SV_IsFrontFace) {
         bool on = (lightBits & 1u) != 0;
         albedo = float3(0.8, 0.8, 0.8);
         rough = 0.05;
-        emissive = on ? float3(1.0, 0.95, 0.85) * 3000.0 : 0;
+        // LED (lightBits 64: cool white) or halogen (warm) lamps, in the colour of the beam they throw (gameworld.cpp
+        // kHeadLED / kHeadHalogen)
+        float3 lampC = (lightBits & 64u) != 0 ? float3(0.954, 0.935, 0.906) : float3(1.136, 0.909, 0.625);
+        emissive = on ? lampC * 3050.0 : 0;
     } else if (matId == M_LIGHT_TAIL) {
         bool on = (lightBits & 1u) != 0;
         bool brake = (lightBits & 2u) != 0;
@@ -260,6 +263,9 @@ GBufferOut psDynamic(VSOut i, bool front : SV_IsFrontFace) {
         if ((lightBits & 32u) && sirenLens) {
             float ph = frac(gTime.x * 2.2 + (isLeft ? 0.5 : 0.0));
             float on = ph < 0.25 || (ph > 0.35 && ph < 0.55) ? 1.0 : 0.0;
+            // Reduce Flashing (accessibility): the two halves of the bar pulse slowly in turn (gameworld.cpp: the same
+            // for their light)
+            if (gRenderFlags.x > 0.5) on = 0.55 + 0.25 * sin(gTime.x * 1.2 + (isLeft ? 3.14159265 : 0.0));
             emissive = i.color.rgb * on * 4000.0;
         }
     } else if (matId == M_EMISSIVE) {

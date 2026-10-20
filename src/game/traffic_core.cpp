@@ -301,6 +301,8 @@ void TrafficCore::clearRoute(Driver& d) {
     d.gateConn = -1;
     d.committed = false;
     d.stopDone = false;
+    d.preStop = -1;
+    d.preGo = false;
     d.lcLane = -1;
 }
 
@@ -745,6 +747,8 @@ void TrafficCore::advancePath(Driver& d) {
         if (c.from != d.path) d.lat = 0.f;
         d.lcLane = -1;
         d.lat = Clamp(d.lat, -1.f, 1.f);
+        d.preStop = -1;  // (into a box: a stop made from the box before is behind us, or never got its gate)
+        d.preGo = false;
     } else {
         d.lat = 0.f;
     }
@@ -916,11 +920,14 @@ bool TrafficCore::stopGrant(Driver& d, int conn) {
         }
     }
     const int NL = (int)g->lanes.size();
-    // purge stale entries (drivers that left the stop line or the intersection)
+    // purge stale entries (drivers that left the stop line or the intersection). One stopped at the line with its tail
+    // still in the box before (a link shorter than the car: preStop, plan()) is waiting here too
     for (size_t i = 0; i < Q->q.size();) {
         int di = Q->q[i].first;
         const Driver& o = drivers[di];
-        bool valid = o.active && o.path >= 0 && o.path < NL && o.routeLen > 0 && o.route[0] >= NL && g->conn(o.route[0]).node == c.node && o.stopDone;
+        bool valid = o.active && o.path >= 0 &&
+                     ((o.path < NL && o.routeLen > 0 && o.route[0] >= NL && g->conn(o.route[0]).node == c.node && o.stopDone) ||
+                      (o.path >= NL && o.preStop >= 0 && g->conns[o.preStop].node == c.node));
         if (!valid && di != d.vehicle) Q->q.erase(Q->q.begin() + i);
         else i++;
     }
@@ -935,7 +942,7 @@ bool TrafficCore::stopGrant(Driver& d, int conn) {
         if (e.first == d.vehicle) break;
         if (e.second > d.arrival - 0.05f && e.first > d.vehicle) continue;
         const Driver& o = drivers[e.first];
-        int oc = o.route[0] - NL;
+        int oc = o.path >= NL ? o.preStop : o.route[0] - NL;
         // earlier arrival with a conflicting movement goes first (long vehicles: also the wider swept conflicts)
         bool conflict = false;
         for (const Conflict& x : c.conflicts)
@@ -980,11 +987,20 @@ float TrafficCore::gate(Driver& d, int conn, float distToEntry, float v, bool in
         d.gateConn = conn;
         d.gateNode = c.node;
         d.committed = false;
-        d.stopDone = false;
+        d.stopDone = d.preStop == conn;  // its stop made at this line from the box before (plan(): a link shorter than the car)
+        d.preStop = -1;
+        d.preGo = false;
         d.waitTime = 0.f;
     }
-    // past the stop line: committed
-    if (lineDist < -0.4f && (N.control != 1 || d.stopDone)) {
+    // past the stop line: committed - except a permissive left on green on its way to its hold point in the box: that
+    // one goes when the gap check lets it (the green branch below; in the box, the box's own check). Committed by the
+    // line alone, a bus starting on green rolled on past its hold point while the oncoming car that had started with it
+    // came through at 13 m/s, and the box then stopped the bus with its nose in that car's way (the harness: node 5038
+    // by the I-38 ramps, a 17717 Ns hit). Over the line when the light goes amber, it commits as before (sig != red): on
+    // into the box to clear the junction (the box holds it at its hold point until the oncoming traffic has stopped)
+    const bool toHold = N.control == 2 && c.holdS > 0.f && (c.turn == TK_LEFT || c.turn == TK_UTURN) &&
+                        G.movementSignal(c.node, c.approach, c.turn, time) == SIG_GREEN;
+    if (lineDist < -0.4f && (N.control != 1 || d.stopDone) && !toHold) {
         if (N.control != 2 || d.amberGo || G.movementSignal(c.node, c.approach, c.turn, time) != SIG_RED || lineDist < -2.f) {
             d.committed = true;
             return FREE;
@@ -1346,6 +1362,7 @@ void TrafficCore::plan(Driver& d, const Vehicles::VehicleState& s, vec2 pos, vec
     int obstB = -1;
     bool obstPed = false, obstBack = false;
     bool meetBig = false;   // a bus or a truck coming the other way close by (or we are one, meeting anything)
+    bool passing = false;   // the static blocker being driven round (passHost) is beside / just ahead, clear of our body
     thread_local std::vector<u32> seen;
     thread_local u32 seenStamp = 0;
     if (seen.size() < bodies.size()) seen.resize(bodies.size() + 64, 0);
@@ -1398,8 +1415,24 @@ void TrafficCore::plan(Driver& d, const Vehicles::VehicleState& s, vec2 pos, vec
             vec2 br = rightOf(bf);
             float extN = b.halfLen * fabsf(dot(bf, bn)) + b.halfWid * fabsf(dot(br, bn));
             float extT = b.halfLen * fabsf(dot(bf, bt)) + b.halfWid * fabsf(dot(br, bt));
+            // the static blocker we are driving round (drive(): passHost): judged by our own body pushed a little along
+            // our heading - the corridor near the car is the car's own lane-parallel strip, so from a car length behind it
+            // the blocker never left the corridor however far the car steered out (the harness's --parked runs: cars held
+            // for good behind a Compactor parked half a metre into the lane, their overtakes started and went nowhere)
+            if (d.passT > 0.f && b.kind == BK_CAR && b.host == d.passHost && selfBody >= 0) {
+                const Body& me = bodies[selfBody];
+                float look = Clamp(v * 0.8f + 0.5f, 0.5f, 2.5f);
+                if (!rectsOverlap(me.pos + fwd * (look * 0.5f), fwd, me.halfLen + look * 0.5f, me.halfWid + 0.08f, b.pos, bf, b.halfLen, b.halfWid)) {
+                    passing = true;
+                    return;
+                }
+            }
             bool ped = b.kind == BK_PED;
-            float margin = ped ? 0.75f : 0.3f + Min(v * 0.015f, 0.35f);
+            // (a parked car: a fixed margin. With the margin growing with our speed, a car passing a van parked 0.3 m
+            // into reach saw it in the way at 0.5 m/s and clear at 0.1, braked and pulled away twice a second, and was
+            // taken for stuck - the harness's --parked Midtown runs, a Sawgrass by a Parcel P70 at 3636 2851)
+            const bool parkedStill = (b.flags & BF_PARKED) && b.speed < 0.3f;
+            float margin = ped ? 0.75f : (parkedStill ? 0.25f : 0.3f + Min(v * 0.015f, 0.35f));
             float half = myHW + extN + margin;
             // a car parked in the parking strip (inner edge beyond the lane edge) is not in the way of a vehicle that
             // fits its lane - buses and trucks pass them daily with half a meter to spare
@@ -1413,7 +1446,9 @@ void TrafficCore::plan(Driver& d, const Vehicles::VehicleState& s, vec2 pos, vec
                 bestLat += bestShift;
                 half = myHW + extN + 0.12f;
                 // a long body swings its nose / tail across the line on a bend: meeting one, both keep to the kerb side
-                if ((b.halfLen > 3.6f || d.info.wheelbase > 3.8f) && bestX < 40.f && fabsf(bestLat) < half + 1.6f) meetBig = true;
+                // (one on the move: a truck parked facing us across the street swings nothing, and keeping to the kerb for
+                // it pressed our corridor onto the cars parked on our side)
+                if ((b.halfLen > 3.6f || d.info.wheelbase > 3.8f) && bestX < 40.f && fabsf(bestLat) < half + 1.6f && !(b.flags & BF_PARKED)) meetBig = true;
             }
             float gap = Max(bestX - extT - front, 0.f);
             float vl = dot(b.vel, bt);
@@ -1499,9 +1534,10 @@ void TrafficCore::plan(Driver& d, const Vehicles::VehicleState& s, vec2 pos, vec
     d.obstSpeed = obstV;
     d.obstBody = obstB;
     d.obstBacking = obstBack && obstGap < 7.f;
+    if (passing) d.speedCap = Min(d.speedCap, 3.f);   // (round it at a crawl: a hand's width to spare)
     // ---- meeting a bus or a truck on a two-way road: keep to the kerb side of the lane while passing (a long body's
     //      nose swings over the line on a bend) - in the kerb lane, with no lane change or other side step going on
-    if (meetBig && d.path < NL && G.lanes[d.path].right < 0 && d.lcLane < 0 && d.mode != DM_PULLOVER &&
+    if (meetBig && d.path < NL && G.lanes[d.path].right < 0 && d.lcLane < 0 && d.mode != DM_PULLOVER && d.passT <= 0.f &&
         (d.nudgeTarget == 0.f || (d.nudgeTarget > 0.f && d.nudgeTarget <= 0.61f))) {
         float room = G.lanes[d.path].width * 0.5f - myHW - 0.15f;
         if (room > 0.08f) {
@@ -1511,6 +1547,21 @@ void TrafficCore::plan(Driver& d, const Vehicles::VehicleState& s, vec2 pos, vec
     }
     // ---- stops
     float stopDist = 1e9f;
+    // the junction after the next one, close behind it (a short link): a stop sign, a red, or an amber that turns red
+    // before we get there means stopping at its line. Seen only from the short lane itself, a car through the first box on
+    // green met the next red 6-15 m on at 8-15 m/s: it ran the light, or stopped hard on the crosswalk past the line (the
+    // harness: 10 red runs in 5 minutes at node 306 by the I-38 ramps, 3 at nodes 272 / 274 on Bayshore Boulevard)
+    auto stopsAhead = [&](const Connector& c2, float line2) {
+        const int ctl = G.nodes[c2.node].control;
+        if (ctl == 1) return true;
+        if (ctl != 2) return false;
+        SignalState s2 = G.movementSignal(c2.node, c2.approach, c2.turn, time);
+        if (s2 == SIG_RED) return true;
+        if (s2 != SIG_AMBER) return false;
+        float left = 0.f;
+        while (left < 6.f && G.movementSignal(c2.node, c2.approach, c2.turn, time + left + 0.25f) == SIG_AMBER) left += 0.25f;
+        return line2 / Max(v, 0.5f) > left;
+    };
     if (d.path < NL) {
         const Lane& L = G.lanes[d.path];
         float distToEnd = L.u1 - (d.u + front);
@@ -1524,10 +1575,19 @@ void TrafficCore::plan(Driver& d, const Vehicles::VehicleState& s, vec2 pos, vec
                 float d2 = distToEnd + c1.length + (G.lanes[nextLane].u1 - G.lanes[nextLane].u0);
                 if (d2 < lookDist && d.mode == DM_NORMAL) {
                     const Connector& c2 = G.conn(d.route[2]);
-                    SignalState s2 = G.movementSignal(c2.node, c2.approach, c2.turn, time);
                     const Lane& L2 = G.lanes[c2.from];
                     float line2 = d2 - (L2.stopU >= 0.f ? L2.u1 - L2.stopU : 0.6f);
-                    if (s2 == SIG_RED || (G.nodes[c2.node].control == 1)) stopDist = Min(stopDist, line2 + (G.nodes[c2.node].control == 1 ? 0.f : 0.f));
+                    if (stopsAhead(c2, line2)) {
+                        // a red there, and a link too short to hold us at its line: wait at this one rather than across
+                        // the box - unless over it already, or kept here for a while (lights that never let us through
+                        // both: on to that line as before)
+                        float room = (L2.stopU >= 0.f ? L2.stopU : L2.u1 - 0.6f) - L2.u0;
+                        float lineHere = L.stopU >= 0.f ? distToEnd - (L.u1 - L.stopU) : distToEnd - 0.6f;
+                        bool past = (d.committed && d.gateConn == cid) || lineHere < 0.5f;
+                        bool fits = room > d.info.frontLen + d.info.rearLen + 1.f;
+                        bool holdHere = G.nodes[c2.node].control == 2 && !fits && !past && d.waitTime < 30.f;
+                        stopDist = Min(stopDist, holdHere ? lineHere : line2);
+                    }
                 }
             }
         } else if (d.routeLen == 0) {
@@ -1551,6 +1611,35 @@ void TrafficCore::plan(Driver& d, const Vehicles::VehicleState& s, vec2 pos, vec
         }
     } else {
         stopDist = Min(stopDist, gate(d, d.path - NL, -(d.u + front), v, true));
+        // in the box: the next junction's line, when it is close (see stopsAhead)
+        if (d.routeLen > 1 && d.route[0] < NL && d.route[1] >= NL && d.mode == DM_NORMAL) {
+            const Lane& L1 = G.lanes[d.route[0]];
+            const int id2 = d.route[1] - NL;
+            const Connector& c2 = G.conns[id2];
+            float line2 = G.conn(d.path).length - (d.u + front) + (L1.stopU >= 0.f ? L1.stopU : L1.u1 - 0.6f) - L1.u0;
+            if (d.preStop != id2) {
+                d.preStop = -1;
+                d.preGo = false;
+            }
+            if (c2.from == d.route[0] && line2 < lookDist && stopsAhead(c2, line2)) {
+                // an all-way stop there with its line at this box's exit (a link shorter than the car): stopped at it, the car
+                // is still in this box, where that junction's gate never runs - so the stop and the turn in its order are
+                // made here, and its gate takes them over on its lane. Held at that line for good, a left turner on green
+                // blocked this box, and 50-120 cars queued behind and across it (the harness: Sol Beach, nodes 2546 / 2544)
+                if (G.nodes[c2.node].control == 1 && line2 < 2.2f && v < 0.5f && d.preStop < 0) {
+                    d.preStop = id2;
+                    d.arrival = (float)time;
+                    d.waitTime = 0.f;  // (as its gate would: the wait there starts now)
+                }
+                if (d.preStop == id2 && !d.preGo) {
+                    float toEntry2 = line2 + (L1.stopU >= 0.f ? L1.u1 - L1.stopU : 0.6f);
+                    bool exitBlocked2 = d.obstDist < toEntry2 + c2.length + d.info.halfLen * 2.f + 1.5f && d.obstSpeed < 1.5f &&
+                                        d.obstDist > toEntry2 + 1.f;
+                    d.preGo = (!exitBlocked2 || d.waitTime > 30.f) && (stopGrant(d, id2) || d.waitTime > 25.f);
+                }
+                if (!d.preGo) stopDist = Min(stopDist, Max(line2, 0.f));
+            }
+        }
     }
     if (d.mode == DM_HOLD) stopDist = Min(stopDist, 0.f);
     // host-requested stop point on the route
@@ -2157,36 +2246,119 @@ void TrafficCore::drive(int vid, Vehicles::VehicleState& s, float dt, DriveOut& 
             staticBlocker = ob.speed < 0.2f && ((!waiting && (od.vTarget < 0.3f || helpless)) || sideways);
         } else if (ob.kind == BK_CAR && ob.driver < 0) staticBlocker = true;   // unmanaged vehicle (abandoned)
     }
-    float toEnd = d.path < (int)g->lanes.size() ? g->lanes[d.path].u1 - d.u : 0.f;
-    if (staticBlocker && toEnd > 30.f && d.blockedTime > d.pers.patience + 1.5f && d.nudgeTarget == 0.f && d.path < (int)g->lanes.size() && d.lcLane < 0) {
-        const Lane& L = g->lanes[d.path];
-        int side = L.left >= 0 ? -1 : (L.right >= 0 ? 1 : -1);
-        float shift = L.width * (float)side;
-        // is the space beside the blocker free (including oncoming traffic)?
-        bool clear = true;
-        vec2 t = g->laneTangent(d.path, d.u), rn = rightOf(t);
-        float range = 70.f;
-        int selfBody = driverBody(vid);
-        hash.query(bodies, pos - vec2(range), pos + vec2(range), [&](int bi) {
-            if (bi == selfBody || bi == d.obstBody || !clear) return;
-            const Body& b = bodies[bi];
-            if (fabsf(b.z - p3.z) > 3.2f) return;
-            vec2 rel = b.pos - pos;
-            float along = dot(rel, t), lat = dot(rel, rn) - shift;
-            if (fabsf(lat) > b.halfWid + d.info.halfWid + 0.6f) {
-                // cars in our own lane just beyond the blocker: no room to merge back
-                float lat0 = dot(rel, rn);
-                if (fabsf(lat0) < 1.6f && along > d.obstDist + 2.f && along < d.obstDist + 22.f) clear = false;
-                return;
-            }
-            if (along > -8.f && along < 30.f) clear = false;
-            if (along >= 30.f && along < range && dot(b.vel, t) < -1.f) clear = false;  // oncoming
-            // coming up from behind in that lane (a multi-lane road): let it pass first
-            if (along <= -8.f && dot(b.vel, t) > 1.f && (-along - b.halfLen - d.info.halfLen) < dot(b.vel, t) * 4.f + 6.f) clear = false;
+    // ---- driving round a static blocker (a car parked half into the lane, a breakdown, an abandoned car): a side step
+    // within our lane where it leaves room for one, else over into the lane beside - the same way, or the oncoming one of
+    // a two-way road without a median - when that is clear; never into a lane that is not there (on a one-lane ramp or a
+    // one-way street the old overtake pulled a lane's width over, into the barrier). plan() judges the blocker by our own
+    // body while the pass lasts (passT), the side step lasts until the blocker is behind us, and a car stopped too close
+    // to steer round it backs up a little first. Before, a car stopped a car length behind a parked one never got round
+    // it (the harness's --parked runs: a Compactor parked half a metre into the lane held the cars behind for good, their
+    // overtakes started and went nowhere - as on nt_ai102c's soak, 145 s and more)
+    const int NLd = (int)g->lanes.size();
+    if (d.passT > 0.f) {
+        int pb = -1;
+        hash.query(bodies, pos - vec2(30.f), pos + vec2(30.f), [&](int bi) {
+            if (pb < 0 && bodies[bi].kind == BK_CAR && bodies[bi].host == d.passHost) pb = bi;
         });
+        d.passT -= dt;
+        bool behind = pb < 0 || dot(bodies[pb].pos - pos, fwd) + bodies[pb].halfLen < -(d.info.rearLen + 1.5f);
+        bool off = d.path >= NLd || d.mode == DM_HOLD || d.mode == DM_PULLOVER || d.lcLane >= 0 || d.passT <= 0.f || d.nudgeTarget == 0.f ||
+                   (pb >= 0 && bodies[pb].speed > 2.f);   // (it drove off)
+        if (behind || off) {
+            d.passT = 0.f;
+            if (behind) {
+                d.passHost = -1;   // (round it: a later one starts afresh; given up, it is remembered - no more back-ups)
+                d.passBacks = 0;
+            }
+            if (d.nudgeTimer > 0.8f) d.nudgeTimer = 0.8f;   // (then back to the middle of the lane, as a nudge goes)
+        } else {
+            d.nudgeTimer = Max(d.nudgeTimer, 0.5f);
+            // stopped short of it with no way round from here: back up a few metres (straight, keeping the side step)
+            if (v < 0.3f && d.obstBody == pb && d.blockedTime > 1.2f && d.recoverTimer <= 0.f && d.passBacks < 2 && rearClear(d, pos, fwd, 2.f)) {
+                d.recoverTimer = 3.5f;
+                d.recoverDir = 0;
+                d.kturn = true;   // (control(): backs up 3 m and keeps its path)
+                d.stuckAnchor = pos;
+                d.passBacks++;
+                d.blockedTime = 0.f;
+            }
+        }
+    }
+    float toEnd = d.path < NLd ? g->lanes[d.path].u1 - d.u : 0.f;
+    if (staticBlocker && d.passT <= 0.f && d.blockedTime > d.pers.patience + 1.5f && d.nudgeTarget == 0.f && d.path < NLd && (d.lcLane < 0 || d.lcLane != d.path) &&
+        bodies[d.obstBody].kind == BK_CAR) {
+        const Lane& L = g->lanes[d.path];
+        const Body& ob = bodies[d.obstBody];
+        vec2 t = g->laneTangent(d.path, d.u), rn = rightOf(t);
+        // where it stands across our lane (+ = right of the lane's middle) and how far it reaches across it
+        float olat = 0.f;
+        g->projectPath(d.path, ob.pos, d.u + d.obstDist, &olat);
+        vec2 bf = length2(ob.fwd) > 0.5f ? ob.fwd : t, br = rightOf(bf);
+        const float extN = ob.halfLen * fabsf(dot(bf, rn)) + ob.halfWid * fabsf(dot(br, rn));
+        const float myHW = d.info.halfWid, laneHalf = L.width * 0.5f, clr = 0.3f;
+        const float sL = Min(olat - extN - clr - myHW, -0.05f);   // the side step (from the lane's middle) clearing it on its left
+        const float sR = Max(olat + extN + clr + myHW, 0.05f);    // ... and on its right
+        // how far the road lets us go: the lane beside (the same way), or the oncoming lane of a two-way road without a
+        // median; left of the leftmost lane of a one-way road (a ramp) its shoulder, of a divided road nothing (the
+        // median and its barrier); right of the kerb lane the hard shoulder of a motorway or ramp, in town only our own
+        // lane (the strip has the parked cars in it)
+        const World::RoadEdge& E = g->roads->edges[L.edge];
+        const World::RoadClassInfo& ri = World::roadInfo(E.cls);
+        const bool edgeOneWay = E.lanesF == 0 || E.lanesB == 0;   // (the edge carries one direction only)
+        const bool oncomingL = L.left < 0 && !edgeOneWay && ri.median <= 0.f && !(L.flags & (LF_HIGHWAY | LF_RAMP | LF_ONEWAY));
+        const bool shoulders = (L.flags & (LF_RAMP | LF_HIGHWAY)) != 0;
+        const float inLane = laneHalf - myHW - 0.1f;
+        const float widthL = L.left >= 0 ? g->lanes[L.left].width : L.width, widthR = L.right >= 0 ? g->lanes[L.right].width : L.width;
+        const float roomL = (L.left >= 0 || oncomingL) ? laneHalf + widthL - myHW - 0.2f : laneHalf - myHW + (edgeOneWay ? ri.shoulder : 0.f) - 0.3f;
+        const float roomR = L.right >= 0 ? laneHalf + widthR - myHW - 0.2f : laneHalf - myHW + (shoulders ? ri.shoulder : 0.f) - 0.3f;
+        const bool okL = -sL <= roomL, okR = sR <= roomR;
+        float shift = 0.f;
+        if (okL && (!okR || -sL <= sR)) shift = sL;
+        else if (okR) shift = sR;
+        // (a side step within the lane: where the blocker ends before the lane does; over into another lane: not within
+        // 30 m of the junction - the old overtake's rule)
+        const float extT = ob.halfLen * fabsf(dot(bf, t)) + ob.halfWid * fabsf(dot(br, t));
+        bool clear = shift != 0.f && (fabsf(shift) > inLane ? toEnd > 30.f : toEnd > d.info.frontLen + d.obstDist + extT * 2.f + 1.f);
+        // over into another lane: to its middle when that is enough (as an overtake goes), and only when that is clear
+        if (clear && fabsf(shift) > inLane) {
+            bool lane = shift < 0.f ? (L.left >= 0 || oncomingL) : L.right >= 0;
+            float mid = shift < 0.f ? -(laneHalf + widthL * 0.5f) : laneHalf + widthR * 0.5f;
+            if (lane && fabsf(mid) >= fabsf(shift)) shift = mid;
+            // is the space beside the blocker free (including oncoming traffic)?
+            float range = 70.f;
+            int selfBody = driverBody(vid);
+            hash.query(bodies, pos - vec2(range), pos + vec2(range), [&](int bi) {
+                if (bi == selfBody || bi == d.obstBody || !clear) return;
+                const Body& b = bodies[bi];
+                if (fabsf(b.z - p3.z) > 3.2f) return;
+                vec2 rel = b.pos - pos;
+                float along = dot(rel, t), lat = dot(rel, rn) - shift;
+                if (fabsf(lat) > b.halfWid + d.info.halfWid + 0.6f) {
+                    // cars in our own lane just beyond the blocker: no room to merge back
+                    float lat0 = dot(rel, rn);
+                    if (fabsf(lat0) < 1.6f && along > d.obstDist + 2.f && along < d.obstDist + 22.f) clear = false;
+                    return;
+                }
+                if (along > -8.f && along < 30.f) clear = false;
+                if (along >= 30.f && along < range && dot(b.vel, t) < -1.f) clear = false;  // oncoming
+                // coming up from behind in that lane (a multi-lane road): let it pass first
+                if (along <= -8.f && dot(b.vel, t) > 1.f && (-along - b.halfLen - d.info.halfLen) < dot(b.vel, t) * 4.f + 6.f) clear = false;
+            });
+        }
         if (clear) {
+            if (d.lcLane >= 0) {
+                // a lane change stuck behind it (it moves over only as the car moves on): the pass takes over from where
+                // the plan stands (the harness: a car mid-way into the next lane, its nose on a parked van, for good)
+                d.nudge += d.lat;
+                d.lat = 0.f;
+                d.lcLane = -1;
+                d.lcCooldown = Max(d.lcCooldown, 3.f);
+            }
+            if (ob.host != d.passHost) d.passBacks = 0;
+            d.passHost = ob.host;
+            d.passT = 25.f;
             d.nudgeTarget = shift;
-            d.nudgeTimer = 7.f;
+            d.nudgeTimer = 2.f;
             d.blockedTime = 0.f;
         }
     }
@@ -2220,14 +2392,18 @@ void TrafficCore::drive(int vid, Vehicles::VehicleState& s, float dt, DriveOut& 
         d.honkTimer = 1.8f + hashToFloat(hash32(d.uid * 11u + frame)) * 1.5f;
     }
     if (d.mode == DM_FLEE && d.blockedTime > 2.5f) out.wantsAbandon = true;
-    // two vehicles blocking each other (nose to nose after a wide turn): the later/higher-id one backs up
+    // two vehicles blocking each other (nose to nose after a wide turn): the later/higher-id one backs up. Inside a junction
+    // box they stop further apart: a permissive left turner past its hold point and the oncoming car it misjudged, each
+    // stopped 2.6 / 3.3 m short of the other in the middle of the box, held the junction for good (the harness: node 5040,
+    // 32 cars waiting a minute and more behind them) - so in a box, up to 6 m
+    const int nLanes = (int)g->lanes.size();
     bool mutual = false;
-    if (d.obstBody >= 0 && d.obstDist < 3.f && v < 0.4f && d.recoverTimer <= 0.f) {
+    if (d.obstBody >= 0 && d.obstDist < (d.path >= nLanes ? 6.f : 3.f) && v < 0.4f && d.recoverTimer <= 0.f) {
         const Body& ob = bodies[d.obstBody];
         if (ob.driver >= 0 && ob.driver < (int)drivers.size() && drivers[ob.driver].active) {
             const Driver& od = drivers[ob.driver];
             int myBody = driverBody(vid);
-            mutual = od.obstBody == myBody && od.obstDist < 3.f && ob.speed < 0.4f;
+            mutual = od.obstBody == myBody && od.obstDist < (od.path >= nLanes ? 6.f : 3.f) && ob.speed < 0.4f;
         }
     }
     d.mutualTime = mutual ? d.mutualTime + dt : 0.f;
