@@ -8,7 +8,7 @@ living city with traffic, pedestrians, police, wildlife and public transit.
 Everything is written from scratch in C++17 with no engine, no third-party code and no external assets. The world,
 buildings, characters, vehicles, animation, textures, sound effects, music, radio shows and voices are all generated
 by the game's own code at load time. The only dependencies are Windows itself (Win32, Direct3D 12, DXGI, XInput,
-WASAPI) and the compiler's standard library.
+WASAPI, and WinHTTP and BCrypt for updates) and the compiler's standard library.
 
 ## Running
 
@@ -18,12 +18,21 @@ WASAPI) and the compiler's standard library.
   (about half a minute), and every launch generates the world (a few seconds on a modern CPU).
 - Settings, saves, photos and benchmark results live in `%LOCALAPPDATA%\NeonTide\`
   (`settings.ini`, `saves\`, `Photos\`, `benchmark.txt`).
+- The game keeps itself up to date. At startup it looks for a newer release in the background, then downloads and
+  checks it. The update installs the next time you start the game, or right away with **Restart now** in the main
+  menu. When the game's folder is not writable, the menu links to the download page instead. Settings > Gameplay >
+  Automatic Updates turns this off, and so does starting the game with `--no-update`.
 
 ## Building
 
 - **Windows:** run `build.bat`. It uses MSVC when Visual Studio (Build Tools) is installed and falls back to MinGW-w64
   `g++`. Output: `bin\NeonTide.exe`, statically linked with no DLL dependencies.
 - **Linux cross-compile:** `./build.sh` (MinGW-w64 g++ 13, static). `./build.sh debug` builds with symbols.
+- **Releases:** build with the release's version, for example `VERSION=0.02.7 ./build.sh` (Windows: `set VERSION=0.02.7`,
+  then `build.bat`). The main menu shows that version and the updater compares it. Publish the exe on GitHub as
+  release `v0.02.7` with the asset name `NeonTide-0.02.7.exe`, and optionally `NeonTide-0.02.7.exe.sha256`. GitHub
+  records each asset's SHA-256, and the updater checks it. Pre-releases count, drafts don't. Between releases the
+  source carries the next version with `-dev` (`src/core/version.h`).
 
 ## Controls
 
@@ -94,8 +103,12 @@ times to `%LOCALAPPDATA%\NeonTide\benchmark.txt`. Options: `--quality 0..3`, `--
   its messages; `--gfxselftest` runs the graphics-layer self-test (bindless, root constants, indirect draws and
   dispatches, async compute, aliasing, mip generation) and exits with 0 when it passes; `--gputimers` and
   `--synctimers` log per-pass timings.
-- Native test harnesses live in `tests/` (vehicle physics, animation, audio, wildlife, transit, graphics layer),
-  plus `tools/worldcheck.cpp` for world data.
+- Updates: `--no-update` skips the updater. `--update-url URL` reads the release list from another URL (plain http
+  only to 127.0.0.1 or localhost) and checks even during automated runs. `--update-test` installs a downloaded update,
+  or else checks, downloads and verifies one, without opening a window, then exits (0 done, 1 no update, 2 not
+  downloaded). Other automated runs (`--autotest`, `--benchmark`, `--shot` ...) never update.
+- Native test harnesses live in `tests/` (vehicle physics, animation, audio, wildlife, transit, graphics layer,
+  updater logic), plus `tools/worldcheck.cpp` for world data.
 
 `PROGRESS.md` holds the architecture notes, the status of every system, the known issues, and the milestone
 scorecards against GTA 6.

@@ -1,6 +1,7 @@
 // Per-cell world content generation (runs on worker threads).
 #include "buildings.h"
 #include "sites.h"
+#include "handworld.h"
 #include "../render/mesh.h"
 #include "worldtypes.h"
 
@@ -470,6 +471,9 @@ void buildOpenLot(const OpenLot& L, const WorldMap& map, bool detail, vec3 org, 
 }
 
 void generateCell(int cx, int cy, bool detail, CellGeometry& out) {
+    // the hand-built world generates nothing (docs/HANDBUILT_WORLD.md section 7.2): stage 0 has the terrain only, which
+    // the renderer draws from the height map
+    if (isHandWorld()) return;
     const WorldMap& map = *gMap;
     vec2 org2 = cellOrigin(cx, cy);
     vec3 org(org2, 0);

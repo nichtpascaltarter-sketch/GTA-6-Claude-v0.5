@@ -49,6 +49,10 @@ struct InputState {
 
 namespace Platform {
 void parseCommandLine();
+// Starts the clock and opens log.txt in the user data folder (init does it when nothing did before; the updater does
+// it before the window exists). append: keep the lines a previous process wrote (a restart into an update); called
+// again after shutdown it reopens the log for appending.
+void initLog(bool append);
 bool init(const char* title, int width, int height, bool fullscreen, bool hidden);
 void shutdown();
 // Pumps OS messages; returns false when the app should quit.

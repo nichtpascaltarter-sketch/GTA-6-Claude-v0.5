@@ -63,6 +63,7 @@ std::vector<Field> fieldsOf(GameSettings& s) {
         {"fov_first_person", 'f', &s.fovFirstPerson}, {"camera_shake", 'f', &s.cameraShake},
         {"vehicle_auto_center", 'b', &s.vehicleAutoCenter}, {"head_bob", 'b', &s.headBob},
         {"show_radar", 'b', &s.showRadar}, {"show_hud", 'b', &s.showHud}, {"metric_units", 'b', &s.metricUnits},
+        {"auto_update", 'b', &s.autoUpdate},
         {"subtitle_size", 'i', &s.subtitleSize}, {"subtitle_background", 'f', &s.subtitleBackground},
         {"speaker_colors", 'b', &s.speakerColors}, {"hud_scale", 'f', &s.hudScale},
         {"high_contrast_reticle", 'b', &s.highContrastReticle}, {"colorblind_mode", 'i', &s.colorblindMode},

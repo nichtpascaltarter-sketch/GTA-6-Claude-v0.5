@@ -1,5 +1,6 @@
 #include "renderer.h"
 #include "../world/worldmap.h"
+#include "../world/handworld.h"
 #include "../platform/platform.h"
 
 namespace Render {
@@ -534,7 +535,8 @@ void Renderer::render(const Camera& cam, const Environment& env, float dt) {
     shadows->prepare(*this);
     RenderPassTiming::begin("prop cull");
     DecorInputs decorIn;
-    decorIn.ready = terrain->map && weather->overheadValid;
+    // (hand mode, D2: every plant is placed by hand, and grass waits for the authored ground materials)
+    decorIn.ready = terrain->map && weather->overheadValid && !World::isHandWorld();
     if (decorIn.ready) {
         decorIn.splat0 = terrain->splat0Tex.srv;
         decorIn.splat1 = terrain->splat1Tex.srv;
@@ -566,7 +568,7 @@ void Renderer::render(const Camera& cam, const Environment& env, float dt) {
     // Grass placement (GPU, from the terrain splat + overhead map)
     RenderPassTiming::begin("grass place");
     bindGlobals(*this, false);
-    grass->place(*this, *terrain, dt);
+    if (!World::isHandWorld()) grass->place(*this, *terrain, dt);   // (hand mode: the bare terrain, D2)
     RenderPassTiming::end();
 
     // G-buffer
@@ -585,7 +587,7 @@ void Renderer::render(const Camera& cam, const Environment& env, float dt) {
     c->setBlendState(gfx::states.opaque);
     c->setRasterState(gfx::states.cullBack);
     terrain->drawGBuffer(*this);
-    grass->draw(*this);
+    if (!World::isHandWorld()) grass->draw(*this);
     world->drawGBuffer(*this);
     props->drawGBuffer(*this, world->cells);
     dynamic->drawGBuffer(*this);

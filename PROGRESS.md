@@ -45,7 +45,7 @@ Everything (code, models, textures, animation, audio, music, voices, map) is gen
   Camera-relative rendering (subtract camera pos on CPU) to keep float precision in a 20 km world.
 - Modules: core/ platform/ gfx/ render/ world/ sim/ anim/ audio/ game/ ui/ shaders/.
 - Threads: `Jobs` pool (core/jobs.h). World cells generate on low-priority jobs.
-- No third-party code, no external assets. Only Win32/D3D12/DXGI/XInput/WASAPI + C++ std lib.
+- No third-party code, no external assets. Only Win32/D3D12/DXGI/XInput/WASAPI (+ WinHTTP/BCrypt for updates) + C++ std lib.
 
 ## Status (what exists)
 - M1 engine foundation: Win32 platform (raw input, XInput, crash handler, log), math, jobs, D3D11 wrapper, runtime
@@ -411,6 +411,23 @@ Everything (code, models, textures, animation, audio, music, voices, map) is gen
 - FX bridge: `spawnFx/spawnDecal/spawnTracer/spawnSkid/spawnLight` -> renderer particles/decals/lights.
 - Test automation: `--play` (skip menu), `--autoplay walk|drive|bike|fly|boat|shoot` (scripted input, periodic
   screenshots `auto_<mode>_NN.bmp`, telemetry in the log), `--autoduration S`, `--autoevery S`.
+
+## Updates (src/platform/updater*, since 2026-10-19)
+- Version: `src/core/version.h` (`NT_VERSION`, "0.02.7-dev" between releases; `VERSION=x ./build.sh` / `set VERSION=x`
+  for build.bat). Shown in the main menu's top-right corner; the start line of the log carries it too.
+- `Updater::startCheck` (WinMain, after the window opens) reads GitHub's release list (`/releases?per_page=10`: drafts
+  skipped, pre-releases count, highest version by tag) on a detached thread with WinHTTP (TLS checks on, 5 s
+  connect / 10 s receive timeouts). A newer `NeonTide*.exe` is downloaded to `<exe>.download` and verified: https,
+  the listed size, an x64 PE image, the SHA-256 (BCrypt) against GitHub's asset digest, else a `.sha256` /
+  `SHA256SUMS*` asset, else a hash in the release notes; it is then kept as `<exe>.pending` + `<exe>.pending.json`.
+- `Updater::beforeStart` (first thing in WinMain, no window yet) checks the pending file again and swaps it in
+  (`<exe>` -> `<exe>.old`, pending -> `<exe>`), starts it with the same command line and exits; the new process
+  appends to the same log (`NEONTIDE_UPDATED_FROM`) and deletes `<exe>.old`. Main menu: notice with progress, then
+  "Restart now" (U / pad Y / click: quits, saves settings, installs, restarts) or "Open download page" when the
+  download failed or the folder is not writable; one line in the pause menu. Settings > Gameplay > Automatic Updates.
+- Never in automated runs (`automatedRun()` in updater.cpp lists the flags) or with `--no-update`. Tests: native
+  `tests/updater/update_logic_test.cpp` (real API fixtures); `--update-url URL` (http only to this machine) with
+  `--update-test` runs install-or-download without a window; `--viewer menu` shots named `..updget/updready/updfail`.
 
 ## Backlog (after the current agent wave)
 - Characters realism pass 3 (faces, skin, hands at close range): next agent slot that frees up.
