@@ -289,7 +289,7 @@ void initLog(bool append) {
         // User data dir + log
         std::string dir = userDataDir();
         g_logFile = fopen((dir + "log.txt").c_str(), append ? "a" : "w");
-        LOG("Neon Tide starting (version %s). Data dir: %s", NT_VERSION, dir.c_str());
+        LOG("Neon Tide starting (version %s, commit %s). Data dir: %s", NT_VERSION, NT_COMMIT, dir.c_str());
         return;
     }
     std::lock_guard<std::mutex> lk(g_logMutex);
@@ -420,8 +420,43 @@ void setGamepadRumble(float low, float high) {
 
 void setWindowTitle(const char* t) { SetWindowTextA(g_hwnd, t); }
 
+// The data folder named by --datadir=<dir>, else by NEONTIDE_DATADIR (test runs keep their files out of the player's
+// own folder), as a full path in the code page of the file calls below; "" for none
+std::string dataDirOverride() {
+    std::wstring w;
+    if (const char* a = argValue("datadir")) {   // (arguments are UTF-8)
+        wchar_t buf[MAX_PATH];
+        if (MultiByteToWideChar(CP_UTF8, 0, a, -1, buf, MAX_PATH) > 0) w = buf;
+    } else {
+        wchar_t buf[MAX_PATH];
+        DWORD n = GetEnvironmentVariableW(L"NEONTIDE_DATADIR", buf, MAX_PATH);
+        if (n > 0 && n < MAX_PATH) w = buf;
+    }
+    if (w.empty()) return std::string();
+    wchar_t full[MAX_PATH];
+    DWORD n = GetFullPathNameW(w.c_str(), MAX_PATH, full, nullptr);
+    if (n == 0 || n >= MAX_PATH) return std::string();
+    char out[MAX_PATH * 2];
+    if (WideCharToMultiByte(CP_ACP, 0, full, -1, out, (int)sizeof(out), nullptr, nullptr) <= 0) return std::string();
+    std::string dir = out;
+    for (char& c : dir)
+        if (c == '/') c = '\\';
+    if (dir.back() != '\\') dir += '\\';
+    return dir;
+}
+
+// %LOCALAPPDATA%\NeonTide\ (settings, saves, photos, benchmark results, the log, the caches and the updater's builds),
+// or the folder --datadir / NEONTIDE_DATADIR names
 std::string userDataDir() {
     if (!g_userDir.empty()) return g_userDir;
+    std::string over = dataDirOverride();
+    if (!over.empty()) {
+        // the folder and its parents ("C:\" and "\\server\share\" are there already)
+        for (size_t i = 3; i < over.size(); i++)
+            if (over[i] == '\\') CreateDirectoryA(over.substr(0, i).c_str(), nullptr);
+        g_userDir = over;
+        return g_userDir;
+    }
     char path[MAX_PATH] = {};
     if (SUCCEEDED(SHGetFolderPathA(nullptr, CSIDL_LOCAL_APPDATA | CSIDL_FLAG_CREATE, nullptr, 0, path))) {
         g_userDir = std::string(path) + "\\NeonTide\\";

@@ -36,6 +36,14 @@ jobs:
       - name: Build game
         shell: cmd
         run: call build.bat
+      - name: Check that the exe carries its commit (the updater compares it with main)
+        shell: pwsh
+        run: |
+          $sha = (git rev-parse HEAD).Trim()
+          $exe = Join-Path (Get-Location) "bin\NeonTide.exe"
+          $text = [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes($exe))
+          if (-not $text.Contains($sha)) { Write-Error "bin\NeonTide.exe does not carry commit $sha"; exit 1 }
+          Write-Output "bin\NeonTide.exe carries commit $sha"
       - name: Upload Windows executable
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
@@ -66,7 +74,7 @@ jobs:
         run: |
           g++ -std=c++17 -O2 -Wall -Wextra -Werror -fsanitize=undefined -fno-sanitize-recover=undefined tests/compiler/bit_scan_test.cpp -o /tmp/neontide-bit-scan-test
           /tmp/neontide-bit-scan-test
-      - name: Test updater logic (versions, release JSON, checksums, PE headers)
+      - name: Test updater logic (GitHub compare and commit answers, pull requests, toolchains, build commands, PE headers)
         run: |
           g++ -std=c++17 -O2 -Wall -Wextra -Werror -fsanitize=undefined -fno-sanitize-recover=undefined tests/updater/update_logic_test.cpp -o /tmp/neontide-update-logic-test
           /tmp/neontide-update-logic-test

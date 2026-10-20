@@ -1,4 +1,5 @@
-// Updater logic without the operating system: versions, JSON, releases, checksums, PE headers, URLs (update_logic.h).
+// Updater logic without the operating system (update_logic.h): JSON, GitHub's answers, pull requests, toolchains,
+// commands, archive and exe checks, URLs and records.
 #include "update_logic.h"
 #include <algorithm>
 #include <cstdlib>
@@ -8,7 +9,6 @@ namespace Updater {
 namespace logic_detail {
 
 bool isDigit(char c) { return c >= '0' && c <= '9'; }
-bool isAlnum(char c) { return isDigit(c) || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'); }
 bool isHex(char c) { return isDigit(c) || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'); }
 bool allDigits(const std::string& s) {
     if (s.empty()) return false;
@@ -27,50 +27,28 @@ std::string lower(const std::string& s) {
         if (c >= 'A' && c <= 'Z') c = (char)(c - 'A' + 'a');
     return o;
 }
+std::string upper(const std::string& s) {
+    std::string o = s;
+    for (char& c : o)
+        if (c >= 'a' && c <= 'z') c = (char)(c - 'a' + 'A');
+    return o;
+}
 bool startsWith(const std::string& s, const char* prefix) {
     size_t n = strlen(prefix);
     return s.size() >= n && s.compare(0, n, prefix) == 0;
 }
-bool endsWith(const std::string& s, const char* suffix) {
-    size_t n = strlen(suffix);
-    return s.size() >= n && s.compare(s.size() - n, n, suffix) == 0;
+bool endsWith(const std::string& s, const std::string& suffix) {
+    return s.size() >= suffix.size() && s.compare(s.size() - suffix.size(), suffix.size(), suffix) == 0;
 }
-
-// Semver pre-release order: dot-separated identifiers; numeric ones compare as numbers and sort before the others,
-// which compare as ASCII; a shorter list that matches so far sorts first
-int compareIdentifiers(const std::string& a, const std::string& b) {
-    size_t i = 0, j = 0;
-    for (;;) {
-        bool endA = i >= a.size(), endB = j >= b.size();
-        if (endA || endB) return endA && endB ? 0 : (endA ? -1 : 1);
-        size_t ea = a.find('.', i), eb = b.find('.', j);
-        if (ea == std::string::npos) ea = a.size();
-        if (eb == std::string::npos) eb = b.size();
-        std::string x = a.substr(i, ea - i), y = b.substr(j, eb - j);
-        bool nx = allDigits(x), ny = allDigits(y);
-        int c = 0;
-        if (nx && ny) {
-            x.erase(0, std::min(x.find_first_not_of('0'), x.size() - 1));
-            y.erase(0, std::min(y.find_first_not_of('0'), y.size() - 1));
-            c = x.size() != y.size() ? (x.size() < y.size() ? -1 : 1) : x.compare(y);
-        } else if (nx != ny) {
-            c = nx ? -1 : 1;
-        } else {
-            c = x.compare(y);
-        }
-        if (c != 0) return c < 0 ? -1 : 1;
-        i = ea + 1;
-        j = eb + 1;
-    }
+std::string trim(const std::string& s) {
+    size_t a = s.find_first_not_of(" \t\r\n"), b = s.find_last_not_of(" \t\r\n");
+    return a == std::string::npos ? std::string() : s.substr(a, b - a + 1);
 }
-
-// Semver identifiers: [0-9A-Za-z-] separated by single dots
-bool validIdentifiers(const std::string& s) {
-    if (s.empty() || s.front() == '.' || s.back() == '.' || s.find("..") != std::string::npos) return false;
-    for (char c : s)
-        if (!isAlnum(c) && c != '.' && c != '-') return false;
-    return true;
+std::string withoutTrailingSlashes(std::string s) {
+    while (!s.empty() && (s.back() == '/' || s.back() == '\\')) s.pop_back();
+    return s;
 }
+std::string joinPath(const std::string& dir, const char* name) { return withoutTrailingSlashes(dir) + "\\" + name; }
 
 std::vector<std::string> splitLines(const std::string& text) {
     std::vector<std::string> lines;
@@ -86,65 +64,39 @@ std::vector<std::string> splitLines(const std::string& text) {
     return lines;
 }
 
-// 64-digit hex tokens of a line (lower case), each a whole word: "sha256:<hex>", "`<hex>`", "<hex>  name"
-std::vector<std::string> hexTokens(const std::string& line) {
-    std::vector<std::string> out;
-    size_t i = 0, n = line.size();
-    while (i < n) {
-        if (!isAlnum(line[i])) {
-            i++;
-            continue;
-        }
-        size_t s = i;
-        while (i < n && isAlnum(line[i])) i++;
-        if (i - s == 64) {
-            std::string t = line.substr(s, 64);
-            if (allHex(t)) out.push_back(lower(t));
-        }
-    }
-    return out;
+// The name of an environment entry "NAME=value" ("=C:=C:\x": hidden entries start with '=')
+std::string envName(const std::string& entry) {
+    size_t eq = entry.find('=', 1);
+    return eq == std::string::npos ? entry : entry.substr(0, eq);
 }
 
-// The (lower-case) line names the (lower-case) file on its own, not as part of a longer name
-bool lineNames(const std::string& line, const std::string& name) {
-    if (name.empty()) return false;
-    for (size_t at = line.find(name); at != std::string::npos; at = line.find(name, at + 1)) {
-        size_t after = at + name.size();
-        char b = at > 0 ? line[at - 1] : ' ';
-        char c = after < line.size() ? line[after] : ' ';
-        bool beforeOk = !isAlnum(b) && b != '.' && b != '_' && b != '-';
-        bool afterOk = !isAlnum(c) && c != '_' && c != '-' && !(c == '.' && after + 1 < line.size() && isAlnum(line[after + 1]));
-        if (beforeOk && afterOk) return true;
-    }
-    return false;
-}
+// Latin-1 letters 0xC0..0xFF without their accents (asciiText)
+const char* const kLatin1[64] = {"A", "A", "A", "A", "A", "A", "AE", "C", "E", "E", "E", "E", "I", "I", "I", "I",
+                                 "D", "N", "O", "O", "O", "O", "O", "x", "O", "U", "U", "U", "U", "Y", "Th", "ss",
+                                 "a", "a", "a", "a", "a", "a", "ae", "c", "e", "e", "e", "e", "i", "i", "i", "i",
+                                 "d", "n", "o", "o", "o", "o", "o", "/", "o", "u", "u", "u", "u", "y", "th", "y"};
 
-bool mentionsSha256(const std::string& lowerLine) {
-    return lowerLine.find("sha256") != std::string::npos || lowerLine.find("sha-256") != std::string::npos ||
-           lowerLine.find("sha 256") != std::string::npos;
-}
-
-// Tokens of line k, or of the next non-empty line when k has none ("SHA-256:" with the hash below it)
-std::vector<std::string> tokensAtOrBelow(const std::vector<std::string>& lines, size_t k) {
-    std::vector<std::string> t = hexTokens(lines[k]);
-    if (!t.empty()) return t;
-    for (size_t m = k + 1; m < lines.size(); m++) {
-        if (lines[m].find_first_not_of(" \t") == std::string::npos) continue;
-        return hexTokens(lines[m]);
+// An ASCII stand-in for a code point above 0x7F, "" to drop it
+const char* asciiFor(uint32_t cp) {
+    if (cp >= 0xC0 && cp <= 0xFF) return kLatin1[cp - 0xC0];
+    switch (cp) {
+    case 0x00A0: case 0x2002: case 0x2003: case 0x2004: case 0x2005: case 0x2006: case 0x2007: case 0x2008:
+    case 0x2009: case 0x200A: case 0x202F: case 0x205F: case 0x3000: return " ";
+    case 0x00B7: case 0x2010: case 0x2011: case 0x2012: case 0x2013: case 0x2014: case 0x2015: case 0x2022:
+    case 0x2212: return "-";
+    case 0x2018: case 0x2019: case 0x201A: case 0x2032: return "'";
+    case 0x201C: case 0x201D: case 0x201E: case 0x2033: return "\"";
+    case 0x2026: return "...";
+    case 0x2190: return "<-";
+    case 0x2192: return "->";
+    case 0x2194: return "<->";
+    case 0x21D2: return "=>";
+    case 0x2264: return "<=";
+    case 0x2265: return ">=";
+    case 0x2260: return "!=";
+    case 0x00B1: return "+/-";
+    default: return "";
     }
-    return t;
-}
-
-// The version as a whole word of a (lower-case) file name: "neontide-0.02.7.exe" names 0.02.7, "-0.02.70" does not
-bool namesVersion(const std::string& name, const std::string& version) {
-    if (version.empty()) return false;
-    for (size_t at = name.find(version); at != std::string::npos; at = name.find(version, at + 1)) {
-        size_t after = at + version.size();
-        bool beforeOk = at == 0 || (!isDigit(name[at - 1]) && name[at - 1] != '.');
-        bool afterOk = after >= name.size() || (!isDigit(name[after]) && !(name[after] == '.' && after + 1 < name.size() && isDigit(name[after + 1])));
-        if (beforeOk && afterOk) return true;
-    }
-    return false;
 }
 
 // ------------------------------------------------------------------------------------------------------------------
@@ -334,63 +286,15 @@ struct JsonReader {
 using namespace logic_detail;
 
 // ------------------------------------------------------------------------------------------------------------------
-// Versions
-bool parseVersion(const std::string& text, Version& out) {
-    out = Version();
-    size_t i = text.find_first_not_of(" \t\r\n"), n = text.find_last_not_of(" \t\r\n");
-    if (i == std::string::npos) return false;
-    n++;
-    if (text[i] == 'v' || text[i] == 'V') i++;
-    for (;;) {
-        size_t start = i;
-        uint64_t v = 0;
-        while (i < n && isDigit(text[i])) {
-            v = v * 10 + (uint64_t)(text[i] - '0');
-            if (v > 0xffffffffull) return false;
-            i++;
-        }
-        if (i == start || out.parts.size() >= 8) return false;
-        out.parts.push_back((uint32_t)v);
-        if (i < n && text[i] == '.') {
-            i++;
-            continue;
-        }
-        break;
-    }
-    if (i < n && text[i] == '-') {
-        size_t start = ++i;
-        while (i < n && text[i] != '+') i++;
-        out.pre = text.substr(start, i - start);
-        if (!validIdentifiers(out.pre)) return false;
-    }
-    if (i < n && text[i] == '+') {
-        if (!validIdentifiers(text.substr(i + 1, n - i - 1))) return false;
-        i = n;
-    }
-    return i == n;
+// Commits
+bool isCommitSha(const std::string& s) {
+    if (s.size() != 40) return false;
+    for (char c : s)
+        if (!isDigit(c) && !(c >= 'a' && c <= 'f')) return false;
+    return true;
 }
 
-int compareVersions(const Version& a, const Version& b) {
-    size_t n = std::max(a.parts.size(), b.parts.size());
-    for (size_t k = 0; k < n; k++) {
-        uint32_t x = k < a.parts.size() ? a.parts[k] : 0, y = k < b.parts.size() ? b.parts[k] : 0;
-        if (x != y) return x < y ? -1 : 1;
-    }
-    if (a.pre.empty() != b.pre.empty()) return a.pre.empty() ? 1 : -1;
-    return compareIdentifiers(a.pre, b.pre);
-}
-
-bool isNewerVersion(const std::string& candidate, const std::string& current) {
-    Version a, b;
-    return parseVersion(candidate, a) && parseVersion(current, b) && compareVersions(a, b) > 0;
-}
-
-std::string displayVersion(const std::string& tag) {
-    size_t i = tag.find_first_not_of(" \t\r\n"), e = tag.find_last_not_of(" \t\r\n");
-    if (i == std::string::npos) return std::string();
-    if (tag[i] == 'v' || tag[i] == 'V') i++;
-    return i <= e ? tag.substr(i, e - i + 1) : std::string();
-}
+std::string shortCommit(const std::string& sha) { return isCommitSha(sha) ? sha.substr(0, 7) : std::string(); }
 
 // ------------------------------------------------------------------------------------------------------------------
 // JSON
@@ -456,132 +360,349 @@ std::string jsonQuote(const std::string& s) {
 }
 
 // ------------------------------------------------------------------------------------------------------------------
-// Releases
-bool parseReleases(const std::string& json, std::vector<Release>& out) {
+// GitHub
+std::string compareUrl(const std::string& api, const std::string& repo, const std::string& commit) {
+    return withoutTrailingSlashes(api) + "/repos/" + repo + "/compare/" + commit + "...main?per_page=100&page=100";
+}
+
+std::string commitsUrl(const std::string& api, const std::string& repo, int perPage) {
+    return withoutTrailingSlashes(api) + "/repos/" + repo + "/commits?sha=main&per_page=" + std::to_string(perPage);
+}
+
+std::string archiveUrl(const std::string& web, const std::string& repo, const std::string& sha) {
+    return withoutTrailingSlashes(web) + "/" + repo + "/archive/" + sha + ".tar.gz";
+}
+
+int commitsToList(int aheadBy) { return std::max(2, std::min(aheadBy + 1, 100)); }
+
+bool parseCompare(int httpStatus, const std::string& json, Comparison& out) {
+    out = Comparison();
+    if (httpStatus == 404) {
+        out.status = CMP_NOT_FOUND;
+        return true;
+    }
+    Json j;
+    if (httpStatus != 200 || !parseJson(json, j) || j.type != JSON_OBJECT) return false;
+    std::string s = j.getString("status");
+    long long a = j.getInt("ahead_by", -1), b = j.getInt("behind_by", -1);
+    if (a < 0 || b < 0 || a > 1000000000 || b > 1000000000) return false;
+    CompareStatus st = CMP_UNREADABLE;
+    if (s == "ahead" && a > 0 && b == 0) st = CMP_AHEAD;
+    else if (s == "identical" && a == 0 && b == 0) st = CMP_IDENTICAL;
+    else if (s == "behind" && a == 0 && b > 0) st = CMP_BEHIND;
+    else if (s == "diverged" && a > 0 && b > 0) st = CMP_DIVERGED;
+    if (st == CMP_UNREADABLE) return false;   // an unknown status, or counts that do not fit it
+    out.status = st;
+    out.aheadBy = (int)a;
+    out.behindBy = (int)b;
+    return true;
+}
+
+const char* compareStatusName(CompareStatus s) {
+    switch (s) {
+    case CMP_AHEAD: return "ahead";
+    case CMP_IDENTICAL: return "identical";
+    case CMP_BEHIND: return "behind";
+    case CMP_DIVERGED: return "diverged";
+    case CMP_NOT_FOUND: return "not found";
+    default: return "unreadable";
+    }
+}
+
+bool parseCommitList(const std::string& json, std::vector<CommitInfo>& out) {
     out.clear();
-    Json root;
-    if (!parseJson(json, root) || (root.type != JSON_ARRAY && root.type != JSON_OBJECT)) return false;
-    auto read = [&](const Json& j) {
-        if (j.type != JSON_OBJECT) return;
-        Release r;
-        r.tag = j.getString("tag_name");
-        if (r.tag.empty()) return;
-        r.htmlUrl = j.getString("html_url");
-        r.body = j.getString("body");
-        r.draft = j.getBool("draft", false);
-        r.prerelease = j.getBool("prerelease", false);
-        const Json* assets = j.get("assets");
-        if (assets && assets->type == JSON_ARRAY) {
-            for (const Json& a : assets->items) {
-                if (a.type != JSON_OBJECT) continue;
-                ReleaseAsset ra;
-                ra.name = a.getString("name");
-                ra.url = a.getString("browser_download_url");
-                ra.size = a.getInt("size", -1);
-                ra.digest = a.getString("digest");
-                if (!ra.name.empty()) r.assets.push_back(ra);
-            }
+    Json j;
+    if (!parseJson(json, j) || j.type != JSON_ARRAY) return false;
+    for (const Json& e : j.items) {
+        if (e.type != JSON_OBJECT) continue;
+        CommitInfo c;
+        c.sha = lower(e.getString("sha"));
+        if (!isCommitSha(c.sha)) continue;
+        if (const Json* cm = e.get("commit")) {
+            c.message = cm->getString("message");
+            if (const Json* cc = cm->get("committer")) c.date = cc->getString("date");
         }
-        out.push_back(r);
-    };
-    if (root.type == JSON_ARRAY) {
-        for (const Json& j : root.items) read(j);
-    } else {
-        read(root);
+        const Json* ps = e.get("parents");
+        if (ps && ps->type == JSON_ARRAY) c.parents = (int)ps->items.size();
+        out.push_back(c);
     }
     return true;
 }
 
-int pickExeAsset(const Release& r) {
-    std::string version = lower(displayVersion(r.tag));
-    int best = -1, bestScore = -1;
-    for (size_t i = 0; i < r.assets.size(); i++) {
-        const ReleaseAsset& a = r.assets[i];
-        std::string n = lower(a.name);
-        if (!startsWith(n, "neontide") || !endsWith(n, ".exe") || a.size <= 0 || a.url.empty()) continue;
-        // NeonTide-<version>.exe first, then a name with the version (NeonTide-<version>-debug.exe), then any
-        int score = n == "neontide-" + version + ".exe" ? 2 : (namesVersion(n, version) ? 1 : 0);
-        if (score > bestScore) {
-            best = (int)i;
-            bestScore = score;
+bool pullFromMessage(const std::string& message, PullRequest& out) {
+    out = PullRequest();
+    std::vector<std::string> lines = splitLines(message);
+    std::string first = lines.empty() ? std::string() : trim(lines[0]);
+    static const char kMerge[] = "Merge pull request #";
+    if (startsWith(first, kMerge)) {
+        size_t s = sizeof(kMerge) - 1, i = s;
+        while (i < first.size() && isDigit(first[i])) i++;
+        if (i == s || i - s > 9) return false;
+        std::string rest = first.substr(i), title;
+        if (!rest.empty() && rest[0] != ':' && rest[0] != ' ') return false;   // "#53x" is no pull request number
+        if (startsWith(rest, " from ")) {   // GitHub's default message: the title is the first line of the body
+            for (size_t k = 1; k < lines.size() && title.empty(); k++) title = trim(lines[k]);
+        } else {
+            title = rest.empty() ? rest : rest.substr(1);
         }
+        out.number = atoi(first.substr(s, i - s).c_str());
+        out.title = asciiText(title);
+        return out.number > 0;
     }
-    return best;
+    // a squash merge: "title (#53)"
+    size_t open = first.rfind(" (#");
+    if (open == std::string::npos || first.size() < open + 5 || first.back() != ')') return false;
+    std::string num = first.substr(open + 3, first.size() - open - 4);
+    if (!allDigits(num) || num.size() > 9) return false;
+    out.number = atoi(num.c_str());
+    out.title = asciiText(first.substr(0, open));
+    return out.number > 0;
 }
 
-int pickUpdate(const std::vector<Release>& releases, const std::string& current, int* exeAsset, std::string* newestTag) {
-    int best = -1, bestAsset = -1, newest = -1;
-    Version bestV, newestV, cur;
-    bool haveCurrent = parseVersion(current, cur);
-    for (size_t i = 0; i < releases.size(); i++) {
-        const Release& r = releases[i];
-        Version v;
-        if (r.draft || !parseVersion(r.tag, v)) continue;
-        if (newest < 0 || compareVersions(v, newestV) > 0) {
-            newest = (int)i;
-            newestV = v;
+bool newChangesSince(const std::vector<CommitInfo>& commits, const std::string& base, NewChanges& out) {
+    out = NewChanges();
+    if (commits.empty()) return false;
+    out.head = commits[0].sha;
+    out.headDate = commits[0].date;
+    out.sinceBase = !base.empty();
+    for (const CommitInfo& c : commits) {
+        if (!base.empty() && c.sha == base) {
+            out.complete = true;
+            break;
         }
-        if (!haveCurrent || compareVersions(v, cur) <= 0) continue;
-        int a = pickExeAsset(r);
-        if (a < 0) continue;
-        if (best < 0 || compareVersions(v, bestV) > 0) {
-            best = (int)i;
-            bestAsset = a;
-            bestV = v;
+        out.commits++;
+        PullRequest pr;
+        if (!pullFromMessage(c.message, pr)) continue;
+        bool seen = false;
+        for (const PullRequest& q : out.pulls) seen = seen || q.number == pr.number;
+        if (!seen) out.pulls.push_back(pr);
+    }
+    return true;
+}
+
+std::string changesSummary(const NewChanges& c, size_t maxChars) {
+    std::string more = c.complete ? "" : "+";
+    std::string line;
+    if (!c.sinceBase) {
+        if (c.pulls.empty()) return line;
+        line = "Latest: ";
+        for (size_t i = 0; i < c.pulls.size(); i++) {
+            if (i) line += ", ";
+            line += "#" + std::to_string(c.pulls[i].number);
+            if (!c.pulls[i].title.empty()) line += " " + c.pulls[i].title;
+        }
+    } else if (c.pulls.empty()) {
+        line = std::to_string(c.commits) + more + (c.commits == 1 && more.empty() ? " new commit" : " new commits");
+    } else {
+        size_t n = c.pulls.size();
+        line = std::to_string(n) + more + (n == 1 && more.empty() ? " new update: " : " new updates: ");
+        for (size_t i = 0; i < n; i++) {
+            if (i) line += ", ";
+            line += "#" + std::to_string(c.pulls[i].number);
+            if (!c.pulls[i].title.empty()) line += " " + c.pulls[i].title;
         }
     }
-    if (exeAsset) *exeAsset = bestAsset;
-    if (newestTag) *newestTag = newest >= 0 ? releases[(size_t)newest].tag : std::string();
-    return best;
+    if (line.size() <= maxChars) return line;
+    if (maxChars < 4) return std::string(maxChars, '.');
+    // cut at a word boundary and mark the cut
+    size_t cut = maxChars - 3, space = line.rfind(' ', cut);
+    if (space != std::string::npos && space > cut / 2) cut = space;
+    line.resize(cut);
+    while (!line.empty() && (line.back() == ' ' || line.back() == ',' || line.back() == ':' || line.back() == '-')) line.pop_back();
+    return line + "...";
+}
+
+std::string asciiText(const std::string& utf8) {
+    std::string o;
+    size_t i = 0, n = utf8.size();
+    while (i < n) {
+        unsigned char c = (unsigned char)utf8[i];
+        if (c < 0x80) {
+            o.push_back(c < 0x20 || c == 0x7f ? ' ' : (char)c);
+            i++;
+            continue;
+        }
+        // one UTF-8 sequence; a broken one is dropped byte by byte
+        size_t len = c >= 0xF0 ? 4 : (c >= 0xE0 ? 3 : (c >= 0xC0 ? 2 : 1));
+        uint32_t cp = c & (0x7Fu >> len);
+        bool ok = len > 1 && len <= 4 && i + len <= n;
+        for (size_t k = 1; ok && k < len; k++) {
+            unsigned char d = (unsigned char)utf8[i + k];
+            ok = (d & 0xC0) == 0x80;
+            cp = (cp << 6) | (d & 0x3Fu);
+        }
+        i += ok ? len : 1;
+        if (ok) o += asciiFor(cp);
+    }
+    // one space between words, none at the ends
+    std::string t;
+    for (char ch : o)
+        if (ch != ' ' || (!t.empty() && t.back() != ' ')) t.push_back(ch);
+    while (!t.empty() && t.back() == ' ') t.pop_back();
+    return t;
 }
 
 // ------------------------------------------------------------------------------------------------------------------
-// Checksums
-std::string checksumFromDigest(const std::string& digest) {
-    std::string d = lower(digest);
-    if (!startsWith(d, "sha256:")) return std::string();
-    std::string hex = d.substr(7);
-    return hex.size() == 64 && allHex(hex) ? hex : std::string();
+// Toolchains
+Toolchain pickToolchain(const ToolchainProbe& p) {
+    Toolchain t;
+    if (!p.vsInstall.empty() && p.vcvars) {
+        t.kind = TC_MSVC;
+        t.label = "MSVC (" + p.vsInstall + ")";
+    } else if (p.clOnPath) {
+        t.kind = TC_MSVC_PATH;
+        t.label = "MSVC (cl.exe on PATH)";
+    } else if (p.gxxOnPath && p.windresOnPath) {
+        t.kind = TC_MINGW_PATH;
+        t.label = "MinGW-w64 (g++ on PATH)";
+    } else if (!p.mingwDirs.empty()) {
+        t.kind = TC_MINGW_DIR;
+        t.pathPrefix = p.mingwDirs[0];
+        t.label = "MinGW-w64 (" + t.pathPrefix + ")";
+    }
+    return t;
 }
 
-int pickChecksumAsset(const Release& r, const std::string& exeName) {
-    std::string own = lower(exeName) + ".sha256";
-    int sums = -1;
-    for (size_t i = 0; i < r.assets.size(); i++) {
-        std::string n = lower(r.assets[i].name);
-        if (n == own) return (int)i;
-        if (sums < 0 && startsWith(n, "sha256sums")) sums = (int)i;
+std::vector<std::string> mingwCandidateDirs(const std::string& systemDrive, const std::string& userProfile) {
+    std::vector<std::string> d;
+    std::string drive = withoutTrailingSlashes(systemDrive), home = withoutTrailingSlashes(userProfile);
+    if (!drive.empty()) d.push_back(drive + "\\w64devkit\\bin");
+    if (!home.empty()) {
+        d.push_back(home + "\\w64devkit\\bin");
+        d.push_back(home + "\\scoop\\apps\\w64devkit\\current\\bin");
     }
-    return sums;
+    if (!drive.empty()) {
+        d.push_back(drive + "\\msys64\\ucrt64\\bin");
+        d.push_back(drive + "\\msys64\\mingw64\\bin");
+        d.push_back(drive + "\\mingw64\\bin");
+    }
+    return d;
 }
 
-std::string checksumFromFile(const std::string& text, const std::string& exeName, const std::string& fileName) {
-    std::string name = lower(exeName), first;
-    bool dedicated = lower(fileName) == name + ".sha256";
-    for (const std::string& line : splitLines(text)) {
-        std::vector<std::string> t = hexTokens(line);
-        if (t.empty()) continue;
-        if (lineNames(lower(line), name)) return t[0];
-        if (first.empty()) first = t[0];
+std::vector<std::string> splitPathList(const std::string& path) {
+    std::vector<std::string> out;
+    size_t i = 0;
+    while (i <= path.size()) {
+        size_t e = path.find(';', i);
+        if (e == std::string::npos) e = path.size();
+        std::string s = path.substr(i, e - i);
+        s.erase(std::remove(s.begin(), s.end(), '"'), s.end());
+        s = trim(s);
+        if (!s.empty()) out.push_back(s);
+        i = e + 1;
     }
-    return dedicated ? first : std::string();
+    return out;
 }
 
-std::string checksumFromNotes(const std::string& body, const std::string& exeName) {
-    std::vector<std::string> lines = splitLines(body);
-    std::string name = lower(exeName);
-    for (size_t k = 0; k < lines.size(); k++) {
-        if (!lineNames(lower(lines[k]), name)) continue;
-        std::vector<std::string> t = tokensAtOrBelow(lines, k);
-        if (!t.empty()) return t[0];
+// ------------------------------------------------------------------------------------------------------------------
+// Processes
+std::string quoteArgument(const std::string& arg) {
+    if (!arg.empty() && arg.find_first_of(" \t\n\v\"") == std::string::npos) return arg;
+    std::string o = "\"";
+    for (size_t i = 0;; i++) {
+        size_t slashes = 0;
+        while (i < arg.size() && arg[i] == '\\') {
+            i++;
+            slashes++;
+        }
+        if (i == arg.size()) {   // before the closing quote every backslash doubles
+            o.append(slashes * 2, '\\');
+            break;
+        }
+        if (arg[i] == '"') {
+            o.append(slashes * 2 + 1, '\\');
+        } else {
+            o.append(slashes, '\\');
+        }
+        o.push_back(arg[i]);
     }
-    std::vector<std::string> found;
-    for (size_t k = 0; k < lines.size(); k++) {
-        if (!mentionsSha256(lower(lines[k]))) continue;
-        for (const std::string& t : tokensAtOrBelow(lines, k))
-            if (std::find(found.begin(), found.end(), t) == found.end()) found.push_back(t);
+    return o + "\"";
+}
+
+ProcessCommand buildCommand(const std::string& systemDir, const std::string& sourceDir) {
+    ProcessCommand c;
+    c.application = joinPath(systemDir, "cmd.exe");
+    // (.\ so that cmd.exe finds it also where NoDefaultCurrentDirectoryInExePath is set)
+    c.commandLine = quoteArgument(c.application) + " /d /c .\\build.bat";
+    c.directory = sourceDir;
+    return c;
+}
+
+ProcessCommand unpackCommand(const std::string& systemDir, const std::string& archive, const std::string& folder) {
+    ProcessCommand c;
+    c.application = joinPath(systemDir, "tar.exe");
+    c.commandLine = quoteArgument(c.application) + " -xf " + quoteArgument(archive) + " -C " + quoteArgument(withoutTrailingSlashes(folder));
+    c.directory = folder;
+    return c;
+}
+
+std::vector<std::string> buildEnvironment(const std::vector<std::string>& env, const std::string& commit, const std::string& pathPrefix) {
+    std::vector<std::string> out;
+    bool havePath = false;
+    for (const std::string& e : env) {
+        std::string name = envName(e), key = upper(name);
+        if (name.size() == e.size() || key == "VERSION" || key == "NT_COMMIT") continue;
+        if (key == "PATH") {
+            if (havePath) continue;
+            havePath = true;
+            std::string value = e.substr(name.size() + 1);
+            if (!pathPrefix.empty()) value = value.empty() ? pathPrefix : pathPrefix + ";" + value;
+            out.push_back(name + "=" + value);
+            continue;
+        }
+        out.push_back(e);
     }
-    return found.size() == 1 ? found[0] : std::string();
+    if (!havePath && !pathPrefix.empty()) out.push_back("PATH=" + pathPrefix);
+    out.push_back("NT_COMMIT=" + commit);
+    std::stable_sort(out.begin(), out.end(), [](const std::string& a, const std::string& b) { return upper(envName(a)) < upper(envName(b)); });
+    return out;
+}
+
+// ------------------------------------------------------------------------------------------------------------------
+// Checks
+bool archiveLooksValid(const uint8_t* head, size_t size) {
+    if (!head) return false;
+    if (size >= 2 && head[0] == 0x1f && head[1] == 0x8b) return true;     // gzip
+    return size >= 512 && memcmp(head + 257, "ustar", 5) == 0;           // POSIX tar
+}
+
+bool archiveFolderMatches(const std::string& folder, const std::string& sha) {
+    if (!isCommitSha(sha)) return false;
+    std::string f = lower(folder);
+    std::string full = "-" + sha, short7 = "-" + sha.substr(0, 7);
+    return (f.size() > full.size() && endsWith(f, full)) || (f.size() > short7.size() && endsWith(f, short7));
+}
+
+std::string withCrlf(const std::string& text) {
+    std::string o;
+    o.reserve(text.size() + text.size() / 16);
+    for (size_t i = 0; i < text.size(); i++) {
+        if (text[i] == '\n' && (i == 0 || text[i - 1] != '\r')) o.push_back('\r');
+        o.push_back(text[i]);
+    }
+    return o;
+}
+
+StreamSearch::StreamSearch(const std::string& n) : needle(n), hit(n.empty()) {}
+
+void StreamSearch::add(const void* data, size_t n) {
+    if (hit || n == 0) return;
+    std::string buf = tail;
+    buf.append((const char*)data, n);
+    if (buf.find(needle) != std::string::npos) {
+        hit = true;
+        tail.clear();
+        return;
+    }
+    size_t keep = std::min(buf.size(), needle.size() - 1);
+    tail = buf.substr(buf.size() - keep);
+}
+
+std::vector<std::string> foldersToRemove(const std::vector<std::string>& names, const std::string& keep) {
+    std::vector<std::string> out;
+    for (const std::string& n : names)
+        if (isCommitSha(n) && n != keep) out.push_back(n);
+    return out;
 }
 
 // ------------------------------------------------------------------------------------------------------------------
@@ -673,25 +794,53 @@ bool parseUrl(const std::string& text, Url& out) {
 bool urlAllowed(const std::string& text, bool allowLocalHttp) {
     Url u;
     if (!parseUrl(text, u)) return false;
-    if (u.https) return true;
+    if (u.https) return u.host == "github.com" || endsWith(u.host, ".github.com");
     return allowLocalHttp && (u.host == "127.0.0.1" || u.host == "localhost" || u.host == "::1");
 }
 
 // ------------------------------------------------------------------------------------------------------------------
-// Pending update
+// Records
 std::string pendingToJson(const PendingInfo& p) {
-    return "{\"version\": " + jsonQuote(p.version) + ", \"size\": " + std::to_string(p.size) + ", \"sha256\": " + jsonQuote(p.sha256) + "}\n";
+    std::string pulls;
+    for (const PullRequest& pr : p.pulls)
+        pulls += std::string(pulls.empty() ? "" : ", ") + "{\"number\": " + std::to_string(pr.number) + ", \"title\": " + jsonQuote(pr.title) + "}";
+    return "{\"commit\": " + jsonQuote(p.commit) + ", \"from\": " + jsonQuote(p.from) + ", \"size\": " + std::to_string(p.size) +
+           ", \"sha256\": " + jsonQuote(p.sha256) + ", \"toolchain\": " + jsonQuote(p.toolchain) + ", \"commits\": " +
+           std::to_string(p.commits) + ", \"pulls\": [" + pulls + "]}\n";
 }
 
 bool pendingFromJson(const std::string& text, PendingInfo& out) {
     out = PendingInfo();
     Json j;
     if (!parseJson(text, j) || j.type != JSON_OBJECT) return false;
-    out.version = j.getString("version");
+    out.commit = j.getString("commit");
+    out.from = j.getString("from");
     out.sha256 = lower(j.getString("sha256"));
     out.size = j.getInt("size", -1);
-    Version v;
-    return parseVersion(out.version, v) && out.size > 0 && out.sha256.size() == 64 && allHex(out.sha256);
+    out.toolchain = j.getString("toolchain");
+    out.commits = (int)std::max(0LL, std::min(j.getInt("commits", 0), 1000000LL));
+    if (const Json* ps = j.get("pulls")) {
+        for (const Json& e : ps->items) {
+            PullRequest pr;
+            pr.number = (int)std::max(0LL, std::min(e.getInt("number", 0), 1000000000LL));
+            pr.title = asciiText(e.getString("title"));
+            if (pr.number > 0) out.pulls.push_back(pr);
+        }
+    }
+    bool ok = isCommitSha(out.commit) && (isCommitSha(out.from) || out.from == "unknown") && out.commit != out.from &&
+              out.size > 0 && out.sha256.size() == 64 && allHex(out.sha256);
+    if (!ok) out = PendingInfo();
+    return ok;
+}
+
+std::string failedRecord(const std::string& toolchain, const std::string& why) {
+    return "toolchain=" + asciiText(toolchain) + "\nwhy=" + asciiText(why) + "\n";
+}
+
+std::string failedToolchain(const std::string& record) {
+    for (const std::string& line : splitLines(record))
+        if (startsWith(line, "toolchain=") && line.size() > 10) return line.substr(10);
+    return std::string();
 }
 
 }  // namespace Updater

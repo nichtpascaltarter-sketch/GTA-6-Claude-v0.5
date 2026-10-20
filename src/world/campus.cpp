@@ -942,7 +942,8 @@ void layout(SiteSet& S, WorldMap& map) {
         base.p[0] = 3.f;
         base.pts = {vec2(ux0 + 4.f, 3850.f), vec2(2000.f, 3850.f),                         // behind the library: dorm doors to the field house
                     vec2(1858.f, 3850.f), vec2(1858.f, 3879.f), vec2(1940.f, 3850.f), vec2(1940.f, 3879.f), vec2(2032.f, 3850.f), vec2(2032.f, 3879.f),
-                    vec2(2032.f, 3850.f), vec2(2046.f, 3803.f),                            // to the field house
+                    vec2(2032.f, 3850.f), vec2(2019.f, 3838.f), vec2(2019.f, 3838.f), vec2(2019.f, 3797.f),   // to the field house: round
+                    vec2(2019.f, 3797.f), vec2(2046.f, 3797.f), vec2(2046.f, 3797.f), vec2(2046.f, 3803.f),   // its west end to the front door
                     vec2(1846.f, 3552.f), vec2(1846.f, 3575.f), vec2(1846.f, 3575.f), vec2(axisX - 14.f, 3575.f),   // union door to the avenue
                     vec2(1958.f, 3550.f), vec2(1958.f, 3575.f), vec2(1958.f, 3575.f), vec2(axisX + 14.f, 3575.f),   // admin door to the avenue
                     vec2(qx1 + 1.f, 3675.f), vec2(1994.f, 3675.f),                         // quad cross walk on to the stand
@@ -1029,8 +1030,10 @@ void layout(SiteSet& S, WorldMap& map) {
         chain({vec2(wx0, qc.y), qc + spoke[6] * 12.f}, 1.6f);
         chain({qc + spoke[2] * 12.f, vec2(wx1, qc.y), vec2(1994.f, qc.y)}, 1.6f);
         for (int k = 0; k < 4; k++) chain({corner[k], qc + spoke[(k * 2 + 7) & 7] * 12.f}, 1.6f);
-        // behind the library: from Sunrise Boulevard past the residence hall doors to the field house
-        chain({vec2(swSun, 3850.f), vec2(1858.f, 3850.f), vec2(1940.f, 3850.f), vec2(2000.f, 3850.f), vec2(2032.f, 3850.f), vec2(2046.f, 3803.f)}, 1.5f);
+        // behind the library: from Sunrise Boulevard past the residence hall doors to the field house, whose door faces the
+        // field: round its west end to the front
+        chain({vec2(swSun, 3850.f), vec2(1858.f, 3850.f), vec2(1940.f, 3850.f), vec2(2000.f, 3850.f), vec2(2032.f, 3850.f), vec2(2019.f, 3838.f),
+               vec2(2019.f, 3797.f), vec2(2046.f, 3797.f), vec2(2046.f, 3803.f)}, 1.5f);
         for (float dx : {1858.f, 1940.f, 2032.f}) chain({vec2(dx, 3850.f), vec2(dx, 3879.f)}, 1.2f);
         chain({vec2(1850.f, 3805.f), vec2(1862.f, 3805.f), vec2(1862.f, 3850.f)}, 1.2f);   // science center door
     }

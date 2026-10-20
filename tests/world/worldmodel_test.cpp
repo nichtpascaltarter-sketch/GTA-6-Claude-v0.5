@@ -2,7 +2,9 @@
 // - discovery, and the loader on the format's samples (tests/world/fixtures/samples, each kind typed);
 // - a two-district world (tests/world/fixtures/model, worldv-clean): the tables, their order, the references;
 // - the findings on broken input (codes and lines), and files that don't parse or break the schema;
-// - the roads compile: widths, heights, flags, junction radii, cut-backs and control, seeds, the spatial hash.
+// - the roads compile: widths, heights, flags, junction radii, cut-backs and control, seeds, the spatial hash;
+// - the rooms' light state (src/world/roomlight.h): fixed test vectors, which the renderer's HLSL copy must match too,
+//   and the schedules' properties.
 // Build and run from the repo root, as CI's GCC job does:
 //   g++ -std=c++17 -O2 -Wall -Wextra -Werror -fsanitize=undefined -fno-sanitize-recover=undefined
 //       tests/world/worldmodel_test.cpp -o /tmp/neontide-worldmodel-test && /tmp/neontide-worldmodel-test
@@ -13,6 +15,7 @@
 #include "../../src/world/roadnet.cpp"
 #include "../../src/world/worldmodel.cpp"
 #include "../../src/world/worldmodel_roads.cpp"
+#include "../../src/world/roomlight.h"
 #include <chrono>
 #include <cmath>
 #include <cstdio>
@@ -418,12 +421,165 @@ static void testErrors() {
     fs::remove_all(dir, ec);
 }
 
+// --------------------------------------------------------------------------------------------- the rooms' light state
+
+static void testRoomLight() {
+    // schedule, seed, windows, day, minute, night -> level. The renderer's HLSL copy of roomLight() must give the same:
+    // change these only together with it.
+    struct Vector {
+        u32 schedule, seed, windows, day, minute, night, level;
+    };
+    static const Vector kVectors[] = {
+        { 0, 2407, 1, 2, 1230, 255, 216},
+        { 0, 4012, 1, 2,  420, 255, 240},
+        { 0, 3024, 0, 2,   90, 255, 231},
+        { 0, 1202, 1, 5,  600, 255, 207},
+        { 0, 2071, 1, 5, 1410,  80, 200},
+        { 0, 3553, 0, 3, 1230,   0, 244},
+        { 0, 2835, 1, 0,   30, 255, 211},
+        { 0, 1207, 1, 6,  125, 255, 198},
+        { 1, 3721, 1, 2, 1230, 255,   0},
+        { 1, 2247, 1, 2,  420, 255,   0},
+        { 1, 3862, 0, 2,   90, 255,   0},
+        { 1,  415, 1, 5,  600, 255,   0},
+        { 1,  939, 1, 5, 1410,  80,   0},
+        { 1,  255, 0, 3, 1230,   0,   0},
+        { 1, 1977, 1, 0,   30, 255,   0},
+        { 1, 4047, 1, 6,  125, 255,   0},
+        { 2,  660, 1, 2, 1230, 255, 193},
+        { 2, 2769, 1, 2,  420, 255, 174},
+        { 2, 3383, 0, 2,   90, 255,   0},
+        { 2,  253, 1, 5,  600, 255, 186},
+        { 2, 3984, 1, 5, 1410,  80,   0},
+        { 2, 2541, 0, 3, 1230,   0,   0},
+        { 2, 3982, 1, 0,   30, 255,   0},
+        { 2,  198, 1, 6,  125, 255,   0},
+        { 3, 3481, 1, 2, 1230, 255,   0},
+        { 3,  122, 1, 2,  420, 255, 238},
+        { 3, 1194, 0, 2,   90, 255,   0},
+        { 3, 2957, 1, 5,  600, 255, 237},
+        { 3, 3565, 1, 5, 1410,  80,   0},
+        { 3,  966, 0, 3, 1230,   0,   0},
+        { 3,  790, 1, 0,   30, 255,   0},
+        { 3,  244, 1, 6,  125, 255,   0},
+        { 4, 2956, 1, 2, 1230, 255,   0},
+        { 4,  122, 1, 2,  420, 255,   0},
+        { 4,  262, 0, 2,   90, 255,   0},
+        { 4, 1209, 1, 5,  600, 255,   0},
+        { 4,  501, 1, 5, 1410,  80,   0},
+        { 4, 2561, 0, 3, 1230,   0,   0},
+        { 4, 1087, 1, 0,   30, 255,   0},
+        { 4,  533, 1, 6,  125, 255,   0},
+        { 5, 1223, 1, 2, 1230, 255,   0},
+        { 5, 3898, 1, 2,  420, 255,   0},
+        { 5,  333, 0, 2,   90, 255,   0},
+        { 5, 1419, 1, 5,  600, 255,   0},
+        { 5,  502, 1, 5, 1410,  80,   0},
+        { 5,  987, 0, 3, 1230,   0,   0},
+        { 5, 3693, 1, 0,   30, 255,   0},
+        { 5, 1951, 1, 6,  125, 255,   0},
+        { 6, 1561, 1, 2, 1230, 255, 250},
+        { 6, 3505, 1, 2,  420, 255,   0},
+        { 6,  750, 0, 2,   90, 255,   0},
+        { 6, 3314, 1, 5,  600, 255, 217},
+        { 6, 2516, 1, 5, 1410,  80,   0},
+        { 6, 2237, 0, 3, 1230,   0, 248},
+        { 6, 1111, 1, 0,   30, 255,   0},
+        { 6, 2446, 1, 6,  125, 255, 106},
+        { 7, 3188, 1, 2, 1230, 255,   0},
+        { 7, 2293, 1, 2,  420, 255,   0},
+        { 7, 2476, 0, 2,   90, 255,   0},
+        { 7, 3399, 1, 5,  600, 255,   0},
+        { 7, 2788, 1, 5, 1410,  80,   0},
+        { 7,  999, 0, 3, 1230,   0,   0},
+        { 7, 2302, 1, 0,   30, 255,   0},
+        { 7, 3564, 1, 6,  125, 255,   0},
+        { 8, 1695, 1, 2, 1230, 255, 204},
+        { 8, 1953, 1, 2,  420, 255,   0},
+        { 8, 1263, 0, 2,   90, 255,   0},
+        { 8, 2884, 1, 5,  600, 255, 252},
+        { 8, 2456, 1, 5, 1410,  80, 238},
+        { 8, 2214, 0, 3, 1230,   0, 206},
+        { 8, 1774, 1, 0,   30, 255,   0},
+        { 8, 3709, 1, 6,  125, 255,   0},
+        { 9, 2932, 1, 2, 1230, 255, 200},
+        { 9, 3929, 1, 2,  420, 255,   0},
+        { 9, 2650, 0, 2,   90, 255, 224},
+        { 9, 3780, 1, 5,  600, 255,   0},
+        { 9, 1043, 1, 5, 1410,  80, 222},
+        { 9, 1308, 0, 3, 1230,   0, 199},
+        { 9,   39, 1, 0,   30, 255,   0},
+        { 9, 1180, 1, 6,  125, 255, 205},
+        {10,   48, 1, 2, 1230, 255,   0},
+        {10, 2180, 1, 2,  420, 255, 231},
+        {10, 2539, 0, 2,   90, 255,   0},
+        {10, 2281, 1, 5,  600, 255,   0},
+        {10, 2396, 1, 5, 1410,  80,   0},
+        {10, 4036, 0, 3, 1230,   0,   0},
+        {10,  662, 1, 0,   30, 255,   0},
+        {10,  104, 1, 6,  125, 255,   0},
+        {11, 1163, 1, 2, 1230, 255, 214},
+        {11,  728, 1, 2,  420, 255, 201},
+        {11, 1051, 0, 2,   90, 255, 237},
+        {11,  662, 1, 5,  600, 255, 242},
+        {11, 2277, 1, 5, 1410,  80,   0},
+        {11,  833, 0, 3, 1230,   0, 244},
+        {11, 1630, 1, 0,   30, 255, 204},
+        {11, 2749, 1, 6,  125, 255, 198},
+        {12, 1808, 1, 2, 1230, 255, 231},
+        {12,  318, 1, 2,  420, 255,   0},
+        {12, 2837, 0, 2,   90, 255,   0},
+        {12,  293, 1, 5,  600, 255,   0},
+        {12, 3906, 1, 5, 1410,  80,   0},
+        {12, 1595, 0, 3, 1230,   0, 212},
+        {12, 1213, 1, 0,   30, 255,   0},
+        {12,  963, 1, 6,  125, 255,   0},
+    };
+    int bad = 0;
+    for (const Vector& v : kVectors) {
+        const u32 got = roomLight(v.schedule, v.seed, v.windows, v.day, v.minute, v.night);
+        if (got != v.level && bad++ < 5)
+            printf("  roomLight(%u, %u, %u, %u, %u, %u) = %u, expected %u\n", v.schedule, v.seed, v.windows, v.day, v.minute, v.night, got, v.level);
+    }
+    EXPECT(bad == 0, "roomLight: %d of %zu test vectors differ", bad, sizeof(kVectors) / sizeof(kVectors[0]));
+    EXPECT(RS_COUNT <= 16, "roomLight: %d classes don't fit the window record's 4 bits", (int)RS_COUNT);
+    for (u32 c = 0; c < (u32)RS_COUNT; c++) EXPECT(roomScheduleName(c)[0] != 0, "roomLight: class %u has no name", c);
+    EXPECT(roomScheduleName(RS_COUNT)[0] == 0 && roomLight(RS_COUNT, 1u, 0u, 2u, 720u, 255u) == 0u, "roomLight: a class past the table is dark");
+
+    // the classes' properties over many rooms
+    int always = 0, never = 0, dayHome = 0, darkHome = 0, shopNoon = 0, shopNight = 0, shopNightChanged = 0, homeChanged = 0, lateBar = 0, porch = 0;
+    const int rooms = 2000;
+    for (int r = 0; r < rooms; r++) {
+        const u32 seed = roomSeed((u32)r * 7919u + 3u, (u32)r % 5u, (u32)r % 11u);
+        for (u32 minute : {0u, 420u, 725u, 1230u, 1439u}) {
+            always += roomLight(RS_ALWAYS, seed, 1u, 3u, minute, 0u) > 0u;
+            never += roomLight(RS_NEVER, seed, 0u, 3u, minute, 255u) > 0u;
+        }
+        dayHome += roomLight(RS_HOME_LIVING, seed, 1u, 2u, 1230u, 0u) > 0u;           // windows, full daylight: off
+        darkHome += roomLight(RS_HOME_LIVING, seed, 1u, 2u, 1230u, 255u) > 0u;        // 20:30 at night: mostly on
+        shopNoon += roomLight(RS_SHOP, seed, 1u, 2u, 720u, 0u) > 0u;                  // shops stay lit in daylight
+        const bool n2 = roomLight(RS_SHOP, seed, 1u, 2u, 180u, 255u) > 0u, n3 = roomLight(RS_SHOP, seed, 1u, 3u, 180u, 255u) > 0u;
+        shopNight += n2;                                                               // the display lighting at 3:00
+        shopNightChanged += n2 != n3;                                                  // ... the same shops every night
+        homeChanged += (roomLight(RS_HOME_LIVING, seed, 1u, 2u, 1230u, 255u) > 0u) != (roomLight(RS_HOME_LIVING, seed, 1u, 3u, 1230u, 255u) > 0u);
+        lateBar += roomLight(RS_NIGHTLIFE, seed, 0u, 3u, 60u, 255u) > 0u;             // 1:00, from the evening before
+        porch += roomLight(RS_PORCH, seed, 1u, 2u, 1290u, 255u) > 0u && roomLight(RS_PORCH, seed, 1u, 2u, 180u, 255u) == 0u;
+    }
+    EXPECT(always == rooms * 5 && never == 0, "roomLight: always %d of %d, never %d", always, rooms * 5, never);
+    EXPECT(dayHome == 0 && darkHome > rooms * 7 / 10, "roomLight: homes at 20:30, by day %d, by night %d of %d", dayHome, darkHome, rooms);
+    EXPECT(shopNoon > rooms * 9 / 10 && shopNight > rooms / 4 && shopNight < rooms / 2 && shopNightChanged == 0,
+           "roomLight: shops at noon %d, at 3:00 %d (%d changed from one night to the next)", shopNoon, shopNight, shopNightChanged);
+    EXPECT(homeChanged > rooms / 10, "roomLight: only %d of %d homes change from one evening to the next", homeChanged, rooms);
+    EXPECT(lateBar > rooms * 8 / 10 && porch == rooms, "roomLight: bars at 1:00 %d, porch lights on at 21:30 and off at 3:00 %d of %d", lateBar, porch, rooms);
+}
+
 int main() {
     testDiscover();
     testSamples();
     testWorld();
     testCompile();
     testErrors();
+    testRoomLight();
     printf(gFails ? "worldmodel_test: %d FAILURES\n" : "worldmodel_test: all passed\n", gFails);
     return gFails ? 1 : 0;
 }

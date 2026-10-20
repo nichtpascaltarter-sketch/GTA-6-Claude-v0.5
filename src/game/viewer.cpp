@@ -511,13 +511,23 @@ struct Viewer {
                 wb(vec2(3185, -1319), UI::BLIP_POLICE_STATION, "PSPD Solaris");
                 m.canContinue = true;
                 m.canSave = true;
-                // update notice by shot name: updget (downloading, 42%), updready (Restart now), updfail (download page);
-                // updlong: a long version number at 99%
+                // update notice by shot name: updcheck (checking), updget (downloading, 2.4 MB), updunpack, updbuild
+                // (building for 2:31), updready (Restart now), updfail (build failed: Open log), updtools (no compiler:
+                // Open help page); updlong: many long pull request titles
                 m.update = UI::UpdateNotice();
-                if (has("updget") || has("updready") || has("updfail")) {
-                    m.update.kind = has("updget") ? UI::UPD_DOWNLOADING : (has("updready") ? UI::UPD_READY : UI::UPD_AVAILABLE);
-                    m.update.version = has("updlong") ? "0.10.10-rc.10" : "0.02.7";
-                    m.update.progress = has("updlong") ? 0.99f : 0.42f;
+                const char* const kUpdShots[] = {"updcheck", "updget", "updunpack", "updbuild", "updready", "updfail", "updtools"};
+                const UI::UpdateNoticeKind kUpdKinds[] = {UI::UPD_CHECKING, UI::UPD_DOWNLOADING, UI::UPD_UNPACKING, UI::UPD_BUILDING,
+                                                          UI::UPD_READY,    UI::UPD_FAILED,      UI::UPD_BLOCKED};
+                for (int k = 0; k < 7; k++)
+                    if (has(kUpdShots[k])) m.update.kind = kUpdKinds[k];
+                if (m.update.kind != UI::UPD_NONE) {
+                    m.update.commit = "5ad2c3e";
+                    m.update.changes = has("updlong") ? "12 new updates: #64 Night lighting realism with wet streets and neon reflections, #63 Taxi "
+                                                        "stands at the airport and the cruise port, #62 Police helicopters search the marsh, #61 ..."
+                                                      : "3 new updates: #55 Night lighting realism, #54 Taxi stands, #53 The hand-built world's format";
+                    m.update.bytes = 2516582;
+                    m.update.seconds = 151;
+                    m.update.detail = "Updates are built from source and need a C++ compiler: Visual Studio Build Tools (free) or w64devkit.";
                 }
                 m.money = hs.money;
                 m.timeOfDay = 17.6f;

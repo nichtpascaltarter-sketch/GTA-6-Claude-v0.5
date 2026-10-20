@@ -1,8 +1,9 @@
 # The hand-built world: architecture proposal
 
-Status: v1.1. The lead approved decisions D1-D7 on 2026-10-19 (section 14), and section 12 holds the AI agent's
+Status: v1.2. The lead approved decisions D1-D7 on 2026-10-19 (section 14), and section 12 holds the AI agent's
 requirements. v1.1 (2026-10-20) adds the details and checks the AI agent sent when it agreed to 12.7, and the kit's
-stair and door geometry from the animation agent (4.9). The user's word overrides any of it.
+stair and door geometry from the animation agent (4.9). v1.2 (2026-10-20) adds how the interiors are lit (7.8), agreed
+with the renderer's night agent. The user's word overrides any of it.
 Author: the city agent. Date: 2026-10-19.
 Scope: replace the procedural world of Palmera with a hand-authored one, keeping only the terrain.
 
@@ -39,6 +40,8 @@ resource, so the exe-only autoupdater keeps working (section 6).
 - **Collision and nav** belong to each floor layout and are shared by every building that uses it. The compiler bakes
   the navmeshes.
 - **Indoor NPCs** come from a cheap per-building occupancy model. They are spawned only into loaded floors (section 7.6).
+- **Interior lights** follow one light state per room. It switches real fixtures on loaded floors and lights the
+  windows' fake rooms everywhere else, so lighting costs only on loaded floors (section 7.8).
 
 **Migration:** a `--world=hand|procedural` switch, with procedural staying the default until the hand world is playable.
 The first build is a pilot: the heart of Calle Luna (439 buildings), end to end with Act 1's Calle Luna missions. Then
@@ -815,6 +818,127 @@ Inside, only loaded floors have navmeshes, and the rest of the route is abstract
 | Wildlife | habitat polygons authored per district, in place of today's region tests |
 | Population venues | authored venues and spots per block, in place of today's 3,955 laid-out venues |
 
+### 7.8 Lighting the interiors
+
+Agreed with the renderer's night agent on 2026-10-20. Every room has one light state, computed by one deterministic
+function. Where its floor is resident, the state switches the room's real fixtures; everywhere else, it lights the room
+that the window fakes. Real lights cost only on the resident floors (at most 48, section 7.4), however many buildings
+there are.
+
+**One light state per room.** A pure function `lit(room, day, minute, night)` gives off, or on at a level from 0
+to 1 (`roomLight()` in `src/world/roomlight.h`). Its inputs:
+- the room's schedule class: its `sched=`, else a default from its room type and the building's `occupancy`
+  (residents, workers, schedule);
+- a room seed, 12 bits: a hash of the building's seed, the floor and the room;
+- the game day (for the day of the week) and the minute;
+- whether the room has windows (exterior lights count as having them), and how dark it is outside: one integer a
+  frame, from 0 (day) to 255 (night), the same for the C++ and the shader.
+
+A schedule class is a few on-intervals per day type, shifted by the seed (about ±45 minutes), with a chance that the
+room is occupied. Homes light the bedrooms late and the kitchens early, shops follow their hours, offices run 8-19 with
+cleaners after, and the stairs and corridors of midrises stay on. A room with windows switches on only once it is dark
+enough; a windowless room follows its schedule alone.
+
+The function is integer arithmetic over a hash, with no floating-point state. So the C++ copy (resident rooms, spill
+lights) and the facade shader's HLSL copy (windows) agree bit for bit, and a selftest compares them. A window lit at
+2 km is lit when you walk up to it, and it goes dark at the same minute.
+
+**What worldc compiles.** Per layout, shared by every placement of it:
+
+| Table | Content |
+|---|---|
+| Rooms | polygon, floor z, height, type, schedule class, lux when lit, the outdoor flag, the daylight bounce (from its own openings and its neighbours'), the openings to other rooms |
+| Fixtures | position, fixture (an index into the photometric table, by the catalog piece's `code=`), room, its own `sched=`, anim (none, tv, neon, flicker) |
+| Windows | the rectangle in the shell, room, kind, curtain or blind (from the seed), frosted (bathrooms and glass blocks) |
+| Daylight portals | each room's windows and exterior doors, at most 8 (a storefront counts as one) |
+
+Per placement: the transform, mirror, the building seed and the occupancy.
+
+**Photometrics.** One table in code, keyed by the catalog's `code=`, with the renderer's values:
+- authored per entry: luminous flux (lm), the beam (a full angle, or a point light), colour temperature (K), the
+  emitter (an area in m², or a luminance in cd/m²) and the anim;
+- derived at load: candela, the radius (where the light falls under about 0.5 lux), the spot cones and the emitter's
+  luminance;
+- starting points: downlight 700 lm, 3000 K, 60°; 2×4 troffer 3500 lm, 4000 K, 110°; pendant 800 lm, 2700 K; table
+  lamp 450 lm, 2700 K; TV 250 cd/m².
+
+Emissive fixtures (lamp shades, troffer panels) read the same state as their light, so a lamp never glows while its
+light is off.
+
+**Resident floors.** When a floor loads:
+- its rooms enter the frame's room table: ambient, bounce and the portal range, 64 bytes a room;
+- its fixtures enter the frame's lights, each tagged with its room and the floor's resident slot. When the floor
+  unloads, its lights drop in one go.
+
+*Rooms by id.* Every G-buffer pixel shader writes a 16-bit room id into a new R16_UINT target, with 0 for outdoors:
+- interior meshes carry the id per room or submesh;
+- characters, vehicles and props indoors take the id of the room they stand in, per draw, from gameplay's nav;
+- decals keep the id under them.
+
+The lighting pass reads the id:
+- the room's ambient and portals come from the room table;
+- a light lights a pixel only where their ids match, and the outdoor lights are room 0;
+- the tile pass collects up to 4 room ids per tile, so the lights of rooms behind the walls never enter a tile's list
+  (a tile that sees more rooms takes every light);
+- the froxel fog takes the outdoor lights and the camera's room's only, so lamps don't glow through walls in fog.
+
+This replaces today's 32 oriented boxes and their per-pixel search. Later, a light may also spill through an open door
+into the next room, weighted by the opening.
+
+*How many lights.* Only the fixtures of rooms seen from the camera's room, through the door and window graph, are
+gathered (7.4 culls the room meshes the same way):
+- a home floor has 4-15 fixtures;
+- a shop has 10-40;
+- an office plate has up to about 150, a few dozen of them in view;
+- at worst, about 1,500 interior lights a frame, inside today's caps of 4,096 a frame and 256 a tile.
+
+*Shadows.* Fixtures get no shadow maps, as today; characters keep their screen-space marches. The room id stops light
+leaking through walls, and GTAO gives the contact shading.
+
+*Exposure.* The auto exposure meters the whole frame, so stepping in at night already closes it down. By day, the
+interior floor of the exposure range follows the camera's room id, which gameplay sends every frame.
+
+**Buildings that aren't resident.** Their windows show interior-mapped rooms (7.2, decision D5). worldc bakes one u32
+record per window:
+
+| Bits | Field |
+|---|---|
+| 5 | room type, with codes for the shop kinds, so shop interiors keep their kinds |
+| 4 | schedule class |
+| 12 | room seed |
+| 2 | lamp kind: a ceiling fixture, a table lamp, troffers, or only the TV |
+| 3 | colour temperature class, 2200-6500 K, from the room's main fixture |
+| 2 | curtain or blind |
+| 3 | room depth class |
+| 1 | frosted |
+
+How the records are used:
+- They sit in one GPU buffer per building set. The shell vertices carry the window index, and the facade constants
+  carry the building's base.
+- The facade shader evaluates `lit()` with the frame's game day, minute and darkness, all integers.
+- When a building becomes resident, a per-building bit turns its glass clear, and the real rooms show behind it in the
+  same state.
+- From inside a resident floor, the glass shows the real street, and the other buildings' windows show their fake
+  rooms.
+
+**Light on the street.** A lit room's windows glow, but they don't light the street. Shops do:
+- worldc emits one spill light per storefront window group into the cell's lights (today's type 5), switched by
+  `lit()` and gathered within 380 m;
+- the block files' `light` records (porches, wall packs, gardens; `sched=` dusk, evening, night, always or never)
+  become the cell's `LightInstance`s, with the same photometric table.
+
+**Who does what.**
+- The city agent: the format; worldc's room, fixture, window and portal tables and the window records; the schedule
+  classes and seeds; the C++ `lit()`; handing a loading floor's rooms and fixtures to the renderer, with gameplay's
+  interior streaming.
+- The renderer (the night agent): the room id target, the room table and the tile room filter; the facade's
+  per-window path and the HLSL `lit()`; the photometric values and the emissive fixtures; exposure; and counters in
+  `--gfxstats` (lights per tile and per frame, rooms per frame) for the pilot.
+- Both: the selftest that compares the two `lit()` copies.
+
+The pilot (Calle Luna: 439 buildings, 834 floors) measures the window and light counts that the budgets in section 8
+assume.
+
 ---
 
 ## 8. Budgets
@@ -831,6 +955,7 @@ Inside, only loaded floors have navmeshes, and the rest of the route is abstract
 | Interiors | section 7.4: ≤ 24 buildings, ≤ 48 floors, ≤ 384 MB GPU | |
 | Streaming | instantiating a near cell: ≤ 5 ms on average and 15 ms at most, on one core | today's generation: 7 ms on average, 31 ms at p99, 85 ms at most (section 13.3) |
 | Indoor NPCs | ≤ 40 full, the rest reduced | |
+| Interior lighting (section 7.8) | G-buffer +2 bytes a pixel (4 MB at 1080p); room table 64 bytes a room (128 KB at 2,000 rooms); ≤ 1,500 interior lights a frame, inside the 4,096 cap; window records 6-8 MB of GPU memory | the night agent's estimates, to measure in the pilot |
 
 ---
 

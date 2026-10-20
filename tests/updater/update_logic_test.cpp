@@ -1,6 +1,9 @@
-// Updater logic tests, natively without Windows: versions, JSON, release and asset picks, checksums, PE headers,
-// URLs and the pending-update record. The fixtures are GitHub's real answers for this repository (2026-10-19): the
-// release list, the v0.02.6 release, and the 404 of /releases/latest (v0.02.6 is a pre-release, which that skips).
+// Updater logic tests, natively without Windows: commits, JSON, GitHub's compare and commit-list answers, the pull
+// requests merged since a commit, toolchain choice, the build and unpack commands and their environment, archive and
+// exe checks, URLs and the records. The fixtures are GitHub's real answers for this repository (2026-10-20, with the
+// commit trailers and the agent account's identity taken out): compare/<commit>...main?per_page=100&page=100 for a
+// build behind main (837b39c, ahead 2), at main (bcb8a71, identical), on another branch (c7b2d62, diverged), an unknown
+// commit (404), main...837b39c (behind), and commits?sha=main&per_page=6.
 // Build and run from the repository root:
 //   g++ -std=c++17 -O2 -Wall -Wextra -Werror tests/updater/update_logic_test.cpp -o /tmp/update_logic_test
 //   /tmp/update_logic_test [--fixtures DIR] [program.exe ...]   (each extra file must pass the PE check)
@@ -23,46 +26,18 @@ static std::string readFile(const std::string& path) {
     return ss.str();
 }
 
-static int cmp(const char* a, const char* b) {
-    Version x, y;
-    if (!parseVersion(a, x) || !parseVersion(b, y)) return 99;
-    return compareVersions(x, y);
-}
+static const char* const kHead = "bcb8a71a0a5f8eea6d057663b06d30bb5d4fe37e";    // main on 2026-10-20 (#53)
+static const char* const kPr52 = "837b39c751fa63ce8458be5366dd0635c9f320dc";    // #52's merge
+static const char* const kPr51 = "f595703c2bab567f653c16d7031b222a88284036";    // #51's merge
 
-static void testVersions() {
-    Version v;
-    EXPECT(parseVersion("v0.02.6", v) && v.parts.size() == 3 && v.parts[0] == 0 && v.parts[1] == 2 && v.parts[2] == 6 && v.pre.empty());
-    EXPECT(parseVersion("0.02.7-dev", v) && v.pre == "dev");
-    EXPECT(parseVersion(" V1.0-rc.1+build.5 ", v) && v.parts.size() == 2 && v.pre == "rc.1");
-    const char* invalid[] = {"", "v", "abc", "latest", "1..2", "1.2.", ".1", "1.2-", "-1", "1.0 beta", "1.0-rc..1", "1.0-rc.", "1.0+",
-                             "1.0-r c", "1.2.3.4.5.6.7.8.9", "99999999999", "1,2", "v 1.0", "1.0-rc_1"};
-    for (const char* s : invalid) EXPECT(!parseVersion(s, v));
-    EXPECT(cmp("0.02.10", "0.02.9") > 0);
-    EXPECT(cmp("0.02.9", "0.02.10") < 0);
-    EXPECT(cmp("0.3", "0.02.99") > 0);
-    EXPECT(cmp("0.02.7", "0.02.7-dev") > 0);
-    EXPECT(cmp("0.02.7-dev", "0.02.6") > 0);
-    EXPECT(cmp("0.02.7-rc1", "0.02.7-dev") > 0);
-    EXPECT(cmp("0.02.7-rc.10", "0.02.7-rc.2") > 0);
-    EXPECT(cmp("0.02.7-alpha", "0.02.7-alpha.1") < 0);
-    EXPECT(cmp("0.02.7-1", "0.02.7-alpha") < 0);   // numeric identifiers sort before alphanumeric ones
-    EXPECT(cmp("0.02.7-rc.01", "0.02.7-rc.1") == 0);
-    EXPECT(cmp("1.0", "1.0.0") == 0);
-    EXPECT(cmp("0.02", "0.2") == 0);
-    EXPECT(cmp("v1.2.3+build5", "1.2.3") == 0);
-    EXPECT(cmp("4294967295", "4294967294") > 0);
-    // never an equal or older version, nor one that does not parse
-    EXPECT(isNewerVersion("v0.02.7", "0.02.7-dev"));
-    EXPECT(isNewerVersion("9.9.9", "0.02.7-dev"));
-    EXPECT(!isNewerVersion("v0.02.6", "0.02.7-dev"));
-    EXPECT(!isNewerVersion("0.02.7-dev", "0.02.7-dev"));
-    EXPECT(!isNewerVersion("v9.9.9", "9.9.9"));
-    EXPECT(!isNewerVersion("nightly", "0.02.7-dev"));
-    EXPECT(!isNewerVersion("0.02.8", "custom build"));
-    EXPECT(displayVersion("v0.02.7") == "0.02.7");
-    EXPECT(displayVersion(" V1.0 ") == "1.0");
-    EXPECT(displayVersion("0.3") == "0.3");
-    EXPECT(displayVersion("v").empty());
+static void testCommits() {
+    EXPECT(isCommitSha(kHead) && isCommitSha(std::string(40, '0')));
+    const char* invalid[] = {"", "unknown", "bcb8a71", "BCB8A71A0A5F8EEA6D057663B06D30BB5D4FE37E", "bcb8a71a0a5f8eea6d057663b06d30bb5d4fe37",
+                             "bcb8a71a0a5f8eea6d057663b06d30bb5d4fe37e0", "gcb8a71a0a5f8eea6d057663b06d30bb5d4fe37e",
+                             " cb8a71a0a5f8eea6d057663b06d30bb5d4fe37e"};
+    for (const char* s : invalid) EXPECT(!isCommitSha(s));
+    EXPECT(shortCommit(kHead) == "bcb8a71");
+    EXPECT(shortCommit("unknown").empty() && shortCommit("").empty());
 }
 
 static void testJson() {
@@ -96,122 +71,234 @@ static void testJson() {
     EXPECT(parseJson(jsonQuote(odd), j) && j.str == odd);
 }
 
-static Release release(const char* tag, std::vector<ReleaseAsset> assets, bool draft = false, bool pre = false) {
-    Release r;
-    r.tag = tag;
-    r.assets = assets;
-    r.draft = draft;
-    r.prerelease = pre;
-    return r;
+
+static void testGitHubUrls() {
+    const std::string repo = "nichtpascaltarter-sketch/GTA-6-Claude-v0.5";
+    EXPECT(compareUrl("https://api.github.com", repo, kPr52) ==
+           "https://api.github.com/repos/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/compare/837b39c751fa63ce8458be5366dd0635c9f320dc...main?per_page=100&page=100");
+    EXPECT(commitsUrl("https://api.github.com/", repo, 3) == "https://api.github.com/repos/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/commits?sha=main&per_page=3");
+    EXPECT(archiveUrl("https://github.com", repo, kHead) ==
+           "https://github.com/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/archive/bcb8a71a0a5f8eea6d057663b06d30bb5d4fe37e.tar.gz");
+    EXPECT(archiveUrl("http://127.0.0.1:8765/", "o/r", kHead) == std::string("http://127.0.0.1:8765/o/r/archive/") + kHead + ".tar.gz");
+    for (const std::string& u : {compareUrl("https://api.github.com", repo, kPr52), commitsUrl("https://api.github.com", repo, 3),
+                                 archiveUrl("https://github.com", repo, kHead)})
+        EXPECT(urlAllowed(u, false));
+    EXPECT(commitsToList(1) == 2 && commitsToList(2) == 3 && commitsToList(0) == 2 && commitsToList(99) == 100 && commitsToList(5000) == 100);
 }
 
-static ReleaseAsset asset(const char* name, long long size = 1000, const char* url = "https://example.com/a") {
-    ReleaseAsset a;
-    a.name = name;
-    a.size = size;
-    a.url = url;
-    return a;
+static void testCompare(const std::string& dir) {
+    Comparison c;
+    EXPECT(parseCompare(200, readFile(dir + "compare_ahead.json"), c) && c.status == CMP_AHEAD && c.aheadBy == 2 && c.behindBy == 0);
+    EXPECT(parseCompare(200, readFile(dir + "compare_identical.json"), c) && c.status == CMP_IDENTICAL && c.aheadBy == 0 && c.behindBy == 0);
+    EXPECT(parseCompare(200, readFile(dir + "compare_diverged.json"), c) && c.status == CMP_DIVERGED && c.aheadBy == 2 && c.behindBy == 1);
+    EXPECT(parseCompare(200, readFile(dir + "compare_behind.json"), c) && c.status == CMP_BEHIND && c.aheadBy == 0 && c.behindBy == 2);
+    EXPECT(parseCompare(404, readFile(dir + "compare_not_found.json"), c) && c.status == CMP_NOT_FOUND);
+    EXPECT(!parseCompare(200, readFile(dir + "compare_not_found.json"), c) && c.status == CMP_UNREADABLE);   // its "status" is "404"
+    // other answers and shapes are unreadable: a rate limit, a server error, statuses or counts that do not fit
+    EXPECT(!parseCompare(403, "{\"message\": \"API rate limit exceeded\"}", c));
+    EXPECT(!parseCompare(500, "", c) && !parseCompare(200, "", c) && !parseCompare(200, "[]", c) && !parseCompare(200, "not json", c));
+    EXPECT(!parseCompare(200, "{\"status\": \"ahead\", \"ahead_by\": 0, \"behind_by\": 0}", c));
+    EXPECT(!parseCompare(200, "{\"status\": \"ahead\", \"ahead_by\": 3, \"behind_by\": 1}", c));
+    EXPECT(!parseCompare(200, "{\"status\": \"identical\", \"ahead_by\": 1, \"behind_by\": 0}", c));
+    EXPECT(!parseCompare(200, "{\"status\": \"diverged\", \"ahead_by\": 1, \"behind_by\": 0}", c));
+    EXPECT(!parseCompare(200, "{\"status\": \"ahead\", \"ahead_by\": \"2\", \"behind_by\": 0}", c));
+    EXPECT(!parseCompare(200, "{\"status\": \"sideways\", \"ahead_by\": 2, \"behind_by\": 0}", c));
+    EXPECT(parseCompare(200, "{\"status\": \"ahead\", \"ahead_by\": 7, \"behind_by\": 0}", c) && c.aheadBy == 7);
+    EXPECT(std::string(compareStatusName(CMP_AHEAD)) == "ahead" && std::string(compareStatusName(CMP_NOT_FOUND)) == "not found");
 }
 
-static void testReleases() {
-    // the highest version by tag, not the list order: drafts skipped, pre-releases count, releases without the exe skipped
-    std::vector<Release> rs = {release("v0.02.9", {asset("NeonTide-0.02.9.exe")}),
-                               release("v9.0.0", {asset("NeonTide-9.0.0.exe")}, true),
-                               release("v0.03.0", {asset("NeonTide-0.03.0.exe")}, false, true),
-                               release("v0.04.0", {asset("NeonTide-source.zip")}),
-                               release("nightly", {asset("NeonTide-nightly.exe")})};
-    int a = -2;
-    std::string newest;
-    EXPECT(pickUpdate(rs, "0.02.7-dev", &a, &newest) == 2 && a == 0 && newest == "v0.04.0");
-    EXPECT(pickUpdate(rs, "0.03.0", &a) == -1 && a == -1);
-    EXPECT(pickUpdate(rs, "0.03.1-dev", &a) == -1);
-    EXPECT(pickUpdate(rs, "0.02.9", &a) == 2);
-    EXPECT(pickUpdate(rs, "not a version", &a) == -1);
-    std::vector<Release> none;
-    EXPECT(pickUpdate(none, "0.02.7-dev", &a, &newest) == -1 && newest.empty());
-    // the game exe: NeonTide*.exe in any case, preferring the one that names the version
-    Release r = release("v0.03.0", {asset("NeonTide-source.zip"), asset("neontide.EXE"), asset("NeonTide-0.03.0.exe"),
-                                    asset("NeonTide-0.03.0.exe.sha256")});
-    EXPECT(pickExeAsset(r) == 2);
-    r.assets[2].name = "NeonTide-0.03.01.exe";   // does not name 0.03.0: the first exe stays
-    EXPECT(pickExeAsset(r) == 1);
-    r = release("v0.03.0", {asset("NeonTide-0.03.0-debug.exe"), asset("NEONTIDE-0.03.0.EXE"), asset("NeonTide.exe")});
-    EXPECT(pickExeAsset(r) == 1);                 // the exact name before another that names the version
-    r.assets.erase(r.assets.begin() + 1);
-    EXPECT(pickExeAsset(r) == 0);
-    r = release("v0.03.0", {asset("Setup-NeonTide.exe"), asset("NeonTide-0.03.0.zip"), asset("NeonTide-0.03.0.exe", 0),
-                            asset("NeonTide-0.03.0.exe", 10, "")});
-    EXPECT(pickExeAsset(r) == -1);   // wrong prefix, not an exe, empty file, no URL
-    // shapes: an error object reads as no releases, other JSON is refused
-    std::vector<Release> out;
-    EXPECT(parseReleases("{\"message\":\"Not Found\",\"status\":\"404\"}", out) && out.empty());
-    EXPECT(!parseReleases("not json", out) && out.empty());
-    EXPECT(!parseReleases("\"v1.0\"", out));
-    EXPECT(parseReleases("[1, \"x\", {\"tag_name\": \"v1.0\", \"body\": null, \"assets\": [{\"name\": \"NeonTide.exe\", \"size\": 5,"
-                         " \"browser_download_url\": \"https://x/y\"}, 3, {\"size\": 1}]}]", out) &&
-           out.size() == 1 && out[0].body.empty() && out[0].assets.size() == 1 && out[0].assets[0].size == 5);
+static void testCommitList(const std::string& dir) {
+    std::vector<CommitInfo> cs;
+    EXPECT(parseCommitList(readFile(dir + "commits_main.json"), cs) && cs.size() == 6);
+    if (cs.size() != 6) return;
+    EXPECT(cs[0].sha == kHead && cs[0].parents == 2 && cs[0].date == "2026-10-20T04:41:51Z");
+    EXPECT(cs[1].sha == "2c80a3802485f8a31b3720a9e19f25cee2cb3808" && cs[1].parents == 1);
+    EXPECT(cs[2].sha == kPr52 && cs[4].sha == kPr51);
+    EXPECT(cs[0].message.find("Merge pull request #53: the hand-built world's file format frozen at v1") == 0);
+    // a build of #52 (837b39c): two commits later, #53
+    NewChanges n;
+    EXPECT(newChangesSince(cs, kPr52, n) && n.head == kHead && n.complete && n.commits == 2 && n.pulls.size() == 1);
+    if (n.pulls.size() == 1)
+        EXPECT(n.pulls[0].number == 53 && n.pulls[0].title == "the hand-built world's file format frozen at v1, and worldv checks the world files");
+    EXPECT(changesSummary(n, 200) == "1 new update: #53 the hand-built world's file format frozen at v1, and worldv checks the world files");
+    // a build of #51 (f595703): #53 and #52, newest first
+    EXPECT(newChangesSince(cs, kPr51, n) && n.complete && n.commits == 4 && n.pulls.size() == 2);
+    if (n.pulls.size() == 2) EXPECT(n.pulls[0].number == 53 && n.pulls[1].number == 52);
+    EXPECT(changesSummary(n, 60) == "2 new updates: #53 the hand-built world's file format...");
+    EXPECT(changesSummary(n, 1000).find("2 new updates: #53 the hand-built world's file format frozen at v1, and worldv checks the world files, "
+                                        "#52 the game updates itself") == 0);
+    // a build without a commit lists main's latest
+    EXPECT(newChangesSince(cs, "", n) && !n.complete && !n.sinceBase && n.commits == 6 && n.pulls.size() == 3);
+    EXPECT(changesSummary(n, 30) == "Latest: #53 the hand-built...");
+    EXPECT(changesSummary(n, 1000).find("Latest: #53 the hand-built world's file format frozen at v1, and worldv checks the world files, #52 ") == 0);
+    // a commit older than the list
+    EXPECT(newChangesSince(cs, std::string(40, 'a'), n) && !n.complete && n.sinceBase && n.commits == 6);
+    EXPECT(changesSummary(n, 25) == "3+ new updates: #53...");
+    // main's head itself: nothing new
+    EXPECT(newChangesSince(cs, kHead, n) && n.complete && n.commits == 0 && n.pulls.empty());
+    std::vector<CommitInfo> none;
+    EXPECT(!newChangesSince(none, kHead, n));
+    // shapes: an error object is not a list; entries without a SHA are skipped
+    EXPECT(!parseCommitList("{\"message\": \"Not Found\"}", cs) && cs.empty());
+    EXPECT(!parseCommitList("", cs));
+    EXPECT(parseCommitList(std::string("[1, {\"sha\": \"xyz\"}, {\"sha\": \"") + kHead + "\", \"commit\": {\"message\": \"m\"}, \"parents\": [{}, {}]}]", cs) &&
+           cs.size() == 1 && cs[0].message == "m" && cs[0].parents == 2 && cs[0].date.empty());
 }
 
-static void testFixtures(const std::string& dir) {
-    const char* kHash = "e8b78ce907eefb21a3d1a53514fe4fb18598da375d90333944192e8bd9f935a4";
-    const char* kUrl = "https://github.com/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/releases/download/v0.02.6/NeonTide-0.02.6.exe";
-    for (const char* name : {"releases.json", "release_v0.02.6.json"}) {
-        std::string text = readFile(dir + name);
-        EXPECT(!text.empty());
-        std::vector<Release> rs;
-        EXPECT(parseReleases(text, rs) && rs.size() == 1);
-        if (rs.size() != 1) continue;
-        const Release& r = rs[0];
-        EXPECT(r.tag == "v0.02.6" && r.prerelease && !r.draft && r.body == "Neon Tide 0.02.6");
-        EXPECT(r.htmlUrl == "https://github.com/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/releases/tag/v0.02.6");
-        int ex = pickExeAsset(r);
-        EXPECT(ex == 0 && r.assets.size() == 1);
-        if (ex != 0) continue;
-        EXPECT(r.assets[0].name == "NeonTide-0.02.6.exe" && r.assets[0].size == 12882944 && r.assets[0].url == kUrl);
-        EXPECT(checksumFromDigest(r.assets[0].digest) == kHash);
-        EXPECT(pickChecksumAsset(r, r.assets[0].name) == -1 && checksumFromNotes(r.body, r.assets[0].name).empty());
-        EXPECT(urlAllowed(r.assets[0].url, false) && urlAllowed(r.htmlUrl, false));
-        int a = -1;
-        std::string newest;
-        EXPECT(pickUpdate(rs, "0.02.7-dev", &a, &newest) == -1 && newest == "v0.02.6");   // this source is newer
-        EXPECT(pickUpdate(rs, "0.02.6-dev", &a) == 0 && a == 0);
-        EXPECT(pickUpdate(rs, "0.02.5", &a) == 0);
-        EXPECT(pickUpdate(rs, "0.02.6", &a) == -1);
+static void testPullMessages() {
+    PullRequest p;
+    EXPECT(pullFromMessage("Merge pull request #53: the hand-built world's file format frozen at v1\n\nbody", p) && p.number == 53 &&
+           p.title == "the hand-built world's file format frozen at v1");
+    // GitHub's default merge message: the title on the first line of the body
+    EXPECT(pullFromMessage("Merge pull request #7 from someone/night-lights\n\nNight lighting realism\n\nmore", p) && p.number == 7 &&
+           p.title == "Night lighting realism");
+    EXPECT(pullFromMessage("Merge pull request #8 from someone/x\r\n\r\n  Taxi stands  \r\n", p) && p.number == 8 && p.title == "Taxi stands");
+    EXPECT(pullFromMessage("Merge pull request #9 from someone/x", p) && p.number == 9 && p.title.empty());
+    EXPECT(pullFromMessage("Merge pull request #10", p) && p.number == 10 && p.title.empty());
+    // a squash merge
+    EXPECT(pullFromMessage("Fix Esc immediately closing the pause menu (#44)\n\n* details", p) && p.number == 44 &&
+           p.title == "Fix Esc immediately closing the pause menu");
+    // titles become printable ASCII
+    EXPECT(pullFromMessage("Merge pull request #12: Calle Luna \xE2\x80\x93 night \xE2\x80\x9C" "neon\xE2\x80\x9D \xF0\x9F\x8C\xB4 caf\xC3\xA9", p) &&
+           p.title == "Calle Luna - night \"neon\" cafe");
+    // not pull requests
+    const char* others[] = {"The game updates itself", "Merge branch 'main' into feature", "Merge pull request #: x", "Merge pull request #12x: y",
+                            "Merge pull request #0: zero", "Revert \"Merge pull request #52: x\"", "Fix the (#12) thing", "Title (#)", "Title (#1a)",
+                            "Title(#12)", "", "Merge pull request #1234567890: too long"};
+    for (const char* m : others) EXPECT(!pullFromMessage(m, p));
+}
+
+static void testSummary() {
+    NewChanges n;
+    n.sinceBase = true;
+    n.complete = true;
+    n.commits = 4;
+    EXPECT(changesSummary(n, 100) == "4 new commits");
+    n.commits = 1;
+    EXPECT(changesSummary(n, 100) == "1 new commit");
+    n.complete = false;
+    EXPECT(changesSummary(n, 100) == "1+ new commits");
+    n.complete = true;
+    n.pulls = {{55, "Night lighting"}, {54, ""}, {53, "Taxi stands"}};
+    EXPECT(changesSummary(n, 100) == "3 new updates: #55 Night lighting, #54, #53 Taxi stands");
+    EXPECT(changesSummary(n, 40) == "3 new updates: #55 Night lighting...");
+    EXPECT(changesSummary(n, 2) == ".." && changesSummary(n, 0).empty());
+    std::string s = changesSummary(n, 30);
+    EXPECT(s.size() <= 30 && s.find("...") == s.size() - 3);
+    n.pulls.resize(1);
+    EXPECT(changesSummary(n, 100) == "1 new update: #55 Night lighting");
+    n.sinceBase = false;   // a build without a commit: main's latest
+    EXPECT(changesSummary(n, 100) == "Latest: #55 Night lighting");
+    n.pulls.clear();
+    EXPECT(changesSummary(n, 100).empty());
+}
+
+static void testAscii() {
+    EXPECT(asciiText("plain text") == "plain text");
+    EXPECT(asciiText("  two   spaces\tand\na line  ") == "two spaces and a line");
+    EXPECT(asciiText("a \xE2\x80\x94 b \xE2\x80\xA6 c \xE2\x80\x98q\xE2\x80\x99") == "a - b ... c 'q'");
+    EXPECT(asciiText("\xC3\x80\xC3\xA7\xC3\xB1\xC3\x9F\xC3\xA6\xC3\x86") == "AcnssaeAE");
+    EXPECT(asciiText("x \xC2\xB7 y \xE2\x86\x92 z") == "x - y -> z");
+    EXPECT(asciiText("emoji \xF0\x9F\x8C\xB4 dropped") == "emoji dropped");
+    EXPECT(asciiText("broken \xE2\x80 seq \xFF end \xC3") == "broken seq end");
+    EXPECT(asciiText("ctrl\x01\x7f" "chars") == "ctrl chars");
+    EXPECT(asciiText("").empty() && asciiText("\xF0\x9F\x8C\xB4").empty());
+}
+
+static void testToolchains() {
+    ToolchainProbe p;
+    EXPECT(pickToolchain(p).kind == TC_NONE);
+    p.mingwDirs = {"C:\\w64devkit\\bin", "C:\\msys64\\ucrt64\\bin"};
+    Toolchain t = pickToolchain(p);
+    EXPECT(t.kind == TC_MINGW_DIR && t.pathPrefix == "C:\\w64devkit\\bin" && t.label == "MinGW-w64 (C:\\w64devkit\\bin)");
+    p.gxxOnPath = true;   // g++ without windres on PATH: build.bat could not make the resource
+    EXPECT(pickToolchain(p).kind == TC_MINGW_DIR);
+    p.windresOnPath = true;
+    t = pickToolchain(p);
+    EXPECT(t.kind == TC_MINGW_PATH && t.pathPrefix.empty());
+    p.clOnPath = true;
+    EXPECT(pickToolchain(p).kind == TC_MSVC_PATH);
+    p.vsInstall = "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools";
+    EXPECT(pickToolchain(p).kind == TC_MSVC_PATH);   // no vcvars64.bat: build.bat goes on to cl.exe
+    p.vcvars = true;
+    t = pickToolchain(p);
+    EXPECT(t.kind == TC_MSVC && t.label == "MSVC (C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools)" && t.pathPrefix.empty());
+    std::vector<std::string> d = mingwCandidateDirs("C:", "C:\\Users\\Ana Maria\\");
+    EXPECT(d.size() == 6 && d[0] == "C:\\w64devkit\\bin" && d[1] == "C:\\Users\\Ana Maria\\w64devkit\\bin" &&
+           d[2] == "C:\\Users\\Ana Maria\\scoop\\apps\\w64devkit\\current\\bin" && d[3] == "C:\\msys64\\ucrt64\\bin" &&
+           d[4] == "C:\\msys64\\mingw64\\bin" && d[5] == "C:\\mingw64\\bin");
+    EXPECT(mingwCandidateDirs("D:\\", "").size() == 4 && mingwCandidateDirs("", "").empty());
+    std::vector<std::string> path = splitPathList("C:\\Windows\\system32;;\"C:\\Program Files\\Git\\cmd\"; C:\\w64devkit\\bin ;");
+    EXPECT(path.size() == 3 && path[0] == "C:\\Windows\\system32" && path[1] == "C:\\Program Files\\Git\\cmd" && path[2] == "C:\\w64devkit\\bin");
+    EXPECT(splitPathList("").empty());
+}
+
+static void testCommands() {
+    // quoting as CommandLineToArgvW reads it back
+    EXPECT(quoteArgument("plain") == "plain");
+    EXPECT(quoteArgument("") == "\"\"");
+    EXPECT(quoteArgument("C:\\Users\\Ana Maria\\x.tar.gz") == "\"C:\\Users\\Ana Maria\\x.tar.gz\"");
+    EXPECT(quoteArgument("C:\\dir with space\\") == "\"C:\\dir with space\\\\\"");   // a closing quote after backslashes
+    EXPECT(quoteArgument("say \"hi\"") == "\"say \\\"hi\\\"\"");
+    EXPECT(quoteArgument("a\\\\\"b") == "\"a\\\\\\\\\\\"b\"");
+    EXPECT(quoteArgument("C:\\no\\space\\") == "C:\\no\\space\\");
+    ProcessCommand b = buildCommand("C:\\Windows\\system32", "C:\\Users\\Ana Maria\\AppData\\Local\\NeonTide\\updates\\x\\src");
+    EXPECT(b.application == "C:\\Windows\\system32\\cmd.exe" && b.commandLine == "C:\\Windows\\system32\\cmd.exe /d /c .\\build.bat" &&
+           b.directory == "C:\\Users\\Ana Maria\\AppData\\Local\\NeonTide\\updates\\x\\src");
+    ProcessCommand u = unpackCommand("C:\\Windows\\System32\\", "C:\\Users\\Ana Maria\\u\\source.tar.gz", "C:\\Users\\Ana Maria\\u\\x\\");
+    EXPECT(u.application == "C:\\Windows\\System32\\tar.exe" &&
+           u.commandLine == "C:\\Windows\\System32\\tar.exe -xf \"C:\\Users\\Ana Maria\\u\\source.tar.gz\" -C \"C:\\Users\\Ana Maria\\u\\x\"" &&
+           u.directory == "C:\\Users\\Ana Maria\\u\\x\\");
+    // the environment: NT_COMMIT set, VERSION out, the PATH prefix in front, names kept, sorted without case
+    std::vector<std::string> env = {"=C:=C:\\Games", "windir=C:\\Windows", "Path=C:\\Windows\\system32;C:\\Windows", "version=0.99",
+                                    "NT_COMMIT=0000000000000000000000000000000000000000", "ALLUSERSPROFILE=C:\\ProgramData", "no-equals"};
+    std::vector<std::string> e = buildEnvironment(env, kHead, "C:\\w64devkit\\bin");
+    std::vector<std::string> want = {"=C:=C:\\Games", "ALLUSERSPROFILE=C:\\ProgramData", std::string("NT_COMMIT=") + kHead,
+                                     "Path=C:\\w64devkit\\bin;C:\\Windows\\system32;C:\\Windows", "windir=C:\\Windows"};
+    EXPECT(e == want);
+    e = buildEnvironment({"PATH=", "B=2", "a=1"}, kHead, "");
+    want = {"a=1", "B=2", std::string("NT_COMMIT=") + kHead, "PATH="};
+    EXPECT(e == want);
+    e = buildEnvironment({"B=2"}, kHead, "D:\\mingw64\\bin");
+    want = {"B=2", std::string("NT_COMMIT=") + kHead, "PATH=D:\\mingw64\\bin"};
+    EXPECT(e == want);
+    e = buildEnvironment({"PATH=", "B=2"}, kHead, "D:\\mingw64\\bin");
+    EXPECT(e.size() == 3 && e[2] == "PATH=D:\\mingw64\\bin");
+}
+
+static void testChecks() {
+    const uint8_t gz[] = {0x1f, 0x8b, 0x08, 0x00};
+    EXPECT(archiveLooksValid(gz, sizeof(gz)));
+    std::vector<uint8_t> tarHead(512, 0);
+    memcpy(tarHead.data() + 257, "ustar", 5);
+    EXPECT(archiveLooksValid(tarHead.data(), tarHead.size()));
+    EXPECT(!archiveLooksValid(tarHead.data(), 300));
+    const char html[] = "<!DOCTYPE html><html><body>Not Found</body></html>";
+    EXPECT(!archiveLooksValid((const uint8_t*)html, sizeof(html)) && !archiveLooksValid(nullptr, 0) && !archiveLooksValid(gz, 1));
+    // the top folders of GitHub's archives of bcb8a71 (github.com/.../archive/<sha>.tar.gz and the API's tarball)
+    EXPECT(archiveFolderMatches("GTA-6-Claude-v0.5-bcb8a71a0a5f8eea6d057663b06d30bb5d4fe37e", kHead));
+    EXPECT(archiveFolderMatches("nichtpascaltarter-sketch-GTA-6-Claude-v0.5-bcb8a71", kHead));
+    EXPECT(!archiveFolderMatches("GTA-6-Claude-v0.5-837b39c751fa63ce8458be5366dd0635c9f320dc", kHead));
+    EXPECT(!archiveFolderMatches("GTA-6-Claude-v0.5-bcb8a71a0a5f8eea6d057663b06d30bb5d4fe37e", "unknown"));
+    EXPECT(!archiveFolderMatches("-bcb8a71", kHead) && !archiveFolderMatches("bcb8a71a0a5f8eea6d057663b06d30bb5d4fe37e", kHead));
+    EXPECT(!archiveFolderMatches("GTA-6-Claude-v0.5-bcb8a71a0a5f8eea6d057663b06d30bb5d4fe37e.evil", kHead));
+    EXPECT(withCrlf("@echo off\ngoto msvc\r\n:msvc\n") == "@echo off\r\ngoto msvc\r\n:msvc\r\n");
+    EXPECT(withCrlf("\n\n") == "\r\n\r\n" && withCrlf("") == "" && withCrlf("a\r\nb") == "a\r\nb");
+    // the commit in a stream of chunks, split anywhere
+    std::string exe = std::string(5000, 'x') + kHead + std::string(300, 'y');
+    for (size_t chunk : {(size_t)1, (size_t)7, (size_t)39, (size_t)40, (size_t)41, (size_t)4096, exe.size()}) {
+        StreamSearch s(kHead);
+        for (size_t i = 0; i < exe.size(); i += chunk) s.add(exe.data() + i, std::min(chunk, exe.size() - i));
+        EXPECT(s.found());
     }
-    std::vector<Release> rs;
-    EXPECT(parseReleases(readFile(dir + "releases_latest_404.json"), rs) && rs.empty());
-}
-
-static void testChecksums() {
-    const std::string h1(64, 'a'), h2 = std::string(63, 'b') + "c", up(64, 'D');
-    EXPECT(checksumFromDigest("sha256:" + up) == std::string(64, 'd'));
-    EXPECT(checksumFromDigest("SHA256:" + h1) == h1);
-    EXPECT(checksumFromDigest("sha512:" + h1 + h1).empty());
-    EXPECT(checksumFromDigest("md5:" + h1).empty());
-    EXPECT(checksumFromDigest("sha256:abc").empty() && checksumFromDigest("").empty() && checksumFromDigest(h1).empty());
-    Release r = release("v0.03.0", {asset("NeonTide-0.03.0.exe"), asset("SHA256SUMS.txt"), asset("neontide-0.03.0.EXE.sha256")});
-    EXPECT(pickChecksumAsset(r, "NeonTide-0.03.0.exe") == 2);
-    r.assets.pop_back();
-    EXPECT(pickChecksumAsset(r, "NeonTide-0.03.0.exe") == 1);
-    r.assets.pop_back();
-    EXPECT(pickChecksumAsset(r, "NeonTide-0.03.0.exe") == -1);
-    const std::string exe = "NeonTide-0.03.0.exe";
-    EXPECT(checksumFromFile(h2 + "  NeonTide-source.zip\n" + h1 + "  NeonTide-0.03.0.exe\n", exe, "SHA256SUMS") == h1);
-    EXPECT(checksumFromFile(h1 + " *NeonTide-0.03.0.exe\r\n", exe, "SHA256SUMS.txt") == h1);   // sha256sum binary mode
-    EXPECT(checksumFromFile(up + "\n", exe, "NeonTide-0.03.0.exe.SHA256") == std::string(64, 'd'));   // the exe's own file
-    EXPECT(checksumFromFile(h1 + "\n", exe, "SHA256SUMS").empty());                                  // a list must name it
-    EXPECT(checksumFromFile(h2 + "  NeonTide-0.03.0.exe\n", exe, "NeonTide-0.03.0.exe.sha256") == h2);
-    EXPECT(checksumFromFile(h1 + "  NeonTide-0.03.0.exe.zip\n", exe, "SHA256SUMS").empty());
-    EXPECT(checksumFromFile(h1 + "  xNeonTide-0.03.0.exe\n", exe, "SHA256SUMS").empty());
-    EXPECT(checksumFromNotes("Downloads:\n- NeonTide-0.03.0.exe (SHA-256 `" + h1 + "`)\n- source: " + h2 + "\n", exe) == h1);
-    EXPECT(checksumFromNotes("Neon Tide 0.03.0\n\nSHA-256: " + h1, exe) == h1);
-    EXPECT(checksumFromNotes("**SHA256**\n\n    " + h1 + "\n", exe) == h1);                       // the line below
-    EXPECT(checksumFromNotes("NeonTide-0.03.0.exe\n" + h1 + "\n", exe) == h1);
-    EXPECT(checksumFromNotes("sha256 of the exe: " + h1 + "\nsha256 of the zip: " + h2, exe).empty());   // ambiguous
-    EXPECT(checksumFromNotes("sha256: " + h1 + "\nsame again, sha256: " + h1, exe) == h1);
-    EXPECT(checksumFromNotes("Commit " + h1 + " fixes the radio", exe).empty());
-    EXPECT(checksumFromNotes("SHA-512: " + h1 + h1, exe).empty());                                   // not 64 digits
-    EXPECT(checksumFromNotes("SHA-256: " + std::string(63, 'a') + "g", exe).empty());                // not hex
+    StreamSearch miss(kHead);
+    std::string other = std::string(5000, 'x') + std::string(kHead).substr(0, 39) + "z";
+    miss.add(other.data(), other.size());
+    EXPECT(!miss.found());
+    std::vector<std::string> names = {kHead, kPr52, "readme.txt", "BCB8A71A0A5F8EEA6D057663B06D30BB5D4FE37E", kPr51, "..", "abc"};
+    std::vector<std::string> gone = foldersToRemove(names, kHead);
+    EXPECT(gone.size() == 2 && gone[0] == kPr52 && gone[1] == kPr51);
+    EXPECT(foldersToRemove(names, "").size() == 3);
 }
 
 // A minimal x64 PE header: MZ at 0, PE at 0x80, three sections inside a 0x5000-byte file
@@ -278,35 +365,73 @@ static void testPe() {
     EXPECT(!peImageValid(nullptr, 0, 0));
 }
 
+
 static void testUrls() {
     Url u;
-    EXPECT(parseUrl("https://api.github.com/repos/o/r/releases?per_page=10", u) && u.https && u.host == "api.github.com" && u.port == 443 &&
-           u.path == "/repos/o/r/releases?per_page=10");
-    EXPECT(parseUrl("http://127.0.0.1:8765/latest.json", u) && !u.https && u.host == "127.0.0.1" && u.port == 8765 && u.path == "/latest.json");
-    EXPECT(parseUrl("HTTPS://Example.COM", u) && u.host == "example.com" && u.path == "/");
-    EXPECT(parseUrl("https://example.com?x=1#frag", u) && u.path == "/?x=1");
+    EXPECT(parseUrl("https://api.github.com/repos/o/r/commits?sha=main&per_page=3", u) && u.https && u.host == "api.github.com" && u.port == 443 &&
+           u.path == "/repos/o/r/commits?sha=main&per_page=3");
+    EXPECT(parseUrl("http://127.0.0.1:8765/repos/o/r/compare/x...main", u) && !u.https && u.host == "127.0.0.1" && u.port == 8765 &&
+           u.path == "/repos/o/r/compare/x...main");
+    EXPECT(parseUrl("HTTPS://GitHub.COM", u) && u.host == "github.com" && u.path == "/");
+    EXPECT(parseUrl("https://github.com?x=1#frag", u) && u.path == "/?x=1");
     EXPECT(parseUrl("https://[::1]:8443/x", u) && u.host == "::1" && u.port == 8443);
     const char* invalid[] = {"ftp://x/y", "file:///C:/x", "https://", "https:///x", "https://user@host/", "https://host:0/", "https://host:99999/",
                              "https://host:/", "https://ho st/", "javascript:alert(1)", "https://[::1/", "https://host:12a/", "//host/x", "mailto:x@y"};
     for (const char* s : invalid) EXPECT(!parseUrl(s, u));
-    EXPECT(urlAllowed("https://github.com/x", false) && urlAllowed("https://github.com/x", true));
+    // https to GitHub only (the archive moves to codeload.github.com)
+    for (const char* s : {"https://api.github.com/repos/o/r", "https://github.com/o/r/archive/x.tar.gz", "https://codeload.github.com/o/r/tar.gz/x",
+                          "https://GITHUB.com/x"})
+        EXPECT(urlAllowed(s, false) && urlAllowed(s, true));
+    for (const char* s : {"https://example.com/a", "https://evilgithub.com/x", "https://github.com.evil.com/x", "https://objects.githubusercontent.com/x",
+                          "http://github.com/x", "http://api.github.com/x"})
+        EXPECT(!urlAllowed(s, false) && !urlAllowed(s, true));
     EXPECT(urlAllowed("http://127.0.0.1:8765/a", true) && urlAllowed("http://localhost/a", true) && urlAllowed("http://[::1]:80/a", true));
     EXPECT(!urlAllowed("http://127.0.0.1:8765/a", false));
     EXPECT(!urlAllowed("http://example.com/a", true) && !urlAllowed("http://127.0.0.2/a", true) && !urlAllowed("http://localhost.evil.com/", true));
+    EXPECT(!urlAllowed("https://127.0.0.1/a", true));
     EXPECT(!urlAllowed("file:///C:/Windows/notepad.exe", true));
 }
 
-static void testPending() {
+static void testRecords() {
     PendingInfo p;
-    p.version = "9.9.9";
+    p.commit = kHead;
+    p.from = kPr52;
     p.size = 12882944;
     p.sha256 = std::string(64, 'a');
+    p.toolchain = "MinGW-w64 (C:\\w64devkit\\bin)";
+    p.commits = 2;
+    p.pulls = {{53, "the hand-built world's \"v1\" format"}, {52, "updates"}};
     PendingInfo q;
-    EXPECT(pendingFromJson(pendingToJson(p), q) && q.version == "9.9.9" && q.size == 12882944 && q.sha256 == p.sha256);
-    EXPECT(!pendingFromJson("{\"version\": \"9.9.9\", \"size\": 0, \"sha256\": \"" + p.sha256 + "\"}", q));
-    EXPECT(!pendingFromJson("{\"version\": \"latest\", \"size\": 5, \"sha256\": \"" + p.sha256 + "\"}", q));
-    EXPECT(!pendingFromJson("{\"version\": \"9.9.9\", \"size\": 5, \"sha256\": \"abc\"}", q));
-    EXPECT(!pendingFromJson("{\"version\": \"9.9.9\", \"size\": 5", q));
+    EXPECT(pendingFromJson(pendingToJson(p), q) && q.commit == kHead && q.from == kPr52 && q.size == 12882944 && q.sha256 == p.sha256 &&
+           q.toolchain == p.toolchain && q.commits == 2 && q.pulls.size() == 2);
+    if (q.pulls.size() == 2) EXPECT(q.pulls[0].number == 53 && q.pulls[0].title == "the hand-built world's \"v1\" format" && q.pulls[1].number == 52);
+    p.from = "unknown";
+    EXPECT(pendingFromJson(pendingToJson(p), q) && q.from == "unknown");
+    p.sha256 = std::string(64, 'B');   // read in lower case
+    EXPECT(pendingFromJson(pendingToJson(p), q) && q.sha256 == std::string(64, 'b'));
+    p.sha256 = std::string(64, 'a');
+    PendingInfo bad = p;
+    bad.from = kHead;   // not an update
+    EXPECT(!pendingFromJson(pendingToJson(bad), q) && q.commit.empty());
+    bad = p;
+    bad.commit = "unknown";
+    EXPECT(!pendingFromJson(pendingToJson(bad), q));
+    bad = p;
+    bad.from = "bcb8a71";
+    EXPECT(!pendingFromJson(pendingToJson(bad), q));
+    bad = p;
+    bad.size = 0;
+    EXPECT(!pendingFromJson(pendingToJson(bad), q));
+    bad = p;
+    bad.sha256 = "abc";
+    EXPECT(!pendingFromJson(pendingToJson(bad), q));
+    EXPECT(!pendingFromJson("{\"commit\": \"" + std::string(kHead) + "\"", q));
+    EXPECT(!pendingFromJson("[]", q));
+    // a build that failed: its toolchain
+    std::string f = failedRecord("MSVC (C:\\VS\\BuildTools)", "build.bat exited with 1");
+    EXPECT(f == "toolchain=MSVC (C:\\VS\\BuildTools)\nwhy=build.bat exited with 1\n" && failedToolchain(f) == "MSVC (C:\\VS\\BuildTools)");
+    EXPECT(failedToolchain("why=x\r\ntoolchain=MinGW-w64 (g++ on PATH)\r\n") == "MinGW-w64 (g++ on PATH)");
+    EXPECT(failedToolchain("").empty() && failedToolchain("toolchain=\n").empty());
 }
 
 int main(int argc, char** argv) {
@@ -322,14 +447,20 @@ int main(int argc, char** argv) {
             programs.push_back(a);
         }
     }
-    testVersions();
+    testCommits();
     testJson();
-    testReleases();
-    testFixtures(dir);
-    testChecksums();
+    testGitHubUrls();
+    testCompare(dir);
+    testCommitList(dir);
+    testPullMessages();
+    testSummary();
+    testAscii();
+    testToolchains();
+    testCommands();
+    testChecks();
     testPe();
     testUrls();
-    testPending();
+    testRecords();
     for (const std::string& path : programs) {
         std::string data = readFile(path), why;
         bool ok = peImageValid((const uint8_t*)data.data(), std::min<size_t>(data.size(), 65536), data.size(), &why);

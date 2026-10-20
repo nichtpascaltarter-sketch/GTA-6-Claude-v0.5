@@ -69,7 +69,7 @@ void setFullscreen(bool fs);
 bool isFullscreen();
 void setGamepadRumble(float low, float high);
 void setWindowTitle(const char* t);
-std::string userDataDir();  // created on demand, ends with separator
+std::string userDataDir();  // created on demand, ends with separator; --datadir=<dir> or NEONTIDE_DATADIR moves it
 void showMessageBox(const char* title, const char* msg, bool error = false);
 double timeSeconds();
 void sleepMs(int ms);
