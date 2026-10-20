@@ -1,0 +1,7 @@
+ntw 1 plan id=lib.plan.shop.corner_a
+meta class=shop family=corner floors=1 size=8.00x10.00
+footprint poly=0.00,0.00;8.00,0.00;8.00,10.00;0.00,10.00
+floor f0 layout=lib.layout.shop.corner_a_f0 z=0.00 h=3.60
+roof form=flat
+facade style=lib.facade.bungalow_siding
+entrance main door=f0.d1 kind=main

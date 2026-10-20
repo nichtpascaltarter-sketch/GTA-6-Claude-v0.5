@@ -1,5 +1,6 @@
 // world.bin container (worldbin.h).
 #include "worldbin.h"
+#include "lz.h"
 #include <cstring>
 
 namespace World {
@@ -33,6 +34,16 @@ void WorldBinWriter::add(const char* name, u32 kind, const std::vector<u8>& byte
     s.kind = kind;
     s.bytes = bytes;
     sections.push_back(s);
+}
+
+void WorldBinWriter::addCompressed(const char* name, const std::vector<u8>& bytes) {
+    std::vector<u8> z;
+    ByteWriter w;
+    w.putU32((u32)bytes.size());
+    z = w.bytes;
+    lzCompress(bytes.data(), bytes.size(), z);
+    if (z.size() < bytes.size()) add(name, WSK_LZ, z);
+    else add(name, WSK_RAW, bytes);
 }
 
 std::vector<u8> WorldBinWriter::finish() const {
@@ -105,6 +116,21 @@ const WorldBinView::Section* WorldBinView::find(const char* name) const {
     for (const Section& s : sections)
         if (s.name == name) return &s;
     return nullptr;
+}
+
+bool WorldBinView::bytes(const char* name, std::vector<u8>& out) const {
+    const Section* s = find(name);
+    out.clear();
+    if (!s) return false;
+    if (s->kind == WSK_RAW) {
+        out.assign(s->data, s->data + s->size);
+        return true;
+    }
+    if (s->kind != WSK_LZ || s->size < 4) return false;
+    const u32 n = worldbin_detail::get32(s->data);
+    if (n > (1u << 30)) return false;
+    out.resize(n);
+    return lzDecompress(s->data + 4, s->size - 4, out.data(), n);
 }
 
 void ByteWriter::putU32(u32 v) {

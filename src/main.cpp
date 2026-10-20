@@ -44,6 +44,7 @@
 #include "world/interiorresidences.cpp"
 #include "world/interiors.cpp"
 #include "world/gridcodec.cpp"
+#include "world/lz.cpp"
 #include "world/worldbin.cpp"
 #include "world/handworld.cpp"
 #include "sim/physics.cpp"

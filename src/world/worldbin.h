@@ -18,6 +18,7 @@ constexpr u32 kWorldBinVersion = 1;
 enum WorldSectionKind : u32 {
     WSK_RAW = 0,    // bytes as they are (the terrain record)
     WSK_GRID = 1,   // an NTG grid (gridcodec.h)
+    WSK_LZ = 2,     // u32 size, then the bytes compressed with lz.h
 };
 
 struct WorldBinWriter {
@@ -28,6 +29,8 @@ struct WorldBinWriter {
     };
     std::vector<Section> sections;
     void add(const char* name, u32 kind, const std::vector<u8>& bytes);
+    // Stores bytes as WSK_LZ, or as WSK_RAW when compressing doesn't make them smaller
+    void addCompressed(const char* name, const std::vector<u8>& bytes);
     std::vector<u8> finish() const;
 };
 
@@ -42,6 +45,8 @@ struct WorldBinView {
     // Checks the header, the table and the hash; false (with a reason) on any mismatch
     bool open(const u8* data, size_t size, std::string* error);
     const Section* find(const char* name) const;
+    // A WSK_RAW or WSK_LZ section's bytes, decompressed; false when it is missing, of another kind or damaged
+    bool bytes(const char* name, std::vector<u8>& out) const;
 };
 
 // Little-endian byte packing for section contents
