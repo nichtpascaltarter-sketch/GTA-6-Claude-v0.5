@@ -320,7 +320,37 @@ static void mapLandmarks(const BodyDims& D, FaceLm& L) {
     L.menton = faceMap(D, L.menton);
 }
 
+// CIELAB hue angle (degrees) of a linear sRGB colour (D65 white)
+static float labHueDeg(vec3 c) {
+    const float X = (0.4124f * c.x + 0.3576f * c.y + 0.1805f * c.z) / 0.95047f;
+    const float Y = 0.2126f * c.x + 0.7152f * c.y + 0.0722f * c.z;
+    const float Z = (0.0193f * c.x + 0.1192f * c.y + 0.9505f * c.z) / 1.08883f;
+    auto f = [](float t) { return t > 0.008856f ? cbrtf(t) : 7.787f * t + 16.f / 116.f; };
+    const float fy = f(Y);
+    return atan2f(200.f * (fy - f(Z)), 500.f * (f(X) - fy)) * kRadToDeg;
+}
+
+// The vermilion's blue lift: lips are less yellow than the skin round them (in CIELAB the lower lip sits some 5-7 b*
+// below the chin); taken straight from the skin tone they kept its yellow and read salmon or coral. On pink-toned fair
+// skin the lip starts out little yellow, and the full lift turned it lavender or mauve in daylight, most of all on
+// men, whose lips are less red: on fair skin the lift stops where the lip's hue angle comes down to 28 degrees (real
+// lips: about 25-30). (Deep skin keeps its deeper, cooler lips.) (anim_test LipColour)
+static float lipBlueLift(vec3 lipCol, vec3 skin) {
+    const float kFull = 1.22f;
+    const float floorDeg = 28.f * sstep(0.15f, 0.3f, dot(skin, vec3(0.3f, 0.59f, 0.11f)));
+    auto hueAt = [&](float k) { return labHueDeg(mulColor(lipCol, vec3(0.96f, 1.f, k))); };
+    if (hueAt(kFull) >= floorDeg) return kFull;
+    float lo = 1.f, hi = kFull;   // (the hue falls as the lift rises)
+    for (int it = 0; it < 12; it++) {
+        const float mid = 0.5f * (lo + hi);
+        if (hueAt(mid) >= floorDeg) lo = mid;
+        else hi = mid;
+    }
+    return lo;
+}
+
 void buildHeadGrid(BuildCtx& c) {
+    const float lipBlue = lipBlueLift(c.lipCol, c.skin);
     const BodyDims& D = *c.D;
     MeshB& m = c.m;
     HeadInfo& H = c.head;
@@ -702,10 +732,8 @@ void buildHeadGrid(BuildCtx& c) {
                     vec3 lipC = lerp(c.lipCol, c.lipInner, inner * (rd.off < 0.f ? 0.85f : 0.65f));
                     // with age the lips fade towards the skin round them
                     lipC = lerp(lipC, c.skin * 0.9f, 0.35f * ageK);
-                    // a rose rather than a salmon or coral: lips are redder than the skin and less yellow (in CIELAB
-                    // the lower lip sits some 5-7 b* below the chin); taken straight from the skin tone they had its
-                    // yellow (anim_test LipColour)
-                    lipC = mulColor(lipC, vec3(0.96f, 1.f, 1.22f));
+                    // a rose rather than a salmon or coral (lipBlueLift)
+                    lipC = mulColor(lipC, vec3(0.96f, 1.f, lipBlue));
                     col = lerp(col, lipC, lipMask);
                     // the seam between the closed lips and the wet inner edge read darker
                     float inMouth = 1.f - sstep(0.8f, 1.02f, u);
@@ -1132,6 +1160,16 @@ static void addEar(BuildCtx& c, int sd) {
     std::vector<std::vector<u32>> rings;
     vec3 earCol = lerp(c.skin, mulColor(c.skin, vec3(1.1f, 0.85f, 0.82f)), 0.35f);
     size_t i0 = m.idx.size();
+    // the canal and the concha's floor stay clear of the head's own surface: the relief takes the canal some 2 cm in
+    // along `out`, past the skin of the head under the auricle, and the head's skin closed it as a pale disc
+    auto clearOfHead = [&](vec3& p) {
+        const float clear = 0.0015f * D.headS;
+        for (int it = 0; it < 6; it++) {
+            float dh = c.sdf.eval(p, MK_HEAD) - clear;
+            if (dh >= 0.f) break;
+            p += out * (-1.2f * dh);
+        }
+    };
     auto addRing = [&](float sRad, float offMode, float colMul, float depthExtra) {
         std::vector<u32> ring(NE);
         for (int k = 0; k < NE; k++) {
@@ -1142,9 +1180,12 @@ static void addEar(BuildCtx& c, int sd) {
             else o = offMode * D.headS;
             BVert v;
             v.p = root + back * q.x + up * q.y + out * (o + depthExtra);
+            if (offMode == 0.f && sRad < 0.45f) clearOfHead(v.p);
             float rl = relief(a, Min(sRad, 1.f)) / D.headS;
-            // the folds read by their shading: grooves (scapha, fossa, concha, the notch) darker, ridges lighter
-            v.col = earCol * colMul * (offMode == 0.f ? Clamp(0.9f + (rl < 0.f ? 30.f : 14.f) * rl, 0.55f, 1.06f) : 1.f);
+            // the folds read by their shading: grooves (scapha, fossa, concha, the notch) darker, ridges lighter; the
+            // canal's opening dark (no light gets into it)
+            v.col = earCol * colMul *
+                    (offMode == 0.f ? Clamp(0.9f + (rl < 0.f ? 30.f : 14.f) * rl, 0.55f, 1.06f) * Lerp(0.35f, 1.f, sstep(0.04f, 0.25f, sRad)) : 1.f);
             v.mat = MAT_SKIN;
             v.matParam = skinParam(SR_EAR, sRad >= 0.86f ? 14u : 9u, 0u);   // the helix rim is the thinnest
             v.part = PART_EAR;
@@ -1209,11 +1250,14 @@ static void addEar(BuildCtx& c, int sd) {
             triFacing(m, a0, b0, b1, f);
             triFacing(m, a0, b1, a1, f);
         }
-    // cap the canal
+    // cap the canal at its floor (the middle of its innermost ring), dark
     {
         BVert v = m.v[rings[0][0]];
-        v.p = root + back * cen.x + up * cen.y + out * (protrude(0.f, 0.f) - 0.011f * D.headS);
-        v.col = earCol * 0.45f;
+        vec3 f0(0.f);
+        for (int k = 0; k < NE; k++) f0 += m.v[rings[0][k]].p;
+        v.p = f0 * (1.f / NE) - out * (0.0005f * D.headS);
+        clearOfHead(v.p);
+        v.col = earCol * 0.2f;
         u32 ctr = m.add(v);
         for (int k = 0; k < NE; k++) triFacing(m, rings[0][k], ctr, rings[0][(k + 1) % NE], out);
     }

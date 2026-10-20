@@ -1892,6 +1892,7 @@ void testFaces() {
 // than the skin round the mouth and less yellow: a rose rather than a salmon or coral (skin-colour measurements put the
 // lower lip about 8-10 a* redder than the chin and 5-7 b* less yellow, and on light and medium skin 8-13 L* darker; on
 // deep skin the inner lower lip is often lighter and pinker than the skin). With age the lips fade towards the skin.
+// On pink-toned fair skin they stay a rose, not lavender or mauve.
 // Over clean-shaven faces (the chin's skin is measured): the middle of the lower lip against the chin 8-22 mm below
 // the lips; each face also built 40 years older.
 static vec3 linToLab(vec3 lin) {
@@ -1975,9 +1976,172 @@ void testLipColour() {
         n++;
     }
     CHECK(n >= 8, "lips: only %d faces measured", n);
+    // pink-toned fair skin (the protagonists' tones and a rosier one), on a clean-shaven man and a woman: the lips stay
+    // a rose, not lavender or mauve (CIELAB hue angle at least 26 degrees; real lips about 25-30), and still redder and
+    // less yellow than the chin (such skin has little yellow to begin with: the lips sit only 1.5-3 b* below it)
+    const vec3 pinkTones[3] = {vec3(0.62f, 0.44f, 0.33f), vec3(0.72f, 0.56f, 0.45f), vec3(0.751f, 0.55f, 0.454f)};
+    float hueMin = 1e9f, dbPinkMax = -1e9f;
+    int nPink = 0;
+    bool man = false, woman = false;
+    for (u32 k = 0; k < 30 && !(man && woman); k++) {
+        CharacterDesc d = randomCharacter(6100u + k * 7919u, (int)(k % 7));
+        if (d.facialHair >= 0) continue;
+        const bool fem = d.gender == FEMALE;
+        if ((fem && woman) || (!fem && man)) continue;
+        (fem ? woman : man) = true;
+        d.hat = -1;
+        d.glasses = -1;
+        d.age = 0.2f;
+        for (const vec3& t : pinkTones) {
+            d.skinTone = t;
+            vec3 L, C;
+            if (!lipAndChin(d, L, C)) continue;
+            const float hue = atan2f(L.z, L.y) * kRadToDeg, da = L.y - C.y, db = L.z - C.z;
+            CHECK(hue >= 26.f, "lips: mauve on pink-toned fair skin (k %u, tone %.2f %.2f %.2f: hue %.1f deg)", k, t.x, t.y, t.z, hue);
+            CHECK(da > 3.f && db < -1.f, "lips: no redder or less yellow than the chin on pink-toned fair skin (k %u, tone %.2f %.2f %.2f: da* %+.1f, db* %+.1f)", k, t.x,
+                  t.y, t.z, da, db);
+            hueMin = Min(hueMin, hue);
+            dbPinkMax = Max(dbPinkMax, db);
+            nPink++;
+        }
+    }
+    CHECK(nPink >= 6, "lips: only %d pink-toned faces measured", nPink);
     printf("lips: %d faces, lower lip vs chin da* >= %+.1f, db* <= %+.1f, dL* <= %+.1f (light and medium skin); 40 years older "
-           "da* at least %.0f%% less\n",
-           n, daMin, dbMax, dlMax, fadeMin * 100.f);
+           "da* at least %.0f%% less; pink-toned fair skin: hue >= %.1f deg, db* <= %+.1f\n",
+           n, daMin, dbMax, dlMax, fadeMin * 100.f, hueMin, dbPinkMax);
+}
+
+// Ear canal (face.cpp addEar): looking into an ear shows the ear's own dark canal, not the head's skin through it.
+// The canal and the concha's floor used to dip up to 8 mm under the head's surface, so the head's skin closed the
+// canal as a pale disc (and the canal's centre stood up through it in a 12 mm spike). Over the ears of clean faces
+// (hats off; ears under long hair are skipped): of the parallel sight lines from the side, the front-side and 20
+// degrees behind (yaw -20..40, pitch -20..20) within 3.5 mm of the canal's centre, at most 5% may first meet anything
+// but the ear (back faces culled, as skin is drawn; it was a quarter to a third); the canal's centre lies at its floor,
+// not raised; and the canal is darker than the ear round it.
+static bool earRayHit(vec3 a, vec3 e1, vec3 e2, vec3 n, vec3 o, vec3 d, float& t) {
+    if (dot(n, d) >= 0.f) return false;
+    vec3 p = cross(d, e2);
+    float det = dot(e1, p);
+    if (fabsf(det) < 1e-14f) return false;
+    float inv = 1.f / det;
+    vec3 s = o - a;
+    float u = dot(s, p) * inv;
+    if (u < 0.f || u > 1.f) return false;
+    vec3 q = cross(s, e1);
+    float v = dot(d, q) * inv;
+    if (v < 0.f || u + v > 1.f) return false;
+    t = dot(e2, q) * inv;
+    return t > 0.f;
+}
+void testEarCanal() {
+    using namespace Anim::detail;
+    struct Tri {
+        vec3 a, e1, e2, n;
+        bool ear;
+    };
+    auto region = [](const VtxSkinned& v) { return ((v.mat & 0xffu) == MAT_SKIN && ((v.mat >> 8) & 1u)) ? (int)((v.mat >> 9) & 7u) : -1; };
+    auto lum = [](u32 c) { return 0.2126f * (c & 255) / 255.f + 0.7152f * ((c >> 8) & 255) / 255.f + 0.0722f * ((c >> 16) & 255) / 255.f; };
+    int ears = 0, raysAll = 0, badAll = 0;
+    float worst = 0.f, capMax = 0.f, darkMax = 0.f;
+    for (u32 k = 0; k < 14 && ears < 16; k++) {
+        CharacterDesc d = randomCharacter(6200u + k * 7919u, (int)(k % 7));
+        d.hat = -1;
+        Skeleton sk;
+        buildSkeleton(d, sk);
+        SkinnedMeshData m;
+        buildCharacterMesh(d, sk, m);
+        std::vector<Tri> tris;
+        std::vector<int> fan(m.verts.size(), 0);
+        for (size_t i = 0; i + 2 < m.indices.size(); i += 3) {
+            const VtxSkinned &A = m.verts[m.indices[i]], &B = m.verts[m.indices[i + 1]], &C = m.verts[m.indices[i + 2]];
+            if ((A.mat & 0xffu) == MAT_HAIR) continue;   // (strand cards and hair shells: the skin alone is checked)
+            Tri t;
+            t.a = A.pos;
+            t.e1 = B.pos - A.pos;
+            t.e2 = C.pos - A.pos;
+            t.n = cross(t.e1, t.e2);
+            t.ear = region(A) == 4;   // (skin region 4: the ear, SR_EAR)
+            tris.push_back(t);
+            if (t.ear)
+                for (int j = 0; j < 3; j++) fan[m.indices[i + j]]++;
+        }
+        for (int s = 0; s < 2; s++) {
+            const float sx = s ? 1.f : -1.f;
+            // the canal's cap: the ear vertex its triangles fan out from; its rim = the vertices it shares them with
+            int cap = -1;
+            float earLum = 0.f;
+            int earN = 0;
+            for (size_t i = 0; i < m.verts.size(); i++)
+                if (region(m.verts[i]) == 4 && m.verts[i].pos.x * sx > 0.f) {
+                    if (fan[i] >= 20) cap = (int)i;
+                    earLum += lum(m.verts[i].color);
+                    earN++;
+                }
+            if (cap < 0) continue;   // covered by hair
+            vec3 rim(0.f);
+            int nr = 0;
+            for (size_t i = 0; i + 2 < m.indices.size(); i += 3)
+                for (int j = 0; j < 3; j++)
+                    if ((int)m.indices[i + j] == cap) {
+                        rim += m.verts[m.indices[i + (j + 1) % 3]].pos;
+                        nr++;
+                    }
+            rim = rim / (float)Max(nr, 1);
+            const float capOff = length(m.verts[cap].pos - rim) * 1000.f;
+            CHECK(capOff < 1.5f, "ears: the canal's centre stands %.1f mm off its rim (seed k %u side %d)", capOff, k, s);
+            capMax = Max(capMax, capOff);
+            const float dark = lum(m.verts[cap].color) / Max(earLum / (float)earN, 1e-4f);
+            CHECK(dark < 0.6f, "ears: the canal no darker than the ear (k %u side %d: %.2f of the ear's mean)", k, s, dark);
+            darkMax = Max(darkMax, dark);
+            int rays = 0, bad = 0;
+            for (int yi = 0; yi < 4; yi++)
+                for (int pi = 0; pi < 3; pi++) {
+                    const float yaw = (-20.f + 20.f * yi) * kDegToRad, pitch = (-20.f + 20.f * pi) * kDegToRad;
+                    const vec3 cdir(sx * cosf(yaw) * cosf(pitch), sinf(yaw) * cosf(pitch), sinf(pitch));
+                    const vec3 u = normalize(cross(vec3(0, 0, 1), cdir)), v = cross(cdir, u);
+                    const float R = 0.0035f;
+                    std::vector<const Tri*> cand;
+                    for (const Tri& t : tris) {
+                        const vec3 P[3] = {t.a - rim, t.a + t.e1 - rim, t.a + t.e2 - rim};
+                        float u0 = 1e9f, u1 = -1e9f, v0 = 1e9f, v1 = -1e9f;
+                        for (int j = 0; j < 3; j++) {
+                            u0 = Min(u0, dot(P[j], u));
+                            u1 = Max(u1, dot(P[j], u));
+                            v0 = Min(v0, dot(P[j], v));
+                            v1 = Max(v1, dot(P[j], v));
+                        }
+                        if (u1 >= -R && u0 <= R && v1 >= -R && v0 <= R) cand.push_back(&t);
+                    }
+                    for (int gy = -7; gy <= 7; gy++)
+                        for (int gx = -7; gx <= 7; gx++) {
+                            const float pu = gx * 0.0005f, pv = gy * 0.0005f;
+                            if (pu * pu + pv * pv > R * R) continue;
+                            const vec3 o = rim + cdir * 0.3f + u * pu + v * pv;
+                            float best = 1e9f;
+                            bool ear = false;
+                            for (const Tri* t : cand) {
+                                float tt;
+                                if (earRayHit(t->a, t->e1, t->e2, t->n, o, -cdir, tt) && tt < best) {
+                                    best = tt;
+                                    ear = t->ear;
+                                }
+                            }
+                            rays++;
+                            if (!ear) bad++;
+                        }
+                }
+            const float share = (float)bad / (float)Max(rays, 1);
+            CHECK(share < 0.05f, "ears: the head shows through the canal on %.1f%% of sight lines (seed k %u side %d)", share * 100.f, k, s);
+            worst = Max(worst, share);
+            raysAll += rays;
+            badAll += bad;
+            ears++;
+        }
+    }
+    CHECK(ears >= 8, "ears: only %d ears measured", ears);
+    printf("ears: %d ears, the head through the canal on %.2f%% of sight lines (worst ear %.1f%%); canal centre at most %.1f mm "
+           "off its rim; canal at most %.2f of the ear's mean albedo\n",
+           ears, 100.f * badAll / Max(raysAll, 1), 100.f * worst, capMax, darkMax);
 }
 
 // Face hair coverage as the renderer composites strand cards (psHairCard): each card dithers its coverage against its
@@ -2650,6 +2814,7 @@ int main(int argc, char** argv) {
     run("FaceHairCoverage", testFaceHairCoverage);
     run("BuzzCut", testBuzzCut);
     run("LipColour", testLipColour);
+    run("EarCanal", testEarCanal);
     run("Mesh", testMesh);
     run("ClothingClip", testClothingClip);
     printf("%s (%d failures)\n", gFail ? "FAILED" : "ALL PASSED", gFail);
