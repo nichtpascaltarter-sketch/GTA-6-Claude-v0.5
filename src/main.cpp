@@ -46,6 +46,7 @@
 #include "world/gridcodec.cpp"
 #include "world/lz.cpp"
 #include "world/worldbin.cpp"
+#include "world/roadsbin.cpp"
 #include "world/handworld.cpp"
 #include "sim/physics.cpp"
 #include "render/renderer.cpp"

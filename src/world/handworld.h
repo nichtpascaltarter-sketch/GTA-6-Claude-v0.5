@@ -1,6 +1,6 @@
 // The hand-built world at runtime (docs/HANDBUILT_WORLD.md, section 7). --world=hand selects it and today's procedural
-// generator stays the default. Stage 0 holds the baked terrain only, read from the world.bin that the build embeds in
-// the exe (tools/worldc.cpp writes it from world/).
+// generator stays the default. It holds the baked terrain, and the roads where world/ has them, read from the world.bin
+// that the build embeds in the exe (tools/worldc.cpp writes it from world/).
 #pragma once
 #include "worldmap.h"
 #include "worldbin.h"
@@ -27,8 +27,8 @@ const u8* embeddedWorldBin(size_t* size);
 bool loadHandTerrain(const WorldBinView& bin, WorldMap& map, std::string* error);
 
 // The load on the loading thread: world.bin from `worldFile` when one is given (development: --worldfile=<path>), else
-// the embedded one; the terrain into `map`; `roads` and `buildings` set up empty, as stage 0 has no content. Sets gMap,
-// gRoads and gBuildings.
+// the embedded one; the terrain into `map`; its roads sections into `roads` (roadsbin.h), or an empty network when it
+// has none; `buildings` set up empty, as there are no buildings yet. Sets gMap, gRoads and gBuildings.
 bool loadHandWorld(const char* worldFile, WorldMap& map, RoadNetwork& roads, BuildingSet& buildings, std::string* error);
 
 }  // namespace World

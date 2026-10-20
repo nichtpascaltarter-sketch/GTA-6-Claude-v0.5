@@ -26,6 +26,10 @@ to one is a change to both, in the same commit.
   `1` is the version of the format and of the kind (section 7). `<kind>` is one of the kinds of section 9.
 - Files are kept in canonical form (section 6). `tools/ntwfmt` writes it, `ntwfmt --check` reports files that aren't in
   it, and the validator refuses them.
+- `tools/worldc` compiles the kinds as their compilers arrive. So far that is the terrain, and the roads with the world,
+  district, signal and transit files they name: the roads go into world.bin's roads sections (src/world/roadsbin.h).
+  A block, building, places or library file stops the build ("no compiler for ... files yet") until its compiler
+  exists. The validator checks every kind already.
 
 ## 2. Lines and records
 
@@ -284,10 +288,11 @@ Zones are tagged polygons, and one zone set serves the AI, the population, audio
 ### 9.4 `roads` and `signal`
 
 **Kind `roads`**: world/districts/<d>/roads.ntw, and world/trunk/roads.ntw for the trunk. The roads compile to today's
-`RoadNetwork` (src/world/roads.h), and `LaneGraph::build` runs on it unchanged. What the lane graph derives today stays
-derived: the lanes and their connectors, priority from the road class, stop lines and the junction box, signal plans and
-heads, crosswalks, kerbside parking and bus-stop waiting areas. A record overrides a derivation where it is written, and
-adds what nothing can derive. docs/HANDBUILT_WORLD.md section 12 gives the AI agent's requirement behind each record.
+`RoadNetwork` (src/world/roads.h), which worldc writes into world.bin and the game reads in hand mode, and
+`LaneGraph::build` runs on it unchanged. What the lane graph derives today stays derived: the lanes and their
+connectors, priority from the road class, stop lines and the junction box, signal plans and heads, crosswalks, kerbside
+parking and bus-stop waiting areas. A record overrides a derivation where it is written, and adds what nothing can
+derive. docs/HANDBUILT_WORLD.md section 12 gives the AI agent's requirement behind each record.
 
 Header: `district` id (a district's streets) or `scope=trunk`.
 
@@ -329,10 +334,10 @@ What the roads compiler (src/world/worldmodel.h) reads, and requires:
   place. `from` and `to` are two different nodes: a loop needs a node along it.
 - A `profile` rises in `s` from 0 to the shape's length in plan, within 0.5 m, and starts and ends at its nodes' `z`,
   within 5 cm. Without one, the edge runs straight from its `from` node's `z` to its `to` node's.
-- `shoulder`, `parking` and `sidewalk` describe both sides: the side a compound doesn't name has none (`parking=left:2.40`
-  leaves the right without parking). Unwritten, they take the class's widths, as `lanewidth`, `median` and `speed` do.
-  The class has one kerb width for shoulder and parking together, which either field replaces; on one side the two add
-  up.
+- `shoulder`, `parking` and `sidewalk` describe both sides: the side a compound doesn't name has none
+  (`parking=left:2.40` leaves the right without parking). Unwritten, they take the class's widths, as `lanewidth`,
+  `median` and `speed` do. The class has one kerb width for shoulder and parking together, which either field
+  replaces; on one side the two add up.
 - `lanes` is at most 8 each way. A `deck` puts the edge on a structure, as `flags=bridge` does.
 - A node's `control` replaces the derived one. Today's lane graph knows priority by road class, stop signs on every
   approach and signals: `yield`, and `stop` on only some approaches, run as priority by road class until it reads the
