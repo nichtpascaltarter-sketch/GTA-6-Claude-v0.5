@@ -1221,8 +1221,6 @@ bool beforeStart(int& exitCode) {
     return true;
 }
 
-bool isAutomatedRun() { return automatedRun(); }
-
 void startCheck() {
     if (g_noCheck) {   // (keeps <exe>.old: the update installed does not report its commit)
         LOG("Updater: no update check (the installed update does not report a new commit)");

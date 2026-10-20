@@ -1,0 +1,12 @@
+ntw 1 layout id=lib.layout.midrise.core_a
+wall w1 a=0.00,0.00 b=6.00,0.00 t=0.25 ext=front
+wall w2 a=0.00,5.00 b=3.00,5.00 t=0.20
+room lobby type=lobby poly=0.00,0.00;6.00,0.00;6.00,5.00;0.00,5.00 cap=20 sched=always lux=300
+room stair type=stair poly=0.00,5.00;3.00,5.00;3.00,10.00;0.00,10.00 cap=6
+door d1 wall=w1 at=3.00 w=1.80 h=2.40 kind=revolving leads=out:lobby hours=7.00-22.00
+door d2 wall=w2 at=1.50 w=0.90 h=2.10 kind=hinged hinge=left swing=out leads=lobby:stair lock=none
+stair st1 from=f0.stair to=f1.stair run=0.75,5.60;0.75,8.40;2.25,8.40;2.25,5.60 w=1.10 kind=dogleg treads=16 rise=0.18
+  landing=1.20
+stair st2 from=f0.lobby to=roof.plant run=5.55,3.50;5.00,4.05;4.45,3.50;5.00,2.95;5.55,3.50 w=0.75 kind=spiral treads=14
+  rise=0.20 walk=0.55
+lift lf1 at=4.50,7.50 size=1.60x1.40 stops=f0,f1,f2,f3 cap=8 call=4.50,5.80

@@ -1,0 +1,7 @@
+100644 4e5514822b5cb63168487b3cdceb2293f8e8419c	src/world/campus.cpp
+100644 4c103487179704c502432281d338caf8d453890b	docs/PC_WORKER.md
+100755 793a3d8ece4d5d67f84e3f4e5ef3209c9e547444	tools/pc/next_package.sh
+100644 00eea478cc053bbd14fa833059140f39031a151f	tools/pc/next_package.ps1
+100644 c4f763a75805e4c8f31aebee0a6680ee45c2a763	docs/HANDBUILT_WORLD.md
+100644 a6fcf2b828cf5105b5de409dc001da1c7815c975	src/world/roomlight.h
+100644 cec03b2b15e9f620a122bd08a3010d97030242e4	tests/world/worldmodel_test.cpp

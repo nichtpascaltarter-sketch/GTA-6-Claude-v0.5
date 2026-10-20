@@ -1,0 +1,59 @@
+Sites: 91 pads, 324 elements, 23 roads, 21 buildings requested (0.09 s)
+World map generated in 22.97 s
+Road gen: 22 interchanges
+Road network: 6284 nodes, 10030 edges, 1734 signalized; hwy 61.7 km, streets 1189.6 km (3.08 s)
+Buildings: 36093 (towers 358, midrise 2400, condo 485, deco 838, shops 4829, strip 693, houses 21872, villas 928, warehouses 1686) in 2.23 s
+Sites: 66 highway billboards
+Sites: 112 silos, 55 windmills
+Site runway 09L|27R  from (-1180, 2080) to (820, 2080) z 4.6 width 60
+Site runway 09R|27L  from (-1100, 780) to (700, 780) z 4.6 width 45
+Site terminal             at (628, 1440, 4.6)
+Site control tower        at (730, 1832, 4.6)
+Site container ship       at (4625, -800, 0.0)
+Site container ship       at (4616, -330, 0.0)
+Site port gate            at (4008, -160, 3.0)
+Site Key Coral marina     at (4039, -4035, 0.0)
+Site beach club           at (4873, -3866, 1.2)
+Site beach club           at (4808, -4183, 2.2)
+Site Solaris One          at (3350, -750, 1.4)
+Site stadium              at (3565, 445, 1.6)
+Site City Hall            at (3000, 372, 2.0)
+Site Canvas Park          at (3100, 1800, 1.7)
+Site Sol Beach Pier from (5414, 1250) to (5840, 1250) deck z 5.6
+Site Ferris wheel         at (5504, 1270, 5.6)
+Site lighthouse           at (-2206, -8000, 0.5)
+Site radio mast           at (-6744, 7248, 166.1)
+Site sugar mill           at (1430, 7500, 8.1)
+Site Rio Sol marina       at (2280, 188, 0.0)
+Site Okahatchee boat ramp at (-515, 6822, 7.7)
+Site Sawgrass tower       at (-4873, 420, 0.6)
+Sites finalized: 557 elements (0.02 s)
+Lane graph: 26691 lanes, 59937 connectors (1215831 pts), 36768 walk nodes, 53089 walk links, dead-end turning circles moved 0 / obstructed 0 (1.16 s)
+Loaded 12 collision cells
+Simulating 0.4 minutes around (2700, 750) r=200 with 100 cars, 80 peds
+LATDEV t=21.0 car 78 (Mochi 125) at 2591.5 852.8 lane 7577 u 8.5 latErr 1.25 v 4.8 vT 5.3 steer -0.35 diag e 0.00 psi 0.00 ff 0.00 st 0.00
+WATCH t=23.60 car 73 lane 7771 u 84.7/91.5 stopU 86.4 fp 7771 fu 85.94 pos (2598.4 565.3) latErr 0.00 diag 0.00 -0.00 0.00 0.00 steer 0.00 vF 1.68 yawRate 0.00 heading -1.571 pathDir -1.571 steerOut 0.00 imp 0 next conn 16089 sig 4 v 1.7 vT 6.8 stop 1000000000.0 obst 29.2(22) gateConn 16089 committed 1 amberGo 0 stopDone 1 mode 0 thr 0.65 brk 0.00
+WATCH t=23.70 car 73 lane 7771 u 84.8/91.5 stopU 86.4 fp 7771 fu 86.12 pos (2598.4 565.2) latErr 0.00 diag 0.00 -0.00 0.00 0.00 steer 0.00 vF 1.95 yawRate -0.00 heading -1.571 pathDir -1.571 steerOut 0.00 imp 0 next conn 16089 sig 4 v 1.9 vT 6.7 stop 1000000000.0 obst 30.1(22) gateConn 16089 committed 1 amberGo 0 stopDone 1 mode 0 thr 0.65 brk 0.00
+WATCH t=23.80 car 73 lane 7771 u 85.1/91.5 stopU 86.4 fp 7771 fu 86.33 pos (2598.4 564.9) latErr 0.00 diag 0.00 -0.00 0.00 0.00 steer 0.00 vF 2.22 yawRate -0.00 heading -1.571 pathDir -1.571 steerOut 0.00 imp 0 next conn 16089 sig 4 v 2.2 vT 6.7 stop 1000000000.0 obst 31.0(22) gateConn 16089 committed 1 amberGo 0 stopDone 1 mode 0 thr 0.65 brk 0.00
+WATCH t=23.90 car 73 lane 7771 u 85.3/91.5 stopU 86.4 fp 7771 fu 86.57 pos (2598.4 564.7) latErr 0.00 diag 0.00 -0.00 0.00 0.00 steer 0.00 vF 2.50 yawRate -0.00 heading -1.571 pathDir -1.571 steerOut 0.00 imp 0 next conn 16089 sig 4 v 2.5 vT 6.6 stop 1000000000.0 obst 31.9(22) gateConn 16089 committed 1 amberGo 0 stopDone 1 mode 0 thr 0.65 brk 0.00
+WATCH t=24.00 car 73 lane 7771 u 85.6/91.5 stopU 86.4 fp 7771 fu 86.83 pos (2598.4 564.4) latErr 0.00 diag 0.00 -0.00 0.00 0.00 steer 0.00 vF 2.77 yawRate -0.00 heading -1.571 pathDir -1.571 steerOut 0.00 imp 0 next conn 16089 sig 4 v 2.8 vT 6.4 stop 1000000000.0 obst 32.7(22) gateConn 16089 committed 1 amberGo 0 stopDone 1 mode 0 thr 0.65 brk 0.00
+WATCH t=24.10 car 73 lane 7771 u 85.8/91.5 stopU 86.4 fp 7771 fu 87.12 pos (2598.4 564.2) latErr 0.00 diag 0.00 -0.00 0.00 0.00 steer 0.00 vF 3.04 yawRate -0.00 heading -1.571 pathDir -1.571 steerOut 0.00 imp 0 next conn 16089 sig 4 v 3.0 vT 6.3 stop 1000000000.0 obst 32.5(22) gateConn 16089 committed 1 amberGo 0 stopDone 1 mode 0 thr 0.65 brk 0.00
+WATCH t=24.20 car 73 lane 7771 u 86.2/91.5 stopU 86.4 fp 7771 fu 87.44 pos (2598.4 563.8) latErr 0.00 diag 0.00 -0.00 0.00 0.00 steer 0.00 vF 3.32 yawRate -0.00 heading -1.571 pathDir -1.571 steerOut 0.00 imp 0 next conn 16089 sig 4 v 3.3 vT 6.1 stop 1000000000.0 obst 32.2(22) gateConn 16089 committed 1 amberGo 0 stopDone 1 mode 0 thr 0.65 brk 0.00
+WATCH t=24.30 car 73 lane 7771 u 86.5/91.5 stopU 86.4 fp 7771 fu 87.79 pos (2598.4 563.5) latErr 0.00 diag 0.00 -0.00 0.00 -0.00 steer -0.00 vF 3.59 yawRate -0.00 heading -1.571 pathDir -1.571 steerOut -0.00 imp 0 next conn 16089 sig 4 v 3.6 vT 6.0 stop 1000000000.0 obst 34.8(22) gateConn 16089 committed 1 amberGo 0 stopDone 1 mode 0 thr 0.65 brk 0.00
+WATCH t=24.40 car 73 lane 7771 u 86.9/91.5 stopU 86.4 fp 7771 fu 88.16 pos (2598.4 563.1) latErr 0.00 diag 0.00 0.00 0.00 -0.00 steer -0.00 vF 3.87 yawRate -0.00 heading -1.571 pathDir -1.571 steerOut 0.00 imp 0 next conn 16089 sig 4 v 3.9 vT 5.8 stop 1000000000.0 obst 34.5(22) gateConn 16089 committed 1 amberGo 0 stopDone 1 mode 0 thr 0.65 brk 0.00
+WATCH t=24.50 car 73 lane 7771 u 87.3/91.5 stopU 86.4 fp 7771 fu 88.56 pos (2598.4 562.7) latErr 0.00 diag 0.00 0.00 0.00 -0.00 steer -0.00 vF 4.14 yawRate -0.00 heading -1.571 pathDir -1.571 steerOut -0.00 imp 0 next conn 16089 sig 4 v 4.1 vT 5.6 stop 1000000000.0 obst 36.4(22) gateConn 16089 committed 1 amberGo 0 stopDone 1 mode 0 thr 0.65 brk 0.00
+WATCH t=24.60 car 73 lane 7771 u 87.7/91.5 stopU 86.4 fp 7771 fu 88.99 pos (2598.4 562.3) latErr 0.00 diag 0.00 0.00 0.00 -0.00 steer -0.00 vF 4.40 yawRate -0.00 heading -1.571 pathDir -1.571 steerOut -0.00 imp 0 next conn 16089 sig 4 v 4.4 vT 5.3 stop 1000000000.0 obst 36.6(22) gateConn 16089 committed 1 amberGo 0 stopDone 1 mode 0 thr 0.57 brk 0.00
+WATCH t=24.70 car 73 lane 7771 u 88.2/91.5 stopU 86.4 fp 7771 fu 89.44 pos (2598.4 561.8) latErr 0.00 diag 0.00 0.00 0.00 -0.00 steer -0.00 vF 4.58 yawRate 0.00 heading -1.571 pathDir -1.571 steerOut -0.00 imp 0 next conn 16089 sig 4 v 4.6 vT 5.1 stop 1000000000.0 obst 37.8(22) gateConn 16089 committed 1 amberGo 0 stopDone 1 mode 0 thr 0.48 brk 0.00
+WATCH t=24.80 car 73 lane 7771 u 88.6/91.5 stopU 86.4 fp 7771 fu 89.91 pos (2598.4 561.4) latErr 0.00 diag 0.00 0.00 0.00 -0.00 steer -0.00 vF 4.71 yawRate 0.00 heading -1.571 pathDir -1.571 steerOut -0.00 imp 0 next conn 16089 sig 4 v 4.7 vT 4.8 stop 1000000000.0 obst 38.4(22) gateConn 16089 committed 1 amberGo 0 stopDone 1 mode 0 thr 0.39 brk 0.00
+WATCH t=24.90 car 73 lane 7771 u 89.1/91.5 stopU 86.4 fp 7771 fu 90.38 pos (2598.4 560.9) latErr 0.00 diag 0.00 0.00 0.00 -0.00 steer 0.00 vF 4.71 yawRate 0.00 heading -1.571 pathDir -1.571 steerOut 0.00 imp 0 next conn 16089 sig 4 v 4.7 vT 4.5 stop 1000000000.0 obst 38.3(22) gateConn 16089 committed 1 amberGo 0 stopDone 1 mode 0 thr 0.00 brk 0.00
+
+==== Traffic metrics (25 s simulated, 100 cars, 80 peds, 0.70 vehicle-hours) ====
+collisions: 0 (0.00 per vehicle-hour), hard (>3000 Ns): 0 (0.00/veh-h)
+static impacts (walls/props >2500 Ns): 0, props broken: 0
+red-light violations: 0, stop-sign violations: 0
+stuck recoveries: 0, relocalizations: 0, deadlocks (>60 s waits): 0, respawns: 11
+pedestrians hit: 0
+average speed by road class (km/h):  boulevard 13.4 (106 s)  avenue 19.3 (289 s)  street 13.2 (1913 s)
+lane-center error (RMS, lanes, v>3 m/s): 0.057 m
+AI cost per 60 Hz tick: traffic 0.194 ms + peds 0.025 ms (avg), p50 0.211 ms, p99 0.373 ms, max 0.465 ms
+physics per 120 Hz step: 0.441 ms (100 cars)

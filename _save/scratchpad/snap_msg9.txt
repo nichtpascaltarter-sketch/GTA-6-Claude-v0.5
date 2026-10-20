@@ -1,0 +1,19 @@
+Wet ground without blotches, smoke that respects headlights, crowd LODs, coloured mission markers
+
+- Renderer: dark blotches and holes on wet ground at night are gone. Screen-space reflection rays now start a hair
+  above the surface instead of hitting the next texel of the same ground, the depth pyramid is addressed in mip-0
+  units on screens whose size isn't a power of two, and a ray that reaches a wall's plane refines instead of slipping
+  through. Rain ripples too fine for the pixel turn into roughness instead of speckles. A frame without history
+  (after a cut) reflects along the mirror ray, smooth and glossy instead of a scatter of hits and misses.
+- Smoke and particles are lit by the nearby lamps through their spot cones and headlight beams, a gradient across
+  each puff: a smoking engine by a landing light glows instead of turning into a white disc.
+- Mission markers glow and shade in their own colour (the shader never read the marker's tint).
+- Characters: crowd LODs (LOD1 ~4.5k triangles, LOD2 ~1.5k) with mitten hands, braids and locs painted onto the
+  scalp, low-poly eyes and the beard keeping its colour; a faster decimator. Tees get simple two-tone chest prints,
+  and tank tops end at the hip.
+- Paramedics run to a scene, and an ambulance held up in traffic goes the rest of the way on foot when close, or is
+  moved past the jam out of sight.
+- Missions: burning wrecks near a scripted scene are put out as it starts (a shot-up chase car exploded during
+  Wake's interrogation and threw the cast across the frame); the same for Clear Air, Gator Country and King Tide.
+- Tools: the character viewer shows the protagonists and the crowd LODs (--protagonists, --clod); local test tools
+  built in the tree are ignored by git.

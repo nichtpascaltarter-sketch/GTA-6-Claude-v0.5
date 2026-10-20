@@ -1,0 +1,5 @@
+ntw 1 world
+# the world model's test world: two districts joined by a trunk causeway
+world palmera name="Palmera"
+district cl name="Calle Luna" label=200.00,200.00 order=1
+district sb name="Sol Beach" label=800.00,200.00 order=2

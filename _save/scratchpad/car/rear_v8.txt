@@ -1,0 +1,72 @@
+Minnow       s2 1.58 in  hand 0.000 0.089  SHELL  44/256 (0.056) seated 0.038  CROSS  47  pop 0.035
+Minnow       s2 1.58 out hand 0.000 0.083  SHELL  46/174 (0.060) seated 0.060  CROSS  46  pop 0.088
+Minnow       s2 1.76 in  hand 0.001 0.053  SHELL  55/256 (0.060) seated 0.060  CROSS  58  pop 0.030
+Minnow       s2 1.76 out hand 0.000 0.047  SHELL  46/174 (0.060) seated 0.060  CROSS  46  pop 0.073
+Minnow       s2 1.94 in  hand 0.017 0.000  SHELL  27/256 (0.060) seated 0.059  CROSS  58  pop 0.035
+Minnow       s2 1.94 out hand 0.000 0.041  SHELL  42/174 (0.060) seated 0.060  CROSS  43  pop 0.084
+Glint        s2 1.58 in  hand 0.000 0.005  SHELL  10/259 (0.051) seated 0.016  CROSS  36  pop 0.035
+Glint        s2 1.58 out hand 0.000 0.000  SHELL  46/174 (0.060) seated 0.060  CROSS  46  pop 0.077
+Glint        s2 1.76 in  hand 0.001 0.000  SHELL  48/259 (0.060) seated 0.059  CROSS  55  pop 0.029
+Glint        s2 1.76 out hand 0.000 0.000  SHELL  47/174 (0.060) seated 0.060  CROSS  47  pop 0.068
+Glint        s2 1.94 in  hand 0.005 0.000  SHELL  12/259 (0.060) seated 0.049  CROSS  45  pop 0.034
+Glint        s2 1.94 out hand 0.000 0.000  SHELL  42/174 (0.060) seated 0.060  CROSS  43  pop 0.071
+Harbor       s2 1.58 in  hand 0.000 0.166  SHELL  33/259 (0.058) seated 0.060  CROSS  36  pop 0.039
+Harbor       s2 1.58 out hand 0.000 0.156  SHELL  36/174 (0.060) seated 0.060  CROSS  46  pop 0.115
+Harbor       s2 1.76 in  hand 0.001 0.072  SHELL  43/259 (0.060) seated 0.060  CROSS  58  pop 0.037
+Harbor       s2 1.76 out hand 0.000 0.115  SHELL  47/174 (0.060) seated 0.060  CROSS  47  pop 0.112
+Harbor       s2 1.94 in  hand 0.015 0.015  SHELL  31/259 (0.052) seated 0.060  CROSS  43  pop 0.047
+Harbor       s2 1.94 out hand 0.000 0.090  SHELL  42/174 (0.060) seated 0.060  CROSS  43  pop 0.103
+Seiran       s2 1.58 in  hand 0.000 0.164  SHELL   8/259 (0.047) seated 0.060  CROSS  36  pop 0.039
+Seiran       s2 1.58 out hand 0.000 0.155  SHELL  44/174 (0.060) seated 0.060  CROSS  46  pop 0.109
+Seiran       s2 1.76 in  hand 0.000 0.033  SHELL  46/259 (0.060) seated 0.060  CROSS  58  pop 0.037
+Seiran       s2 1.76 out hand 0.000 0.104  SHELL  47/174 (0.060) seated 0.060  CROSS  47  pop 0.111
+Seiran       s2 1.94 in  hand 0.016 0.000  SHELL  20/259 (0.060) seated 0.060  CROSS  49  pop 0.047
+Seiran       s2 1.94 out hand 0.000 0.079  SHELL  42/174 (0.060) seated 0.060  CROSS  43  pop 0.111
+Falke 7      s2 1.58 in  hand 0.000 0.000  SHELL  32/259 (0.031) seated 0.026  CROSS  36  pop 0.040
+Falke 7      s2 1.58 out hand 0.000 0.000  SHELL  39/174 (0.060) seated 0.060  CROSS  40  pop 0.067
+Falke 7      s2 1.76 in  hand 0.001 0.000  SHELL  26/259 (0.060) seated 0.051  CROSS  43  pop 0.037
+Falke 7      s2 1.76 out hand 0.000 0.000  SHELL  47/174 (0.060) seated 0.060  CROSS  47  pop 0.071
+Falke 7      s2 1.94 in  hand 0.010 0.000  SHELL   9/259 (0.051) seated 0.059  CROSS  32  pop 0.047
+Falke 7      s2 1.94 out hand 0.000 0.000  SHELL  41/174 (0.060) seated 0.060  CROSS  44  pop 0.081
+Governor     s2 1.58 in  hand 0.000 0.181  SHELL  34/259 (0.026) seated 0.060  CROSS  38  pop 0.039
+Governor     s2 1.58 out hand 0.000 0.170  SHELL  30/174 (0.060) seated 0.060  CROSS  46  pop 0.121
+Governor     s2 1.76 in  hand 0.001 0.145  SHELL  54/259 (0.060) seated 0.060  CROSS  58  pop 0.037
+Governor     s2 1.76 out hand 0.000 0.136  SHELL  47/174 (0.060) seated 0.060  CROSS  49  pop 0.110
+Governor     s2 1.94 in  hand 0.022 0.051  SHELL  11/259 (0.044) seated 0.060  CROSS  41  pop 0.047
+Governor     s2 1.94 out hand 0.000 0.112  SHELL  41/174 (0.060) seated 0.060  CROSS  43  pop 0.106
+Sawgrass     s2 1.58 in  hand 0.000 0.000  SHELL  41/259 (0.060) seated 0.026  CROSS  45  pop 0.055
+Sawgrass     s2 1.58 out hand 0.000 0.000  SHELL  46/174 (0.060) seated 0.060  CROSS  47  pop 0.063
+Sawgrass     s2 1.76 in  hand 0.000 0.000  SHELL  49/259 (0.060) seated 0.011  CROSS  59  pop 0.050
+Sawgrass     s2 1.76 out hand 0.000 0.000  SHELL  47/174 (0.060) seated 0.060  CROSS  47  pop 0.059
+Sawgrass     s2 1.94 in  hand 0.001 0.000  SHELL  42/259 (0.060) seated 0.034  CROSS  47  pop 0.044
+Sawgrass     s2 1.94 out hand 0.000 0.000  SHELL  42/174 (0.060) seated 0.060  CROSS  44  pop 0.056
+Kumo         s2 1.58 in  hand 0.000 0.055  SHELL  39/255 (0.054) seated 0.019  CROSS  51  pop 0.049
+Kumo         s2 1.58 out hand 0.000 0.050  SHELL  46/174 (0.060) seated 0.060  CROSS  46  pop 0.076
+Kumo         s2 1.76 in  hand 0.000 0.014  SHELL  52/255 (0.060) seated 0.060  CROSS  60  pop 0.045
+Kumo         s2 1.76 out hand 0.000 0.009  SHELL  46/174 (0.060) seated 0.060  CROSS  46  pop 0.073
+Kumo         s2 1.94 in  hand 0.001 0.007  SHELL  52/255 (0.060) seated 0.057  CROSS  53  pop 0.038
+Kumo         s2 1.94 out hand 0.000 0.002  SHELL  43/174 (0.060) seated 0.060  CROSS  43  pop 0.064
+Ostgrat X5   s2 1.58 in  hand 0.000 0.000  SHELL  38/259 (0.060) seated 0.017  CROSS  34  pop 0.052
+Ostgrat X5   s2 1.58 out hand 0.000 0.000  SHELL  37/174 (0.060) seated 0.060  CROSS  40  pop 0.060
+Ostgrat X5   s2 1.76 in  hand 0.000 0.000  SHELL  43/259 (0.059) seated 0.023  CROSS  50  pop 0.047
+Ostgrat X5   s2 1.76 out hand 0.000 0.000  SHELL  47/174 (0.060) seated 0.060  CROSS  47  pop 0.056
+Ostgrat X5   s2 1.94 in  hand 0.000 0.000  SHELL  44/259 (0.060) seated 0.023  CROSS  33  pop 0.040
+Ostgrat X5   s2 1.94 out hand 0.000 0.000  SHELL  43/174 (0.060) seated 0.060  CROSS  46  pop 0.057
+Palomino     s2 1.58 in  hand 0.000 0.000  SHELL  30/259 (0.060) seated 0.060  CROSS  35  pop 0.067
+Palomino     s2 1.58 out hand 0.000 0.000  SHELL  20/174 (0.042) seated 0.060  CROSS  28  pop 0.061
+Palomino     s2 1.76 in  hand 0.000 0.000  SHELL  50/259 (0.060) seated 0.060  CROSS  39  pop 0.061
+Palomino     s2 1.76 out hand 0.000 0.000  SHELL  30/174 (0.060) seated 0.060  CROSS  35  pop 0.057
+Palomino     s2 1.94 in  hand 0.000 0.000  SHELL  18/259 (0.058) seated 0.060  CROSS  30  pop 0.053
+Palomino     s2 1.94 out hand 0.000 0.000  SHELL  34/174 (0.060) seated 0.060  CROSS  36  pop 0.059
+Tekko        s2 1.58 in  hand 0.000 0.027  SHELL  52/259 (0.060) seated 0.060  CROSS  51  pop 0.063
+Tekko        s2 1.58 out hand 0.000 0.016  SHELL  11/174 (0.060) seated 0.060  CROSS  27  pop 0.063
+Tekko        s2 1.76 in  hand 0.000 0.000  SHELL  54/259 (0.060) seated 0.060  CROSS  58  pop 0.057
+Tekko        s2 1.76 out hand 0.000 0.000  SHELL  15/174 (0.060) seated 0.060  CROSS  36  pop 0.077
+Tekko        s2 1.94 in  hand 0.000 0.000  SHELL  30/259 (0.060) seated 0.060  CROSS  45  pop 0.050
+Tekko        s2 1.94 out hand 0.000 0.000  SHELL  40/174 (0.060) seated 0.060  CROSS  40  pop 0.084
+Tomo         s2 1.58 in  hand 0.000 0.134  SHELL   1/259 (0.026) seated 0.052  CROSS   4  pop 0.028
+?? Tomo         seat 2 h 1.58 out: roof 0.000@-1.00(b-1) pillar 0.016@1.07(b8) sill 0.000@-1.00(b-1) door 0.000@-1.00(b-1) ground 0.042(b21)  hand out 0.000 in 0.100  SHELL 0.000@-1.00(b-1 at 0.00 0.00 0.00) 0/174 frames, seated 0.014  CROSS 0.000@-1.00(b-1 at 0.00 0.00 0.00  mat 0) 0 frames, 0 verts pop 0.058@1.65 belt off 0.30 open 0.93  (1468 ms)
+Tomo         s2 1.76 in  hand 0.000 0.067  SHELL   0/259 (0.002) seated 0.060  CROSS   2  pop 0.031
+Tomo         s2 1.76 out hand 0.000 0.059  SHELL   1/174 (0.033) seated 0.029  CROSS   4  pop 0.065
+Tomo         s2 1.94 in  hand 0.001 0.060  SHELL   7/259 (0.059) seated 0.060  CROSS  28  pop 0.035
+Tomo         s2 1.94 out hand 0.000 0.053  SHELL   3/174 (0.055) seated 0.058  CROSS  14  pop 0.070

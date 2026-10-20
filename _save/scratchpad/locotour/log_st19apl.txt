@@ -1,0 +1,418 @@
+[   0.000] Neon Tide starting (version 0.02.7-dev). Data dir: C:\users\root\AppData\Local\NeonTide\
+[   0.871] DXGI is Wine's builtin implementation: presenting with sync interval 0 (no vsync)
+[   1.491] Direct3D 12 device created: adapter 'NVIDIA GeForce GTX 470', VRAM 16093 MB, feature level 11_1, resource binding tier 3, resource heap tier 2, typed UAV loads yes, tearing yes, bindless UAV arrays yes, 2 frames in flight
+[   1.497] UI font 'Segoe UI Semibold' -> 'Liberation Sans'
+[   1.561] UI font 'Bahnschrift SemiBold Condensed' -> 'Liberation Sans'
+[   1.635] UI font 'Impact' -> 'Liberation Sans'
+[   1.747] Font atlas built in 0.25 s
+[   1.791] Audio: no output device - audio disabled
+[   1.791] Audio: no output device, continuing silently
+[   1.791] Updater: no update check (automated run)
+[   3.347] UI icon atlas: 92 icons + 13 weapons in 1511 ms
+[  19.371] Places: Ocean Promenade hotel row, 11 hotels at x 5365 (ground 2.4), park 681..1050
+[  19.371] Places: Porto Sol University at (1950, 3700), ground 3.3, 13 halls
+[  19.372] Places: Santa Marea Cemetery at (1600, -750), ground 3.5, 67 mourners
+[  19.372] Places: Palmera State Penitentiary at (350, 9075), ground 6.9
+[  19.372] Places: Palmera Speedway at (400, 5790), ground 6.8
+[  19.372] Places: layout 0.001 s, 5 places, 624 anchors
+[  19.373] Transit: SkyLine loop 8.60 km, 8 stations, 4299 samples; 3 ferry piers
+[  19.392] Sites: 111 pads, 613 elements, 25 roads, 53 buildings requested (0.05 s)
+[  20.241] World map generated in 18.45 s
+[  20.977] Road gen: 18 interchanges, 50 ramps (22 left out where they could not come down in time)
+[  21.341] Road gen: 1 arterial ends at a lone on/off ramp given a turnaround
+[  24.236] Road gen: junction plateaus, 489 profile points levelled (largest change 0.70 m, 6 short links ramped plateau to plateau)
+[  25.476] Road network: 6223 nodes, 9547 edges, 1690 signalized; hwy 61.7 km, streets 1165.8 km (5.22 s)
+[  29.992] Transit: 0 buildings cleared from the SkyLine corridor
+[  30.009] Places: Okahatchee Union Church at (-48, 6872) on edge 4965, 6 buildings made way, 186 graves, 19 mourners
+[  30.051] Places: Old Fort Church at (4501, 7893) on edge 4035, 4 buildings made way, 166 graves, 18 mourners
+[  30.053] Places: Tidewater General Hospital (city) at (1698, 1100) on edge 6868, 7 buildings made way
+[  30.073] Places: Midtown General (city) at (3698, 3195) on edge 9083, 15 buildings made way
+[  30.320] Places: Westbrook Hospital (community) at (-2399, 1647) on edge 5533, 4 buildings made way
+[  30.393] Places: Sol Beach Clinic (clinic) at (5172, -904) on edge 3026, 3 buildings made way
+[  30.405] Places: Harlow County Hospital (community) at (-4886, 5241) on edge 5324, 4 buildings made way
+[  30.434] Places: Okahatchee Medical (community) at (-54, 6622) on edge 4961, 7 buildings made way
+[  30.541] Places: Redland Health (clinic) at (-315, -5222) on edge 2100, 0 buildings made way
+[  30.617] Places: Fort Castell Hospital (community) at (4572, 8021) on edge 4096, 3 buildings made way
+[  30.634] Places: after the lots 0.639 s
+[  30.649] Buildings: 35617 (towers 352, midrise 2411, condo 427, deco 688, shops 4600, strip 640, houses 22192, villas 901, warehouses 1620) in 5.12 s
+[  30.666] Sites: 69 highway billboards
+[  30.684] Sites: 155 silos, 50 windmills
+[  30.693] Sites: 245 beach access paths
+[  30.876] Transit: 3 ferry piers, 1 routes, 4.24 km of water path (0.04 s)
+[  30.877] Transit: ferry pier Sol Beach  base (4836, -1250) length 90 deck 2.3 berth (4741, -1250)
+[  30.877] Transit: ferry pier Port Isle  base (4280, -1044) length 26 deck 2.3 berth (4280, -1075)
+[  30.877] Transit: ferry pier Key Coral  base (4350, -2973) length 58 deck 2.3 berth (4350, -2910)
+[  30.886] Transit: 4 bus routes, 64 stops (48 new shelters) (0.01 s); rejects class 1107 cut 1945 deck 72 road 119 avoid 0 pad 2 furn 283 stop 0
+[  30.887] Transit: bus 3   Airport      8.2 km, 17 stops, 4 buses, headway 6.3 min
+[  30.887] Transit: bus 7   Calle Luna   6.4 km, 15 stops, 3 buses, headway 6.7 min
+[  30.887] Transit: bus 9   Sol Beach    7.1 km, 14 stops, 4 buses, headway 5.4 min
+[  30.887] Transit: bus 12  Bayshore     8.3 km, 20 stops, 4 buses, headway 6.6 min
+[  30.907] Transit: Sol Beach Streetcar 6.24 km, 16 stops, 65 junctions (32 signalled, 30 stop signs), 229 poles, 4 streetcars, headway 4.9 min (0.02 s)
+[  30.907] Transit: streetcar stop Collins-Solano Ave & 46th St s    136 shelter (5191.0, 1496.1, 1.8) travel (-0.00, -1.00)
+[  30.907] Transit: streetcar stop 42nd St              s    511 shelter (5231.0, 1126.8, 1.7) travel (-0.00, -1.00)
+[  30.907] Transit: streetcar stop 38th St              s    892 shelter (5239.0, 746.9, 1.7) travel (-0.00, -1.00)
+[  30.907] Transit: streetcar stop 34th St              s   1277 shelter (5207.0, 367.8, 1.8) travel (0.00, -1.00)
+[  30.907] Transit: streetcar stop 30th St              s   1691 shelter (5239.0, -39.2, 1.9) travel (-0.00, -1.00)
+[  30.907] Transit: streetcar stop 26th St              s   2053 shelter (5231.1, -397.7, 1.8) travel (-0.30, -0.95)
+[  30.907] Transit: streetcar stop 22nd St              s   2427 shelter (5215.0, -773.2, 1.8) travel (-0.00, -1.00)
+[  30.907] Transit: streetcar stop 18th St              s   2811 shelter (5190.5, -1149.6, 1.9) travel (-0.30, -0.95)
+[  30.907] Transit: streetcar stop Ferry Terminal       s   3165 shelter (4941.9, -1174.6, 2.7) travel (0.30, 0.95)
+[  30.907] Transit: streetcar stop 21st St              s   3527 shelter (4973.4, -815.2, 2.9) travel (0.00, 1.00)
+[  30.907] Transit: streetcar stop 25th St              s   3920 shelter (4981.5, -425.5, 2.5) travel (0.30, 0.95)
+[  30.907] Transit: streetcar stop 29th St              s   4291 shelter (4997.4, -55.2, 2.0) travel (0.00, 1.00)
+[  30.907] Transit: streetcar stop 33rd St              s   4688 shelter (4965.4, 336.8, 2.5) travel (-0.00, 1.00)
+[  30.907] Transit: streetcar stop 37th St              s   5071 shelter (4997.4, 712.8, 2.7) travel (0.00, 1.00)
+[  30.907] Transit: streetcar stop 41st St              s   5443 shelter (4994.0, 1086.6, 1.9) travel (-0.30, 0.95)
+[  30.907] Transit: streetcar stop Bay Road & 46th St   s   5926 shelter (4938.0, 1561.6, 3.0) travel (-0.30, 0.95)
+[  30.907] Transit: SkyLine profile 12.9..25.4 m above the street, 274 piers (0 straddle bents) (0.21 s)
+[  30.907] Transit: station Calle Luna       s    691 at (1850, -629) rail 16.5 street 3.1 exits -1/+1
+[  30.907] Transit: station Solaris          s   1891 at (3050, -629) rail 15.0 street 1.5 exits -1/+1
+[  30.907] Transit: station Civic Center     s   3068 at (3275, 400) rail 14.9 street 1.5 exits -1/+1
+[  30.907] Transit: station Midtown          s   3868 at (3275, 1200) rail 15.0 street 1.6 exits -1/+1
+[  30.907] Transit: station Canvas District  s   4644 at (2750, 1529) rail 16.4 street 2.2 exits -1/+1
+[  30.908] Transit: station Palmetto Flats   s   5744 at (1650, 1529) rail 17.0 street 3.5 exits -1/+1
+[  30.908] Transit: station Airport          s   6567 at (979, 1300) rail 17.7 street 4.3 exits -1/+1
+[  30.908] Transit: station Westbrook        s   8067 at (979, -200) rail 17.8 street 4.4 exits -1/+1
+[  30.933] Site runway 09L|27R  from (-1180, 2080) to (820, 2080) z 4.6 width 60
+[  30.956] Site runway 09R|27L  from (-1100, 780) to (700, 780) z 4.6 width 45
+[  30.956] Site terminal             at (628, 1440, 4.6)
+[  30.956] Site control tower        at (730, 1832, 4.6)
+[  30.956] Site container ship       at (4625, -800, 0.0)
+[  30.956] Site container ship       at (4616, -330, 0.0)
+[  30.956] Site port gate            at (4008, -160, 3.0)
+[  30.956] Site Key Coral marina     at (4039, -4035, 0.0)
+[  30.956] Site beach club           at (4873, -3866, 1.2)
+[  30.956] Site beach club           at (4808, -4183, 2.2)
+[  30.956] Site Solaris One          at (3350, -750, 1.4)
+[  30.956] Site stadium              at (3565, 445, 1.6)
+[  30.956] Site City Hall            at (3000, 372, 2.0)
+[  30.956] Site Canvas Park          at (3100, 1800, 1.7)
+[  30.956] Site Sol Beach Pier from (5414, 1250) to (5840, 1250) deck z 5.6
+[  30.956] Site Ferris wheel         at (5504, 1270, 5.6)
+[  30.956] Site lighthouse           at (-2206, -8000, 0.5)
+[  30.956] Site radio mast           at (-6744, 7248, 166.1)
+[  30.956] Site sugar mill           at (1430, 7500, 8.1)
+[  30.956] Site Rio Sol marina       at (2280, 188, 0.0)
+[  30.956] Site Okahatchee boat ramp at (-515, 6822, 7.7)
+[  30.956] Site Sawgrass tower       at (-4873, 420, 0.6)
+[  30.956] Sites finalized: 1486 elements (0.29 s)
+[  31.058] Interiors: 29 planned (convenience 7, gun shops 2) in 101.3 ms
+[  31.075]   interior 'Mari's Apartment' kind 0 building 28142 at (1771.22, 359.23, 3.77) ax (1.0000, 0.0000) x -6.55..2.18 depth 11.50 ceil 3.84: 3 rooms, 3 openings, 3 doors, 3 portals, 0 npc points
+[  31.075]   interior 'Mama Lucha's' kind 2 building 26747 at (1351.86, 340.76, 4.29) ax (-1.0000, -0.0000) x -8.43..8.43 depth 16.00 ceil 4.20: 4 rooms, 5 openings, 4 doors, 5 portals, 34 npc points
+[  31.075]   interior 'Rook's Garage' kind 3 building 27288 at (1562.94, 2361.63, 4.30) ax (1.0000, 0.0000) x -9.74..9.74 depth 20.00 ceil 7.11: 3 rooms, 5 openings, 4 doors, 5 portals, 5 npc points
+[  31.075]   interior 'Dex's Trailer' kind 1 building 25527 at (1106.75, 2666.39, 4.87) ax (1.0000, 0.0000) x -17.46..17.46 depth 16.71 ceil 2.25: 3 rooms, 7 openings, 3 doors, 7 portals, 0 npc points
+[  31.075]   interior 'Police Headquarters' kind 5 building 32504 at (3167.89, -240.34, 1.86) ax (1.0000, 0.0000) x -11.84..11.84 depth 16.00 ceil 5.59: 2 rooms, 8 openings, 2 doors, 8 portals, 14 npc points
+[  31.075]   interior 'Tidewater General Hospital' kind 6 building 35599 at (1692.75, 1073.40, 3.63) ax (1.0000, 0.0000) x -9.55..9.55 depth 16.00 ceil 4.20: 2 rooms, 7 openings, 2 doors, 7 portals, 12 npc points
+[  31.075]   interior 'Palmetto Arms' kind 7 building 25538 at (988.27, 2896.06, 4.79) ax (0.0000, 1.0000) x 0.00..9.20 depth 14.00 ceil 4.20: 2 rooms, 1 openings, 2 doors, 1 portals, 3 npc points
+[  31.075]   interior 'Northside Arms' kind 7 building 32997 at (3284.62, 4017.67, 2.09) ax (0.0000, 1.0000) x -6.33..6.33 depth 14.00 ceil 4.03: 2 rooms, 4 openings, 2 doors, 4 portals, 3 npc points
+[  31.075]   interior 'Threads' kind 9 building 19677 at (5141.16, -280.63, 1.88) ax (-1.0000, 0.0000) x -5.68..8.51 depth 15.00 ceil 3.91: 2 rooms, 6 openings, 2 doors, 6 portals, 4 npc points
+[  31.075]   interior 'Port Isle Warehouse' kind 12 building 35552 at (4034.00, -820.00, 3.15) ax (-0.0000, 1.0000) x -23.22..23.22 depth 38.00 ceil 8.93: 2 rooms, 10 openings, 4 doors, 10 portals, 4 npc points
+[  31.075]   interior 'TideStop Mart' kind 8 building 26846 at (1475.59, -259.27, 4.22) ax (-1.0000, -0.0000) x -6.05..6.05 depth 17.00 ceil 4.20: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+[  31.075]   interior 'Bodega La Luna' kind 8 building 29653 at (2255.23, 540.74, 2.91) ax (-1.0000, -0.0000) x -5.95..5.95 depth 17.00 ceil 3.98: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+[  31.075]   interior 'Canvas Corner Market' kind 8 building 32545 at (3090.56, 1476.66, 2.21) ax (0.0000, 1.0000) x -7.40..7.40 depth 17.00 ceil 3.92: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+[  31.075]   interior 'Sunrise Food Mart' kind 8 building 19719 at (5227.62, 641.71, 1.78) ax (0.0000, 1.0000) x -7.96..7.96 depth 17.00 ceil 3.43: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+[  31.075]   interior 'Northside Quick Stop' kind 8 building 29914 at (2304.43, 3761.63, 3.12) ax (1.0000, 0.0000) x -6.89..6.89 depth 17.00 ceil 4.12: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+[  31.075]   interior 'Flats Food & Fuel' kind 8 building 24842 at (467.58, 3361.67, 5.21) ax (1.0000, 0.0000) x -10.79..3.60 depth 17.00 ceil 4.20: 2 rooms, 1 openings, 2 doors, 1 portals, 5 npc points
+[  31.075]   interior 'Grove Pantry' kind 8 building 1182 at (2175.54, -3113.27, 2.23) ax (0.0207, -0.9998) x -6.96..6.96 depth 17.00 ceil 2.80: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+[  31.075]   interior 'Palm Motors' kind 17 building 31294 at (2686.87, 1279.16, 2.69) ax (0.0000, 1.0000) x -9.08..12.11 depth 20.00 ceil 3.90: 2 rooms, 8 openings, 3 doors, 8 portals, 5 npc points
+[  31.075]   interior 'Tide Customs Calle Luna' kind 18 building 29601 at (2278.47, -140.75, 2.99) ax (1.0000, 0.0000) x -7.61..7.61 depth 18.00 ceil 4.17: 1 rooms, 6 openings, 2 doors, 6 portals, 3 npc points
+[  31.075]   interior 'Tide Customs Sol Beach' kind 18 building 19788 at (5127.28, 1999.35, 1.92) ax (-1.0000, 0.0000) x -8.01..8.01 depth 18.00 ceil 3.72: 1 rooms, 6 openings, 2 doors, 6 portals, 3 npc points
+[  31.076]   interior 'Sunwash Car Wash' kind 19 building 29044 at (1988.34, 1491.32, 3.44) ax (0.0000, 1.0000) x -7.41..7.41 depth 20.00 ceil 8.08: 1 rooms, 5 openings, 3 doors, 5 portals, 2 npc points
+[  31.076]   interior 'Key Coral Villa' kind 0 building 23718 at (4516.12, -4203.72, 1.64) ax (0.9992, 0.0401) x -7.21..7.21 depth 12.00 ceil 2.80: 3 rooms, 5 openings, 3 doors, 5 portals, 0 npc points
+[  31.076]   interior 'Sol Beach Condo Lobby' kind 20 building 19771 at (5114.61, 1619.32, 1.86) ax (-1.0000, 0.0000) x -5.88..5.88 depth 10.00 ceil 4.20: 2 rooms, 4 openings, 2 doors, 4 portals, 2 npc points
+[  31.076]   interior 'Sol Beach Condo' kind 21 building 19771 at (5114.61, 1619.32, 31.52) ax (-1.0000, 0.0000) x -9.80..5.88 depth 12.00 ceil 2.61: 6 rooms, 4 openings, 5 doors, 4 portals, 0 npc points
+[  31.076]   interior 'Downtown Penthouse Lobby' kind 20 building 33543 at (3511.22, -715.16, 1.71) ax (-0.0000, -1.0000) x -5.25..5.25 depth 10.00 ceil 4.20: 2 rooms, 3 openings, 2 doors, 3 portals, 2 npc points
+[  31.076]   interior 'Downtown Penthouse' kind 21 building 33543 at (3511.22, -715.16, 52.15) ax (-0.0000, -1.0000) x -10.49..10.49 depth 14.00 ceil 2.80: 6 rooms, 4 openings, 5 doors, 4 portals, 0 npc points
+[  31.076]   interior 'Club Riptide' kind 4 building -1 at (5424.10, 900.00, 1.36) ax (0.0000, -1.0000) x -55.00..17.00 depth 32.00 ceil 4.00: 4 rooms, 0 openings, 0 doors, 0 portals, 32 npc points
+[  31.076]   interior 'Solaris One' kind 10 building -1 at (3350.00, -786.00, 1.89) ax (1.0000, -0.0000) x -18.40..18.40 depth 31.00 ceil 8.30: 3 rooms, 4 openings, 4 doors, 4 portals, 17 npc points
+[  31.076]   interior 'Solaris One Penthouse' kind 11 building -1 at (3365.30, -759.93, 457.34) ax (0.5442, 0.8390) x -18.24..18.24 depth 36.48 ceil 8.20: 4 rooms, 4 openings, 1 doors, 4 portals, 15 npc points
+[  31.251] Buildings: 33925 restyled by district palettes in 174.5 ms (taxpayer 1392, 1920s block 924, med revival 774, mimo shop 1036, bodega 338, arcade 118, gallery 11, walk-up 497, mimo apts 763, med apts 530, office 60s 129, modern 372, loft 80, condo slab 134, glass condo 113, mimo hotel 97, podium condo 78, ranch 5438, bungalow 2806, med house 3406, two-storey 2417, mimo house 1933, split level 2251, conch 265, modern villa 190, streamline 176, med hotel 117, mimo motel 133, sawtooth 540, ware office 551, body shop 282, med villa 307, colonial villa 135, stilt house 73, mimo motor court 161, med motel 90, keys motel 113, motor inn 90, mission strip 199, mimo strip 186, power center 255, gambrel barn 34, pole barn 43, gable barn 24, mission church 47, board church 46, brick church 25, a-frame church 43, cbs house 3237, folk victorian 363, raised keys house 63, mobile home 149)
+[  31.704] Transit: 0 buildings cleared from the SkyLine corridor
+[  31.705] Buildings: block infill 3458 back buildings (garage rows 720, sheds 1872, back houses 866, 0 in the viaduct corridor dropped, 1210 near a street left as yards), 1465 rear parking lots, 5760 yards in 454.0 ms
+[  31.981] Transit: 0 buildings cleared from the SkyLine corridor
+[  31.981] Buildings: frontage fill 4300 gaps: 1676 vacant lots, 731 street parking lots, 649 side yards, 458 service yards, 786 left bare (276.3 ms)
+[  32.100] Buildings: repetition (neighbours within 150 m with the same style, archetype, massing, roof, height band and facade pattern): 2.0% overall, 56% of buildings without a twin; by district: Downtown Porto Sol 2.8%, Solaris 3.0%, Canvas District 0.8%, North Porto Sol 1.0%, Calle Luna 1.4%, Sol Beach 1.7%, Key Coral 4.6%, The Grove 2.0%, Palmetto Flats 1.2%, Westbrook 2.5%, Redland 3.0%, Ten Palms 1.6%, Palmera Farmlands 4.9%, Okahatchee 3.5%, Harlow 2.7%, Fort Castell 1.7%, Key Solano 2.5% (118.0 ms)
+[  37.850] Material library: 57 layers at 256^2
+[  38.079] Props: 83 prototypes, 43433 verts
+[  42.394] Vehicle assets: 45 models in 3.46 s
+[  75.611] Wardrobe: 29 dedicated looks (night out 12, door staff 3, sportswear 8, cover-ups 6); roster dressed for a night out 8 men / 9 women, office 9, work 6, swim 8, sport 6
+[  76.406] Character assets: 149 characters in 34.01 s
+[  76.418] Game assets built in 37.49 s
+[  76.467] Story place near (800, -5400): no building frontage found, using the street
+[  76.468] Story places resolved in 44.0 ms (diner 1350 342, Mari's 1771 358, Rook's 1566 2360, Pulse FM 3344 662, boatyard 1650 239, river 1644 140, sawgrass dock -5016 -74)
+[  76.475] Missions registered: 57
+[  79.999] Lane graph: 180 plaza walkways and 2 zebra crossings from the sites
+[  80.003] Lane graph: 25496 lanes, 56760 connectors (1154772 pts), 40687 walk nodes, 56441 walk links, dead-end turning circles moved 22 / obstructed 0 (3.52 s)
+[ 104.723] UI map: base 2560x2560 in 24664 ms, 9547 roads (43960 pts) in 16 ms, 37 labels in 39 ms
+[ 104.723] hudInit done in 24719 ms
+[ 104.723] Init done in 102.93 s (shaders: 0 compiled in 0.00 s)
+[ 104.739] Transit: SkyLine timetable built (7.1 ms): loop 12.4 / 12.4 min, 4 trains per direction, headway 3.1 min
+[ 104.739] Transit: 9 lines published to the map
+[ 104.742] Transit: SkyLine car models registered as vehicle assets 45 / 46
+[ 105.442] Transit: 4 route bus models (destination signs) in 695 ms
+[ 105.442] Transit: 64 bus stops registered with the AI (48 lane stops added, 240 waiting spots)
+[ 105.442] Transit: 15 buses on 4 routes
+[ 105.442] Transit: Bay Ferry timetable: loop 13.2 min, 2 ferries, headway 6.6 min
+[ 105.444] Transit: Sol Ferry model registered as vehicle asset 51
+[ 105.448] Transit: streetcar modules registered as vehicle assets 52 53 54
+[ 105.449] Transit: 16 streetcar stops registered (16 curb lanes kept clear)
+[ 105.449] Transit: 4 streetcars on the 6.24 km loop, 16 stops, 65/65 junction movements found
+[ 105.456] Stunt jumps: 0 road crests (0 candidates); ramps being placed
+[ 105.458] fishing: 9 spots (lake yes, 3 Keys docks)
+[ 107.735] Stunt ramps: 10 placed (0 over water) in 848 ms (25869 corridors tested); 10 unique stunt jumps
+[ 108.149] Wildlife: 28 species models ready (166 k triangles in the detailed LODs)
+[ 111.033] Interior 'TideStop Mart' built: 110618 triangles, 18 lights, 14 colliders, 3 door leaves in 144.5 ms
+[ 111.036] Interior 'Tide Customs Calle Luna' built: 11390 triangles, 11 lights, 15 colliders, 2 door leaves in 1.5 ms
+[ 125.217] locoplayer: switchback at 1855.9 -638.0 3.04, flights along 1.00 0.00 (23 boxes, 17 cm risers)
+[ 125.218] locoplayer: station Calle Luna, stair top 1815.4 -638.0 17.6, foot 1848.1 -638.0 3.1, 32.7 m long
+[ 216.086] Transit: 1.242 ms/frame avg, 1 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[ 248.846] Wildlife: 99 animals (91 birds) in 14 groups, 39 drawn in 11 draws | update 0.376 ms, render 0.212 ms
+[ 251.768] locoplayer seg 0: straight up walk, 25.0 s, 37.9 m, 1.51 m/s
+[ 282.690] Transit: 0.102 ms/frame avg, 1 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[ 382.794] locoplayer seg 1: straight down walk, 25.0 s, 37.9 m, 1.51 m/s
+[ 388.789] Transit: 0.062 ms/frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[ 391.228] Wildlife: 99 animals (91 birds) in 14 groups, 47 drawn in 9 draws | update 0.153 ms, render 0.230 ms
+[ 420.431] locoplayer deep switchback up walk foot 0: h  -4.8 b -16.3 t -17.0 cm | v 1.52 | age0.60 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.289
+[ 420.527] locoplayer deep switchback up walk foot 0: h  -5.6 b  -0.9 t -16.2 cm | v 1.52 | age0.03 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.289
+[ 420.540] locoplayer deep switchback up walk foot 0: h  -3.6 b  -1.2 t -17.3 cm | v 1.52 | age0.07 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.289
+[ 420.548] locoplayer deep switchback up walk foot 0: h   0.0 b   0.4 t -16.5 cm | v 1.52 | age0.10 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.289
+[ 420.557] locoplayer deep switchback up walk foot 0: h   0.0 b   0.1 t -16.9 cm | v 1.52 | age0.13 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.289
+[ 423.715] locoplayer deep switchback up walk foot 0: h   0.0 b   0.1 t -16.9 cm | v 1.52 | age0.17 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.289
+[ 423.728] locoplayer deep switchback up walk foot 0: h   0.0 b   0.1 t -16.9 cm | v 1.52 | age0.20 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.289
+[ 423.751] locoplayer deep switchback up walk foot 0: h   0.0 b   0.1 t -16.9 cm | v 1.52 | age0.23 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.289
+[ 423.791] locoplayer deep switchback up walk foot 0: h   0.0 b   0.0 t -16.9 cm | v 1.52 | age0.27 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.289
+[ 423.803] locoplayer deep switchback up walk foot 0: h   0.0 b   0.0 t -16.9 cm | v 1.52 | age0.30 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.289
+[ 423.816] locoplayer deep switchback up walk foot 0: h   0.0 b   0.0 t -17.0 cm | v 1.52 | age0.33 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.289
+[ 423.832] locoplayer deep switchback up walk foot 0: h   0.0 b   0.0 t -17.0 cm | v 1.52 | age0.37 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.289
+[ 423.837] locoplayer deep switchback up walk foot 0: h   0.1 b   0.0 t -17.0 cm | v 1.52 | age0.40 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.289
+[ 423.844] locoplayer deep switchback up walk foot 0: h   1.2 b   0.0 t -17.0 cm | v 1.52 | age0.43 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.289
+[ 423.845] locoplayer deep switchback up walk foot 0: h   3.6 b   0.1 t -17.0 cm | v 1.52 | age0.47 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.289
+[ 423.849] locoplayer deep switchback up walk foot 0: h   6.6 b   0.2 t -17.0 cm | v 1.52 | age0.50 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.289
+[ 423.859] locoplayer deep switchback up walk foot 0: h   9.7 b   0.4 t -17.0 cm | v 1.52 | age0.53 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.289
+[ 423.864] locoplayer deep switchback up walk foot 0: h  12.2 b   0.7 t -17.0 cm | v 1.52 | age0.57 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.289
+[ 423.866] locoplayer deep switchback up walk foot 0: h  13.9 b   1.0 t -17.0 cm | v 1.52 | age0.60 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.289
+[ 423.874] locoplayer deep switchback up walk foot 0: h  14.3 b   1.1 t -17.0 cm | v 1.52 | age0.63 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.289
+[ 429.908] locoplayer seg 2: switchback up walk, 6.8 s, 10.1 m, 1.50 m/s
+[ 444.347] locoplayer deep switchback down walk foot 0: h -17.0 b   1.6 t   2.2 cm | v 1.46 | age0.10 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.293
+[ 479.709] locoplayer seg 3: switchback down walk, 6.8 s, 10.2 m, 1.50 m/s
+[ 492.159] locoplayer deep straight up run foot 1: h   0.0 b   0.0 t -16.9 cm | v 4.10 | age0.10 ballProbe 1 stairLand -9.00 stepT -1.00 lead 0.144
+[ 492.166] locoplayer deep straight up run foot 1: h   1.3 b   0.0 t -16.9 cm | v 4.10 | age0.13 ballProbe 1 stairLand -9.00 stepT -1.00 lead 0.144
+[ 492.172] locoplayer deep straight up run foot 1: h   5.7 b   0.2 t -16.9 cm | v 4.10 | age0.17 ballProbe 1 stairLand -9.00 stepT -1.00 lead 0.144
+[ 492.182] locoplayer deep straight up run foot 1: h  10.3 b   0.5 t -16.9 cm | v 4.10 | age0.20 ballProbe 1 stairLand -9.00 stepT -1.00 lead 0.144
+[ 492.305] locoplayer deep straight up run foot 1: h  -1.4 b  -1.3 t -18.2 cm | v 4.10 | age0.03 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.128
+[ 492.312] locoplayer deep straight up run foot 1: h  -0.9 b  -0.9 t -17.8 cm | v 4.10 | age0.07 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.128
+[ 492.312] Transit: 0.084 ms/frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[ 492.318] locoplayer deep straight up run foot 1: h   0.1 b   0.0 t -16.9 cm | v 4.10 | age0.10 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.128
+[ 492.322] locoplayer deep straight up run foot 1: h   2.5 b   0.0 t -16.9 cm | v 4.10 | age0.13 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.128
+[ 495.129] locoplayer deep straight up run foot 1: h   7.2 b   0.2 t -16.9 cm | v 4.10 | age0.17 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.128
+[ 495.140] locoplayer deep straight up run foot 1: h  10.9 b   0.6 t -16.9 cm | v 4.10 | age0.20 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.128
+[ 495.377] locoplayer deep straight up run foot 0: h   0.0 b -16.9 t -16.9 cm | v 4.10 | age0.10 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.118
+[ 495.403] locoplayer deep straight up run foot 0: h   0.6 b -16.9 t -16.9 cm | v 4.10 | age0.13 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.118
+[ 495.442] locoplayer deep straight up run foot 0: h   4.5 b -16.8 t -16.9 cm | v 4.10 | age0.17 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.118
+[ 498.848] locoplayer deep straight up run foot 0: h   9.4 b -16.5 t -16.9 cm | v 4.10 | age0.20 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.118
+[ 498.892] locoplayer deep straight up run foot 1: h  -1.4 b  -0.8 t -17.5 cm | v 4.10 | age0.03 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.117
+[ 498.900] locoplayer deep straight up run foot 1: h  -0.9 b  -0.9 t -17.8 cm | v 4.10 | age0.07 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.117
+[ 498.908] locoplayer deep straight up run foot 1: h   0.0 b   0.0 t -16.9 cm | v 4.10 | age0.10 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.117
+[ 498.917] locoplayer deep straight up run foot 1: h   1.0 b   0.0 t -16.9 cm | v 4.10 | age0.13 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.117
+[ 498.925] locoplayer deep straight up run foot 1: h   5.2 b   0.1 t -16.9 cm | v 4.10 | age0.17 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.117
+[ 498.935] locoplayer deep straight up run foot 1: h  10.0 b   0.5 t -16.9 cm | v 4.10 | age0.20 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.117
+[ 523.151] locoplayer deep straight up run foot 1: h  -1.4 b   0.1 t -16.2 cm | v 4.10 | age0.03 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.113
+[ 523.155] locoplayer deep straight up run foot 1: h  -0.9 b  -0.9 t -17.8 cm | v 4.10 | age0.07 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.113
+[ 523.163] locoplayer deep straight up run foot 1: h   0.0 b   0.0 t -16.9 cm | v 4.10 | age0.10 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.113
+[ 523.175] locoplayer deep straight up run foot 1: h   0.2 b   0.0 t -16.9 cm | v 4.10 | age0.13 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.113
+[ 523.179] locoplayer deep straight up run foot 1: h   3.4 b   0.1 t -16.9 cm | v 4.10 | age0.17 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.113
+[ 523.187] locoplayer deep straight up run foot 1: h   8.3 b   0.3 t -16.9 cm | v 4.10 | age0.20 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.113
+[ 526.292] locoplayer deep straight up run foot 1: h   0.0 b -16.9 t -16.9 cm | v 4.10 | age0.10 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.113
+[ 526.293] locoplayer deep straight up run foot 1: h   0.7 b -16.9 t -16.9 cm | v 4.10 | age0.13 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.113
+[ 526.299] locoplayer deep straight up run foot 1: h   4.7 b -16.8 t -16.9 cm | v 4.10 | age0.17 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.113
+[ 536.975] locoplayer deep straight up run foot 0: h  -1.3 b   0.9 t -15.2 cm | v 4.10 | age0.03 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.112
+[ 536.981] locoplayer deep straight up run foot 0: h  -0.9 b  -0.7 t -17.5 cm | v 4.10 | age0.07 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.112
+[ 536.988] locoplayer deep straight up run foot 0: h   0.0 b   0.0 t -16.9 cm | v 4.10 | age0.10 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.112
+[ 536.990] locoplayer deep straight up run foot 0: h   0.1 b   0.0 t -16.9 cm | v 4.10 | age0.13 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.112
+[ 536.997] locoplayer deep straight up run foot 0: h   1.9 b   0.0 t -16.9 cm | v 4.10 | age0.17 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.112
+[ 537.002] locoplayer deep straight up run foot 0: h   6.5 b   0.2 t -16.9 cm | v 4.10 | age0.20 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.112
+[ 537.007] locoplayer deep straight up run foot 0: h  10.7 b   0.6 t -16.9 cm | v 4.10 | age0.23 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.112
+[ 537.059] locoplayer seg 4: straight up run, 9.4 s, 37.9 m, 4.01 m/s
+[ 551.450] Wildlife: 99 animals (91 birds) in 14 groups, 60 drawn in 14 draws | update 0.170 ms, render 0.268 ms
+[ 601.451] locoplayer seg 5: straight down run, 9.4 s, 37.9 m, 4.01 m/s
+[ 605.503] Transit: 0.081 ms/frame avg, 1 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[ 621.334] locoplayer bigslide switchback up run foot 1: 52.8 cm over 2 frames | planted 0 stepT -1.00
+[ 633.832] locoplayer deep switchback up run foot 1: h  -2.2 b -17.0 t -16.2 cm | v 4.10 | age0.03 ballProbe 1 stairLand -9.00 stepT -1.00 lead 0.115
+[ 636.908] locoplayer seg 6: switchback up run, 3.1 s, 11.0 m, 3.52 m/s
+[ 693.072] locoplayer deep switchback down run foot 0: h -17.0 b   0.1 t   0.2 cm | v 4.10 | age0.10 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.120
+[ 693.081] locoplayer deep switchback down run foot 0: h -17.0 b   0.0 t   0.0 cm | v 4.10 | age0.13 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.120
+[ 693.087] locoplayer deep switchback down run foot 0: h -15.9 b   0.0 t   0.0 cm | v 4.10 | age0.17 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.120
+[ 696.091] locoplayer seg 7: switchback down run, 3.2 s, 11.1 m, 3.52 m/s
+[ 706.074] locoplayer deep straight up sprint foot 1: h   6.4 b   0.2 t -16.9 cm | v 6.90 | age0.10 ballProbe 1 stairLand -9.00 stepT -1.00 lead 0.107
+[ 708.816] locoplayer deep straight up sprint foot 1: h  13.1 b   0.8 t -16.9 cm | v 6.90 | age0.13 ballProbe 1 stairLand -9.00 stepT -1.00 lead 0.107
+[ 709.040] locoplayer deep straight up sprint foot 0: h   7.1 b   0.2 t -16.9 cm | v 6.90 | age0.10 ballProbe 1 stairLand -9.00 stepT -1.00 lead 0.103
+[ 712.428] locoplayer bigslide straight up sprint foot 0: 43.6 cm over 6 frames | planted 0 stepT -1.00
+[ 735.035] locoplayer deep straight up sprint foot 0: h   2.7 b   0.0 t -16.9 cm | v 6.90 | age0.10 ballProbe 1 stairLand -9.00 stepT -1.00 lead 0.101
+[ 735.037] locoplayer deep straight up sprint foot 0: h  10.1 b   0.5 t -16.9 cm | v 6.90 | age0.13 ballProbe 1 stairLand -9.00 stepT -1.00 lead 0.101
+[ 735.081] locoplayer deep straight up sprint foot 1: h  -6.1 b -22.7 t -22.6 cm | v 6.90 | age0.03 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.100
+[ 735.083] locoplayer deep straight up sprint foot 1: h   2.5 b -14.4 t -14.4 cm | v 6.90 | age0.07 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.100
+[ 735.119] locoplayer bigslide straight up sprint foot 1: 23.9 cm over 6 frames | planted 0 stepT -1.00
+[ 738.612] locoplayer deep straight up sprint foot 0: h  -5.9 b -22.6 t -22.5 cm | v 6.90 | age0.03 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.100
+[ 738.614] locoplayer deep straight up sprint foot 0: h   2.6 b -14.3 t -14.3 cm | v 6.90 | age0.07 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.100
+[ 738.633] locoplayer bigslide straight up sprint foot 0: 24.4 cm over 6 frames | planted 0 stepT -1.00
+[ 738.715] locoplayer deep straight up sprint foot 0: h   3.9 b   0.1 t -16.9 cm | v 6.90 | age0.10 ballProbe 1 stairLand -9.00 stepT -1.00 lead 0.100
+[ 738.722] locoplayer deep straight up sprint foot 0: h  11.1 b   0.6 t -16.9 cm | v 6.90 | age0.13 ballProbe 1 stairLand -9.00 stepT -1.00 lead 0.100
+[ 738.760] locoplayer deep straight up sprint foot 1: h -22.5 b -22.4 t -22.3 cm | v 6.90 | age0.03 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.100
+[ 738.771] locoplayer deep straight up sprint foot 1: h -14.1 b -14.1 t -14.1 cm | v 6.90 | age0.07 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.100
+[ 742.261] locoplayer bigslide straight up sprint foot 1: 23.7 cm over 6 frames | planted 0 stepT -1.00
+[ 742.355] locoplayer seg 8: straight up sprint, 5.8 s, 38.0 m, 6.51 m/s
+[ 750.600] Transit: 0.086 ms/frame avg, 1 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[ 753.028] locoplayer deep straight down sprint foot 0: h -16.9 b   0.8 t   1.1 cm | v 6.90 | age0.03 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.101
+[ 753.031] Wildlife: 99 animals (91 birds) in 14 groups, 53 drawn in 14 draws | update 0.138 ms, render 0.258 ms
+[ 753.035] locoplayer deep straight down sprint foot 0: h -16.9 b   0.0 t   0.0 cm | v 6.90 | age0.07 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.101
+[ 753.044] locoplayer deep straight down sprint foot 0: h -15.4 b   0.0 t   0.0 cm | v 6.90 | age0.10 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.101
+[ 773.153] locoplayer deep straight down sprint foot 1: h -16.9 b   0.3 t   0.4 cm | v 6.90 | age0.03 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.100
+[ 773.165] locoplayer deep straight down sprint foot 1: h -16.9 b   0.0 t   0.0 cm | v 6.90 | age0.07 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.100
+[ 773.327] locoplayer deep straight down sprint foot 0: h -16.9 b   0.2 t   0.3 cm | v 6.90 | age0.03 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.100
+[ 775.661] locoplayer deep straight down sprint foot 0: h -16.9 b   0.0 t   0.0 cm | v 6.90 | age0.07 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.100
+[ 778.293] locoplayer seg 9: straight down sprint, 5.8 s, 38.0 m, 6.51 m/s
+[ 787.619] locoplayer bigslide switchback up sprint foot 0: 77.7 cm over 2 frames | planted 0 stepT -1.00
+[ 801.474] locoplayer bigslide switchback up sprint foot 1: 56.8 cm over 8 frames | planted 0 stepT -1.00
+[ 804.081] locoplayer bigslide switchback up sprint foot 1: 45.1 cm over 2 frames | planted 0 stepT -1.00
+[ 804.171] locoplayer seg 10: switchback up sprint, 2.2 s, 11.1 m, 4.97 m/s
+[ 811.165] locoplayer deep switchback down sprint foot 1: h -16.9 b   0.0 t   0.0 cm | v 6.90 | age0.10 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.119
+[ 829.645] locoplayer deep switchback down sprint foot 0: h -17.0 b   0.6 t   0.9 cm | v 4.64 | age0.10 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.119
+[ 829.664] locoplayer deep switchback down sprint foot 0: h -14.9 b   0.0 t   0.2 cm | v 4.96 | age0.13 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.119
+[ 829.832] locoplayer seg 11: switchback down sprint, 2.2 s, 11.1 m, 4.97 m/s
+[ 847.311] Transit: 0.127 ms/frame avg, 1 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[ 874.644] Wildlife: 99 animals (91 birds) in 14 groups, 50 drawn in 13 draws | update 0.158 ms, render 0.314 ms
+[ 897.893] Transit: 0.083 ms/frame avg, 2 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[ 899.554] locoplayer seg 12: straight up walk, 25.0 s, 37.9 m, 1.51 m/s
+[ 928.891] Transit: 0.086 ms/frame avg, 1 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[ 930.188] Wildlife: 99 animals (91 birds) in 14 groups, 55 drawn in 10 draws | update 0.129 ms, render 0.312 ms
+[ 940.047] locoplayer seg 13: straight down walk, 25.0 s, 37.9 m, 1.51 m/s
+[ 947.799] locoplayer deep switchback up walk foot 1: h -17.0 b -11.6 t  -9.6 cm | v 1.46 | age0.03 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.289
+[ 947.804] locoplayer deep switchback up walk foot 1: h   0.0 b   2.3 t -13.9 cm | v 1.52 | age0.10 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.289
+[ 947.808] locoplayer deep switchback up walk foot 1: h   0.0 b   0.4 t -16.4 cm | v 1.52 | age0.13 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.289
+[ 947.811] locoplayer deep switchback up walk foot 1: h   0.0 b   0.0 t -17.0 cm | v 1.52 | age0.17 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.289
+[ 947.814] locoplayer deep switchback up walk foot 1: h   0.1 b   0.0 t -17.0 cm | v 1.52 | age0.20 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.289
+[ 947.819] locoplayer deep switchback up walk foot 1: h   0.1 b   0.0 t -17.0 cm | v 1.52 | age0.23 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.289
+[ 947.821] locoplayer deep switchback up walk foot 1: h   0.1 b   0.0 t -17.0 cm | v 1.52 | age0.27 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.289
+[ 947.828] locoplayer deep switchback up walk foot 1: h   0.0 b   0.0 t -17.0 cm | v 1.52 | age0.30 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.289
+[ 947.831] locoplayer deep switchback up walk foot 1: h   0.0 b   0.0 t -17.0 cm | v 1.52 | age0.33 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.289
+[ 947.834] locoplayer deep switchback up walk foot 1: h   0.0 b   0.0 t -17.0 cm | v 1.52 | age0.37 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.289
+[ 947.837] locoplayer deep switchback up walk foot 1: h   0.0 b   0.0 t -17.0 cm | v 1.52 | age0.40 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.289
+[ 947.841] locoplayer deep switchback up walk foot 1: h   0.2 b   0.0 t -17.0 cm | v 1.52 | age0.43 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.289
+[ 947.844] locoplayer deep switchback up walk foot 1: h   1.4 b   0.0 t -17.0 cm | v 1.52 | age0.47 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.289
+[ 947.848] locoplayer deep switchback up walk foot 1: h   3.7 b   0.1 t -17.0 cm | v 1.52 | age0.50 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.289
+[ 947.854] locoplayer deep switchback up walk foot 1: h   6.7 b   0.2 t -17.0 cm | v 1.52 | age0.53 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.289
+[ 947.859] locoplayer deep switchback up walk foot 1: h   9.8 b   0.5 t -17.0 cm | v 1.52 | age0.57 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.290
+[ 947.861] locoplayer deep switchback up walk foot 1: h  12.3 b   0.7 t -17.0 cm | v 1.52 | age0.60 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.290
+[ 947.873] locoplayer deep switchback up walk foot 1: h  14.0 b   1.0 t -17.0 cm | v 1.52 | age0.63 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.290
+[ 949.068] locoplayer deep switchback up walk foot 1: h  14.5 b   1.1 t -17.0 cm | v 1.52 | age0.67 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.290
+[ 950.475] locoplayer seg 14: switchback up walk, 6.8 s, 10.1 m, 1.50 m/s
+[ 956.053] Transit: 0.089 ms/frame avg, 1 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[ 963.107] locoplayer seg 15: switchback down walk, 6.8 s, 10.2 m, 1.50 m/s
+[ 968.766] locoplayer deep straight up run foot 0: h   0.0 b   0.0 t -16.9 cm | v 4.10 | age0.10 ballProbe 1 stairLand -9.00 stepT -1.00 lead 0.144
+[ 968.771] locoplayer deep straight up run foot 0: h   1.3 b   0.0 t -16.9 cm | v 4.10 | age0.13 ballProbe 1 stairLand -9.00 stepT -1.00 lead 0.144
+[ 968.774] locoplayer deep straight up run foot 0: h   5.7 b   0.2 t -16.9 cm | v 4.10 | age0.17 ballProbe 1 stairLand -9.00 stepT -1.00 lead 0.144
+[ 968.778] locoplayer deep straight up run foot 0: h  10.3 b   0.5 t -16.9 cm | v 4.10 | age0.20 ballProbe 1 stairLand -9.00 stepT -1.00 lead 0.144
+[ 970.024] locoplayer deep straight up run foot 0: h  -1.4 b  -1.3 t -18.2 cm | v 4.10 | age0.03 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.128
+[ 970.026] locoplayer deep straight up run foot 0: h  -0.9 b  -0.9 t -17.8 cm | v 4.10 | age0.07 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.128
+[ 970.033] locoplayer deep straight up run foot 0: h   0.1 b   0.0 t -16.9 cm | v 4.10 | age0.10 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.128
+[ 970.034] locoplayer deep straight up run foot 0: h   2.5 b   0.0 t -16.9 cm | v 4.10 | age0.13 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.128
+[ 970.037] locoplayer deep straight up run foot 0: h   7.2 b   0.2 t -16.9 cm | v 4.10 | age0.17 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.128
+[ 970.044] locoplayer deep straight up run foot 0: h  10.9 b   0.6 t -16.9 cm | v 4.10 | age0.20 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.128
+[ 971.348] Wildlife: 99 animals (91 birds) in 14 groups, 44 drawn in 14 draws | update 0.172 ms, render 0.294 ms
+[ 971.371] locoplayer deep straight up run foot 1: h   0.0 b -16.9 t -16.9 cm | v 4.10 | age0.10 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.118
+[ 971.374] locoplayer deep straight up run foot 1: h   0.6 b -16.9 t -16.9 cm | v 4.10 | age0.13 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.118
+[ 971.375] locoplayer deep straight up run foot 1: h   4.5 b -16.8 t -16.9 cm | v 4.10 | age0.17 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.118
+[ 971.380] locoplayer deep straight up run foot 1: h   9.4 b -16.5 t -16.9 cm | v 4.10 | age0.20 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.118
+[ 971.397] locoplayer deep straight up run foot 0: h  -1.4 b  -0.8 t -17.5 cm | v 4.10 | age0.03 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.117
+[ 971.405] locoplayer deep straight up run foot 0: h  -0.9 b  -0.9 t -17.8 cm | v 4.10 | age0.07 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.117
+[ 971.407] locoplayer deep straight up run foot 0: h   0.0 b   0.0 t -16.9 cm | v 4.10 | age0.10 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.117
+[ 971.412] locoplayer deep straight up run foot 0: h   1.0 b   0.0 t -16.9 cm | v 4.10 | age0.13 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.117
+[ 971.414] locoplayer deep straight up run foot 0: h   5.2 b   0.1 t -16.9 cm | v 4.10 | age0.17 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.117
+[ 971.417] locoplayer deep straight up run foot 0: h  10.0 b   0.5 t -16.9 cm | v 4.10 | age0.20 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.117
+[ 972.861] locoplayer deep straight up run foot 0: h  -1.4 b   0.1 t -16.2 cm | v 4.10 | age0.03 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.113
+[ 972.865] locoplayer deep straight up run foot 0: h  -0.9 b  -0.9 t -17.8 cm | v 4.10 | age0.07 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.113
+[ 974.305] locoplayer deep straight up run foot 0: h   0.0 b   0.0 t -16.9 cm | v 4.10 | age0.10 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.113
+[ 974.310] locoplayer deep straight up run foot 0: h   0.2 b   0.0 t -16.9 cm | v 4.10 | age0.13 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.113
+[ 974.313] locoplayer deep straight up run foot 0: h   3.4 b   0.1 t -16.9 cm | v 4.10 | age0.17 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.113
+[ 974.317] locoplayer deep straight up run foot 0: h   8.3 b   0.3 t -16.9 cm | v 4.10 | age0.20 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.113
+[ 974.380] locoplayer deep straight up run foot 0: h   0.0 b -16.9 t -16.9 cm | v 4.10 | age0.10 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.113
+[ 974.385] locoplayer deep straight up run foot 0: h   0.7 b -16.9 t -16.9 cm | v 4.10 | age0.13 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.113
+[ 974.387] locoplayer deep straight up run foot 0: h   4.7 b -16.8 t -16.9 cm | v 4.10 | age0.17 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.113
+[ 978.737] locoplayer deep straight up run foot 1: h  -1.3 b   0.9 t -15.2 cm | v 4.10 | age0.03 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.112
+[ 978.738] locoplayer deep straight up run foot 1: h  -0.9 b  -0.7 t -17.5 cm | v 4.10 | age0.07 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.112
+[ 978.745] locoplayer deep straight up run foot 1: h   0.0 b   0.0 t -16.9 cm | v 4.10 | age0.10 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.112
+[ 978.748] locoplayer deep straight up run foot 1: h   0.1 b   0.0 t -16.9 cm | v 4.10 | age0.13 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.112
+[ 978.753] locoplayer deep straight up run foot 1: h   1.9 b   0.0 t -16.9 cm | v 4.10 | age0.17 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.112
+[ 978.754] locoplayer deep straight up run foot 1: h   6.5 b   0.2 t -16.9 cm | v 4.10 | age0.20 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.112
+[ 978.761] locoplayer deep straight up run foot 1: h  10.7 b   0.6 t -16.9 cm | v 4.10 | age0.23 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.112
+[ 980.184] locoplayer seg 16: straight up run, 9.4 s, 37.9 m, 4.01 m/s
+[ 984.600] Transit: 0.099 ms/frame avg, 1 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[ 996.043] locoplayer seg 17: straight down run, 9.4 s, 37.9 m, 4.01 m/s
+[1001.641] locoplayer bigslide switchback up run foot 0: 88.8 cm over 3 frames | planted 0 stepT -1.00
+[1003.258] locoplayer seg 18: switchback up run, 3.1 s, 11.0 m, 3.52 m/s
+[1008.788] locoplayer deep switchback down run foot 1: h -17.0 b   0.0 t   0.0 cm | v 4.10 | age0.10 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.121
+[1008.800] locoplayer deep switchback down run foot 1: h -15.9 b   0.0 t   0.0 cm | v 4.10 | age0.13 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.121
+[1010.008] locoplayer deep switchback down run foot 0: h -17.0 b   0.0 t   0.0 cm | v 4.10 | age0.10 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.121
+[1010.013] locoplayer deep switchback down run foot 0: h -17.0 b   0.0 t   0.0 cm | v 4.10 | age0.13 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.121
+[1010.015] locoplayer deep switchback down run foot 0: h -14.5 b   0.0 t   0.0 cm | v 4.10 | age0.17 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.121
+[1010.095] locoplayer seg 19: switchback down run, 3.2 s, 11.1 m, 3.52 m/s
+[1013.066] Transit: 0.097 ms/frame avg, 1 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[1014.181] Wildlife: 99 animals (91 birds) in 14 groups, 54 drawn in 16 draws | update 0.227 ms, render 0.300 ms
+[1015.606] locoplayer deep straight up sprint foot 0: h   6.4 b   0.2 t -16.9 cm | v 6.90 | age0.10 ballProbe 1 stairLand -9.00 stepT -1.00 lead 0.108
+[1015.607] locoplayer deep straight up sprint foot 0: h  13.1 b   0.8 t -16.9 cm | v 6.90 | age0.13 ballProbe 1 stairLand -9.00 stepT -1.00 lead 0.108
+[1017.039] locoplayer deep straight up sprint foot 1: h   7.1 b   0.2 t -16.9 cm | v 6.90 | age0.10 ballProbe 1 stairLand -9.00 stepT -1.00 lead 0.103
+[1017.109] locoplayer bigslide straight up sprint foot 1: 43.6 cm over 6 frames | planted 0 stepT -1.00
+[1018.392] locoplayer deep straight up sprint foot 1: h   2.7 b   0.0 t -16.9 cm | v 6.90 | age0.10 ballProbe 1 stairLand -9.00 stepT -1.00 lead 0.101
+[1018.398] locoplayer deep straight up sprint foot 1: h  10.1 b   0.5 t -16.9 cm | v 6.90 | age0.13 ballProbe 1 stairLand -9.00 stepT -1.00 lead 0.101
+[1018.417] locoplayer deep straight up sprint foot 0: h  -6.1 b -22.7 t -22.6 cm | v 6.90 | age0.03 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.100
+[1018.419] locoplayer deep straight up sprint foot 0: h   2.5 b -14.4 t -14.4 cm | v 6.90 | age0.07 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.100
+[1018.433] locoplayer bigslide straight up sprint foot 0: 23.9 cm over 6 frames | planted 0 stepT -1.00
+[1019.985] locoplayer deep straight up sprint foot 1: h  -5.9 b -22.6 t -22.5 cm | v 6.90 | age0.03 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.100
+[1019.986] locoplayer deep straight up sprint foot 1: h   2.6 b -14.3 t -14.3 cm | v 6.90 | age0.07 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.100
+[1019.999] locoplayer bigslide straight up sprint foot 1: 24.4 cm over 6 frames | planted 0 stepT -1.00
+[1021.196] locoplayer deep straight up sprint foot 1: h   3.9 b   0.1 t -16.9 cm | v 6.90 | age0.10 ballProbe 1 stairLand -9.00 stepT -1.00 lead 0.100
+[1021.205] locoplayer deep straight up sprint foot 1: h  11.1 b   0.6 t -16.9 cm | v 6.90 | age0.13 ballProbe 1 stairLand -9.00 stepT -1.00 lead 0.100
+[1021.226] locoplayer deep straight up sprint foot 0: h -22.5 b -22.4 t -22.3 cm | v 6.90 | age0.03 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.100
+[1021.231] locoplayer deep straight up sprint foot 0: h -14.1 b -14.1 t -14.1 cm | v 6.90 | age0.07 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.100
+[1021.242] locoplayer bigslide straight up sprint foot 0: 23.7 cm over 6 frames | planted 0 stepT -1.00
+[1021.279] locoplayer seg 20: straight up sprint, 5.8 s, 38.0 m, 6.51 m/s
+[1026.565] locoplayer deep straight down sprint foot 1: h -16.9 b   0.8 t   1.1 cm | v 6.90 | age0.03 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.101
+[1026.570] locoplayer deep straight down sprint foot 1: h -16.9 b   0.0 t   0.0 cm | v 6.90 | age0.07 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.101
+[1026.574] locoplayer deep straight down sprint foot 1: h -15.4 b   0.0 t   0.0 cm | v 6.90 | age0.10 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.101
+[1029.567] locoplayer deep straight down sprint foot 0: h -16.9 b   0.3 t   0.4 cm | v 6.90 | age0.03 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.100
+[1029.574] locoplayer deep straight down sprint foot 0: h -16.9 b   0.0 t   0.0 cm | v 6.90 | age0.07 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.100
+[1031.135] locoplayer deep straight down sprint foot 1: h -16.9 b   0.2 t   0.3 cm | v 6.90 | age0.03 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.100
+[1031.144] locoplayer deep straight down sprint foot 1: h -16.9 b   0.0 t   0.0 cm | v 6.90 | age0.07 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.100
+[1032.514] locoplayer seg 21: straight down sprint, 5.8 s, 38.0 m, 6.51 m/s
+[1036.766] locoplayer bigslide switchback up sprint foot 1: 101.6 cm over 3 frames | planted 0 stepT -1.00
+[1038.025] locoplayer bigslide switchback up sprint foot 0: 73.5 cm over 7 frames | planted 0 stepT -1.00
+[1038.073] locoplayer deep switchback up sprint foot 0: h  -9.7 b  -9.0 t -25.7 cm | v 4.92 | age0.03 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.137
+[1038.077] locoplayer deep switchback up sprint foot 0: h  -6.2 b  -5.7 t -22.5 cm | v 5.25 | age0.07 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.137
+[1038.079] locoplayer deep switchback up sprint foot 0: h   0.9 b   0.0 t -16.9 cm | v 5.60 | age0.10 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.137
+[1038.083] locoplayer deep switchback up sprint foot 0: h   6.4 b   0.1 t -17.0 cm | v 5.96 | age0.13 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.137
+[1038.085] locoplayer deep switchback up sprint foot 0: h  12.3 b -13.8 t -14.2 cm | v 6.33 | age0.17 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.137
+[1038.094] locoplayer bigslide switchback up sprint foot 0: 96.4 cm over 10 frames | planted 0 stepT -1.00
+[1038.118] locoplayer seg 22: switchback up sprint, 2.2 s, 11.1 m, 4.97 m/s
+[1041.192] Transit: 0.081 ms/frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[1043.806] locoplayer deep switchback down sprint foot 1: h -12.5 b   6.0 t   6.5 cm | v 4.44 | age0.03 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.116
+[1043.809] locoplayer deep switchback down sprint foot 1: h -14.6 b   3.5 t   3.8 cm | v 4.33 | age0.07 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.116
+[1043.812] locoplayer deep switchback down sprint foot 1: h -17.0 b   0.8 t   1.2 cm | v 4.64 | age0.10 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.116
+[1043.816] locoplayer deep switchback down sprint foot 1: h -15.1 b   0.0 t   0.2 cm | v 4.96 | age0.13 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.116
+[1043.836] locoplayer deep switchback down sprint foot 0: h -17.0 b   0.0 t   0.0 cm | v 6.90 | age0.10 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.116
+[1043.837] locoplayer deep switchback down sprint foot 0: h -12.1 b   0.1 t   0.0 cm | v 6.90 | age0.13 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.116
+[1045.366] locoplayer seg 23: switchback down sprint, 2.2 s, 11.1 m, 4.97 m/s
+[1045.427] locoplayer straight   up   walk   steps  80 | slide cm/step mean 1.00 p90 1.59 max 1.74 | scuffs 7 | planted foot-frames 1249 | sunk 1 cm 0.0%, 3 cm 0.0% | lifted 0.3% | deep 0 | lowest sole -1.1 mm
+[1045.431] locoplayer straight   up   run    steps  40 | slide cm/step mean 1.24 p90 4.12 max 10.07 | scuffs 4 | planted foot-frames 240 | sunk 1 cm 38.3%, 3 cm 32.5% | lifted 1.7% | deep 72 | lowest sole -182.1 mm
+[1045.431] locoplayer straight   up   sprint steps  26 | slide cm/step mean 12.35 p90 24.37 max 43.59 | scuffs 22 | planted foot-frames 106 | sunk 1 cm 52.8%, 3 cm 49.1% | lifted 3.8% | deep 26 | lowest sole -227.3 mm
+[1045.432] locoplayer straight   up   chase3 steps  56 | slide cm/step mean 0.23 p90 0.65 max 2.42 | scuffs 2 | planted foot-frames 399 | sunk 1 cm 0.0%, 3 cm 0.0% | lifted 0.0% | deep 0 | lowest sole -2.1 mm
+[1045.432] locoplayer straight   down walk   steps  72 | slide cm/step mean 0.04 p90 0.02 max 0.44 | scuffs 4 | planted foot-frames 1279 | sunk 1 cm 0.0%, 3 cm 0.0% | lifted 0.7% | deep 0 | lowest sole -0.0 mm
+[1045.432] locoplayer straight   down run    steps  34 | slide cm/step mean 0.04 p90 0.03 max 0.56 | scuffs 8 | planted foot-frames 240 | sunk 1 cm 0.0%, 3 cm 0.0% | lifted 8.3% | deep 0 | lowest sole 0.0 mm
+[1045.432] locoplayer straight   down sprint steps  11 | slide cm/step mean 0.20 p90 1.08 max 1.08 | scuffs 7 | planted foot-frames 102 | sunk 1 cm 17.6%, 3 cm 17.6% | lifted 48.0% | deep 14 | lowest sole -169.0 mm
+[1045.432] locoplayer switchback up   walk   steps  18 | slide cm/step mean 1.45 p90 2.39 max 6.03 | scuffs 3 | planted foot-frames 307 | sunk 1 cm 14.3%, 3 cm 13.4% | lifted 1.3% | deep 39 | lowest sole -172.7 mm
+[1045.432] locoplayer switchback up   run    steps  13 | slide cm/step mean 12.37 p90 52.77 max 88.79 | scuffs 8 | planted foot-frames 91 | sunk 1 cm 11.0%, 3 cm 6.6% | lifted 12.1% | deep 1 | lowest sole -170.0 mm
+[1045.433] locoplayer switchback up   sprint steps  11 | slide cm/step mean 41.12 p90 96.45 max 101.57 | scuffs 4 | planted foot-frames 52 | sunk 1 cm 17.3%, 3 cm 17.3% | lifted 7.7% | deep 5 | lowest sole -257.5 mm
+[1045.433] locoplayer switchback down walk   steps  18 | slide cm/step mean 0.36 p90 1.98 max 2.39 | scuffs 3 | planted foot-frames 295 | sunk 1 cm 0.3%, 3 cm 0.3% | lifted 7.5% | deep 1 | lowest sole -170.0 mm
+[1045.433] locoplayer switchback down run    steps  14 | slide cm/step mean 0.83 p90 0.87 max 8.64 | scuffs 1 | planted foot-frames 98 | sunk 1 cm 17.3%, 3 cm 17.3% | lifted 17.3% | deep 8 | lowest sole -170.0 mm
+[1045.433] locoplayer switchback down sprint steps  10 | slide cm/step mean 0.04 p90 0.34 max 0.34 | scuffs 0 | planted foot-frames 54 | sunk 1 cm 33.3%, 3 cm 33.3% | lifted 20.4% | deep 9 | lowest sole -170.0 mm
+[1045.433] locoplayer done
+[1050.098] Shutdown complete.

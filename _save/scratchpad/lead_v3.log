@@ -1,0 +1,18 @@
+melee exit 0
+[1051.669] autoplay t=7.9 pos 1785.5 160.1 6.7 state 0 health 194 veh -1 speed 0.0 | peds 92 vehicles 63 wanted 1 | cpu ms player 0.15 ai 0.55 veh 0.85 peds 1.46 | mem 1805 MB (private 0)
+[1051.724] autoplay melee t=8.0 move -1 combo 0 block 0 dodge -1.00 stagger 0.00 takedown -1.00 target 20 health 194
+[1135.425] autoplay t=8.7 pos 1785.4 160.4 6.7 state 0 health 194 veh -1 speed 0.0 | peds 92 vehicles 63 wanted 1 | cpu ms player 0.16 ai 1.01 veh 0.82 peds 3.11 | mem 1805 MB (private 0)
+[1149.642] autoplay melee t=9.0 move 2 combo 2 block 0 dodge -1.00 stagger 0.00 takedown -1.00 target 20 health 194
+[1208.534] autoplay t=9.5 pos 1791.3 160.9 6.5 state 0 health 194 veh -1 speed 0.0 | peds 94 vehicles 64 wanted 1 | cpu ms player 0.16 ai 1.20 veh 0.72 peds 3.27 | mem 1843 MB (private 0)
+[1233.838] autoplay melee t=10.0 move -1 combo 2 block 0 dodge -1.00 stagger 0.00 takedown -1.00 target 20 health 194
+[1279.797] autoplay t=10.3 pos 1791.3 161.1 6.5 state 0 health 194 veh -1 speed 0.0 | peds 94 vehicles 64 wanted 1 | cpu ms player 0.15 ai 0.55 veh 0.71 peds 2.11 | mem 1843 MB (private 0)
+[1323.723] autoplay melee t=11.0 move -1 combo 0 block 0 dodge -1.00 stagger 0.00 takedown -1.00 target 2 health 194
+mag exit 0
+[ 183.127] autoplay fpguns rifle_mag_in_hand: hold 1.00 aim 0.00 scope 0.00 dot 0.00 block 0.00
+[ 765.459] autoplay fpguns pistol_mag_in_hand: hold 1.00 aim 0.00 scope 0.00 dot 0.00 block 0.00
+[1009.556] autoplay fpguns done
+ui exit 0
+[ 294.602] autoplay uishots phone_tidegram
+[ 586.368] autoplay uishots phone_map
+[1019.495] autoplay uishots wanted
+[1092.829] autoplay uishots done

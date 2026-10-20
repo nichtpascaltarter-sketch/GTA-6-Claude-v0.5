@@ -1,0 +1,21 @@
+Character shading: skin that scatters light, real eyes behind a cornea, softer hair; the brow ridge shades the eyes
+
+- Skin: pre-integrated subsurface scattering from a falloff table built at start-up (render/skin.cpp), its tint scaled
+  by each person's melanin so dark skin keeps a natural terminator; ears, nostrils and fingers transmit light from
+  every light, street lamps included; per-region and oiliness roughness, a fine grain and specular anti-aliasing so
+  skin no longer turns to plastic at 1-4 m; a faint peach-fuzz sheen; creases occlude warm instead of grey.
+- Eyes (the faces batch 1 meshes, now with the shader pupil switched on): the view ray refracts through the cornea
+  to the iris plane, so the iris sits behind the cornea with parallax, the limbal ring and fibres; the pupil is drawn
+  by the shader and dilates at night; tear-film roughness with specular anti-aliasing; the lids' occlusion shades the
+  eye's ambient, reflections and direct light. Distant LODs keep the painted eyes.
+- Feature shadows: skin, eyes and teeth within 12 m march 8 steps over 4.5 cm toward the sun and the two strongest
+  lamps, so the brow ridge shades the upper lids and the eyes under an overhead light, and eyes and teeth cut off
+  light steeper than 40-65 degrees. Together with batch 1's lid meshes this removes most of the "goggles" look at
+  night (bright rims round dark eye sockets).
+- Hair: depth self-shadowing, pixel-footprint strand coverage with fading tips (no more spiky silhouettes), and no
+  grey sky sheen on dark hair.
+- Nails are detected by region only.
+- --shaderdir (gfx_shaders.cpp): load named .hlsl files from a folder instead of the embedded copies, for shader A/B
+  runs without a rebuild (development only).
+- Cost at the 196-ped club stop: same draws and descriptors (+1 for the skin table); GPU pass times within machine
+  noise across an ABBA pair.

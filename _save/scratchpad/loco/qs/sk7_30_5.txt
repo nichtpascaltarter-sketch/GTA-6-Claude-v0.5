@@ -1,0 +1,94 @@
+SINK run 0 up t7.633 foot 0 kind 3 age 0.033 h -3.7 b  0.0 t  1.4 heelInTread   1.2 toeInTread  26.9 stepT -1.00 v 1.20 landErr -7.6 shift -1.3
+SINK run 0 up t7.667 foot 0 kind 3 age 0.067 h -4.1 b  0.0 t  1.5 heelInTread   1.3 toeInTread  26.8 stepT -1.00 v 1.20 landErr -7.6 shift -1.3
+SINK run 0 dn t16.667 foot 0 kind 3 age 0.067 h-11.1 b  9.9 t 11.4 heelInTread  19.7 toeInTread  16.2 stepT -1.00 v 1.20 landErr -2.2 shift -4.3
+SINK run 1 up t7.133 foot 1 kind 3 age 0.033 h -3.4 b  0.0 t  1.3 heelInTread   2.9 toeInTread  26.3 stepT -1.00 v 1.25 landErr 0.6 shift 3.2
+SINK run 1 up t7.167 foot 1 kind 3 age 0.067 h -3.8 b  0.0 t  1.4 heelInTread   2.9 toeInTread  26.3 stepT -1.00 v 1.25 landErr 0.6 shift 3.2
+SINK run 1 up t7.200 foot 1 kind 3 age 0.100 h -3.8 b  0.0 t  1.4 heelInTread   3.0 toeInTread  26.3 stepT -1.00 v 1.25 landErr 0.6 shift 3.2
+SINK run 1 up t7.233 foot 1 kind 3 age 0.133 h -3.5 b  0.0 t  1.3 heelInTread   2.9 toeInTread  26.3 stepT -1.00 v 1.25 landErr 0.6 shift 3.2
+SINK run 1 dn t14.067 foot 1 kind 1 age 0.033 h-17.0 b  4.0 t  5.4 heelInTread  20.4 toeInTread  14.7 stepT -1.00 v 0.00 landErr -15.7 shift 4.4
+SINK run 1 dn t14.100 foot 1 kind 1 age 0.067 h-10.7 b  9.3 t 10.4 heelInTread  20.4 toeInTread  15.0 stepT -1.00 v 0.00 landErr -15.7 shift 4.4
+SINK run 1 dn t14.133 foot 1 kind 1 age 0.100 h-17.0 b  2.0 t  2.8 heelInTread  20.4 toeInTread  15.2 stepT -1.00 v 0.00 landErr -15.7 shift 4.4
+SINK run 1 dn t14.167 foot 1 kind 1 age 0.133 h-17.0 b  1.1 t  1.4 heelInTread  20.4 toeInTread  15.3 stepT -1.00 v 0.00 landErr -15.7 shift 4.4
+SINK run 1 dn t14.200 foot 1 kind 1 age 0.167 h-17.0 b  0.4 t  0.5 heelInTread  20.4 toeInTread  15.3 stepT -1.00 v 0.00 landErr -15.7 shift 4.4
+SINK run 2 dn t15.633 foot 0 kind 3 age 0.067 h-11.1 b  9.9 t 11.4 heelInTread  20.7 toeInTread  16.5 stepT -1.00 v 1.30 landErr 0.4 shift -5.1
+SINK run 6 up t4.833 foot 0 kind 1 age 0.033 h -2.4 b -0.0 t-16.1 heelInTread   6.7 toeInTread   3.8 stepT -1.00 v 0.00 landErr 11.9 shift -9.3
+SINK run 6 up t4.867 foot 0 kind 1 age 0.067 h -2.0 b  0.0 t-16.3 heelInTread   6.7 toeInTread   3.9 stepT -1.00 v 0.00 landErr 11.9 shift -9.3
+SINK run 6 up t4.900 foot 0 kind 1 age 0.100 h -1.5 b  0.0 t-16.4 heelInTread   6.7 toeInTread   3.9 stepT -1.00 v 0.00 landErr 11.9 shift -9.3
+SINK run 6 up t4.933 foot 0 kind 1 age 0.133 h -1.1 b  0.0 t-16.6 heelInTread   6.6 toeInTread   3.9 stepT -1.00 v 0.00 landErr 11.9 shift -9.3
+SINK run 6 up t4.967 foot 0 kind 1 age 0.167 h -0.6 b  0.0 t-16.8 heelInTread   6.6 toeInTread   3.9 stepT -1.00 v 0.00 landErr 11.9 shift -9.3
+SINK run 6 up t5.000 foot 0 kind 1 age 0.200 h -0.2 b  0.0 t-16.9 heelInTread   6.6 toeInTread   3.9 stepT -1.00 v 0.00 landErr 11.9 shift -9.3
+SINK run 6 up t5.033 foot 0 kind 1 age 0.233 h -0.0 b  0.0 t-17.0 heelInTread   6.6 toeInTread   3.9 stepT -1.00 v 0.00 landErr 11.9 shift -9.3
+SINK run 6 up t5.067 foot 0 kind 1 age 0.267 h -0.0 b  0.0 t-17.0 heelInTread   6.6 toeInTread   3.9 stepT -1.00 v 0.00 landErr 11.9 shift -9.3
+SINK run 6 up t5.100 foot 0 kind 1 age 0.300 h -0.0 b  0.0 t-17.0 heelInTread   6.6 toeInTread   3.9 stepT -1.00 v 0.00 landErr 11.9 shift -9.3
+SINK run 6 up t5.133 foot 0 kind 1 age 0.333 h -0.0 b  0.0 t-17.0 heelInTread   6.6 toeInTread   3.9 stepT -1.00 v 0.00 landErr 11.9 shift -9.3
+SINK run 6 up t5.167 foot 0 kind 1 age 0.367 h -0.0 b  0.0 t-17.0 heelInTread   6.6 toeInTread   3.9 stepT -1.00 v 0.00 landErr 11.9 shift -9.3
+SINK run 6 up t5.200 foot 0 kind 1 age 0.400 h  0.0 b  0.0 t-17.0 heelInTread   6.6 toeInTread   3.9 stepT -1.00 v 0.00 landErr 11.9 shift -9.3
+SINK run 6 up t5.233 foot 0 kind 1 age 0.433 h  0.0 b  0.0 t-17.0 heelInTread   6.6 toeInTread   3.9 stepT -1.00 v 0.00 landErr 11.9 shift -9.3
+SINK run 6 up t6.800 foot 0 kind 3 age 0.033 h -3.7 b  0.0 t  1.4 heelInTread   1.4 toeInTread  26.9 stepT -1.00 v 1.20 landErr 11.9 shift -9.3
+SINK run 6 up t6.833 foot 0 kind 3 age 0.067 h -4.1 b  0.0 t  1.5 heelInTread   1.4 toeInTread  26.9 stepT -1.00 v 1.20 landErr 11.9 shift -9.3
+SINK run 6 dn t15.833 foot 0 kind 3 age 0.067 h-11.1 b  9.9 t 11.4 heelInTread  19.7 toeInTread  16.2 stepT -1.00 v 1.20 landErr -2.2 shift -4.3
+SINK run 7 dn t13.200 foot 0 kind 1 age 0.033 h-17.0 b  4.0 t  5.4 heelInTread  20.1 toeInTread  14.6 stepT -1.00 v 0.00 landErr -15.9 shift -5.6
+SINK run 7 dn t13.233 foot 0 kind 1 age 0.067 h-10.7 b  9.3 t 10.4 heelInTread  20.1 toeInTread  14.8 stepT -1.00 v 0.00 landErr -15.9 shift -5.6
+SINK run 9 dn t12.167 foot 1 kind 1 age 0.033 h-17.0 b  2.0 t  2.8 heelInTread  24.5 toeInTread  21.5 stepT -1.00 v 0.00 landErr -13.9 shift -4.4
+SINK run 9 dn t12.200 foot 1 kind 1 age 0.067 h-17.0 b  1.5 t  2.1 heelInTread  24.5 toeInTread  21.6 stepT -1.00 v 0.00 landErr -13.9 shift -4.4
+SINK run 9 dn t12.233 foot 1 kind 1 age 0.100 h-17.0 b  1.0 t  1.4 heelInTread  24.5 toeInTread  21.7 stepT -1.00 v 0.00 landErr -13.9 shift -4.4
+SINK run 9 dn t12.267 foot 1 kind 1 age 0.133 h-17.0 b  0.6 t  0.9 heelInTread  24.5 toeInTread  21.7 stepT -1.00 v 0.00 landErr -13.9 shift -4.4
+SINK run 9 dn t12.300 foot 1 kind 1 age 0.167 h-17.0 b  0.3 t  0.4 heelInTread  24.5 toeInTread  21.7 stepT -1.00 v 0.00 landErr -13.9 shift -4.4
+SINK run 9 dn t12.333 foot 1 kind 1 age 0.200 h-17.0 b  0.1 t  0.1 heelInTread  24.5 toeInTread  21.7 stepT -1.00 v 0.00 landErr -13.9 shift -4.4
+SINK run 9 dn t12.367 foot 1 kind 1 age 0.233 h-17.0 b  0.0 t  0.0 heelInTread  24.5 toeInTread  21.7 stepT -1.00 v 0.00 landErr -13.9 shift -4.4
+SINK run 9 dn t12.400 foot 1 kind 1 age 0.267 h-17.0 b  0.0 t  0.0 heelInTread  24.5 toeInTread  21.7 stepT -1.00 v 0.00 landErr -13.9 shift -4.4
+SINK run 9 dn t12.433 foot 1 kind 1 age 0.300 h-17.0 b  0.0 t  0.0 heelInTread  24.5 toeInTread  21.7 stepT -1.00 v 0.00 landErr -13.9 shift -4.4
+SINK run 9 dn t12.467 foot 1 kind 1 age 0.333 h-17.0 b  0.0 t  0.0 heelInTread  24.5 toeInTread  21.7 stepT -1.00 v 0.00 landErr -13.9 shift -4.4
+SINK run 9 dn t12.500 foot 1 kind 1 age 0.367 h-17.0 b  0.0 t  0.0 heelInTread  24.5 toeInTread  21.7 stepT -1.00 v 0.00 landErr -13.9 shift -4.4
+SINK run 9 dn t12.533 foot 1 kind 1 age 0.400 h-17.0 b  0.0 t  0.0 heelInTread  24.5 toeInTread  21.7 stepT -1.00 v 0.00 landErr -13.9 shift -4.4
+SINK run 9 dn t12.567 foot 1 kind 1 age 0.433 h-17.0 b  0.0 t  0.0 heelInTread  24.5 toeInTread  21.7 stepT -1.00 v 0.00 landErr -13.9 shift -4.4
+SINK run 9 dn t12.600 foot 1 kind 1 age 0.467 h-17.0 b  0.0 t  0.0 heelInTread  24.5 toeInTread  21.7 stepT -1.00 v 0.00 landErr -13.9 shift -4.4
+SINK run 9 dn t12.633 foot 1 kind 1 age 0.500 h-17.0 b  0.0 t  0.0 heelInTread  24.5 toeInTread  21.7 stepT -1.00 v 0.00 landErr -13.9 shift -4.4
+SINK run 11 up t4.700 foot 0 kind 4 age 0.400 h  1.7 b  0.0 t-17.0 heelInTread   3.8 toeInTread   0.3 stepT -1.00 v 1.45 landErr -1.2 shift 3.2
+SINK run 11 up t4.733 foot 0 kind 4 age 0.433 h  4.1 b  0.1 t-17.0 heelInTread   4.2 toeInTread   1.0 stepT -1.00 v 1.45 landErr -1.2 shift 3.2
+SINK run 11 up t4.767 foot 0 kind 4 age 0.467 h  7.1 b  0.3 t-17.0 heelInTread   5.0 toeInTread   1.7 stepT -1.00 v 1.45 landErr -1.2 shift 3.2
+SINK run 11 up t4.800 foot 0 kind 4 age 0.500 h 10.1 b  0.7 t-17.0 heelInTread   6.2 toeInTread   2.4 stepT -1.00 v 1.45 landErr -1.2 shift 3.2
+SINK run 11 up t4.833 foot 0 kind 4 age 0.533 h 12.7 b  1.1 t-17.0 heelInTread   7.7 toeInTread   3.0 stepT -1.00 v 1.45 landErr -1.2 shift 3.2
+SINK run 11 up t4.867 foot 0 kind 4 age 0.567 h 14.5 b  1.5 t-17.0 heelInTread   8.9 toeInTread   3.4 stepT -1.00 v 1.45 landErr -1.2 shift 3.2
+SINK run 11 up t4.900 foot 0 kind 4 age 0.600 h 15.3 b  1.6 t-17.0 heelInTread   9.5 toeInTread   3.6 stepT -1.00 v 1.45 landErr -1.2 shift 3.2
+SINK run 12 up t5.933 foot 1 kind 3 age 0.033 h -3.7 b -0.0 t  1.4 heelInTread   0.6 toeInTread  26.2 stepT -1.00 v 1.20 landErr 0.4 shift 8.1
+SINK run 14 up t4.900 foot 0 kind 3 age 0.033 h -3.7 b  0.0 t  1.4 heelInTread   2.6 toeInTread  27.0 stepT -1.00 v 1.30 landErr 0.0 shift 8.2
+SINK run 14 up t4.933 foot 0 kind 3 age 0.067 h -4.0 b  0.0 t  1.5 heelInTread   2.7 toeInTread  27.0 stepT -1.00 v 1.30 landErr 0.0 shift 8.2
+SINK run 14 up t4.967 foot 0 kind 3 age 0.100 h -3.9 b  0.0 t  1.5 heelInTread   2.7 toeInTread  27.0 stepT -1.00 v 1.30 landErr 0.0 shift 8.2
+SINK run 14 up t5.000 foot 0 kind 3 age 0.133 h -3.0 b  0.0 t  1.1 heelInTread   2.5 toeInTread  27.1 stepT -1.00 v 1.30 landErr 0.0 shift 8.2
+SINK run 14 up t5.333 foot 0 kind 3 age 0.467 h  3.5 b  3.5 t-13.5 heelInTread   4.5 toeInTread   0.4 stepT -1.00 v 1.30 landErr 0.0 shift 8.2
+SINK run 14 up t5.367 foot 0 kind 3 age 0.500 h  5.0 b  4.9 t-12.1 heelInTread   5.8 toeInTread   1.7 stepT -1.00 v 1.30 landErr 0.0 shift 8.2
+SINK run 14 up t5.400 foot 0 kind 3 age 0.533 h  6.2 b  5.8 t-11.2 heelInTread   6.8 toeInTread   2.8 stepT -1.00 v 1.30 landErr 0.0 shift 8.2
+SINK run 14 up t5.433 foot 0 kind 3 age 0.567 h  7.7 b  5.7 t-11.3 heelInTread   7.4 toeInTread   3.5 stepT -1.00 v 1.30 landErr 0.0 shift 8.2
+SINK run 14 up t5.467 foot 0 kind 3 age 0.600 h 10.0 b  5.6 t-11.5 heelInTread   8.1 toeInTread   4.2 stepT -1.00 v 1.30 landErr 0.0 shift 8.2
+SINK run 14 up t5.500 foot 0 kind 3 age 0.633 h 13.0 b  5.6 t-11.6 heelInTread   9.4 toeInTread   5.0 stepT -1.00 v 1.30 landErr 0.0 shift 8.2
+SINK run 14 up t5.533 foot 0 kind 3 age 0.667 h 16.2 b  6.1 t-11.4 heelInTread  11.4 toeInTread   6.0 stepT -1.00 v 1.30 landErr 0.0 shift 8.2
+SINK run 14 up t5.833 foot 0 kind 4 age 0.033 h  8.3 b  5.8 t-12.2 heelInTread   9.4 toeInTread   5.5 stepT -1.00 v 1.30 landErr 0.0 shift 8.2
+SINK run 15 up t6.867 foot 1 kind 1 age 0.067 h  5.9 b -9.6 t -9.1 heelInTread  13.0 toeInTread  10.2 stepT -1.00 v 0.00 landErr -14.1 shift 0.0
+SINK run 15 up t6.900 foot 1 kind 1 age 0.100 h  0.0 b-16.0 t-15.7 heelInTread  13.0 toeInTread  10.2 stepT -1.00 v 0.00 landErr -14.1 shift 0.0
+SINK run 15 up t6.933 foot 1 kind 1 age 0.133 h  0.0 b-16.4 t-16.2 heelInTread  13.0 toeInTread  10.2 stepT -1.00 v 0.00 landErr -14.1 shift 0.0
+SINK run 15 up t6.967 foot 1 kind 1 age 0.167 h  0.0 b-16.7 t-16.6 heelInTread  13.0 toeInTread  10.2 stepT -1.00 v 0.00 landErr -14.1 shift 0.0
+SINK run 15 dn t15.833 foot 1 kind 1 age 0.033 h-17.0 b  2.0 t  2.8 heelInTread  24.9 toeInTread  22.1 stepT -1.00 v 0.00 landErr -14.1 shift 5.6
+SINK run 15 dn t15.867 foot 1 kind 1 age 0.067 h-17.0 b  1.5 t  2.1 heelInTread  24.9 toeInTread  22.1 stepT -1.00 v 0.00 landErr -14.1 shift 5.6
+SINK run 15 dn t15.900 foot 1 kind 1 age 0.100 h-17.0 b  1.0 t  1.3 heelInTread  24.9 toeInTread  22.2 stepT -1.00 v 0.00 landErr -14.1 shift 5.6
+SINK run 15 dn t15.933 foot 1 kind 1 age 0.133 h-17.0 b  0.6 t  0.8 heelInTread  24.9 toeInTread  22.2 stepT -1.00 v 0.00 landErr -14.1 shift 5.6
+SINK run 15 dn t15.967 foot 1 kind 1 age 0.167 h-17.0 b  0.3 t  0.4 heelInTread  24.9 toeInTread  22.2 stepT -1.00 v 0.00 landErr -14.1 shift 5.6
+SINK run 16 up t3.833 foot 0 kind 3 age 0.033 h -3.8 b  0.0 t-15.6 heelInTread   5.3 toeInTread   1.5 stepT -1.00 v 1.40 landErr 99.0 shift 0.0
+SINK run 16 up t8.333 foot 0 kind 3 age 0.033 h -3.8 b  0.0 t  1.4 heelInTread   2.4 toeInTread  27.6 stepT -1.00 v 1.40 landErr -0.1 shift 13.1
+SINK run 19 up t4.567 foot 0 kind 3 age 0.033 h -3.4 b  0.0 t  1.3 heelInTread   3.9 toeInTread  27.3 stepT -1.00 v 1.25 landErr 0.5 shift -4.4
+SINK run 19 up t4.600 foot 0 kind 3 age 0.067 h -3.8 b  0.0 t  1.4 heelInTread   4.0 toeInTread  27.3 stepT -1.00 v 1.25 landErr 0.5 shift -4.4
+SINK run 19 up t4.633 foot 0 kind 3 age 0.100 h -3.8 b  0.0 t  1.4 heelInTread   4.0 toeInTread  27.3 stepT -1.00 v 1.25 landErr 0.5 shift -4.4
+SINK run 19 up t4.667 foot 0 kind 3 age 0.133 h -3.6 b  0.0 t  1.3 heelInTread   4.0 toeInTread  27.3 stepT -1.00 v 1.25 landErr 0.5 shift -4.4
+SINK run 19 up t9.067 foot 0 kind 3 age 0.033 h  0.0 b  3.5 t-12.3 heelInTread   7.4 toeInTread   1.8 stepT -1.00 v 1.25 landErr 8.2 shift -12.3
+SINK run 20 up t4.033 foot 1 kind 3 age 0.033 h  0.0 b  3.7 t-11.9 heelInTread   6.5 toeInTread   1.8 stepT -1.00 v 1.30 landErr -6.6 shift -10.3
+SINK run 21 dn t14.967 foot 1 kind 1 age 0.033 h-17.0 b  2.0 t  2.8 heelInTread  16.4 toeInTread  13.6 stepT -1.00 v 0.00 landErr -19.6 shift 0.6
+SINK run 21 dn t15.000 foot 1 kind 1 age 0.067 h -5.9 b 12.7 t 13.2 heelInTread  16.4 toeInTread  13.6 stepT -1.00 v 0.00 landErr -19.6 shift 0.6
+SINK run 22 up t1.733 foot 0 kind 2 age 0.667 h 15.0 b  1.4 t-17.0 heelInTread -14.2 toeInTread   9.6 stepT -1.00 v 1.40 landErr 99.0 shift 0.0
+SINK run 22 up t1.767 foot 0 kind 2 age 0.700 h 15.4 b  1.5 t-17.0 heelInTread -14.0 toeInTread   9.6 stepT -1.00 v 1.40 landErr 99.0 shift 0.0
+SINK run 22 up t2.967 foot 0 kind 3 age 0.033 h -3.8 b -0.0 t  1.4 heelInTread   2.2 toeInTread  27.5 stepT -1.00 v 1.40 landErr -5.3 shift -4.0
+SINK run 22 up t3.000 foot 0 kind 3 age 0.067 h -4.1 b  0.0 t  1.5 heelInTread   2.3 toeInTread  27.4 stepT -1.00 v 1.40 landErr -5.3 shift -4.0
+SINK run 22 up t3.033 foot 0 kind 3 age 0.100 h -4.1 b  0.0 t  1.5 heelInTread   2.3 toeInTread  27.4 stepT -1.00 v 1.40 landErr -5.3 shift -4.0
+SINK run 22 up t3.067 foot 0 kind 3 age 0.133 h -3.5 b  0.0 t  1.3 heelInTread   2.2 toeInTread  27.5 stepT -1.00 v 1.40 landErr -5.3 shift -4.0
+SINK run 22 up t7.467 foot 0 kind 3 age 0.033 h -3.8 b  0.0 t  1.4 heelInTread   2.4 toeInTread  27.6 stepT -1.00 v 1.40 landErr -0.1 shift 13.1
+SINK run 23 up t6.967 foot 1 kind 3 age 0.033 h -4.4 b  0.0 t  1.6 heelInTread   3.1 toeInTread  27.4 stepT -1.00 v 1.45 landErr 0.1 shift 13.2
+SINK run 23 up t7.000 foot 1 kind 3 age 0.067 h -4.5 b  0.0 t  1.7 heelInTread   3.1 toeInTread  27.4 stepT -1.00 v 1.45 landErr 0.1 shift 13.2

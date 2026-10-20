@@ -1,0 +1,7 @@
+In file included from src/main.cpp:70:
+src/game/app.cpp: In member function 'void Game::App::applyAutoplay(Game::Controls&, float)':
+src/game/app.cpp:5866: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
+ 5866 |                 if ((!arriving && phase == 4) || (arriving && phase >= 2)) doneT += dt;
+      | 
+src/game/app.cpp:5866: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
+-rwxr-xr-x 1 root root 13009920 Oct 20 02:08 bin/loco_st17.exe

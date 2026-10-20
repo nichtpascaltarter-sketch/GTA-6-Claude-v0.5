@@ -1,0 +1,28 @@
+ntw 1 layout id=lib.layout.test.local
+# references inside one library item: missing, of the wrong kind, and furnish variants
+wall w1 a=0.00,0.00 b=6.00,0.00 t=0.25 ext=front
+wall w2 a=6.00,0.00 b=6.00,5.00 t=0.25 ext=right
+wall w3 a=6.00,5.00 b=0.00,5.00 t=0.25 ext=back
+wall w4 a=0.00,5.00 b=0.00,0.00 t=0.25 ext=left
+room living type=living poly=0.00,0.00;6.00,0.00;6.00,5.00;0.00,5.00
+door d1 wall=w9 at=2.00 w=0.90 h=2.10 kind=hinged leads=out:living # expect ref.missing
+door d2 wall=living at=1.00 w=0.90 h=2.10 kind=hinged leads=out:living # expect ref.kind
+door d3 wall=w2 at=1.00 w=0.90 h=2.10 kind=hinged leads=living:cellar # expect ref.missing
+door d4 wall=w2 at=3.00 w=0.90 h=2.10 kind=hinged leads=living # expect ref.form
+window n1 wall=w1 at=4.00 w=1.20 h=1.40 sill=0.90 kind=dhung room=w2 # expect ref.kind
+window x2 wall=w1 at=1.00 w=1.20 h=1.40 sill=0.90 kind=dhung room=living # expect w:id.form
+slot u1 poly=0.00,0.00;1.00,0.00;1.00,1.00 entry=n1 allow=lib.unit.test.* # expect ref.kind
+furnish living variants=a,b
+  variant a set=lib.set.living.x anchor=w1
+  variant c set=lib.set.living.y anchor=d1 # expect ref.missing ref.kind
+  variant aa anchor=w1 # expect ref.missing w:id.form
+  item kind=lib.kit.sofa_3seat at=1.00,1.00 variant=b
+  item kind=lib.kit.sofa_3seat at=2.00,1.00 variant=d # expect ref.missing
+end
+furnish kitchen variants=a # expect ref.missing
+end
+furnish living variants=a # expect id.unique
+end
+spot s1 kind=counter_queue room=living line=1.00,1.00;2.00,1.00 for=w1 # expect ref.kind
+light l1 room=hall at=1.00,1.00,2.50 fixture=lib.kit.ceiling_bowl # expect ref.missing
+sign wall=d2 at=1.00 w=1.00 h=0.50 # expect ref.kind

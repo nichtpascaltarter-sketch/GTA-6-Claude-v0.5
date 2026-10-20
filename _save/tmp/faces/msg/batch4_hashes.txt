@@ -1,0 +1,6 @@
+- 4829269cb4df2195fbf012d12c5c24e276a5ec98  src/anim/face.cpp
+- cd741c5c1ce6dcf5ea0ff52cedad9f5299bf61e3  src/anim/hair.cpp
+- a96450779ff34272fcfb1d9ce0a5fa3057ef0652  src/anim/clothing.cpp
+- ce9f2affb63bc693967edbabbc182ba875941e90  src/anim/bodymesh.cpp
+- 9440c6ce1e32efcde91033764805e8e16054c59e  tests/anim/anim_test.cpp
+- 86f8a2bd680e185b1fc917bb8042f786890f2696  tests/anim/preview.cpp

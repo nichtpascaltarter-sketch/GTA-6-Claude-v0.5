@@ -1,0 +1,13 @@
+Embedded 35 shader files.
+In file included from src/anim/anim_all.cpp:14,
+                 from src/main.cpp:49:
+src/anim/clips.cpp: In function 'void Anim::detail::clipStanding(const AuthorCtx&, int, float, Rig&)':
+src/anim/clips.cpp:3528: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
+ 3528 |             r.spinePitch = 0.05f * e;
+      | 
+src/anim/clips.cpp:3528: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
+-rwxr-xr-x 1 root root 11592704 Oct  1 00:35 bin/missions2.exe
+
+real	26m20.108s
+user	3m30.623s
+sys	0m3.618s

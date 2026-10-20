@@ -1,0 +1,282 @@
+base: N nodes 6223 edges 9547 signalized 1690 buildings 39075
+fix:  N nodes 6231 edges 9534 signalized 1682 buildings 39056
+edges: 9547 base, 9534 fix; 39 only in base, 26 only in fix
+  - 10th Avenue|cls 3|3800.0 1943.9 -> 3800.0 1850.0|len 93.9|seed 94ceb237|lanes 1/1
+  - 11th Avenue|cls 3|3697.9 -550.0 -> 3700.0 -650.0|len 100.1|seed 206d7f75|lanes 1/1
+  - 11th Avenue|cls 3|3700.0 -525.0 -> 3700.0 -450.0|len 75.0|seed ffca6975|lanes 1/1
+  - 11th Avenue|cls 3|3700.0 -750.0 -> 3700.0 -650.0|len 100.0|seed 724bb037|lanes 1/1
+  - 11th Avenue|cls 3|3700.0 -850.0 -> 3700.0 -750.0|len 100.0|seed 2f36f6fc|lanes 1/1
+  - 35th Street|cls 3|4962.8 490.0 -> 5050.0 490.0|len 87.2|seed 448c0b6b|lanes 1/1
+  - 8th Avenue|cls 3|3998.6 3950.0 -> 4000.0 3850.0|len 100.0|seed 710d3e13|lanes 1/1
+  - 9th Avenue|cls 2|3900.0 3250.0 -> 3900.0 3300.0|len 50.0|seed 293c2f9f|lanes 2/2
+  - 9th Avenue|cls 2|3900.0 3300.0 -> 3900.0 3350.0|len 50.0|seed d4991c10|lanes 2/2
+  - 9th Avenue|cls 2|3900.0 3350.0 -> 3900.0 3425.0|len 75.0|seed c08714fb|lanes 2/2
+  - 9th Avenue|cls 2|3901.5 3450.0 -> 3900.0 3550.0|len 100.0|seed e8090705|lanes 2/2
+  - Almeria Boulevard|cls 4|-2951.1 2406.7 -> -2953.1 2031.7|len 375.4|seed 31fcb982|lanes 1/1
+  - Almeria Boulevard|cls 4|-2953.7 2449.9 -> -2960.1 2802.3|len 352.5|seed ca08acbe|lanes 1/1
+  - Bay Road|cls 3|4964.4 395.0 -> 4962.8 490.0|len 97.3|seed 8c3eedf4|lanes 1/1
+  - Bay Road|cls 3|4966.0 500.5 -> 4974.0 585.0|len 85.8|seed a44b7096|lanes 1/1
+  - Bayshore Boulevard|cls 1|3901.5 3450.0 -> 3924.6 3550.0|len 102.9|seed 2c311145|lanes 3/3
+  - Bayshore Way|cls 4|2945.2 -2837.2 -> 2944.0 -2688.1|len 149.1|seed 85425ff0|lanes 1/1
+  - Bayshore Way|cls 4|2952.7 -2992.8 -> 2945.8 -2867.5|len 125.5|seed 9ed586ce|lanes 1/1
+  - Bayshore Way|cls 4|2960.6 -3093.2 -> 2952.7 -2992.8|len 100.7|seed 8d255438|lanes 1/1
+  - Bayshore Way|cls 4|2964.8 -3154.8 -> 2960.6 -3093.2|len 61.7|seed efbb3e0e|lanes 1/1
+  - Bougainvillea Boulevard|cls 1|3600.0 -1472.5 -> 3600.0 -1550.0|len 77.5|seed d0d4efff|lanes 3/3
+  - Bougainvillea Boulevard|cls 1|3600.0 -1650.0 -> 3600.0 -1550.0|len 100.0|seed a534b802|lanes 3/3
+  - Caribe Drive|cls 2|2859.6 -2544.2 -> 2858.5 -2431.0|len 113.2|seed e31b4be1|lanes 2/2
+  - Caribe Drive|cls 2|2862.2 -3597.0 -> 2869.0 -3511.4|len 85.9|seed e922fdfd|lanes 2/2
+  - Caribe Drive|cls 2|2869.0 -3511.4 -> 2873.9 -3456.7|len 54.9|seed 54e3b7c1|lanes 2/2
+  - Granada Drive|cls 4|-2404.2 5018.8 -> -2699.2 5012.4|len 295.1|seed 19c1702c|lanes 1/1
+  - Granada Drive|cls 4|-2788.9 5010.6 -> -2702.9 5012.2|len 86.0|seed 34069fe2|lanes 1/1
+  - Harlow Road|cls 5|-2406.5 5054.4 -> -2699.2 5012.4|len 295.7|seed 2a075ebe|lanes 1/1
+  - Harlow Road|cls 5|-2702.9 5012.2 -> -2789.0 5001.3|len 86.8|seed 4934aa95|lanes 1/1
+  - Harlow Road|cls 5|-4900.0 4854.6 -> -4799.9 4858.9|len 100.2|seed 6813875b|lanes 1/1
+  - Harlow Road|cls 5|-4900.0 4854.6 -> -4970.0 4853.0|len 70.2|seed 0e95774c|lanes 1/1
+  - Levee Road|cls 5|-2951.1 2406.7 -> -2953.1 2031.7|len 375.6|seed 4c1acc44|lanes 1/1
+  - Levee Road|cls 5|-2953.7 2449.9 -> -2952.2 2802.2|len 352.4|seed f29a4ad1|lanes 1/1
+  - Old Cutler Road|cls 2|2858.5 -2431.0 -> 2887.5 -2542.1|len 114.8|seed ee2e114e|lanes 2/2
+  - Old Cutler Road|cls 2|2869.0 -3511.4 -> 2838.3 -3595.9|len 89.9|seed e39b0381|lanes 2/2
+  - Old Cutler Road|cls 2|2945.2 -2837.2 -> 2917.6 -2689.8|len 150.1|seed 24ab0eb8|lanes 2/2
+  - Osprey Street|cls 3|-4792.5 4785.4 -> -4799.9 4858.9|len 73.9|seed 1f4fdbbc|lanes 1/1
+  - Osprey Street|cls 3|-4801.0 4870.0 -> -4809.5 4954.5|len 85.0|seed d4cfd73d|lanes 1/1
+  - S 2nd Street|cls 3|3721.4 -150.0 -> 3773.9 -159.9|len 54.5|seed 94d541bf|lanes 1/1
+  + 9th Avenue|cls 2|3920.1 3517.3 -> 3900.0 3550.0|len 43.8|seed e8090705|lanes 2/2
+  + Almeria Boulevard|cls 4|-2951.1 2406.7 -> -2953.5 2177.0|len 235.2|seed 31fcb982|lanes 1/1
+  + Almeria Boulevard|cls 4|-2953.1 2669.9 -> -2960.1 2802.3|len 137.7|seed ca08acbe|lanes 1/1
+  + Bay Road|cls 3|4964.4 395.0 -> 4962.8 490.0|len 97.2|seed 8c3eedf4|lanes 1/1
+  + Bay Road|cls 3|4966.0 500.5 -> 4974.0 585.0|len 85.7|seed a44b7096|lanes 1/1
+  + Bayshore Boulevard|cls 1|3901.5 3450.0 -> 3920.1 3517.3|len 69.9|seed 2c311145|lanes 3/3
+  + Bayshore Boulevard|cls 1|3920.1 3517.3 -> 3924.6 3550.0|len 33.0|seed 130fa8b9|lanes 3/3
+  + Bayshore Way|cls 4|2933.0 -2771.5 -> 2944.0 -2688.1|len 89.3|seed 85425ff0|lanes 1/1
+  + Caribe Drive|cls 2|2859.6 -2544.2 -> 2874.0 -2487.6|len 63.8|seed e31b4be1|lanes 2/2
+  + Caribe Drive|cls 2|2862.2 -3597.0 -> 2849.3 -3566.8|len 36.0|seed e922fdfd|lanes 2/2
+  + Granada Drive|cls 4|-2404.2 5018.8 -> -2613.2 5024.4|len 213.2|seed 19c1702c|lanes 1/1
+  + Granada Drive|cls 4|-2788.9 5010.6 -> -2778.0 5002.7|len 15.3|seed 34069fe2|lanes 1/1
+  + Harlow Road|cls 5|-2406.5 5054.4 -> -2613.2 5024.4|len 208.9|seed 2a075ebe|lanes 1/1
+  + Harlow Road|cls 5|-2613.2 5024.4 -> -2699.2 5012.4|len 86.8|seed 9c93e950|lanes 1/1
+  + Harlow Road|cls 5|-2702.9 5012.2 -> -2778.0 5002.7|len 75.7|seed 4934aa95|lanes 1/1
+  + Harlow Road|cls 5|-2778.0 5002.7 -> -2789.0 5001.3|len 11.1|seed 33713a4c|lanes 1/1
+  + Levee Road|cls 5|-2951.1 2406.7 -> -2953.5 2177.0|len 230.4|seed 4c1acc44|lanes 1/1
+  + Levee Road|cls 5|-2953.1 2669.9 -> -2952.2 2802.2|len 132.4|seed f3c6ec3e|lanes 1/1
+  + Levee Road|cls 5|-2953.5 2177.0 -> -2953.1 2031.7|len 145.2|seed f2c2ae14|lanes 1/1
+  + Levee Road|cls 5|-2953.7 2449.9 -> -2953.1 2669.9|len 220.0|seed f29a4ad1|lanes 1/1
+  + Old Cutler Road|cls 2|2849.3 -3566.8 -> 2838.3 -3595.9|len 31.1|seed 064cb1b7|lanes 2/2
+  + Old Cutler Road|cls 2|2858.5 -2431.0 -> 2874.0 -2487.6|len 58.6|seed ee2e114e|lanes 2/2
+  + Old Cutler Road|cls 2|2869.0 -3511.4 -> 2849.3 -3566.8|len 58.8|seed e39b0381|lanes 2/2
+  + Old Cutler Road|cls 2|2874.0 -2487.6 -> 2887.5 -2542.1|len 56.2|seed a8f84d9d|lanes 2/2
+  + Old Cutler Road|cls 2|2933.0 -2771.5 -> 2917.6 -2689.8|len 83.1|seed 25c985c1|lanes 2/2
+  + Old Cutler Road|cls 2|2945.2 -2837.2 -> 2933.0 -2771.5|len 66.9|seed 24ab0eb8|lanes 2/2
+edges at another index (same content): 6249
+buildings: 6273 removed, 6254 added; beyond 150 m of a spot: 6139 removed, 6135 added
+  far - B -2920.3 2180.2 5.8 6.5 ax -0.03 -1.00 style 6 h 3.0 seed 2c0a0669 d 218
+  far - B -2920.0 2158.0 5.8 6.8 ax -0.04 -1.00 style 6 h 2.9 seed abb68ef0 d 240
+  far - B -2920.5 2134.5 7.2 7.1 ax -0.04 -1.00 style 6 h 3.0 seed 2c561acf d 263
+  far - B -2922.4 2105.6 6.0 7.1 ax -0.04 -1.00 style 6 h 5.8 seed 8fd4318d d 292
+  far - B -2922.8 2088.3 5.9 8.1 ax -0.04 -1.00 style 6 h 2.9 seed 307a4cc8 d 309
+  far - B -2923.3 2064.1 5.4 7.6 ax -0.04 -1.00 style 6 h 3.0 seed 8c11595d d 333
+  far - B -2986.9 2612.0 5.2 7.8 ax -0.03 1.00 style 6 h 3.0 seed 2bce8c06 d 157
+  far - B -2933.3 2624.0 5.6 8.0 ax -0.03 1.00 style 6 h 3.0 seed 509d3d0a d 167
+  far - B -2981.4 2636.6 7.0 6.6 ax 0.00 1.00 style 6 h 3.0 seed 94c2a120 d 181
+  far - B -2980.3 2681.3 6.2 6.2 ax 0.00 1.00 style 6 h 3.0 seed 9879ac56 d 225
+  far - B -2980.2 2765.6 6.3 7.2 ax 0.01 1.00 style 6 h 2.9 seed 2e13811e d 309
+  far - B -2923.6 2642.3 6.2 7.8 ax 0.00 1.00 style 6 h 3.0 seed 18c4ed54 d 187
+  far - B -2923.0 2691.8 7.5 8.6 ax 0.00 1.00 style 6 h 3.0 seed a4821098 d 236
+  far - B -2924.2 2733.6 6.9 7.2 ax 0.01 1.00 style 6 h 6.3 seed dada8a17 d 277
+  far - B -2815.1 2518.6 6.9 7.4 ax -0.03 1.00 style 6 h 3.0 seed 06e9c4f4 d 152
+  far - B -2814.6 2544.5 5.9 7.4 ax -0.03 1.00 style 6 h 5.8 seed aedfc1ef d 164
+  far - B -2815.2 2565.8 6.7 9.2 ax -0.03 1.00 style 6 h 2.9 seed 46531c8f d 176
+  far - B 4961.5 705.5 12.7 17.9 ax 0.00 1.00 style 3 h 13.6 seed a083d986 d 217
+  far - B 4966.8 894.2 10.7 12.6 ax 0.00 1.00 style 2 h 60.6 seed 4b1b5236 d 405
+  far - B 4965.3 990.4 11.9 14.0 ax 0.00 1.00 style 2 h 36.1 seed bdbcef6f d 501
+  far - B 4958.8 1090.9 14.6 14.3 ax -0.30 0.95 style 2 h 52.8 seed 65e4d47d d 601
+  far - B 5006.5 1096.6 11.0 11.6 ax -0.30 0.95 style 2 h 51.1 seed ae5a9e70 d 607
+  far - B 4955.9 1213.3 15.4 15.4 ax 0.00 1.00 style 4 h 12.3 seed 1314c6e0 d 508
+  far - B 5010.5 1212.4 13.8 17.9 ax 0.00 1.00 style 3 h 17.1 seed a93eebd4 d 515
+  far - B 4941.8 1311.7 11.5 16.5 ax 0.30 -0.95 style 2 h 27.4 seed 8a5ec4c1 d 409
+  far - B 4917.7 1464.3 19.8 15.6 ax -0.30 0.95 style 3 h 11.0 seed b7eb6912 d 257
+  far - B 4913.5 1502.8 11.0 15.6 ax -0.30 0.95 style 3 h 13.6 seed 4eb048ee d 219
+  far - B 4905.8 1557.0 16.0 14.0 ax -0.30 0.95 style 3 h 7.4 seed d75c98ea d 166
+  far - B 4915.1 1886.4 14.6 16.2 ax 0.00 1.00 style 4 h 8.7 seed a2fe89ee d 166
+  far - B 4949.5 2062.4 12.7 13.9 ax 0.00 1.00 style 2 h 55.2 seed c36ff774 d 342
+  far + B -2923.3 2152.7 6.7 9.0 ax 0.00 -1.00 style 6 h 3.0 seed 55ce881f d 245
+  far + B -2924.2 2114.3 6.7 8.3 ax 0.00 -1.00 style 6 h 3.0 seed c86f4f55 d 283
+  far + B -2980.5 2772.1 5.7 7.2 ax 0.01 1.00 style 6 h 3.0 seed 5c73cac5 d 315
+  far + B -2924.3 2694.6 7.3 7.4 ax 0.01 1.00 style 6 h 2.9 seed ec411625 d 238
+  far + B -2923.7 2739.5 7.2 7.7 ax 0.01 1.00 style 6 h 3.0 seed 6b89aa1d d 283
+  far + B -2981.5 2622.3 7.4 7.3 ax 0.00 1.00 style 6 h 5.9 seed b96a9f01 d 167
+  far + B -2923.2 2625.9 6.3 9.0 ax 0.00 1.00 style 6 h 3.0 seed e424157d d 171
+  far + B -2813.9 2523.2 7.4 7.6 ax -0.03 1.00 style 6 h 3.0 seed 98101267 d 155
+  far + B -2814.9 2541.9 5.1 8.1 ax -0.03 1.00 style 6 h 3.0 seed d3d17e77 d 162
+  far + B -2816.3 2566.4 7.3 8.4 ax -0.03 1.00 style 6 h 5.8 seed 742e8c2e d 175
+  far + B 4961.5 705.5 12.7 17.9 ax 0.00 1.00 style 3 h 13.3 seed a083d986 d 217
+  far + B 4966.8 894.2 10.7 12.6 ax 0.00 1.00 style 2 h 38.6 seed 4b1b5236 d 405
+  far + B 4965.3 990.4 11.9 14.0 ax 0.00 1.00 style 2 h 39.6 seed bdbcef6f d 501
+  far + B 4958.8 1090.9 14.6 14.3 ax -0.30 0.95 style 2 h 36.0 seed 65e4d47d d 601
+  far + B 5006.5 1096.6 11.0 11.6 ax -0.30 0.95 style 2 h 72.1 seed ae5a9e70 d 607
+  far + B 4955.9 1213.3 15.4 15.4 ax 0.00 1.00 style 4 h 4.9 seed 1314c6e0 d 508
+  far + B 5010.5 1212.4 13.8 17.9 ax 0.00 1.00 style 3 h 11.0 seed a93eebd4 d 515
+  far + B 4941.8 1311.7 11.5 16.5 ax 0.30 -0.95 style 2 h 55.1 seed 8a5ec4c1 d 409
+  far + B 4917.7 1464.3 19.8 15.6 ax -0.30 0.95 style 3 h 14.0 seed b7eb6912 d 257
+  far + B 4913.5 1502.8 11.0 15.6 ax -0.30 0.95 style 3 h 11.1 seed 4eb048ee d 219
+  far + B 4905.8 1557.0 16.0 14.0 ax -0.30 0.95 style 3 h 10.3 seed d75c98ea d 166
+  far + B 4915.1 1886.4 14.6 16.2 ax 0.00 1.00 style 4 h 4.9 seed a2fe89ee d 166
+  far + B 4949.5 2062.4 12.7 13.9 ax 0.00 1.00 style 2 h 55.8 seed c36ff774 d 342
+  far + B 4932.4 2413.9 10.8 14.9 ax 0.00 1.00 style 3 h 12.7 seed 8727386f d 693
+  far + B 4930.5 2516.0 16.8 16.9 ax 0.00 1.00 style 2 h 36.8 seed fee73227 d 795
+  far + B 4933.0 2607.9 14.2 14.3 ax 0.00 1.00 style 3 h 7.6 seed 0e7f8904 d 887
+  far + B 4978.5 2639.5 9.4 13.2 ax -0.30 0.95 style 2 h 48.2 seed 3be0c687 d 920
+  far + B 4918.0 2898.3 18.7 13.3 ax 0.00 1.00 style 3 h 14.0 seed b8c3f61e d 1090
+  far + B 4952.5 3115.0 10.4 13.0 ax -0.54 0.84 style 3 h 11.2 seed 6a29c8dd d 1071
+  far + B 5120.9 -2526.2 12.6 13.2 ax 1.00 0.00 style 3 h 11.1 seed 57d61d95 d 1775
+  spot (2960, -3079): 3 removed, 3 added within 150 m
+  spot (-2954, 2458): 30 removed, 23 added within 150 m
+  spot (3695, -731): 1 removed, 1 added within 150 m
+  spot (3695, -631): 1 removed, 1 added within 150 m
+  spot (3989, 3880): 3 removed, 4 added within 150 m
+  spot (3689, -820): 1 removed, 1 added within 150 m
+  spot (4985, 490): 2 removed, 2 added within 150 m
+  spot (2955, -2922): 4 removed, 3 added within 150 m
+  spot (-4914, 4859): 23 removed, 24 added within 150 m
+  spot (3895, 3369): 10 removed, 8 added within 150 m
+  spot (2964, -3142): 3 removed, 3 added within 150 m
+  spot (-4800, 4815): 24 removed, 26 added within 150 m
+  spot (-2950, 2396): 20 removed, 16 added within 150 m
+  spot (2945, -2823): 5 removed, 4 added within 150 m
+  spot (-2738, 5011): 13 removed, 9 added within 150 m
+  spot (-2667, 5014): 16 removed, 10 added within 150 m
+  spot (-4802, 4884): 27 removed, 27 added within 150 m
+  spot (2870, -3498): 3 removed, 4 added within 150 m
+  spot (3800, 1921): 6 removed, 5 added within 150 m
+  spot (-4887, 4861): 23 removed, 24 added within 150 m
+  spot (3893, 3269): 4 removed, 5 added within 150 m
+  spot (3895, 3317): 7 removed, 6 added within 150 m
+  spot (2867, -3539): 3 removed, 4 added within 150 m
+  spot (4930, 1721): 4 removed, 4 added within 150 m
+  spot (2859, -2417): 6 removed, 6 added within 150 m
+  spot (2858, -2454): 6 removed, 6 added within 150 m
+  spot (3900, 3473): 15 removed, 12 added within 150 m
+bus stops: 64 base, 62 fix, 56 only in base, 54 only in fix
+  - S 15th Ave & N 8th St|3311.1 877.9|routes 1|seed d0c80139
+  - S 48th St & Venetia Cswy|4976.0 1732.4|routes 4|seed 72a41b55
+  - S Airport SkyLine|1007.4 1419.5|routes 1|seed 0f16a3ed
+  - S Airport SkyLine|1007.5 1120.5|routes 1|seed 0582b2c0
+  - S Airport SkyLine|992.5 1423.9|routes 1|seed 40123237
+  - S Bayshore Blvd & 11th Ave|3678.8 -582.8|routes 8|seed 4265cf1d
+  - S Bayshore Blvd & 11th Ave|3712.2 -586.2|routes 8|seed c4000565
+  - S Bayshore Blvd & Flamingo Blvd|3719.1 1005.9|routes 8|seed 8ef3414e
+  - S Bayshore Blvd & Flamingo Blvd|3767.3 1078.7|routes 8|seed 6719e424
+  - S Bayshore Blvd & Heron Blvd|3742.9 -97.9|routes 8|seed 5d0215e6
+  - S Bayshore Blvd & N 12th St|3745.4 1215.4|routes 4|seed a2a3fd9a
+  - S Bayshore Blvd & N 14th St|3738.2 1397.5|routes 8|seed 7f0f38a8
+  - S Bayshore Blvd & N 22nd St|3808.2 2216.7|routes 8|seed d49b75c2
+  - S Bayshore Blvd & N 24th St|3841.8 2315.4|routes 8|seed df15e556
+  - S Bayshore Blvd & N 2nd St|3761.1 217.5|routes 8|seed 696fd7f4
+  - S Bayshore Blvd & N 8th St|3720.7 812.9|routes 4|seed 539031db
+  - S Bayshore Blvd & Osprey Blvd|3648.2 -1083.8|routes 8|seed d724f979
+  - S Bayshore Blvd & Osprey Blvd|3681.8 -999.0|routes 8|seed 7c2dbaa6
+  - S Bayshore Blvd & Palmetto Blvd|3833.3 1985.3|routes 8|seed f607a3bf
+  - S Bayshore Blvd & S 14th St|3620.6 -1312.3|routes 8|seed 23a51433
+  - S Bayshore Blvd & S 14th St|3635.3 -1414.1|routes 8|seed c9e9c0d2
+  - S Bayshore Blvd & Solano Cswy|3761.7 691.8|routes 8|seed 1dff7e62
+  - S Calle Luna SkyLine|1783.2 -582.6|routes 2|seed 2cab1e5d
+  - S Calle Luna SkyLine|1816.8 -484.1|routes 2|seed 9644df39
+  - S Civic Center SkyLine|3169.5 542.6|routes 1|seed d7b9b75f
+  - S Civic Center SkyLine|3311.1 478.0|routes 4|seed 6cf890d7
+  - S Civic Center SkyLine|3372.9 261.1|routes 4|seed 8b6abcb2
+  - S Flamingo Blvd & 19th Ave|2931.8 1033.3|routes 1|seed 7a2b32d2
+  - S Flamingo Blvd & 22nd Ave|2636.6 1066.8|routes 1|seed 077da918
+  - S Flamingo Blvd & 23rd Ave|2531.8 1033.3|routes 1|seed fcd1f481
+  - S Flamingo Blvd & 27th Ave|2164.8 1066.8|routes 1|seed 8dbc2347
+  - S Flamingo Blvd & 28th Ave|1945.0 1033.2|routes 1|seed 73832d48
+  - S Flamingo Blvd & 33rd Ave|1533.2 1033.2|routes 1|seed df6f7a38
+  - S Flamingo Blvd & 34th Ave|1337.2 1066.8|routes 1|seed c64f6e21
+  - S Flamingo Blvd & Bougainvillea Blvd|1085.5 1033.2|routes 1|seed 109bfeec
+  - S Flamingo Blvd & Madeira Blvd|3064.3 1066.8|routes 1|seed 8143cd1c
+  - S Flamingo Blvd & Sunrise Blvd|1758.8 1066.8|routes 1|seed cee72919
+  - S Madeira Blvd & N 8th St|2983.3 804.8|routes 1|seed 62046bce
+  - S N 6th St & Bougainvillea Blvd|3631.8 642.6|routes 4|seed 1e087cd4
+  - S PSI Airport Terminal|698.4 1330.0|routes 1|seed 5dc04796
+  + S 15th Ave & N 8th St|3311.1 877.9|routes 1|seed 9d01ffe5
+  + S 48th St & Venetia Cswy|4976.0 1732.4|routes 4|seed 2b3a23b8
+  + S Airport SkyLine|1007.4 1419.5|routes 1|seed 559c2a58
+  + S Airport SkyLine|1007.5 1120.5|routes 1|seed 784305ba
+  + S Airport SkyLine|992.5 1423.9|routes 1|seed cdfb2546
+  + S Bayshore Blvd & 10th Ave|3803.8 1893.9|routes 8|seed 75383f94
+  + S Bayshore Blvd & 11th Ave|3693.9 -482.0|routes 8|seed 15e6c4c9
+  + S Bayshore Blvd & Bougainvillea Blvd|3612.1 -1518.6|routes 8|seed 438a2dbc
+  + S Bayshore Blvd & Flamingo Blvd|3753.2 1014.4|routes 8|seed bccc9790
+  + S Bayshore Blvd & N 12th St|3745.4 1215.4|routes c|seed a2a3fd9a
+  + S Bayshore Blvd & N 22nd St|3808.2 2217.4|routes 8|seed 5796ba28
+  + S Bayshore Blvd & N 24th St|3841.8 2296.2|routes 8|seed defbc0ca
+  + S Bayshore Blvd & N 2nd St|3763.1 207.9|routes 8|seed 94ac13f0
+  + S Bayshore Blvd & N 6th St|3761.8 603.5|routes 8|seed ae356526
+  + S Bayshore Blvd & N 8th St|3720.7 812.9|routes c|seed 539031db
+  + S Bayshore Blvd & Osprey Blvd|3681.7 -1103.1|routes 8|seed d07b0f6c
+  + S Bayshore Blvd & S 12th St|3645.8 -1184.1|routes 8|seed 69160508
+  + S Bayshore Blvd & S 16th St|3576.5 -1604.6|routes 8|seed 900659a4
+  + S Bayshore Blvd & S 2nd St|3731.7 -295.2|routes 8|seed e084d844
+  + S Bayshore Blvd & S 6th St|3711.8 -685.9|routes 8|seed 67a765be
+  + S Calle Luna SkyLine|1783.2 -582.6|routes 2|seed 6ba3aaac
+  + S Calle Luna SkyLine|1816.8 -484.1|routes 2|seed 93498208
+  + S Civic Center SkyLine|3169.5 542.6|routes 1|seed 88b95f49
+  + S Civic Center SkyLine|3311.1 478.0|routes 4|seed fc4ff2a5
+  + S Civic Center SkyLine|3372.9 261.1|routes 4|seed 4c3182e3
+  + S Flamingo Blvd & 19th Ave|2931.8 1033.3|routes 1|seed d04f39e7
+  + S Flamingo Blvd & 22nd Ave|2636.6 1066.8|routes 1|seed 725c9f48
+  + S Flamingo Blvd & 23rd Ave|2531.8 1033.3|routes 1|seed 8926c8dc
+  + S Flamingo Blvd & 27th Ave|2164.8 1066.8|routes 1|seed 55af8521
+  + S Flamingo Blvd & 28th Ave|1945.0 1033.2|routes 1|seed 141779c9
+  + S Flamingo Blvd & 33rd Ave|1533.2 1033.2|routes 1|seed 14cf95fd
+  + S Flamingo Blvd & 34th Ave|1337.2 1066.8|routes 1|seed 89af96fe
+  + S Flamingo Blvd & Bougainvillea Blvd|1085.5 1033.2|routes 1|seed bc100f92
+  + S Flamingo Blvd & Madeira Blvd|3064.3 1066.8|routes 1|seed ee14523e
+  + S Flamingo Blvd & Sunrise Blvd|1758.8 1066.8|routes 1|seed bb03e935
+  + S Madeira Blvd & N 8th St|2983.3 804.8|routes 1|seed fbef3e45
+  + S N 6th St & Bougainvillea Blvd|3631.8 642.6|routes 4|seed fbfc020a
+  + S PSI Airport Terminal|698.4 1330.0|routes 1|seed 18d26fa3
+  + S Palmetto Blvd & Sunrise Blvd|1841.9 2033.2|routes 2|seed 2354ce41
+  + S Palmetto Blvd & Sunrise Blvd|1843.4 1966.8|routes 2|seed 55c89e10
+site places: 15 base, 15 fix, 0 only in base, 0 only in fix
+interiors: 29 base, 29 fix, 0 only in base, 0 only in fix
+story places: 52 base, 52 fix, 0 only in base, 0 only in fix
+nodes: 6223 base, 6231 fix, 54 changed by index
+  - V 117 3600.0 -1472.5 z 1.6 deg 4 ctl 2
+  + V 117 3600.0 -1472.5 z 1.6 deg 3 ctl 2
+  - V 118 3600.0 -1550.0 z 1.6 deg 3 ctl 2
+  + V 118 3600.0 -1550.0 z 1.6 deg 1 ctl 0
+  - V 122 3800.0 1943.9 z 1.5 deg 3 ctl 1
+  + V 122 3800.0 1943.9 z 1.5 deg 2 ctl 0
+  - V 123 3800.0 1850.0 z 1.5 deg 3 ctl 0
+  + V 123 3800.0 1850.0 z 1.5 deg 2 ctl 0
+  - V 126 4000.0 3955.5 z 0.9 deg 2 ctl 0
+  + V 126 4000.0 3955.5 z 1.5 deg 2 ctl 0
+  - V 127 3998.6 3950.0 z 0.9 deg 4 ctl 2
+  + V 127 3998.6 3950.0 z 1.5 deg 3 ctl 2
+  - V 147 3600.0 -1650.0 z 1.6 deg 3 ctl 2
+  + V 147 3600.0 -1650.0 z 1.6 deg 2 ctl 0
+  - V 165 3681.4 -850.0 z 1.0 deg 4 ctl 2
+  + V 165 3681.4 -850.0 z 1.6 deg 4 ctl 2
+  - V 167 3700.0 -850.0 z 1.0 deg 3 ctl 0
+  + V 167 3700.0 -850.0 z 1.6 deg 2 ctl 0
+  - V 168 3695.0 -750.0 z 1.0 deg 4 ctl 2
+  + V 168 3695.0 -750.0 z 1.6 deg 4 ctl 2
+  - V 170 3700.0 -750.0 z 1.0 deg 3 ctl 0
+  + V 170 3700.0 -750.0 z 1.6 deg 1 ctl 0
+  - V 171 3695.0 -650.0 z 1.0 deg 4 ctl 2
+  + V 171 3695.0 -650.0 z 1.5 deg 4 ctl 2
+  - V 173 3700.0 -650.0 z 1.0 deg 3 ctl 0
+  + V 173 3700.0 -650.0 z 1.5 deg 1 ctl 0
+  - V 174 3697.9 -550.0 z 1.0 deg 4 ctl 1
+  + V 174 3697.9 -550.0 z 1.5 deg 3 ctl 1
+  - V 175 3700.0 -525.0 z 0.9 deg 3 ctl 1
+  + V 175 3700.0 -525.0 z 1.5 deg 2 ctl 0
+  - V 178 3714.3 -450.0 z 0.9 deg 4 ctl 2
+  + V 178 3714.3 -450.0 z 1.5 deg 4 ctl 2
+  - V 179 3700.0 -450.0 z 0.9 deg 4 ctl 1
+  + V 179 3700.0 -450.0 z 1.5 deg 3 ctl 0
+  - V 181 3715.0 -350.0 z 0.8 deg 4 ctl 2
+  + V 181 3715.0 -350.0 z 1.4 deg 4 ctl 2
+  - V 182 3700.0 -350.0 z 0.9 deg 4 ctl 1
+  + V 182 3700.0 -350.0 z 1.4 deg 4 ctl 1
+  - V 184 3715.0 -250.0 z 1.0 deg 4 ctl 2
+  + V 184 3715.0 -250.0 z 1.4 deg 4 ctl 2

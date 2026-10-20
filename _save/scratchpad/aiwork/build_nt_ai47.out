@@ -1,0 +1,8 @@
+07:37:39 try 1 foreign: src/render/post.cpp:275:49: error: 'struct gfx::Buffer' has no member named 'res'
+07:39:32 try 2 foreign: src/render/post.cpp:275:49: error: 'struct gfx::Buffer' has no member named 'res'
+07:41:32 try 3 foreign: src/render/post.cpp:275:49: error: 'struct gfx::Buffer' has no member named 'res'
+07:43:25 try 4 foreign: src/render/post.cpp:275:49: error: 'struct gfx::Buffer' has no member named 'res'
+07:45:18 try 5 foreign: src/render/post.cpp:275:49: error: 'struct gfx::Buffer' has no member named 'res'
+07:47:12 try 6 foreign: src/render/post.cpp:275:49: error: 'struct gfx::Buffer' has no member named 'res'
+07:49:06 try 7 foreign: src/render/post.cpp:275:49: error: 'struct gfx::Buffer' has no member named 'res'
+07:57:33 built bin/nt_ai47.exe after 8 tries

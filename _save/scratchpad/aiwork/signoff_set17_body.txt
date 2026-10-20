@@ -1,0 +1,47 @@
+Set 17: the events' people get back into their cars through the door, and the gaps from sets 10-13.
+
+- Event actors get in through the door (ai.cpp ai_board::beginThen). They walk to the door, the door clip runs (startCarEntry), and they are in once it is over.
+  - EV_CRASH (a fender bender): after the argument, both drivers walk back to their own cars, get in through the driver's door and drive off into the traffic.
+  - EV_BREAKDOWN (a stranded driver): once it is fixed or given up, the driver gets back in through the door and drives off.
+  - EV_TRAFFIC_STOP: the officer walks back to the cruiser and gets in through the door. The event lets both cars go once it sees the officer in, as it did before.
+  - beginThen(g, id, veh, seat, then): PedAI::boardThen says what happens once they are in.
+    - 1: away at the wheel (BRAIN_DRIVER, unparked, engine on, attachTraffic).
+    - 2: nothing; the event carries on.
+    - begin() is beginThen(..., 0), the set 16 activity follow-ups.
+  - Each site falls back to today's warp when the seat has no door, and keeps its old timeout warp (20 or 25 s).
+  - Kept instant:
+    - EV_TAKEOVER runners (fleeing the police);
+    - the arrested crook put into the cruiser (a 25 m put-in that needs the escort system);
+    - spawn warps;
+    - police bringing the car round to an escort, and the jump back in during a chase;
+    - BRAIN_FOLLOW (mission followers), since a follower must not be left behind if the player drives off during the clip.
+  - Two LOG lines give the clip lengths: "ai: ped N into car V (seat S) through the door: a X s clip (activity A)" and "ai: ped N in car V (seat S) after its door clip (X s in PS_ENTERING)". A cancel line covers the car going or its seat being taken.
+  - events.cpp gets its own forward declaration of ai_board::beginThen.
+  - Seats are claimed while somebody is on the way in (snapshot 48's ai_board::claimed / openSeat), at every one of these sites too: a group of three got into one car through three doors at once on nt_ai101.
+- The boxed-in crash driver: a driver on the kerb side whose car is blocked at both ends (aiCarEndFree, both ends) gets in by the passenger door on that side and slides across to the wheel (ai_board::step: then == 1 with a seat other than 0 moves them to seat 0 once in, then away).
+  - Also taken by a driver still on the kerb side 12 s into ST_C (events.cpp e8db7b4): on nt_ai101's events run, driver 117 went for his car's front end, which tested "free" (aiCarEndFree looks at one point 0.8 m past the end), and stood by a row of planters at the kerb off its nose until the 25 s warp.
+- The hitped gap (sets 10-13): somebody knocked down by a car whose driver stops to see now waits for the driver.
+  - ai.cpp sets PedAI::waitDrv/waitDrvUid at the knock-down. Once up, and not hurt, they stay where they are (pedai.cpp), turned to the driver pulling up, getting out and coming over.
+  - They wait for up to 8 s from getting up. They go on 1.5 s after their word ("You could've killed me!"), or as soon as the driver gives it up or drives on.
+  - Down hurt is unchanged: the driver phones and stays.
+  - The sorry driver's "they're all right, back to the car" clock (3.5 s) now runs only once the driver is with them (within 4 m) or has had the word. Before, it ran while they were still walking over, so a driver who got out 14 m away gave up before reaching them.
+  - Test (hitped):
+    - The walker is put a quarter second ahead (2-3.2 m), inside the car's stopping distance. On nt_ai83f, a car at 9.3 m/s stopped 2.4 m short of a walker 5 m ahead.
+    - The one hit goes back to an ordinary walker from the test's stare. That stare had them walk off toward where the car had been.
+    - The status line shows the wait.
+- The nearmiss test (test only): the car runs on a city street again, and the four kerb people are placed on it.
+  - On nt_ai83 the pick was an elevated highway (the four stood on its shoulder). Leaving out highways, ramps and bridges and asking for a 150 m run (115 m in a second round) then found nothing at all on nt_ai101: the core grid's lanes are a block, ~80 m, long. The player stayed on foot at the spawn and the test did not run.
+  - Now:
+    - The pick is a kerb lane with a 68 m straight run or more. Streets with one lane each way come first.
+    - The car sets off 6 m into the lane, and the four stand along its last 40 m: 8-38 m from its end, at least 15 m ahead of the car. Each moves a little when a parked car is in its spot.
+    - When they are placed, the traffic queued ahead in the lane is sent away (despawned). A first version had the people past the junction, and a pickup queued at the light held the car up.
+    - The car's route is set straight on through the junction (ai_tests::straightOn) when it switches to flee mode.
+- New test modes (app.cpp): taxi (a cab hailed twice; the fare to the kerb-side back door; a short ride and the drop-off), trafficstop and breakdown (each event forced at 3 s and watched to the end), knock (a real fender bender between two cars 1 m apart in a kerb lane, two rounds), copreturn (two officers walking back to one car, two rounds 35 m apart). All at midday downtown with ambient events off.
+- Overheard lines from people walking in company (set 10's night chats, and the daytime stroll lines) now come through in a crowd.
+  - On nt_ai86's busy night promenade not one was heard in 146 s, with 10-12 walking pairs about. The try came in a single frame every 7 s, and a line is dropped while another voice has just spoken (ai.barkGlobal), so in a crowd nearly every try was lost.
+  - Now (pedai.cpp, PedAI::chatT) a pair within 8 m of the player tries every 7 s or so, and one try in three is said. A try lost to another voice goes again a moment later. The rate is otherwise unchanged.
+- Walking round a car's end to get to its far side now works off the middle of the car's box (spec.boxCenter), not the body's origin.
+  - Affected: the crash drivers going back to their cars (events.cpp EV_CRASH), and aiCarEndToWalkRound's "is that end free" test (ai.cpp).
+  - On nt_ai90's crashscene, a long-nosed coupe's front corner, taken off the origin, was inside the car. Its driver pressed against the wing for 25 s until the old warp put him in.
+  - Now the corners sit 0.9 m past the box's end and 0.7 m out from its side.
+  - The events status line also shows each crash driver's place off their car's box while they walk back.

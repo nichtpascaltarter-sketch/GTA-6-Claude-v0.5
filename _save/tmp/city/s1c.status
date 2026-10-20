@@ -1,0 +1,37 @@
+cq42 start Tue Oct 20 00:30:29 UTC 2026
+s0c game syntax rc=0 errors=0 warnings=0 Tue Oct 20 00:32:24 UTC 2026
+s1c game syntax rc=0 errors=0 warnings=0 Tue Oct 20 00:32:48 UTC 2026
+s1c worldc build rc=0 (0 warnings) Tue Oct 20 00:32:53 UTC 2026
+s1c worldc run rc=0: worldc: 1 file(s) -> build/gen/world.bin (2669552 bytes, 6 sections) and build/gen/world.rc Tue Oct 20 00:32:53 UTC 2026
+s1c worldc on CRLF rc=0: DIFFERS; on BOM+CRLF rc=0: DIFFERS Tue Oct 20 00:32:54 UTC 2026
+s1c ntwfmt build rc=0 (0 warnings) Tue Oct 20 00:32:58 UTC 2026
+s1c ntwfmt --check world rc=0: ntwfmt: 1 file(s), 0 with errors, 0 not canonical Tue Oct 20 00:32:58 UTC 2026
+s1c world_format_test (CI flags) build rc=0 in 7.0 s, run rc=0 in 0.4 s: world_format_test: all passed Tue Oct 20 00:33:05 UTC 2026
+s1c clang scans: test 0, worldc 0, ntwfmt 0 diagnostics Tue Oct 20 00:33:09 UTC 2026
+s2c worldc build rc=1 (0 warnings) Tue Oct 20 00:33:18 UTC 2026
+s2c worldc run rc=127: /tmp/city/cq42.sh: line 24: ./build/worldc: No such file or directory Tue Oct 20 00:33:18 UTC 2026
+s2c worldc on CRLF rc=127: DIFFERS; on BOM+CRLF rc=127: DIFFERS Tue Oct 20 00:33:18 UTC 2026
+s2c ntwfmt build rc=1 (0 warnings) Tue Oct 20 00:33:24 UTC 2026
+s2c ntwfmt --check world rc=127: /tmp/city/cq42.sh: line 30: ./build/ntwfmt: No such file or directory Tue Oct 20 00:33:24 UTC 2026
+s2c world_format_test (CI flags) build rc=0 in 8.9 s, run rc=0 in 0.3 s: world_format_test: all passed Tue Oct 20 00:35:34 UTC 2026
+s2c clang scans: test 0, worldc 0, ntwfmt 0 diagnostics Tue Oct 20 00:35:38 UTC 2026
+s2c ntwfmt --check samples rc=127: /tmp/city/cq42.sh: line 42: ./build/ntwfmt: No such file or directory Tue Oct 20 00:35:38 UTC 2026
+s2c ntwfmt --check doc examples rc=127: /tmp/city/cq42.sh: line 43: ./build/ntwfmt: No such file or directory Tue Oct 20 00:35:38 UTC 2026
+s2c doccheck: 2 problems Tue Oct 20 00:35:38 UTC 2026
+world.bin step 3 vs step 4: DIFFERS; step 3 vs s1b: DIFFERS Tue Oct 20 00:35:38 UTC 2026
+s1c handload build rc=0 Tue Oct 20 00:37:38 UTC 2026
+s1c handload run rc=0: handload: ALL OK; damaged table entry refused: world.bin hash mismatch (damaged or truncated) Tue Oct 20 00:37:52 UTC 2026
+cq43 start Tue Oct 20 00:43:09 UTC 2026
+nt_s1c build rc=0: 15650304 bytes; worldc: 1 file(s) -> build/gen/world.bin (2669552 bytes, 6 sections) and build/gen/world.rc Tue Oct 20 00:58:00 UTC 2026
+s2c worldc build rc=0 (0 warnings) Tue Oct 20 00:58:19 UTC 2026
+s2c worldc run rc=0: worldc: 1 file(s) -> build/gen/world.bin (2669552 bytes, 6 sections) and build/gen/world.rc Tue Oct 20 00:58:20 UTC 2026
+s2c ntwfmt build rc=0 (0 warnings) Tue Oct 20 00:58:26 UTC 2026
+s2c ntwfmt --check world rc=0: ntwfmt: 1 file(s), 0 with errors, 0 not canonical Tue Oct 20 00:58:26 UTC 2026
+s2c ntwfmt --check samples rc=0: ntwfmt: 15 file(s), 0 with errors, 0 not canonical Tue Oct 20 00:58:26 UTC 2026
+s2c ntwfmt --check doc examples rc=0: ntwfmt: 9 file(s), 0 with errors, 0 not canonical Tue Oct 20 00:58:26 UTC 2026
+s1c worldc on its CRLF terrain.ntw (117 CRs) rc=0: identical; BOM+CRLF rc=0: identical Tue Oct 20 00:58:27 UTC 2026
+s2c worldc on its CRLF terrain.ntw (117 CRs) rc=0: identical; BOM+CRLF rc=0: identical Tue Oct 20 00:58:28 UTC 2026
+world.bin step 3 vs step 4: identical Tue Oct 20 00:58:28 UTC 2026
+cq43 done Tue Oct 20 00:58:28 UTC 2026
+s1c hand shot rc=0: 1 shots; 0 fatal; Hand world: terrain from the exe (2606 KB, 6 sections) in 1.82 s Tue Oct 20 01:44:35 UTC 2026
+cq42 done Tue Oct 20 01:44:35 UTC 2026

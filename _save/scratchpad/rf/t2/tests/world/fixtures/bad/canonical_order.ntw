@@ -1,0 +1,4 @@
+ntw 1 facade id=lib.facade.canonical_order
+wall material=lib.kit.mat_siding
+trim h=0.20 kind=band # expect file.canonical
+door style=lib.kit.door_panel_5

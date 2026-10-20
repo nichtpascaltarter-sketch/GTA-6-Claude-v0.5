@@ -1,0 +1,11 @@
+Animation: a stance change no longer drags planted feet; a held foot re-planted keeps its footprint
+
+- A stance change between stances whose legs are the walk's or the stand's (plain, chatting, on the phone, smoking,
+  waiting: 0 / 7 / 8 / 10 / 23) crossfades the upper body only (Animator::snapUpper). The crossfade from the captured
+  pose ran after the feet were put on the ground and took the legs and pelvis too, so for a third of a second planted
+  feet moved with the body's walk and turn since the capture. pedai flips a walking follower between plain and chatting
+  every few frames, and a phone call or a cigarette ending mid-walk did the same: every locotour slide over 20 cm sat on
+  such a change (ped 13, 128 cm over 74 frames, 27 flips).
+- A foot held on the ground since its toe-off that the gait plants again (its next stance come round before the pose
+  lifted it clear: a slow walk, a turn) or that comes to a stand keeps its footprint. It was re-planted at the shown
+  heel, this update's pose with the last update's correction, which jumps by the pose's own move in one update.

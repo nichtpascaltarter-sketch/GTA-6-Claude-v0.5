@@ -1,0 +1,146 @@
+[   0.000] Neon Tide starting. Data dir: C:\users\root\AppData\Local\NeonTide\
+[   0.290] D3D11 device created: feature level b100, adapter 'NVIDIA GeForce GTX 470', VRAM 16095 MB
+[   0.415] Font atlas built in 0.11 s
+[   0.450] Audio: no output device - audio disabled
+[   0.473] Audio: no output device, continuing silently
+[   7.258] World map generated in 6.78 s
+[   7.384] Road gen: 21 interchanges
+[   8.076] Road network: 6252 nodes, 10041 edges, 1732 signalized; hwy 60.1 km, streets 1186.7 km (0.82 s)
+[   9.123] Buildings: 36940 (towers 368, midrise 2449, condo 509, deco 844, shops 4788, strip 767, houses 22715, villas 794, warehouses 1673) in 1.02 s
+[   9.228] Material library: 52 layers at 256^2
+[   9.238] Props: 51 prototypes, 14371 verts
+[   9.710] Init done in 9.23 s (shaders: 0 compiled in 0.00 s)
+[  49.902] GPU timers (frame 30):
+sky                 14.42 ms
+shadows            346.67 ms
+gbuffer            447.73 ms
+clouds             123.57 ms
+lighting            17.10 ms
+water               32.88 ms
+post                74.19 ms
+
+[  80.171] GPU timers (frame 60):
+sky                 13.44 ms
+shadows            318.49 ms
+gbuffer            337.37 ms
+clouds              85.75 ms
+lighting            15.03 ms
+water               26.94 ms
+post                80.67 ms
+
+[ 103.813] Saved Z:\tmp\fx\dt_noon.bmp
+[ 106.002] GPU timers (frame 90):
+sky                 13.36 ms
+shadows            353.61 ms
+gbuffer            326.25 ms
+clouds              66.96 ms
+lighting            19.20 ms
+water               29.21 ms
+post                83.45 ms
+
+[ 121.951] Saved Z:\tmp\fx\dt_gold.bmp
+[ 138.987] Saved Z:\tmp\fx\dt_night.bmp
+[ 147.077] GPU timers (frame 120):
+sky                 15.14 ms
+shadows            447.95 ms
+gbuffer            406.60 ms
+clouds             153.68 ms
+lighting             3.55 ms
+water               43.60 ms
+post                98.45 ms
+
+[ 174.818] GPU timers (frame 150):
+sky                 13.29 ms
+shadows            277.00 ms
+gbuffer            289.43 ms
+clouds             170.02 ms
+lighting             7.09 ms
+water               48.40 ms
+post               105.29 ms
+
+[ 191.481] Saved Z:\tmp\fx\beach_noon.bmp
+[ 203.712] GPU timers (frame 180):
+sky                 12.49 ms
+shadows            291.49 ms
+gbuffer            270.27 ms
+clouds             154.80 ms
+lighting             8.43 ms
+water               31.06 ms
+post               108.45 ms
+
+[ 227.058] GPU timers (frame 210):
+sky                 13.92 ms
+shadows            240.64 ms
+gbuffer            206.84 ms
+clouds             132.16 ms
+lighting             7.31 ms
+water               20.68 ms
+post               106.36 ms
+
+[ 250.263] GPU timers (frame 240):
+sky                 11.72 ms
+shadows            239.68 ms
+gbuffer            231.81 ms
+clouds             143.08 ms
+lighting             6.63 ms
+water               19.33 ms
+post               108.59 ms
+
+[ 258.925] Saved Z:\tmp\fx\saw_noon.bmp
+[ 267.633] GPU timers (frame 270):
+sky                 10.03 ms
+shadows            172.30 ms
+gbuffer            141.08 ms
+clouds              82.63 ms
+lighting             5.66 ms
+water                8.22 ms
+post                95.09 ms
+
+[ 281.175] GPU timers (frame 300):
+sky                 10.10 ms
+shadows            160.74 ms
+gbuffer            149.13 ms
+clouds              72.59 ms
+lighting             7.25 ms
+water                6.15 ms
+post                84.19 ms
+
+[ 294.622] GPU timers (frame 330):
+sky                 10.59 ms
+shadows            226.15 ms
+gbuffer            145.49 ms
+clouds              64.49 ms
+lighting             9.98 ms
+water                5.79 ms
+post                68.12 ms
+
+[ 302.099] Saved Z:\tmp\fx\forest_noon.bmp
+[ 312.169] GPU timers (frame 360):
+sky                  9.57 ms
+shadows            228.58 ms
+gbuffer            145.70 ms
+clouds              62.06 ms
+lighting             7.33 ms
+water               10.51 ms
+post                61.03 ms
+
+[ 332.289] GPU timers (frame 390):
+sky                 10.59 ms
+shadows            298.40 ms
+gbuffer            207.81 ms
+clouds              75.50 ms
+lighting             8.86 ms
+water               11.91 ms
+post                62.79 ms
+
+[ 366.373] GPU timers (frame 420):
+sky                 11.90 ms
+shadows            567.34 ms
+gbuffer            369.30 ms
+clouds             118.14 ms
+lighting             8.70 ms
+water               18.14 ms
+post                79.67 ms
+
+[ 371.147] Saved Z:\tmp\fx\flats.bmp
+[ 374.634] Shutdown complete.

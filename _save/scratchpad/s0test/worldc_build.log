@@ -1,0 +1,7 @@
+tools/worldc.cpp: In function 'bool worldc::compileTerrain(World::WorldBinWriter&)':
+tools/worldc.cpp:98:64: warning: missing initializer for member 'worldc::LayerSpec::bytes' [-Wmissing-field-initializers]
+   98 |                            {"coast", "terrain.coast", GRID_I16}};
+      |                                                                ^
+tools/worldc.cpp:98:64: warning: missing initializer for member 'worldc::LayerSpec::bytes' [-Wmissing-field-initializers]
+tools/worldc.cpp:98:64: warning: missing initializer for member 'worldc::LayerSpec::bytes' [-Wmissing-field-initializers]
+tools/worldc.cpp:98:64: warning: missing initializer for member 'worldc::LayerSpec::bytes' [-Wmissing-field-initializers]

@@ -1,0 +1,7 @@
+cq69 start Tue Oct 20 16:01:00 UTC 2026
+p1b MinGW main.cpp rc=0 errors 0 warnings 0 Tue Oct 20 16:01:29 UTC 2026
+nt_p1b build rc=0: 15861760 bytes Tue Oct 20 16:10:52 UTC 2026
+hand mode shots with the game initialised rc=0: 2 shots; 0 fatal; Lane graph: 192 lanes, 397 connectors (7814 pts), 330 walk nodes, 443 walk links, dead-end turning circles moved 0 / obstructed 0 (0.02 s) Tue Oct 20 16:19:45 UTC 2026
+hand mode autoplay drive rc=0: 0 fatal; [ 846.142] autoplay t=31.5 pos 1959.6 302.4 3.0 state 2 health 200 veh 1 speed 4.4 | peds 88 vehicles 54 wanted 0 | cpu ms player 0.02 ai 0.56 veh 0.75 peds 1.5 Tue Oct 20 16:37:06 UTC 2026
+procedural drive smoke rc=0: 0 fatal; Road network: 6260 nodes, 9547 edges; [ 621.032] autoplay t=17.5 pos 1806.7 270.4 3.5 state 2 health 200 veh 1 speed 17.5 | peds 89 vehicles 67 wanted 0 | cpu Tue Oct 20 16:49:27 UTC 2026
+cq69 done Tue Oct 20 16:49:27 UTC 2026

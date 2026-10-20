@@ -1,0 +1,17 @@
++// getting back into a car through its door (ai.cpp ai_board: GameWorld::startCarEntry, PS_ENTERING while the door clip
++// runs; then 1: away at the wheel, 2: nothing - the event carries on once it sees them in)
++namespace ai_board {
++bool beginThen(GameWorld& g, int id, int veh, int seat, u8 then);
++}  // namespace ai_board
++
++                        if (p.state == PS_ENTERING) continue;   // (in through the door: ai.cpp ai_board - away once in)
++                        if (length(toD) < 1.1f && ai_board::beginThen(*this, me, car, 0, 1)) continue;   // (the door clip, then away)
++                        if (p.vehicle == car) vehAI(car).role = VR_TRAFFIC;   // (in through the door: ai_board drove it off)
++                    if (p.state == PS_ENTERING) break;   // (getting in through the door: ai.cpp ai_board)
++                    if (length(toD) < 1.2f && e.t <= 20.f && ai_board::beginThen(*this, drv, car, 0, 1)) break;   // (the door clip, then away)
++                    // (in through the cruiser's door - ai.cpp ai_board, the door clip - and once in, both drive off)
++                    bool inCar = o.state == PS_INVEHICLE && o.vehicle == cop;
++                    if (!inCar && o.state == PS_ENTERING) break;
++                    if (!inCar && length(opos - copDoor) < 1.2f && e.t <= 20.f && ai_board::beginThen(*this, off, cop, 0, 2)) break;
++                    if (inCar || length(opos - copDoor) < 1.2f || e.t > 20.f) {
++                        if (!inCar) warpPedIntoVehicle(off, cop, 0);

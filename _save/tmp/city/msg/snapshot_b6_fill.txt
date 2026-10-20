@@ -1,0 +1,44 @@
+city snapshot-safe: batch 6 (Keys motels and conch houses, painted porch trim, side-gabled ranches and block houses, flat-roofed Mediterranean houses). It is copied into the shared tree on top of main @BASE@ and MinGW-syntax-checked there (x86_64-w64-mingw32-g++-posix -std=c++17 -fsyntax-only -Ibuild/gen -Isrc src/main.cpp: @SYNTAX@; log /tmp/city/syntax_shared_b6.log). The blobs are written to the object store (git hash-object -w).
+
+FILES (src/world). Against batch 5: @NCHANGED@
+@BLOBS@
+
+CHANGELOG (player-facing)
+- Keys motels: two in five now have a tin hip roof instead of the gable. Their gallery rails are painted white or, on just over half, turquoise, sea green, coral or butter yellow, and the gallery posts are white. Before, every Keys motel in Key Solano had the same gable and brown rails.
+- Painted porch trim: on town houses (bungalows, conch houses, folk Victorians, two-storey houses), the porch posts, rails and brackets, the upper gallery's posts and rails, the ceiling under the gallery roof and the gable trusses take the house's trim colour. Before, they showed the brown wood texture under a white tint. The deck rails of the raised Keys houses are painted too. Farmhouses and fishing shacks keep bare wood.
+- Eyebrow houses: on most two-storey conch houses without a double gallery, the front eave comes down over the upper windows (Key West's eyebrow house), in tin over a painted soffit.
+- Side-gabled ranches and block houses: a third of the ranch houses and a fifth of the block houses have a side-gable roof instead of the hip, so a Westbrook street is no longer one run of hip roofs. The gable ends are a lighter shade of the wall colour.
+- Flat-roofed Mediterranean Revival houses: a quarter of the Mediterranean houses (not the ones with a corner tower) have a flat roof behind a stucco parapet, with a barrel-tile pent along the street front, as in Coral Gables and Miami Shores.
+
+TESTS
+The build under test is /tmp/city/nt_dev9.exe: an export of 6afc8b2 plus the batch 5 and batch 6 world files, which is 8fb1e66 plus exactly these files. Main's only change since 6afc8b2 is batch 5.
+- Story regression (missiontest story, 27 missions): @REG@
+- Story places: @PLACES@
+- worldcheck passed on these files ($S/wc/dev9.txt): 0 colliders or props in drivable lanes, dead ends with room, no unguarded falls, lanes match the physics ground. Colliders 644,921 and props 416,839, as in batch 5.
+- Building triangles (citylab), batch 5 -> batch 6:
+  - near ring (420 m) at tour stops 2/3/4/5: 116k/79k/223k/163k, unchanged;
+  - far ring (2.3 km) at tour stops 2/3/4/5: 125.9k/121.8k/133.2k/49.7k -> 125.7k/121.7k/133.1k/49.7k;
+  - whole-map far LOD: 1.070 M -> 1.068 M;
+  - near rings: Westbrook 863.6k -> 863.8k, Key Solano 495.4k -> 495.5k, the Grove 486.8k -> 486.9k; the others unchanged.
+- Draw calls: none added (one per visible cell).
+- Repetition, batch 5 -> batch 6 (debug log metric): 2.9% -> 2.3% overall:
+  - Westbrook 3.7% -> 2.9%;
+  - Key Solano 5.4% -> 4.0%;
+  - Okahatchee 4.9% -> 4.4%;
+  - Harlow 4.4% -> 3.8%;
+  - the Grove 2.7% -> 2.4%.
+
+EVIDENCE ($S = /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad)
+- In-game (nt_dev9, so the GPU decor plants are in): $S/city/sheets/game_b6/{keys_first5,keys_next5,westbrook}.png. They show the Keys motels' hip roofs and painted rails, the painted porch trim, the eyebrow houses, flat-roofed Mediterranean houses, side gables from the air, and the batch-5 yards with the decor plants (none in the pools or on the walks). All 21 views are in /tmp/city/dev9_shots.
+- Before (nt_dev7 = batch 5): the same views run after the regression, in /tmp/city/dev9_before_shots. Pair sheets will follow.
+- Clay: $S/city/sheets/clay_b7/{keys_pairs,conch_two_storey}.png and $S/city/clay_med/med.png
+
+NEXT
+- Batch 8 is built (/tmp/city/nt_dev10.exe: 8fb1e66 + batches 6 and 8; MinGW 0 errors, 0 warnings). Its shots and regression run next. It contains:
+  - vacant lots, street parking, side yards and service yards in the bare frontage of the towns and the older city (open lots only: no building added or moved);
+  - mobile homes in Ten Palms, the Keys, the county towns and on the farms;
+  - temple-front conch houses;
+  - Keys motels with a lower office end.
+  worldcheck passed: colliders 644,921 -> 654,800, props 416,839 -> 419,136.
+- After that, a full 16-stop tour on the batch 8 build, to preview the scorecard frames.
+- STILL OPEN: the storefront glass stopgap in blockstyle.cpp, until the renderer's shader fix lands.

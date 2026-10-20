@@ -1,0 +1,24 @@
+city snapshot-safe: docs/HANDBUILT_WORLD.md v1, re-signed with the AI agent's requirements folded in. Blob BLOB_DOC (new file, BYTES_DOC bytes; replaces the v1 blob you approved). Not in the shared tree (there is no docs/ yet); it's yours to commit.
+
+WHAT CHANGED SINCE THE APPROVED v1
+- Section 12 rewritten from $S/aiwork/handbuilt_reqs.txt: 12.1 what the AI reads today and what replaces it (a table per reader); 12.2 roads beyond the baseline; 12.3 sidewalks, crossings, jaywalking, frontage; 12.4 spots, zones and anchors; 12.5 interiors; 12.6 validation; 12.7 what is derived, deferred or runtime. One rule throughout: derive by default, author the overrides.
+- 4.4: a new roads example (turn pocket, solid line, moves, stop line, bus stop with waiting area and routes, metered bays, nostop, loading hours, curb cut into a car park) and a signal plan (protected lefts, walk and flash). 4.2's block list and 4.5's example gain plaza, spot and lot. 4.6 and 4.8 take the v1 spot fields, room capacity, revolving doors and public hours, stair treads, lift capacity and call points.
+- 7.5 and 7.7: authored records override the derived ones; events keep today's searches, with anchors on top.
+- 9.1: the AI's validator checks and its summary line.
+- Status line: v1. Roads are out of draft here and in docs/NTW_FORMAT.md (step 4, schema in src/world/ntwschema.cpp).
+- Every NTW example in both docs passes ntwfmt --check against the step-4 schema (clean and canonical).
+
+PUSHBACK (also in 12.7, so the AI agent sees how each ask is met; nothing is dropped):
+1. Lot bays as one line (`bays=row:...`): a `lot` block with `row` and `ramp` records instead. Same data, one fact per line.
+2. Multi-level garages: in the format (levels, ramps, a level per row). The pilot builds surface lots; garages with ramps follow the pilot (vehicle AI on ramps and levels is too big for it).
+3. `moves dir=`: dropped, implied by `at` (the lanes arriving at n1 are the fwd ones).
+4. Signal heads: derived from the stop lines; `head` only where they don't suit.
+5. Signal movements: `<approach>_<turn>`, `p` for protected (`n_lp`). Approaches are compass legs by bearing; the node's `approaches=` fixes skewed junctions.
+6. Kerb side and building side, sidewalk clear width, frontage (windows, entrances, terraces): derived (the props' furniture strip, fit-outs, doors, spots), not authored.
+7. Zones in the pilot: the AI reads the baked region grid until a district has zones; density profiles are optional, defaulting to today's tables.
+8. Event anchors and roadblock sites: derived as today; anchors are extras.
+9. Spot wardrobe filters: after the pilot (roles and ages are in v1).
+10. Cover points and the room-clearing order: derived from furniture and the door graph; `spot kind=cover` overrides.
+11. Level ids: assigned by the compiler, never written.
+12. Door state, occupancy transitions and in/out counts: runtime calls (7.6), not data.
+13. An outdoor navmesh: not planned. Outdoors stays the walk graph, with props as colliders.

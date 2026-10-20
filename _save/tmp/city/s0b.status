@@ -1,0 +1,12 @@
+cq39 start Mon Oct 19 23:44:28 UTC 2026
+worldc build rc=0 (0 warnings) Mon Oct 19 23:44:31 UTC 2026
+worldc run rc=0: worldc: wrote build/gen/world.bin (2670624 bytes, 5 sections) and build/gen/world.rc; temp files left: 0 Mon Oct 19 23:44:32 UTC 2026
+handload build rc=0 Mon Oct 19 23:46:39 UTC 2026
+handload run rc=0: handload: ALL OK; damaged table entry refused: world.bin hash mismatch (damaged or truncated) Mon Oct 19 23:46:53 UTC 2026
+s0b game syntax rc=0 errors=0 warnings=0 Mon Oct 19 23:53:08 UTC 2026
+nt_s0b build rc=0: 15630848 bytes; 1 worldc run(s) Tue Oct 20 00:02:27 UTC 2026
+build.sh skip test: unchanged world -> SKIP, touched terrain.ntw -> REDO (resource mtime 1792453989 -> 1792453989) Tue Oct 20 00:02:27 UTC 2026
+hand shots rc=0: 4 shots; 0 fatal; Hand world: terrain from the exe (2608 KB, 5 sections) in 3.75 s Tue Oct 20 00:15:21 UTC 2026
+smoke drive rc=0: 0 fatal; [ 601.885] autoplay t=17.5 pos 1806.7 270.6 3.5 state 2 health 200 veh 1 speed 17.6 | peds 85 vehicles 65 wanted 0 | cpu Tue Oct 20 00:27:10 UTC 2026
+smoke melee rc=0: 0 fatal; [ 431.590] autoplay t=13.5 pos 1791.3 160.9 6.5 state 0 health 188 veh -1 speed 0.0 | peds 97 vehicles 64 wanted 1 | cpu Tue Oct 20 01:33:42 UTC 2026
+cq39 done Tue Oct 20 01:33:42 UTC 2026

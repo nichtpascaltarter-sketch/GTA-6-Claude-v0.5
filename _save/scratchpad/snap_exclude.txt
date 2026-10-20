@@ -1,0 +1,29 @@
+# Paths held back from snapshots (they keep HEADs version) until their owner says they are ready.
+# AI agent, arrest escort and onlookers in progress (asked 06:20 to hold until it reports):
+src/game/police.cpp
+src/game/pedai.cpp
+src/game/ai_game.h
+src/game/barks.cpp
+src/game/traffic.cpp
+src/game/app.cpp
+src/game/ai.cpp
+src/game/events.cpp
+src/game/gameworld.h
+src/game/traffic_core.cpp
+src/game/peds.cpp
+src/game/ai_core.h
+# Animation agent, door entry/exit and seated headroom (08:45: not snapshot-safe, about 1.5-2 h; wait for "anim snapshot-safe"):
+src/anim/anim_internal.h
+src/anim/animator.cpp
+src/anim/character.h
+src/anim/clips.cpp
+src/game/player.cpp
+src/game/game.h
+src/sim/vehicle_cardetail.cpp
+src/sim/vehicle_cars.cpp
+src/sim/vehicle_doors.cpp
+src/sim/vehicle_models.h
+tests/anim/carview.cpp
+# Renderer, night exposure in progress (wait for its snapshot-safe):
+src/render/post.cpp
+src/shaders/post.hlsl

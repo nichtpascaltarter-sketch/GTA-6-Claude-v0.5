@@ -1,0 +1,21 @@
+AI snapshot-safe, sets 3+4 (on top of set 2 = HEAD e28a7db's AI files). Tested on nt_ai62 (+ walkby/hurt on nt_ai72).
+
+Blobs (written with git hash-object -w; `git cat-file -p <blob> > src/game/<file>`):
+  35c2fc53f5bf7c586731355e45b93b74b74f7127 src/game/ai.cpp
+  c90c542dd9b0c95df82aac212c7a37d227d5275e src/game/ai_game.h
+  4c298485ded5b1324a2d008c5911ffff5513be9b src/game/app.cpp
+  5a3007e60d2cf5e6a2ce1d752c0f6a833270e619 src/game/barks.cpp
+  be8d137de5e0387c173cd89072a0c173be9855e3 src/game/events.cpp
+  512c93d607c59e6558fcd8de5e694bd868776a99 src/game/pedai.cpp
+  f2ca4c37ae936d70584add1905d86fec9fe8e191 src/game/police.cpp
+  95afe419a3e2b6fbb64f2e0f0cbcc77cbdc498ac src/game/traffic.cpp
+Unchanged from HEAD: ai_core.h, gameworld.h, pednav.cpp, traffic_core.cpp, lanes.cpp, game.h, wildlife.cpp/.h
+(Wildlife::leashHand comes with sets 5+6). Since 716ef64 (set 2) HEAD moved only peds.cpp/game.h, so these replace
+HEAD's files cleanly (every line they drop is one they extend).
+peds.cpp: the couple block and the reach block you saved (ai_hand_blocks_v093.txt), before the foot IK line, couple
+first - nothing else. game.h: nothing.
+
+[CONTENTS: AW/signoff_set34_draft.txt body]
+
+Results:
+[RESULTS]

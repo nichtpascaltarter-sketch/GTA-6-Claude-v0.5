@@ -1,0 +1,79 @@
+Taxis wait for their fare, traffic stops play out, couples hold hands, and roofs and villas get their detail
+
+Street life fixes (src/game/traffic.cpp, src/game/events.cpp), from the review of PR #46:
+- A hailed taxi no longer drives off while its fare gets in through the door clip.
+  - The cab's pull-over wait (DM_PULLOVER, task 1) counted only a fare on foot as waiting. Once the fare started the
+    door clip it was PS_ENTERING, so the cab moved off and the boarding was cancelled at 1.5 m/s.
+  - A fare entering this cab now counts, and the 25 s give-up never fires mid-clip.
+  - When the cab does give up, a fare not in it is freed to hail another cab instead of staying tied to the one that
+    left.
+- Event actors getting out through the door clip no longer end their own events.
+  - events.cpp calmActor() required PS_ONFOOT, but a ped getting out through the door clip is PS_EXITING while it
+    plays.
+  - A traffic stop was called off as soon as the officer stepped out, and a real fender bender went straight to "back
+    in and away" with no scene.
+  - calmActor now accepts PS_EXITING. The other exit-clip sites were checked; none aborts on the exit state.
+- Still open: a cab still stops short of a hailer (as on main). That fix is in test for a later snapshot.
+
+Checks (AI agent):
+- Taxi:
+  - With the fix, the fare started the door clip at the kerb-side back door at t=28.0. The cab's 25 s give-up passed
+    mid-clip and the cab held. The fare was in at t=30.4 and the cab set off on the ride.
+  - On HEAD the cab gave up as soon as the clip began.
+- Taxi with this fix alone, the cab stopping short as on main:
+  - When the fare never reached the door, the cab gave up at 25 s and the fare was freed. The next cab picked them up
+    and held until they were in.
+  - No worse than main: the give-up runs at most one clip (about 3 s) past 25 s.
+- trafficstop, on exactly this pair: the whole stop played out, from the officer stepping out (still PS_EXITING) to both
+  driving off. Before the fix it was called off as the officer stepped out.
+- knock, a real fender bender, on exactly this pair: both drivers stepped out and the argument played out (about 30 s)
+  before they got back in and drove off.
+- Every other door-clip exit site was checked: none aborts on PS_EXITING.
+
+Animation: the hand-in-hand clasp (src/anim/animator.cpp; src/game/peds.cpp, the couple block):
+- Couples walking hand in hand now hold one clasp, each hand closed round the other's. Before, the two hands hooked side
+  by side.
+- animator.cpp: in the hold block, a hand held along the way turns 0.6 rad about its palm normal (a right hand's fingers
+  forward-down, a left hand's back-down), so the two hands cross palm to palm. The fingers close round the other's hand
+  (curl 0.85, was 0.7).
+- peds.cpp: each one's hold point is 0.05 past the middle (was 0.08), so the palms meet at the middle.
+- Checks (animation agent): before/after close-ups from --autoplay couple with the same couple and frames; anim_test ALL
+  PASSED; MSVC: plain math. A thin dark line can show at one wrist where the other's fingertips meet it, only visible
+  from very close.
+
+City batch 13: roofs for the aerial views, ranch rows and villa forms (src/world: buildmesh.cpp, blockstyle.cpp,
+massing.cpp, facadedetail.cpp):
+- Roofs from the air:
+  - Flat roofs of three floors and up carry a plant row along the back: the stair bulkhead, a lift motor room on five
+    floors and up, one to four HVAC units, and on big roofs a cooling tower. The masses show at every distance; close up
+    they get copings, a door, louvres, fans and rails, and they have collision.
+  - Wooden water tanks on braced steel stands now stand on most older walk-ups in Calle Luna, North Porto Sol, Midtown
+    and the Flats, and show from afar.
+  - Parapet copings are a shade lighter than their wall, so the roofs read with a light rim from the air.
+  - The beach's and Key Coral's residential towers, and the condo blocks, get balcony slabs with glass railings. From a
+    distance they read as white bands.
+  - The towers' glass-lantern crowns now show from afar (past 420 m they used to drop out).
+  - Some taller mid-rise roofs get antenna masts and dishes.
+- Ranch rows and villas:
+  - Ranch houses (Westbrook, the Grove) have their own palette, from white and butter to coral, sage, sky and lilac,
+    with about a sixth in brick. Trim is white, a deeper tone of the wall or dark bronze. The rows used to be white on
+    white.
+  - Ranch porches: a long low porch under a shed roof on box ranches, and in the inner corner on L ranches.
+  - Villas:
+    - Mediterranean villas come plain, with an arcaded loggia and a terrace on it, or with a balcony on stone corbels;
+    - half the colonial villas have a full-width veranda with a balustraded balcony on top;
+    - just over half the modern villas have a roof terrace with a white pergola.
+  - Garage doors come in white, almond, wood brown or warm grey.
+- Cost:
+  - No new draws (still one per cell).
+  - In-view world triangles in game: +0.2% to +3.1% (the aerials gain the most).
+  - Far-ring building triangles: +16% to +52% in the denser districts, +10% over the whole map. The heaviest far ring
+    (Westbrook's) barely moves: 244k -> 247k.
+
+Checks (city agent):
+- worldcheck: 0 overlapping building pairs, 0 colliders or props in drivable lanes. ASan + bounds worldcheck: 0 reports.
+- MinGW: 0 errors / 0 warnings. clang -Wvla -Wgnu -Wpedantic over src/world: 0 diagnostics.
+- Story regression at quality 0: 27/27, 0 changed. Story places, building count (35,617) and interior hosts are
+  identical.
+- Tours: 5/5 stops, draws within the run-to-run spread, no segfault.
+- 16 in-game before/after pairs and 9 street views of the new forms: no floating or clipped geometry, no new pop-in.

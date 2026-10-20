@@ -1,0 +1,7 @@
+ntw 1 layout id=lib.layout.test.tower_a_roof
+wall w1 a=0.00,0.00 b=8.00,0.00 t=0.20
+wall w2 a=8.00,0.00 b=8.00,8.00 t=0.20
+wall w3 a=8.00,8.00 b=0.00,8.00 t=0.20
+wall w4 a=0.00,8.00 b=0.00,0.00 t=0.20
+wall w5 a=0.00,6.00 b=8.00,6.00 t=0.12
+room plant type=plant poly=0.00,6.00;8.00,6.00;8.00,8.00;0.00,8.00

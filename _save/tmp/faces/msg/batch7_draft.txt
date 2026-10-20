@@ -1,0 +1,24 @@
+faces snapshot-safe — batch 7 (brows and lashes for snapshot 36's card accumulation). Three files, a delta on main b907098 (face.cpp a8610b8c).
+
+FILES (blobs written with git hash-object -w; the copies are in the shared tree now, and in /tmp/faces/batch7/)
+  src/anim/face.cpp          76b7512ea0bb5e5ab6e5b7590a65070b575c8f08
+  tests/anim/anim_test.cpp   70e6dc618bba265c4b3d17a37de59efe40877147
+  tests/anim/preview.cpp     c9f08c07c97a7d8437ad1268c4cd2417b94d05f5
+No other files change. No character.h or shader changes.
+
+CHANGELOG (player-facing)
+- Brows look like hair again, not solid black pencil strokes. Since snapshot 36, overlapping strand cards add up; about nine overlap through a brow's body, so the dark brows of Mari, c17, c27 and c38 had gone solid at 0.5 m. Brow cards are now 0.45x as dense: the body still reads full, but a little skin shows between the hairs and the edges are soft. The skin tint under the brow is unchanged, so at 1 m and 4 m the brows keep their darkness: 0.7-2.4 stops below the forehead by day, about where they were before snapshot 36.
+- Lashes are a fringe again, not eyeliner: lash cards are at 0.75x density (top row 0.95 -> 0.71, the second row 0.32-0.55 -> 0.24-0.41, the lower lid 0.32 -> 0.24).
+- The changes are in the card densities only. Lash and brow shapes, colours, LOD1/LOD2 painting and beards are untouched.
+
+TESTS
+- anim_test: ALL PASSED on b7tree (/tmp/faces/anim_test_b7.log). New test FaceHairCoverage: it composites the brow and lash cards the way the renderer now does (1 - prod(1 - coverage), each card at hairCardCoverage's sub-pixel average) over eight characters. Brow body 0.78-0.85 (range 0.6-0.9) and upper lash line 0.42-0.51 (range 0.35-0.62). With batch 6's densities it reports 0.98-0.99 and 0.54-0.64, and fails.
+- tests/anim/preview.cpp: the card dither now gives each card its own offset (psHairCard's new rule), and hairCardCoverage is re-ported (tip fade, box-filtered strand edges), so the preview predicts the game again. It compiles and runs.
+- tests/anim/carview.cpp compiles and runs.
+- O2 build of b7tree: BUILD.
+- Wine D3D12, 30 portraits: PORTRAITS.
+- Perf: PERF.
+- Hair under hats (people 2, 4, 22, 23 at 0.5 and 1 m by day and at 1 m at night), before vs after: HATS.
+
+MONTAGES
+MONTAGES

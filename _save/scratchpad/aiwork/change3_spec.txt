@@ -1,0 +1,10 @@
+Change 3's walking-turn model (ai_game.h ai_turn), for the animation agent's harness. Per frame, for a walker asked for velocity
+d (|d| 0.35-2.4 m/s, not aiming, not in a fight or a start back from a car), body yaw psi, actual speed v = |vel.xy|:
+- turn rate cap: w = lerp(4, 2.4, sat((v - 0.1) / 0.3)) rad/s  (4 stood, 2.4 from 0.4 m/s up); the body turns toward d's
+  direction (or the face target) by at most w*dt.
+- err = wrap(yaw(d) - psi) (facing the way it goes: |faceYaw - yaw(d)| < 0.6 rad, else - a strafe / step back - the cap only)
+- pace: k = lerp(1, 0.08, sat((|err| - 0.87) / 1.4))   (as asked up to 50 deg off, 0.08 of it from 130 deg)
+- way: allow = lerp(pi, 0.6, sat((v - 0.15) / 0.35)); the step goes at psi + clamp(err, -allow, allow), speed |d| * k
+- movePed then takes the velocity toward that at its 11 / 16 m/s^2 as before.
+Before (HEAD): pedai walkers w = min(6, 3) when 0.35 < |d| < 2.4 (by the asked speed), the velocity straight to d, and
+|d| *= max(0.3, 1 - (|err| - 1.05) / 1.5) past 60 deg; BRAIN_GOTO / BRAIN_FOLLOW 8 rad/s with no easing; police on foot 6-9 rad/s.

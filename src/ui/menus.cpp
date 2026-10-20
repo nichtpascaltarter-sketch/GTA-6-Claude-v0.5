@@ -2348,89 +2348,6 @@ void frontPageFrame(const Layout& L, const char* title, float a, float t) {
     text(L.left, L.top + 74.f * sc, title, ts);
 }
 
-// The first start (no settings.ini yet): a few choices before the main menu. Each change applies at once; Start (or
-// Esc, which keeps the rest as it is) saves them and opens the main menu. Settings changes all of them later.
-MenuAction drawSetup(MenuState& st, const Layout& L, const Nav& n, float dt, float t, bool& changed) {
-    MenuAction act;
-    GameSettings& gs = st.settings;
-    float sc = L.s, a = easeOutCubic(I.screenT / 0.5f);
-    frontPageFrame(L, "WELCOME TO PALMERA", a, t);
-    TextStyle sub = style(FONT_BODY, 22.f * sc, withAlpha(kTextDim, a));
-    text(L.left, L.top + 146.f * sc, "A few choices before you start. You can change all of them later in Settings.", sub);
-    static const char* const kLabels[] = {"Display", "Graphics quality", "Master volume", "Subtitles", "Automatic updates", "Start playing"};
-    static const char* const kQuality[] = {"Low", "Medium", "High", "Ultra"};
-    const int count = 6, startRow = count - 1;
-    bool navFree = I.dialog == DLG_NONE;
-    if (navFree && n.up) st.cursor = (st.cursor + count - 1) % count;
-    if (navFree && n.down) st.cursor = (st.cursor + 1) % count;
-    st.cursor = Clamp(st.cursor, 0, count - 1);
-    float x = L.left, y0 = L.top + 210.f * sc, ih = 56.f * sc, iw = std::min(820.f * sc, L.right - L.left);
-    auto rowY = [&](int i) { return y0 + i * (ih + 8.f * sc) + (i == startRow ? 22.f * sc : 0.f); };
-    int clicked = -1;
-    for (int i = 0; i < count; i++)
-        if (navFree && inRect(n.mouse, x, rowY(i), iw, ih)) {
-            if (n.mouseMoved) st.cursor = i;
-            if (n.click) clicked = i;
-        }
-    // left/right change a value; Enter or a click steps it forward, or starts on the last row
-    int dir = navFree ? (n.right ? 1 : (n.left ? -1 : 0)) : 0;
-    bool activate = navFree && n.confirm;
-    if (clicked >= 0) {
-        st.cursor = clicked;
-        activate = true;
-    }
-    if (activate && st.cursor != startRow) dir = 1;
-    if (dir != 0 && st.cursor != startRow) {
-        changed = true;
-        switch (st.cursor) {
-        case 0: gs.fullscreen = !gs.fullscreen; break;
-        case 1: gs.quality = (Clamp(gs.quality, 0, 3) + dir + 4) % 4; break;
-        case 2: {
-            int v = (int)(gs.masterVolume * 10.f + 0.5f) + dir;
-            gs.masterVolume = (float)(activate ? (v > 10 ? 0 : v) : Clamp(v, 0, 10)) / 10.f;   // (Enter wraps)
-            break;
-        }
-        case 3: gs.subtitles = !gs.subtitles; break;
-        case 4: gs.autoUpdate = !gs.autoUpdate; break;
-        }
-    }
-    if ((activate && st.cursor == startRow) || (navFree && n.back)) {
-        act.type = MA_SETTINGS_CHANGED;   // the game applies and saves them: from now on there is a settings.ini
-        st.screen = MENU_MAIN;
-        st.cursor = 0;
-    }
-    float targetY = rowY(st.cursor);
-    if (I.hlY < 0.f) I.hlY = targetY;
-    I.hlY = approachExp(I.hlY, targetY, 18.f, dt);
-    selectionBar(x, I.hlY, iw, ih, a);
-    for (int i = 0; i < count; i++) {
-        float y = rowY(i), ia = easeOutCubic((I.screenT - 0.06f * i) / 0.4f);
-        bool sel = i == st.cursor;
-        TextStyle ls = style(FONT_HEADING, 30.f * sc, withAlpha(sel ? kWhite : kTextDim, ia), ALIGN_LEFT);
-        ls.tracking = 0.06f;
-        std::string lab = upper(kLabels[i]);
-        text(x + 30.f * sc, y + ih * 0.5f - ls.size * 0.56f, lab.c_str(), ls);
-        if (i == startRow) {
-            if (sel) drawIcon(ICO_CHEVRON, x + iw - 30.f * sc, y + ih * 0.5f, 26.f * sc, withAlpha(kWhite, ia));
-            continue;
-        }
-        std::string val;
-        switch (i) {
-        case 0: val = gs.fullscreen ? "Fullscreen" : "Windowed"; break;
-        case 1: val = kQuality[Clamp(gs.quality, 0, 3)]; break;
-        case 2: val = StrFormat("%d%%", (int)(gs.masterVolume * 100.f + 0.5f)); break;
-        case 3: val = gs.subtitles ? "On" : "Off"; break;
-        case 4: val = gs.autoUpdate ? "On" : "Off"; break;
-        }
-        if (sel) val = "<  " + val + "  >";
-        TextStyle vs = style(FONT_HEADING, 26.f * sc, withAlpha(sel ? kWhite : kCyan, ia), ALIGN_RIGHT);
-        text(x + iw - 30.f * sc, y + ih * 0.5f - vs.size * 0.56f, val.c_str(), vs);
-    }
-    PromptItem pi[] = {{"ENTER", "A", st.cursor == startRow ? "Start" : "Change"}, {"ESC", "B", "Skip"}};
-    footer(L, pi, 2, n.pad, a);
-    return act;
-}
-
 }  // namespace menus_ui
 
 // ------------------------------------------------------------------------------------------------------------------
@@ -2507,7 +2424,7 @@ MenuAction update(MenuState& st, const InputState& rawInput, float dt) {
         MenuScreen prev = I.lastScreen;
         I.bindCapture = false;
         bool fromNone = prev == MENU_NONE || prev == MENU_LOADING;
-        if (st.screen == MENU_MAIN || st.screen == MENU_SETUP) I.root = MENU_MAIN;
+        if (st.screen == MENU_MAIN) I.root = MENU_MAIN;
         else if (st.screen == MENU_PAUSE || st.screen == MENU_MAP || st.screen == MENU_BRIEF || st.screen == MENU_STATS || st.screen == MENU_SAVE)
             I.root = MENU_PAUSE;
         else if (st.screen == MENU_SETTINGS || st.screen == MENU_LOAD || st.screen == MENU_CONFIRM_QUIT) {
@@ -2561,9 +2478,6 @@ MenuAction update(MenuState& st, const InputState& rawInput, float dt) {
         return act;
     case MENU_MAIN:
         act = drawMain(st, L, blocked, dt, t);
-        break;
-    case MENU_SETUP:
-        act = drawSetup(st, L, blocked, dt, t, changed);
         break;
     case MENU_SETTINGS:
         if (I.root == MENU_MAIN) {

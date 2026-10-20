@@ -1,0 +1,10 @@
+--- a/src/anim/character.h
++++ b/src/anim/character.h
+@@ -379,6 +379,7 @@
+     // additional internal state (implementation defined)
+     float speedS = 0, leanS = 0, fireT = 10.f, reloadW = 0, reloadT = 0, airT = 0, stanceTime = 0;
+     float footL = 0, footR = 0, snapW = 0, snapRate = 5.f, moveW = 0, legScale = 1.f, styleF = 0, steerS = 0;
++    bool snapUpper = false;   // the crossfade from snap takes the upper body only (a stance change that leaves the legs to the walk or the stand)
+     vec2 dirS = vec2(0, 1);
+     float hipTurn = 0.f;          // hips (and legs) turned towards the travel direction, + = right (the trunk faces ahead)
+     bool hipBack = false;         // travelling well behind: the legs back-pedal along it rather than walk forwards

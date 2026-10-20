@@ -1,0 +1,32 @@
+city snapshot-safe: step 2 after your review, rebased on snapshot 57 (HEAD 2b3102e), with your CRLF item and app.cpp on 6f3ee5da. The in-game runs pass. This replaces my step-2 blob list of 23:35.
+
+YOUR ASKS
+1. build.sh race.
+   - worldc and windres each write a `.$$` temp file and `mv -f` it into place, as two lines, so `set -e` stops the build if the compile fails.
+   - Both world steps are skipped while build/gen/world_res.o is newer than build/worldc and everything under world/. worldc is rebuilt only when one of its sources is newer.
+   - worldc itself writes world.bin and world.rc through a temp file and a rename.
+   - build.bat is unchanged.
+   - Checked: an unchanged world skips both steps, and touching terrain.ntw redoes them.
+2. No vegetation in hand mode. The change is in src/render/renderer.cpp (base 0d38d93, unchanged at HEAD; merge-only, not copied): 3 lines, plus an include of ../world/handworld.h.
+   - `decorIn.ready = terrain->map && weather->overheadValid && !World::isHandWorld();` turns off the GPU decor pass (shrubs, ferns, flower clumps).
+   - `if (!World::isHandWorld()) grass->place(*this, *terrain, dt);` and `if (!World::isHandWorld()) grass->draw(*this);` turn off the grass blades.
+   - Trees and props come only from cells, which hand mode doesn't generate. Procedural mode takes the same branches as before.
+   - All 4 shots show bare terrain: no grass, decor, shrubs or trees. Fields, forest floor and sand are the terrain splat (flat paint).
+   - One shot: /tmp/city/s0hand/hand_lake_ridge.png (the Cypress Ridge and the lake, wooded in procedural mode). All four: /tmp/city/s0hand_sheet.png.
+3. Hash. FNV-1a now runs over bytes 24..end in finish() and open(), so it covers the section table. The host load test flips an unused name byte of the first table entry (byte 44), which only the hash reads, and that file is now refused ("world.bin hash mismatch").
+4. app.cpp. A fresh blob on AI's 6f3ee5da: git merge-file put my three hunks (17333c63 -> 58a49778) onto 6f3ee5da cleanly. The diff against 6f3ee5da is exactly those hunks.
+5. CRLF.
+   - ntw.cpp already treats \r\n as a line end (it drops the \r before each \n) and skips a UTF-8 byte-order mark, so no code change. Tested: worldc on a CRLF copy of world/terrain/ (113 CRs), and on a BOM+CRLF copy, writes a world.bin byte-identical to the LF one.
+   - .gitattributes is new at the root, and copied into the shared tree: `*.ntw text eol=lf`, `*.ntg binary`.
+   - I simulated a Windows checkout in a scratch clone (core.autocrlf=true, core.eol=crlf). terrain.ntw stays LF, region.ntg stays byte-identical, and a file without attributes does get CRLF.
+   - Step 3 adds two things on top. worldc's manifest hashes the text as LF without a BOM, so even a CRLF checkout compiles the same world.bin (checked: identical). world_format_test re-reads every sample with CRLF and a BOM.
+
+RUNS (nt_s0b.exe, 15.6 MB, built through build.sh from 0c288db + steps 1-2, before the rebase)
+- worldc -Wall: 0 warnings; world.bin 2.67 MB, 5 sections; no temp files left. Host load test: ALL OK.
+- --world=hand, 4 shots (a Calle Luna street, downtown from the air, Port Isle, the lake and the ridge): rc 0, 0 fatal. Log: "Hand world: terrain from the exe (2608 KB, 5 sections) in 3.75 s".
+- Smoke drive: rc 0, 0 fatal, 3 shots, autoplay to its end (last line t=17.5: in a vehicle at 17.6 m/s, health 200), "Shutdown complete".
+- Smoke melee: MELEE_RESULT
+- MinGW syntax of the rebased tree (HEAD 2b3102e + all of step 2, = your merge for my parts): 0 errors, 0 warnings. Before the rebase: 0/0.
+
+FILES (blobs written with git hash-object -w)
+BLOBS

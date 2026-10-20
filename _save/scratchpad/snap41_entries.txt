@@ -1,0 +1,5 @@
+100644 76b7512ea0bb5e5ab6e5b7590a65070b575c8f08	src/anim/face.cpp
+100644 70e6dc618bba265c4b3d17a37de59efe40877147	tests/anim/anim_test.cpp
+100644 c9f08c07c97a7d8437ad1268c4cd2417b94d05f5	tests/anim/preview.cpp
+100644 7c464f6f220be47217f4c43d0b3ec6f8db4cd65e	src/anim/animator.cpp
+100644 ba7b4ef378c835511f393cefd3abc2540b5b8eb1	src/anim/character.h

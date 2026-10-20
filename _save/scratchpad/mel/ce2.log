@@ -1,0 +1,4 @@
+char 0: seed 2000 role 0 gender 1 h 1.56 w 0.45 m 0.00 age 0.56 hair 6 top 0 bottom 4 shoes 6 hat -1 glasses -1 fh -1: 16938 verts 25262 tris
+char 1: seed 9919 role 0 gender 0 h 1.68 w 0.28 m 0.53 age 0.00 hair 1 top 0 bottom 0 shoes 6 hat -1 glasses -1 fh -1: 12466 verts 21416 tris
+char 2: seed 17838 role 0 gender 0 h 1.94 w 0.18 m 0.68 age 0.09 hair 1 top 4 bottom 3 shoes 1 hat -1 glasses -1 fh -1: 12247 verts 21105 tris
+mesh build avg 95.79 ms, avg tris 22594

@@ -1,0 +1,10 @@
+Animation: the hand-in-hand clasp (src/anim/animator.cpp; src/game/peds.cpp, the couple block):
+- Couples walking hand in hand now hold one clasp, each hand closed round the other's. Before, the two hands hooked side
+  by side.
+- animator.cpp: in the hold block, a hand held along the way turns 0.6 rad about its palm normal (a right hand's fingers
+  forward-down, a left hand's back-down), so the two hands cross palm to palm. The fingers close round the other's hand
+  (curl 0.85, was 0.7).
+- peds.cpp: each one's hold point is 0.05 past the middle (was 0.08), so the palms meet at the middle.
+- Checks (animation agent): before/after close-ups from --autoplay couple with the same couple and frames; anim_test ALL
+  PASSED; MSVC: plain math. A thin dark line can show at one wrist where the other's fingertips meet it, only visible
+  from very close.

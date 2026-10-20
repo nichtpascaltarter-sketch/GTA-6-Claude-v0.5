@@ -35,8 +35,6 @@ namespace Updater {
 bool beforeStart(int& exitCode);
 // After the window opens: the background check (logs why it is skipped)
 void startCheck();
-// A test run (--autotest, --benchmark, --shot ...): no updates, and no first-start setup page
-bool isAutomatedRun();
 // Every menu frame, after Menus::update: fills the update notice for the next frame, follows Settings > Gameplay >
 // Automatic Updates, opens the build log or the help page, and turns "Restart now" into MA_QUIT_GAME (the restart
 // follows shutdown)

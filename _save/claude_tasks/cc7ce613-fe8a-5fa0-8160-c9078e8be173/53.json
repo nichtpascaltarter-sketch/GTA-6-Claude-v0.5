@@ -1,0 +1,9 @@
+{
+  "id": "53",
+  "subject": "PC-first routing: run work on the user's PC when available, cloud otherwise",
+  "description": "Working end-to-end: docs/PC_WORKER.md + queue branch claude/pc-queue + pc/results; packages 01 (MSVC build), 02 (MSVC tests), 04 (showcase on the PC GPU, 36 s), 03 (live source-built update) all PASS. Routing is now part of each check-in.",
+  "activeForm": "Building PC-first routing",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": []
+}

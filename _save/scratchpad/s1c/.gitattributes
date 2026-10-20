@@ -1,0 +1,4 @@
+# The hand-built world's data (docs/HANDBUILT_WORLD.md): NTW text keeps LF line ends on every checkout, Windows included,
+# and the NTG grids are never converted
+*.ntw text eol=lf
+*.ntg binary

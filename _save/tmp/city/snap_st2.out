@@ -1,0 +1,14 @@
+HEAD 0c288db; bases as at 1a83e24; shared cellgen.cpp = HEAD; new files absent
+src/game/app.cpp 58a4977889d0b55310043396052a225fd4dba654 (on HEAD 17333c6; for your merge, not copied)
+src/main.cpp 505fb94834e59221d0c690b9a131c22271327e6c (on HEAD bebcdd0; for your merge, not copied)
+build.sh 81828550d6c6411f1e83f74965d02dddd7cab405 (on HEAD 77fb4fa; for your merge, not copied)
+build.bat 0bdcde10e301414b26a790b0a3b2bfbf3c23a0f5 (on HEAD 344655a; for your merge, not copied)
+src/world/cellgen.cpp ba81842dde7a569767ca7dd1d417c1357f3c750b (HEAD 93a2a0f)
+src/world/ntw.h 999496248349a9715e632423d61362cd0500f615 (new, 3035 bytes)
+src/world/ntw.cpp 5814989d83c927771f2bc7d7c121e496f6b98857 (new, 11922 bytes)
+src/world/worldbin.h 28e6ab2f9d9233170a261d70ce149e434a5c03ee (new, 2319 bytes)
+src/world/worldbin.cpp 6dce0152e91404aa3e474676e2f51282251bc554 (new, 5528 bytes)
+src/world/handworld.h 3ab407ad0fc5dd1566d491a46b307adead45ca38 (new, 1709 bytes)
+src/world/handworld.cpp 54e80ed8db59bf3c909aa5d2ee4ed982b30ca28b (new, 8165 bytes)
+tools/worldc.cpp 490d0c6650475be821a401f34ad6fd76d89de3ae (new, 11733 bytes)
+syntax rc=0 errors=0 warnings=0

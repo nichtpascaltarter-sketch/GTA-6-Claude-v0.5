@@ -1,0 +1,5 @@
+ntw 1 district district=cl
+bounds poly=950.00,-920.00;2620.00,-920.00;2620.00,920.00;950.00,920.00
+label at=1560.00,350.00
+zone cl.audio.main kind=audio poly=950.00,-920.00;2620.00,-920.00;2620.00,920.00 tags=street_latin,traffic_light
+trunk node=tr.n00412

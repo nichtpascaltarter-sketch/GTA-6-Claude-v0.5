@@ -1,0 +1,8 @@
+Embedded 40 shader files.
+150 shaders, 0 failed
+[ 274.487] autoplay t=9.5 pos 1806.7 201.1 4.6 state 2 health 200 veh 1 speed 11.1 | peds 88 vehicles 63 wanted 0 | cpu ms player 0.06 ai 0.72 veh 0.80 peds 1.1
+[ 342.715] autoplay t=17.5 pos 1806.7 270.6 3.5 state 2 health 200 veh 1 speed 17.6 | peds 85 vehicles 65 wanted 0 | cpu ms player 0.06 ai 0.80 veh 1.03 peds 0.
+[ 202.765] autoplay t=13.5 pos 1791.3 160.9 6.5 state 0 health 188 veh -1 speed 0.0 | peds 97 vehicles 64 wanted 1 | cpu ms player 0.13 ai 0.74 veh 0.94 peds 1.
+0d67933 Night phase C: street lamps light like road luminaires, sodium and LED blocks, aviation beacons on towers, varied office lights
+branch 'claude/neon-tide' set up to track 'origin/claude/neon-tide'.
+COMMITTED 86cc1faadf882aee668dd71bd059a1b0caf0d607

@@ -1,0 +1,11 @@
+pcm.!default {
+    type plug
+    slave.pcm "nullout"
+}
+pcm.nullout {
+    type null
+}
+ctl.!default {
+    type hw
+    card 0
+}

@@ -1,0 +1,165 @@
+[   0.001] Neon Tide starting (version 0.02.7-dev). Data dir: C:\users\root\AppData\Local\NeonTide\
+[   1.403] DXGI is Wine's builtin implementation: presenting with sync interval 0 (no vsync)
+[   1.782] Direct3D 12 device created: adapter 'NVIDIA GeForce GTX 470', VRAM 16093 MB, feature level 11_1, resource binding tier 3, resource heap tier 2, typed UAV loads yes, tearing yes, bindless UAV arrays yes, 2 frames in flight
+[   2.341] Compiled mipgen.hlsl:csMipGen (cs_5_1) in 0.04 s
+[   2.351] UI font 'Segoe UI Semibold' -> 'Liberation Sans'
+[   2.414] UI font 'Bahnschrift SemiBold Condensed' -> 'Liberation Sans'
+[   2.466] UI font 'Impact' -> 'Liberation Sans'
+[   2.514] Font atlas built in 0.16 s
+[   2.527] Compiled ui.hlsl:vsUI (vs_5_1) in 0.01 s
+[   2.692] Compiled ui.hlsl:psUI (ps_5_1) in 0.16 s
+[   2.701] Compiled ui.hlsl:vsUIFull (vs_5_1) in 0.00 s
+[   2.714] Compiled ui.hlsl:psUIDown (ps_5_1) in 0.01 s
+[   2.727] Compiled ui.hlsl:psUIBlur (ps_5_1) in 0.01 s
+ALSA lib confmisc.c:855:(parse_card) cannot find card '0'
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_card_inum returned error: No such file or directory
+ALSA lib confmisc.c:422:(snd_func_concat) error evaluating strings
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_concat returned error: No such file or directory
+ALSA lib confmisc.c:1342:(snd_func_refer) error evaluating name
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5727:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2721:(snd_pcm_open_noupdate) Unknown PCM default
+ALSA lib confmisc.c:855:(parse_card) cannot find card '0'
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_card_inum returned error: No such file or directory
+ALSA lib confmisc.c:422:(snd_func_concat) error evaluating strings
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_concat returned error: No such file or directory
+ALSA lib confmisc.c:1342:(snd_func_refer) error evaluating name
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5727:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2721:(snd_pcm_open_noupdate) Unknown PCM default
+[   2.895] Audio: no output device - audio disabled
+[   2.895] Audio: no output device, continuing silently
+[   2.896] Updater: no update check (automated run)
+[   3.713] UI icon atlas: 92 icons + 13 weapons in 774 ms
+[   5.136] Hand world: terrain and 9 road nodes, 8 edges from Z:\tmp\city\rbroads_world.bin (2607 KB, 8 sections) in 2.24 s
+[   5.195] Compiled post.hlsl:vsFullscreen (vs_5_1) in 0.04 s
+[  17.633] Compiled lighting.hlsl:csLighting (cs_5_1) in 12.44 s
+[  18.618] Compiled sky.hlsl:csTransmittance (cs_5_1) in 0.04 s
+[  19.549] Compiled sky.hlsl:csMultiScatter (cs_5_1) in 0.93 s
+[  19.698] Compiled sky.hlsl:csSkyView (cs_5_1) in 0.14 s
+[  19.783] Compiled sky.hlsl:csAerialPerspective (cs_5_1) in 0.07 s
+[  20.629] Compiled sky.hlsl:csSkySH (cs_5_1) in 0.84 s
+[  20.676] Compiled post.hlsl:csLumHist (cs_5_1) in 0.03 s
+[  24.025] Compiled post.hlsl:csExposure (cs_5_1) in 3.34 s
+[  24.749] Compiled post.hlsl:csBloomDown (cs_5_1) in 0.03 s
+[  24.780] Compiled post.hlsl:csBloomUp (cs_5_1) in 0.03 s
+[  24.895] Compiled post.hlsl:csSunShafts (cs_5_1) in 0.11 s
+[  25.049] Compiled taa.hlsl:csTAA (cs_5_1) in 0.15 s
+[  25.219] Compiled post.hlsl:psTonemap (ps_5_1) in 0.15 s
+[  25.372] Compiled motionblur.hlsl:csTileMax (cs_5_1) in 0.15 s
+[  25.411] Compiled motionblur.hlsl:csNeighborMax (cs_5_1) in 0.03 s
+[  25.542] Compiled motionblur.hlsl:csMotionBlur (cs_5_1) in 0.13 s
+[  25.604] Compiled post.hlsl:csLocalExpGrid (cs_5_1) in 0.05 s
+[  27.651] Compiled post.hlsl:csLocalExpBlur (cs_5_1) in 2.04 s
+[  27.702] Compiled terrain.hlsl:vsTerrain (vs_5_1) in 0.03 s
+[  27.719] Compiled terrain.hlsl:vsTerrainShadow (vs_5_1) in 0.02 s
+[  29.437] Compiled terrain.hlsl:psTerrain (ps_5_1) in 1.72 s
+[  30.168] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.73 s
+[  30.940] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.70 s
+[  31.845] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.84 s
+[  32.472] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.57 s
+[  32.986] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.48 s
+[  33.659] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.62 s
+[  34.728] Compiled matgen.hlsl:csGenerate (cs_5_1) in 1.03 s
+[  35.017] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.23 s
+[  35.455] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.42 s
+[  35.973] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.49 s
+[  36.177] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.16 s
+[  36.718] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.52 s
+[  37.294] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.53 s
+[  38.223] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.88 s
+[  38.524] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.23 s
+[  38.719] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.16 s
+[  38.867] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.14 s
+[  39.081] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.20 s
+[  39.277] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.09 s
+[  39.481] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.20 s
+[  39.675] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.17 s
+[  39.830] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.13 s
+[  40.088] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.24 s
+[  40.364] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.26 s
+[  41.523] Compiled matgen.hlsl:csGenerate (cs_5_1) in 1.13 s
+[  41.787] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.21 s
+[  41.833] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.03 s
+[  42.294] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.35 s
+[  78.151] Compiled matgen.hlsl:csGenerate (cs_5_1) in 35.82 s
+[  79.259] Material library: 57 layers at 256^2
+[  79.306] Compiled world.hlsl:vsWorld (vs_5_1) in 0.05 s
+[  79.335] Compiled world.hlsl:vsWorldShadow (vs_5_1) in 0.03 s
+[  87.458] Compiled world.hlsl:psWorld (ps_5_1) in 8.12 s
+[  87.530] Compiled water.hlsl:vsWater (vs_5_1) in 0.07 s
+[  88.804] Compiled water.hlsl:psWater (ps_5_1) in 1.27 s
+[  88.845] Compiled water.hlsl:csWaveNormals (cs_5_1) in 0.04 s
+[  88.865] Compiled water.hlsl:vsWake (vs_5_1) in 0.01 s
+[  88.909] Compiled water.hlsl:psWake (ps_5_1) in 0.04 s
+[  89.937] Compiled clouds.hlsl:csShapeNoise (cs_5_1) in 1.03 s
+[  90.535] Compiled clouds.hlsl:csDetailNoise (cs_5_1) in 0.52 s
+[  90.913] Compiled clouds.hlsl:csWeather (cs_5_1) in 0.35 s
+[  91.144] Compiled clouds.hlsl:csCloudTrace (cs_5_1) in 0.21 s
+[  91.206] Compiled clouds.hlsl:csCloudReconstruct (cs_5_1) in 0.05 s
+[  91.251] Compiled clouds.hlsl:csCloudShadow (cs_5_1) in 0.04 s
+[  91.334] Compiled props.hlsl:vsProp (vs_5_1) in 0.07 s
+[  91.405] Compiled props.hlsl:vsPropShadow (vs_5_1) in 0.07 s
+[  91.689] Compiled props.hlsl:psProp (ps_5_1) in 0.28 s
+[  91.707] Compiled props.hlsl:psPropShadow (ps_5_1) in 0.02 s
+[  91.860] Compiled propcull.hlsl:csPropCull (cs_5_1) in 0.15 s
+[  91.897] Compiled propcull.hlsl:csPropArgs (cs_5_1) in 0.02 s
+[  92.404] Compiled propcull.hlsl:csDecorPlace (cs_5_1) in 0.50 s
+[  92.971] Compiled foliage.hlsl:csFoliage (cs_5_1) in 0.53 s
+[  92.984] Props: 83 prototypes, 43433 verts
+[  93.102] Compiled dynamic.hlsl:vsRigid (vs_5_1) in 0.12 s
+[  93.150] Compiled dynamic.hlsl:vsSkinned (vs_5_1) in 0.05 s
+[  93.221] Compiled dynamic.hlsl:vsRigidShadow (vs_5_1) in 0.07 s
+[  93.246] Compiled dynamic.hlsl:vsSkinnedShadow (vs_5_1) in 0.02 s
+[  98.382] Compiled dynamic.hlsl:psDynamic (ps_5_1) in 5.13 s
+[  99.109] Compiled dynamic.hlsl:psGlass (ps_5_1) in 0.73 s
+[  99.252] Compiled dynamic.hlsl:psHairCard (ps_5_1) in 0.14 s
+[  99.316] Compiled dynamic.hlsl:vsSkinnedShadowCard (vs_5_1) in 0.06 s
+[  99.355] Compiled dynamic.hlsl:psHairCardShadow (ps_5_1) in 0.04 s
+[  99.399] Compiled particles.hlsl:csEmit (cs_5_1) in 0.04 s
+[  99.532] Compiled particles.hlsl:csSimulate (cs_5_1) in 0.13 s
+[  99.576] Compiled particles.hlsl:csKeys (cs_5_1) in 0.03 s
+[  99.795] Compiled particles.hlsl:csSortLocal (cs_5_1) in 0.21 s
+[  99.830] Compiled particles.hlsl:csSortGlobal (cs_5_1) in 0.03 s
+[ 100.025] Compiled particles.hlsl:csSortMerge (cs_5_1) in 0.19 s
+[ 102.341] Compiled particles.hlsl:csGenAtlas (cs_5_1) in 2.31 s
+[ 103.433] Compiled particles.hlsl:vsParticle (vs_5_1) in 0.92 s
+[ 103.543] Compiled particles.hlsl:psParticle (ps_5_1) in 0.11 s
+[ 103.572] Compiled decals.hlsl:vsDecal (vs_5_1) in 0.02 s
+[ 103.695] Compiled decals.hlsl:psDecal (ps_5_1) in 0.12 s
+[ 103.716] Compiled decals.hlsl:vsSkid (vs_5_1) in 0.02 s
+[ 103.754] Compiled decals.hlsl:psSkid (ps_5_1) in 0.04 s
+[ 106.212] Compiled decals.hlsl:csGenDecals (cs_5_1) in 2.46 s
+[ 106.429] Compiled hiz.hlsl:csHiZFirst (cs_5_1) in 0.08 s
+[ 106.498] Compiled hiz.hlsl:csHiZDown (cs_5_1) in 0.06 s
+[ 106.552] Compiled hiz.hlsl:csColorDown (cs_5_1) in 0.04 s
+[ 106.916] Compiled gtao.hlsl:csGTAO (cs_5_1) in 0.36 s
+[ 107.128] Compiled gtao.hlsl:csGTAOTemporal (cs_5_1) in 0.19 s
+[ 107.809] Compiled gtao.hlsl:csGTAOBlur (cs_5_1) in 0.66 s
+[ 108.046] Compiled ssr.hlsl:csSSRTrace (cs_5_1) in 0.18 s
+[ 108.185] Compiled ssr.hlsl:csSSRResolve (cs_5_1) in 0.12 s
+[ 109.191] Compiled envprobe.hlsl:psProbeLight (ps_5_1) in 0.99 s
+[ 109.265] Compiled envprobe.hlsl:csPrefilter (cs_5_1) in 0.07 s
+[ 109.519] Compiled envprobe.hlsl:csProbeSH (cs_5_1) in 0.25 s
+[ 109.553] Compiled envprobe.hlsl:csCubeDown (cs_5_1) in 0.03 s
+[ 109.971] Compiled fog.hlsl:csFogInject (cs_5_1) in 0.41 s
+[ 110.052] Compiled fog.hlsl:csFogIntegrate (cs_5_1) in 0.04 s
+[ 110.209] Compiled fog.hlsl:csFogNoise (cs_5_1) in 0.14 s
+[ 110.240] Compiled overhead.hlsl:vsOverhead (vs_5_1) in 0.01 s
+[ 110.252] Compiled overhead.hlsl:psOverhead (ps_5_1) in 0.01 s
+[ 110.269] Compiled rain.hlsl:csOverheadHeight (cs_5_1) in 0.02 s
+[ 110.475] Compiled rain.hlsl:vsRain (vs_5_1) in 0.20 s
+[ 110.673] Compiled rain.hlsl:vsSplash (vs_5_1) in 0.20 s
+[ 110.717] Compiled rain.hlsl:vsBolt (vs_5_1) in 0.04 s
+[ 110.738] Compiled rain.hlsl:psRain (ps_5_1) in 0.02 s
+[ 110.756] Compiled rain.hlsl:psSplash (ps_5_1) in 0.02 s
+[ 110.780] Compiled rain.hlsl:psBolt (ps_5_1) in 0.02 s
+[ 111.039] Compiled grass.hlsl:csGrassPlace (cs_5_1) in 0.26 s
+[ 111.314] Compiled grass.hlsl:vsGrass (vs_5_1) in 0.25 s
+[ 111.451] Compiled grass.hlsl:psGrass (ps_5_1) in 0.14 s
+[ 112.723] UI map: base 2560x2560 in 968 ms, 8 roads (33 pts) in 1 ms, 30 labels in 110 ms
+[ 112.726] hudInit done in 1082 ms
+[ 112.726] Init done in 109.83 s (shaders: 129 compiled in 101.54 s)
+[ 458.267] Saved Z:\tmp\city\rbsmoke\rb_hand_roads.bmp
+[ 467.773] Shutdown complete.
+X connection to :115 broken (explicit kill or server shutdown).

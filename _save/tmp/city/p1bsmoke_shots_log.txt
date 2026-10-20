@@ -1,0 +1,55 @@
+[   0.001] Neon Tide starting (version 0.02.7-dev). Data dir: C:\users\root\AppData\Local\NeonTide\
+[   0.585] DXGI is Wine's builtin implementation: presenting with sync interval 0 (no vsync)
+[   1.049] Direct3D 12 device created: adapter 'NVIDIA GeForce GTX 470', VRAM 16093 MB, feature level 11_1, resource binding tier 3, resource heap tier 2, typed UAV loads yes, tearing yes, bindless UAV arrays yes, 2 frames in flight
+[   1.062] UI font 'Segoe UI Semibold' -> 'Liberation Sans'
+[   1.147] UI font 'Bahnschrift SemiBold Condensed' -> 'Liberation Sans'
+[   1.246] UI font 'Impact' -> 'Liberation Sans'
+[   1.344] Font atlas built in 0.28 s
+[   1.382] Audio: no output device - audio disabled
+[   1.383] Audio: no output device, continuing silently
+[   1.387] Updater: no update check (automated run)
+[   2.613] UI icon atlas: 92 icons + 13 weapons in 1181 ms
+[   4.716] Hand world: terrain and 52 road nodes, 83 edges from the exe (2613 KB, 9 sections) in 3.33 s
+[   8.635] Material library: 57 layers at 256^2
+[   8.878] Props: 83 prototypes, 43433 verts
+[  15.039] Vehicle assets: 45 models in 5.62 s
+[  52.811] Wardrobe: 29 dedicated looks (night out 12, door staff 3, sportswear 8, cover-ups 6); roster dressed for a night out 8 men / 9 women, office 9, work 6, swim 8, sport 6
+[  53.885] Character assets: 149 characters in 38.84 s
+[  53.939] Game assets built in 44.52 s
+[  54.039] Story place near (1720, 360): no building frontage found, using the street
+[  54.055] Story place near (1330, 330): no building frontage found, using the street
+[  54.058] Story place near (2200, -480): no building frontage found, using the street
+[  54.064] Story place near (1150, -620): no building frontage found, using the street
+[  54.067] Story place near (1560, 2260): no building frontage found, using the street
+[  54.071] Story place near (1250, 2650): no building frontage found, using the street
+[  54.073] Story place near (3350, 640): no building frontage found, using the street
+[  54.079] Story place near (3050, -350): no building frontage found, using the street
+[  54.081] Story place near (3700, -1000): no building frontage found, using the street
+[  54.083] Story place near (2700, 1300): no building frontage found, using the street
+[  54.085] Story place near (800, 2900): no building frontage found, using the street
+[  54.088] Story place near (3300, 3900): no building frontage found, using the street
+[  54.092] Story place near (2300, -150): no building frontage found, using the street
+[  54.098] Story place near (5100, 2000): no building frontage found, using the street
+[  54.098] Story place near (5150, -300): no building frontage found, using the street
+[  54.099] Story place near (5120, 1500): no building frontage found, using the street
+[  54.100] Story place near (4450, -4200): no building frontage found, using the street
+[  54.102] Story place near (1800, 1500): no building frontage found, using the street
+[  54.103] Story place near (2600, 700): no building frontage found, using the street
+[  54.111] Story place near (1700, -300): no building frontage found, using the street
+[  54.115] Story place near (1650, 1050): no building frontage found, using the street
+[  54.116] Story place near (800, -5400): no building frontage found, using the street
+[  54.117] Story place near (5200, 300): no building frontage found, using the street
+[  54.118] Story place near (600, 3400): no building frontage found, using the street
+[  54.119] Story place near (3528, -706): no building frontage found, using the street
+[  54.120] Story places resolved in 122.8 ms (diner 1319 330, Mari's 1720 362, Rook's 1560 2260, Pulse FM 3350 640, boatyard 1617 235, river 1644 140, sawgrass dock -5016 -74)
+[  54.121] Story place near (3160, -430): no building frontage found, using the street
+[  54.129] Story place near (1880, -140): no building frontage found, using the street
+[  54.130] Story place near (1520, 1300): no building frontage found, using the street
+[  54.130] Missions registered: 57
+[  54.147] Lane graph: 192 lanes, 397 connectors (7814 pts), 330 walk nodes, 443 walk links, dead-end turning circles moved 0 / obstructed 0 (0.02 s)
+[  89.029] UI map: base 2560x2560 in 34836 ms, 83 roads (346 pts) in 1 ms, 30 labels in 44 ms
+[  89.029] hudInit done in 34881 ms
+[  89.029] Init done in 87.65 s (shaders: 0 compiled in 0.00 s)
+[ 436.490] Saved Z:\tmp\city\p1bsmoke\p1b_luna_street.bmp
+[ 521.421] Saved Z:\tmp\city\p1bsmoke\p1b_bridge_side.bmp
+[ 530.447] Shutdown complete.

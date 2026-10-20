@@ -1,0 +1,13 @@
+meet test: edge 2907, Guardian Pumper on lane 7176 against Packhorse 26 on lane 7177
+  meeting point 13 at u 38.5 (5342.6, 243.6) curvature +0.0111: least gap  0.12 m (A 2.3 m/s, B 3.0 m/s)
+  meeting point 14 at u 40.5 (5342.6, 245.6) curvature +0.0132: least gap -0.02 m (A 3.0 m/s, B 3.0 m/s)  TOUCHED
+  meeting point 15 at u 42.5 (5342.6, 247.7) curvature +0.0154: least gap -0.03 m (A 3.0 m/s, B 3.0 m/s)  TOUCHED
+  meeting point 16 at u 44.5 (5342.6, 249.7) curvature +0.0176: least gap -0.21 m (A 1.7 m/s, B 0.0 m/s)  TOUCHED
+  meeting point 17 at u 46.5 (5342.1, 251.7) curvature +0.0166: least gap  0.03 m (A 1.5 m/s, B 0.0 m/s)
+  meeting point 18 at u 48.5 (5341.5, 253.7) curvature +0.0145: least gap  0.18 m (A 1.5 m/s, B 0.0 m/s)
+  meeting point 19 at u 50.5 (5340.9, 255.6) curvature +0.0124: least gap  0.21 m (A 2.7 m/s, B 1.2 m/s)
+  meeting point 20 at u 52.5 (5340.2, 257.6) curvature +0.0104: least gap  0.26 m (A 4.5 m/s, B 3.8 m/s)
+  meeting point 21 at u 54.5 (5339.6, 259.5) curvature +0.0075: least gap  0.23 m (A 2.0 m/s, B 3.0 m/s)
+  meeting point 22 at u 56.5 (5339.0, 261.4) curvature +0.0034: least gap  2.40 m (A 0.0 m/s, B 0.0 m/s)
+  meeting point 23 at u 58.5 (5338.4, 263.3) curvature -0.0008: least gap  0.22 m (A 2.9 m/s, B 2.2 m/s)
+meet test: 36 meeting points, 3 touched, least gap -0.21 m

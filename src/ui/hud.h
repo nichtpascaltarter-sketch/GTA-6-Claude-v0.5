@@ -289,8 +289,7 @@ void settingsFromText(const std::string& text, GameSettings& s);
 void applyUiSettings(const GameSettings& s);
 
 enum MenuScreen : u8 { MENU_NONE = 0, MENU_MAIN, MENU_PAUSE, MENU_MAP, MENU_SETTINGS, MENU_LOAD, MENU_SAVE, MENU_STATS,
-                       MENU_BRIEF, MENU_CONFIRM_QUIT, MENU_LOADING,
-                       MENU_SETUP };   // the first start's setup page (no settings.ini yet), then MENU_MAIN
+                       MENU_BRIEF, MENU_CONFIRM_QUIT, MENU_LOADING };
 
 enum MenuActionType : u8 {
     MA_NONE = 0,

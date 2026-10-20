@@ -1,0 +1,24 @@
+Event drivers and officers get back into their cars through the door, the knocked-down wait for the sorry driver, overheard lines in crowds
+
+AI set 17 (src/game: ai.cpp, ai_game.h, events.cpp, pedai.cpp; app.cpp test modes only):
+- People in street events get back into their cars through the door, with the door clip, instead of being warped in:
+  - after a crash, both drivers walk back round a free end of their own car, get in through the driver's door and drive
+    off into the traffic;
+  - a stranded driver gets back in once the car is fixed or given up, and drives off;
+  - after a traffic stop, the officer walks back to the cruiser and gets in; both cars leave once the officer is in.
+  The old timeout warps stay as a fallback, and seats are claimed so no two people take one door.
+- A crash driver on the kerb side whose car is boxed in at both ends (or who is still there 12 s on) gets in by the
+  passenger door and slides across to the wheel. If someone else takes the wheel meanwhile, they stay on foot.
+- Someone knocked down by a car whose driver stops now waits for the driver once up (not hurt): they stand facing the
+  driver as they come over, for their word, up to 8 s. The sorry driver's "back to the car" clock only runs once they
+  are within 4 m or have spoken.
+- Lines overheard from people walking in company come through in a crowd: a try every 7 s or so while the player is
+  close, one in three said, and a try lost to another voice goes again.
+- Walking round a car's end works off the middle of the car's box, not the body's origin (long-nosed cars).
+- Tests: the nearmiss test runs on a city street again; new test modes taxi, trafficstop, breakdown, knock, copreturn.
+
+Checks (AI agent, under Wine):
+- knock, trafficstop, crashscene, hitped, nightwalk (6 night chats by t=50, 0 before in 146 s), breakdown, copreturn:
+  PASS. events (crash slot): PASS after the kerb-side fallback. nearmiss: PASS after the test fixes (all 4 near misses
+  by t=10).
+- MinGW -Wall syntax check clean on HEAD + these five files.

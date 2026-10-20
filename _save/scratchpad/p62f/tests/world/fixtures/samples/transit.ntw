@@ -1,0 +1,4 @@
+ntw 1 transit line=bus.8 kind=bus name="8 Calle Ocho"
+route edges=cl.e0011,cl.e0007
+stop s1 busstop=cl.bus.08
+service headway=600.0 first=5.50 last=23.50

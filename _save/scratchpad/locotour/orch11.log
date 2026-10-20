@@ -1,0 +1,25 @@
+start 15:25:28
+check done
+build st5 rc 0
+-rwxr-xr-x 1 root root 12826624 Oct 12 16:05 bin/loco_st5.exe
+built st5 16:05:07
+run st5 exit 0
+[2041.737] locostairs trace 176 dn a28.86 v 1.30 ph0.86 mw1.00 | 0 pl0 h 19.7 b 38.3 t 38.9 g  0.00, -0.17 u28.971,29.216 pU29.385 st-1.00 SL -0.34 sh 0.01 sd1 bp0 fz  0.12 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17 u28.809,29.052 pU-99.000 st-1.00 SL -9.00 sh 0.00 sd0 bp0 fz  0.00
+[2044.576] locostairs trace 176 dn a28.90 v 1.30 ph0.89 mw1.00 | 0 pl0 h 34.6 b 38.3 t 56.6 g -0.17, -0.34 u29.128,29.369 pU29.385 st-1.00 SL -0.34 sh 0.01 sd1 bp0 fz  0.12 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17 u28.809,29.052 pU-99.000 st-1.00 SL -9.00 sh 0.00 sd0 bp0 fz  0.00
+[2044.581] locostairs trace 176 dn a28.94 v 1.30 ph0.92 mw1.00 | 0 pl0 h 13.7 b 35.6 t 37.4 g -0.17, -0.34 u29.259,29.495 pU29.385 st-1.00 SL -0.34 sh 0.01 sd1 bp0 fz -0.07 | 1 pl1 h  0.7 b  0.0 t 16.9 g  0.00, -0.17 u28.809,29.053 pU-99.000 st-1.00 SL -9.00 sh 0.00 sd0 bp0 fz  0.00
+[2044.590] locostairs trace 176 dn a28.99 v 1.30 ph0.95 mw1.00 | 0 pl0 h 29.1 b 34.4 t 36.4 g -0.34, -0.34 u29.351,29.586 pU29.385 st-1.00 SL -0.34 sh 0.01 sd1 bp0 fz -0.07 | 1 pl1 h  2.4 b  0.0 t 16.9 g  0.00, -0.17 u28.811,29.056 pU-99.000 st-1.00 SL -9.00 sh 0.00 sd0 bp0 fz  0.00
+[2044.600] locostairs trace 176 dn a29.03 v 1.30 ph0.98 mw1.00 | 0 pl0 h 10.0 b 15.0 t 33.7 g -0.34, -0.51 u29.398,29.634 pU29.385 st-1.00 SL -0.34 sh 0.01 sd1 bp0 fz -0.25 | 1 pl1 h  4.6 b  0.1 t 16.9 g  0.00, -0.17 u28.815,29.060 pU-99.000 st-1.00 SL -9.00 sh 0.00 sd0 bp0 fz  0.00
+[2044.616] locostairs trace 176 dn a29.07 v 1.30 ph0.02 mw1.00 | 0 pl1 h  0.0 b  4.2 t 22.6 g -0.17, -0.34 u29.409,29.648 pU-99.000 st-1.00 SL -9.00 sh 0.00 sd0 bp0 fz -0.17 | 1 pl1 h  7.1 b  0.3 t 16.9 g  0.17,  0.00 u28.823,29.064 pU-99.000 st-1.00 SL -9.00 sh 0.00 sd0 bp0 fz  0.17
+[2044.624] locostairs trace 176 dn a29.12 v 1.30 ph0.05 mw1.00 | 0 pl1 h  0.0 b  2.6 t 20.5 g -0.17, -0.34 u29.409,29.652 pU-99.000 st-1.00 SL -9.00 sh 0.00 sd0 bp0 fz -0.17 | 1 pl1 h  9.5 b  0.5 t 16.9 g  0.17,  0.00 u28.833,29.068 pU-99.000 st-1.00 SL -9.00 sh 0.00 sd0 bp0 fz  0.17
+[2044.629] locostairs up   steps  298 | slide cm/step mean 1.66 p90 3.70 max 8.27 | scuffs 22
+[2044.629] locostairs up   planted foot-frames 6095 | across a riser 78.9% | sunk 1 cm 2.1%, 3 cm 1.7% | lifted 0.6% | lowest sole -169.0 mm
+[2044.629] locostairs down steps  278 | slide cm/step mean 0.86 p90 3.15 max 8.08 | scuffs 33
+[2044.629] locostairs down planted foot-frames 5753 | across a riser 78.7% | sunk 1 cm 1.8%, 3 cm 1.8% | lifted 5.2% | lowest sole -169.0 mm
+[2044.629] locostairs trips 27 | peds cpu 2.02 ms per frame (mean over 3002 frames)
+[ 191.872] locostairs: 8 walkers
+[2044.629] locostairs up   steps  298 | slide cm/step mean 1.66 p90 3.70 max 8.27 | scuffs 22
+[2044.629] locostairs up   planted foot-frames 6095 | across a riser 78.9% | sunk 1 cm 2.1%, 3 cm 1.7% | lifted 0.6% | lowest sole -169.0 mm
+[2044.629] locostairs down steps  278 | slide cm/step mean 0.86 p90 3.15 max 8.08 | scuffs 33
+[2044.629] locostairs down planted foot-frames 5753 | across a riser 78.7% | sunk 1 cm 1.8%, 3 cm 1.8% | lifted 5.2% | lowest sole -169.0 mm
+[2044.629] locostairs trips 27 | peds cpu 2.02 ms per frame (mean over 3002 frames)
+orch11 done 19:25:57

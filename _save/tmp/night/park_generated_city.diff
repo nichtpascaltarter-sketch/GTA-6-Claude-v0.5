@@ -1,0 +1,297 @@
+--- a/src/shaders/facade.hlsli
++++ b/src/shaders/facade.hlsli
+@@ -203,21 +203,81 @@
+     float len = 0.5 + hashF(gh) * 0.5;
+     if (v < 1.61 - len || fg < 0.05) return wallC * 0.6;
+     uint grp = hash3u(uint3((uint)(floor(u / 0.6) + 8192.0), 5u, h));
+-    float3 c = lerp(float3(0.45, 0.45, 0.45), hsvToRgbF(hashF(grp) + (hashF(gh + 1u) - 0.5) * 0.08), lerp(0.15, 0.75, hashF(grp + 3u))) * lerp(0.25, 0.75, hashF(grp + 2u)) + 0.05;
++    // garments: mostly dark and muted (black, navy, grey, denim, earth tones), a few brighter runs
++    float3 c = lerp(float3(0.4, 0.4, 0.4), hsvToRgbF(hashF(grp) + (hashF(gh + 1u) - 0.5) * 0.08), lerp(0.08, 0.6, hashF(grp + 3u))) * lerp(0.12, 0.55, pow(hashF(grp + 2u), 1.5)) + 0.03;
+     return c * lerp(0.75, 1.0, sin(fg * PI));
+ }
+ 
++// Upper walls of a shop above its fixtures (u along the wall, v height, m): framed photo posters of models over a
++// boutique's rails, menu boards over a cafe counter, department signs in the shop's colour over the aisles of a
++// grocery or pharmacy (white lettering); the wall finish between them.
++float3 shopUpperWall(float u, float v, uint h, float kind, float Hc, float3 wallC, float3 brandC) {
++    bool cafe = kind >= 0.7 && kind < 0.9;
++    bool clothing = kind >= 0.45 && kind < 0.7;
++    float3 c = wallC;
++    if (clothing) {
++        float pk = floor(u / 2.8), pu = u - pk * 2.8 - 0.85;
++        float top = min(3.2, Hc - 0.3), bot = max(top - 1.3, 1.8);
++        uint ph = hash3u(uint3((uint)(pk + 4096.0), 31u, h));
++        if (hashF(ph) < 0.75 && pu > 0.0 && pu < 1.1 && v > bot && v < top) {
++            float2 q = float2(pu / 1.1, (v - bot) / (top - bot));
++            c = lerp(float3(0.55, 0.55, 0.55), hsvToRgbF(hashF(ph + 1u)), 0.35) * lerp(0.3, 0.8, hashF(ph + 2u));   // backdrop
++            float2 bq = (q - float2(0.5, 0.36)) / float2(0.22, 0.4), hq = (q - float2(0.5, 0.8)) / float2(0.09, 0.075);
++            if (dot(bq, bq) < 1.0) c = hsvToRgbF(hashF(ph + 4u)) * lerp(0.1, 0.5, hashF(ph + 5u)) + 0.04;          // outfit
++            if (dot(hq, hq) < 1.0) c = lerp(float3(0.42, 0.28, 0.2), float3(0.75, 0.56, 0.45), hashF(ph + 3u));  // face
++            if (abs(q.x - 0.5) > 0.47 || abs(q.y - 0.5) > 0.47) c = float3(0.06, 0.06, 0.06);                     // frame
++        }
++        if (hashF(h + 45u) < 0.5 && v > Hc - 0.45 && v < Hc - 0.15) c = brandC * 0.7;   // brand stripe under the ceiling
++    } else if (cafe) {
++        float bi = floor(u / 1.5), bu = u - bi * 1.5 - 0.2;
++        float bot = 2.4, top = min(3.1, Hc - 0.2);
++        if (bu > 0.0 && bu < 1.1 && v > bot && v < top) {
++            float2 q = float2(bu / 1.1, (v - bot) / (top - bot));
++            c = float3(0.05, 0.055, 0.05);
++            uint lh = hash3u(uint3((uint)(bi + 4096.0), (uint)floor(q.y * 7.0), h + 37u));
++            if (frac(q.y * 7.0) > 0.35 && frac(q.y * 7.0) < 0.75 && q.x > 0.1 && q.x < 0.3 + 0.6 * hashF(lh) && q.y < 0.86) c = float3(0.6, 0.6, 0.56);   // chalk
++            if (abs(q.x - 0.5) > 0.46 || abs(q.y - 0.5) > 0.44) c = float3(0.25, 0.16, 0.09);   // frame
++        }
++    } else {
++        float si = floor(u / 3.6), su = u - si * 3.6 - 0.6;
++        float bot = 2.45, top = min(2.95, Hc - 0.2);
++        if (su > 0.0 && su < 2.4 && v > bot && v < top) {
++            // a word or two of white lettering: letters of varied width and height (capitals, lower case), spaces
++            float vq = (v - bot) / (top - bot), fu = frac(su / 0.13);
++            c = brandC * 0.55;
++            uint ch = hash3u(uint3((uint)(si + 4096.0), (uint)floor(su / 0.13), h + 33u));
++            float len = 0.9 + 0.9 * hashF(hash3u(uint3((uint)(si + 4096.0), 35u, h)));   // text length (m), centred
++            float lh = hashF(ch + 1u) < 0.3 ? 0.24 : 0.17, lw = lerp(0.45, 0.85, hashF(ch + 2u));
++            bool glyph = hashF(ch) > 0.12 && abs(su - 1.2) < len * 0.5 && fu > 0.5 - lw * 0.5 && fu < 0.5 + lw * 0.5;
++            if (glyph && vq > 0.5 - 0.17 && vq < 0.5 - 0.17 + lh * 2.0) c = float3(0.85, 0.85, 0.82);
++        }
++    }
++    return c;
++}
++
+ // Interior mapping for a shop behind a storefront (one space per sign, 3 bays): grocery / pharmacy shelving,
+-// clothing rails or a cafe, with a free-standing fixture in the middle and ceiling light panels (> 1 = emitter).
++// clothing rails or a cafe, with a free-standing fixture in the middle and a lit ceiling (> 1 = emitter). The ceiling
++// hangs at 3.2 .. 4.4 m (never above the window head, roomSize.y - 0.95): from the street one sees its light panels
++// in perspective through the upper glass, and on a tall ground floor the dark void above it behind the transom.
++// Wall finishes vary per shop: pale paint, greige, wood panelling, charcoal or the brand's colour.
+ float3 shopInterior(float3 roomPos, float3 dir, float3 roomSize, uint h) {
+     float kind = hashF(h + 40u);
+     bool cafe = kind >= 0.7 && kind < 0.9;
+     bool clothing = kind >= 0.45 && kind < 0.7;
++    float head = roomSize.y - 0.95;
++    float Hc = min(head + 0.1, max(head - 0.9, lerp(3.2, 4.4, hashF(h + 43u))));
++    if (roomPos.y > Hc) return float3(0.03, 0.03, 0.035);
++    roomSize.y = Hc;
+     float3 invD = 1.0 / (dir + (dir == 0) * 1e-5);
+     float3 tPlanes = max((roomSize * (dir > 0) - roomPos) * invD, 0.0);
+     float t = min(min(tPlanes.x, tPlanes.y), tPlanes.z);
+-    float3 wallC = cafe ? float3(0.42, 0.28, 0.18) : lerp(float3(0.62, 0.61, 0.58), float3(0.52, 0.58, 0.62), hashF(h + 41u));
+-    float3 brandC = hsvToRgbF(hashF(h + 50u)) * 0.75 + 0.05;   // shop's colour: stripe along the upper walls
++    float3 brandC = hsvToRgbF(hashF(h + 50u)) * 0.75 + 0.05;   // shop's colour: signs, a stripe, some walls
++    float wf = hashF(h + 42u);
++    wf = clothing ? 0.25 + 0.75 * wf : (cafe ? wf : wf * (kind >= 0.9 ? 0.5 : 0.8));   // boutiques: fewer plain walls; pharmacies white
++    uint fin = wf < 0.35 ? 0u : (wf < 0.55 ? 1u : (wf < 0.7 ? 2u : (wf < 0.85 ? 3u : 4u)));
++    float3 wallC = fin == 0u ? lerp(float3(0.5, 0.49, 0.47), float3(0.44, 0.47, 0.5), hashF(h + 41u))
++                 : (fin == 1u ? float3(0.4, 0.36, 0.3) : (fin == 2u ? float3(0.3, 0.2, 0.12) : (fin == 3u ? float3(0.1, 0.1, 0.11) : lerp(0.3, brandC, 0.45) * 0.45)));
++    if (cafe && fin <= 1u) wallC = float3(0.42, 0.28, 0.18);
+     float W = roomSize.x, D = roomSize.z;
+     float3 bmin, bmax;
+     if (cafe) { bmin = float3(W * 0.12, 0.0, D * 0.3); bmax = float3(W * 0.88, 0.76, D * 0.42); }
+@@ -238,30 +298,48 @@
+         float3 hit = roomPos + dir * t;
+         if (t == tPlanes.y) {
+             if (dir.y > 0) {
+-                float2 q = frac(hit.xz / float2(1.6, 1.8));
+-                bool panel = abs(q.x - 0.5) < 0.3 && abs(q.y - 0.5) < 0.1;
+-                c = cafe ? (panel ? float3(2.2, 1.5, 0.9) : float3(0.25, 0.18, 0.12)) : (panel ? float3(3.0, 3.0, 2.9) : float3(0.82, 0.82, 0.8));
++                if ((clothing || cafe) && hashF(h + 44u) < 0.5) {
++                    // open ceiling painted dark with rows of spot lights
++                    float2 q = frac(hit.xz / float2(1.2, 1.5)) - 0.5;
++                    c = dot(q, q) < 0.007 ? float3(4.0, 3.9, 3.6) : float3(0.06, 0.06, 0.065);
++                } else {
++                    float2 q = frac(hit.xz / float2(1.6, 1.8));
++                    bool panel = abs(q.x - 0.5) < 0.3 && abs(q.y - 0.5) < 0.1;
++                    // lit panels in a grid; the ceiling between them only gets the light bounced up from the floor
++                    c = cafe ? (panel ? float3(2.2, 1.5, 0.9) : float3(0.16, 0.12, 0.08)) : (panel ? float3(3.0, 3.0, 2.9) : float3(0.25, 0.25, 0.245));
++                }
+             } else {
+                 float2 q = floor(hit.xz / 0.6);
+                 float chk = frac((q.x + q.y) * 0.5) * 2.0;
+-                c = cafe ? lerp(float3(0.3, 0.19, 0.11), float3(0.36, 0.23, 0.14), chk) : lerp(float3(0.78, 0.78, 0.75), float3(0.62, 0.62, 0.6), chk);
++                c = cafe ? lerp(float3(0.3, 0.19, 0.11), float3(0.36, 0.23, 0.14), chk) : lerp(float3(0.52, 0.52, 0.5), float3(0.42, 0.42, 0.41), chk);
+             }
+         } else {
+             bool back = t == tPlanes.z;
+             float u = back ? hit.x : hit.z;
++            float3 wc = wallC;
++            if (fin == 2u) wc *= lerp(0.8, 1.15, hashF(hash3u(uint3((uint)(floor(u / 0.14) + 4096.0), 39u, h))));   // planks
++            float fixTop;
+             if (cafe) {
+-                c = wallC;
+-                if (back && hit.y < 1.05) c = float3(0.22, 0.14, 0.09);                                             // counter
+-                if (back && hit.y > 1.5 && hit.y < 2.3) c = shelfPattern(u, hit.y - 1.5, h + 13u, 0.5, wallC) * 0.8;  // bottles
++                c = wc;
++                if (back && hit.y < 1.05) c = float3(0.22, 0.14, 0.09);                                          // counter
++                if (back && hit.y > 1.5 && hit.y < 2.3) c = shelfPattern(u, hit.y - 1.5, h + 13u, 0.5, wc) * 0.8;  // bottles
++                fixTop = back ? 2.3 : 0.0;
+             } else if (clothing) {
+-                c = garmentPattern(u, hit.y, h + (back ? 17u : 19u), wallC);
++                c = garmentPattern(u, hit.y, h + (back ? 17u : 19u), wc);
++                fixTop = 1.65;
+             } else {
+-                c = shelfPattern(u, hit.y, h + (back ? 21u : 23u), kind, wallC);
++                c = shelfPattern(u, hit.y, h + (back ? 21u : 23u), kind, wc);
++                fixTop = 2.1;
+             }
+-            if (!cafe && hit.y > 2.3) c = (hit.y > 2.45 && hit.y < 2.8) ? brandC : wallC * 0.7;   // brand stripe, darker frieze
++            // above the merchandise: the fixtures aim their light down at the sales floor, the upper walls get less
++            if (hit.y > fixTop) c = shopUpperWall(u + (back ? 0.0 : 50.0), hit.y, h, kind, Hc, wc, brandC) * 0.6;
++            // walls lit from the ceiling: darker down towards the floor and right under the ceiling
++            c *= lerp(0.55, 1.0, smoothstep(0.0, 1.6, hit.y)) * lerp(1.0, 0.75, smoothstep(Hc - 0.9, Hc, hit.y));
+         }
+     }
+-    return c * lerp(1.0, 0.65, saturate(t / (D * 1.6)));
++    // the shop's lights hang over the sales floor near the front: the back of the shop falls off into shade (the
++    // light panels themselves keep their brightness)
++    return c.g > 1.0 ? c : c * lerp(1.0, 0.35, saturate(t / (D * 1.2)));
+ }
+ 
+ // streetMark: the wall's vertex alpha - 1 on a wall that looks onto a street, 0.5 on the sides and backs that don't
+@@ -470,11 +548,11 @@
+         // daylight in the room: sky light through the windows plus sun patches on the floor bouncing around
+         float3 dayE = evalSH9(N) * 0.4 + mainLightIlluminance() * saturate(dot(N, gSunDir.xyz)) * (0.12 / PI);
+         float3 em = room * dayE * dayInterior;
+-        // shops are brightly lit inside (~160 nits of interior by day reads through the glass; 14 at night, when the
++        // shops are brightly lit inside (~160 nits of interior by day reads through the glass; 11 at night, when the
+         // exposure has opened up). Homes and offices: the lamp lights the room unevenly (roomLampLight: bright near a
+         // ceiling fixture or a corner lamp, darker corners, the shade or panels glowing); room light levels vary over
+         // three stops (a reading lamp .. a bright kitchen), a TV alone lights a room dimly.
+-        float shopNits = lerp(160.0, 14.0, gExposure.w);
++        float shopNits = lerp(160.0, 11.0, gExposure.w);
+         // (offices lit outside working hours, by cleaners or a late shift, have only some of their fixtures on)
+         float lampNits = storefront ? shopNits * (0.45 + 0.9 * hashF(lh + 14u))
+                        : (office ? 12.0 * exp2(hashF(lh + 14u) * 2.0 - 1.2) * (officeLit ? 1.0 : 0.45)
+@@ -531,13 +609,22 @@
+     if (nightA > 0.0) {
+         float4 xl = facadeLights(id);
+         float3 wash = 0;
++        // The building's corners: the start of each wall that faces one of its four axis directions (xl.z's fraction:
++        // the axis angle in quarter turns, world_render.cpp uploadFacades), i.e. a rectangular or chamfered tower's
++        // four main walls and every fifth wall of a round one (20 walls, normals at 9 + 18 k degrees), all of them
++        // within 7 degrees of axis + 4.5 + 90 k. Wall k's u starts at (floor(k * 1000 / bay) + 0.002) * bay
++        // (world/buildmesh.cpp facadeWalls).
++        float wk = floor(uv.x / 1000.0 + 0.5);
++        float wallU = uv.x - (floor(wk * 1000.0 / bay) + 0.002) * bay;   // m from the wall's start corner
++        float qa = atan2(N.y, N.x) / (0.5 * PI) - frac(xl.z) / 0.99;
++        bool cornerWall = abs(frac(qa - 0.05 + 0.5) - 0.5) < 0.078;
+         if (xl.y > 0.5 && xl.x > 12.0) {
+             float3 cc = archLightColor((uint)xl.z);
+             float below = xl.x - uv.y;   // meters below the roof line
+             wash += cc * exp(-max(below, 0.0) / (2.5 + xl.x * 0.025)) * 38.0;
+-            if (xl.y > 1.5 && uv.y > xl.x * 0.35 && below > -0.5) {
++            if (xl.y > 1.5 && cornerWall && uv.y > xl.x * 0.35 && below > -0.5) {
+                 float lw = max(0.18, length(rel) * 0.0012);   // widen with distance (no sub-pixel shimmer)
+-                r.emissive += cc * step(uv.x, lw) * (400.0 * 0.18 / lw) * nightA;
++                r.emissive += cc * step(wallU, lw) * (400.0 * 0.18 / lw) * nightA;
+             }
+         }
+         if (xl.w > 0.5) {
+@@ -546,15 +633,13 @@
+         }
+         float3 recv = r.isWindow ? max(outAlbedo, 0.12) : outAlbedo;   // glass: lit mullions / frit
+         r.emissive += recv * wash * (nightA / PI);
+-        // Aviation obstruction lights: buildings over 60 m carry red beacons at the roof line where each of the first
+-        // four walls starts (the corners of a rectangular tower), all of a building's flashing together in the rhythm
+-        // of the world's beacons on masts and spires (world.hlsl emissiveAnim pattern 1), a gentle pulse with reduced
+-        // flashing. Widened with distance so a far tower keeps a pixel-sized red point. Wall k's u starts at
+-        // (floor(k * 1000 / bay) + 0.002) * bay (world/buildmesh.cpp facadeWalls).
+-        float wk = floor(uv.x / 1000.0 + 0.5);
+-        if (xl.x > 60.0 && wk < 3.5) {
++        // Aviation obstruction lights: buildings over 60 m carry red beacons at the roof line on their corners (four,
++        // spread round a round tower too), all of a building's flashing together in the rhythm of the world's beacons
++        // on masts and spires (world.hlsl emissiveAnim pattern 1), a gentle pulse with reduced flashing. Widened with
++        // distance so a far tower keeps a pixel-sized red point.
++        if (xl.x > 60.0 && cornerWall) {
+             float lw = max(0.16, length(rel) * 0.0011);
+-            float2 dq = float2(uv.x - (floor(wk * 1000.0 / bay) + 0.002) * bay - 0.3, uv.y - (xl.x - 0.5));
++            float2 dq = float2(wallU - 0.3, uv.y - (xl.x - 0.5));
+             float beacon = saturate(1.5 - length(dq) / lw);
+             if (beacon > 0.0) {
+                 float ph = hashF(seed + 91u), t = gTime.x;
+--- a/src/shaders/props.hlsl
++++ b/src/shaders/props.hlsl
+@@ -93,7 +93,7 @@
+ }
+ 
+ // Street lamp colour of an installation (a 160 m grid; must match world_render.cpp streetLampColor): high-pressure
+-// sodium, warm-white, neutral or cool-white LED, at unit luminance
++// sodium (a fifth of the blocks), warm-white, neutral or cool-white LED, at unit luminance
+ float3 lampColorAt(float3 worldP) {
+     int2 c = (int2)floor(worldP.xy / 160.0);
+     uint h = (uint)c.x * 73856093u ^ (uint)c.y * 19349663u;
+@@ -101,7 +101,7 @@
+     h *= 0x5bd1e995u;
+     h ^= h >> 15;
+     float r = (float)(h & 1023u) / 1023.0;
+-    float3 k = r < 0.38 ? float3(1.0, 0.46, 0.11) : (r < 0.62 ? float3(1.0, 0.61, 0.31) : (r < 0.86 ? float3(1.0, 0.76, 0.52) : float3(1.0, 0.87, 0.74)));
++    float3 k = r < 0.2 ? float3(1.0, 0.46, 0.11) : (r < 0.45 ? float3(1.0, 0.61, 0.31) : (r < 0.8 ? float3(1.0, 0.76, 0.52) : float3(1.0, 0.87, 0.74)));
+     return k / luminance(k);
+ }
+ 
+--- a/src/render/world_render.cpp
++++ b/src/render/world_render.cpp
+@@ -38,6 +38,7 @@
+     float nearRadius = 420.f;
+     float farRadius = 2300.f;
+     int maxInFlight = 6;
++    bool reduceFlashing = false;  // accessibility (renderer settings): blinking aviation lights pulse slowly instead
+     std::atomic<int> inFlight{0};
+     int uploadsPerFrame = 4;
+     int drawnCells = 0;
+@@ -97,7 +98,9 @@
+         facadeBuf.release();
+         facadeBuf = gfx::createBuffer((u32)(f.size() * sizeof(World::FacadeGPU)), sizeof(World::FacadeGPU), gfx::BUF_STRUCTURED, f.data());
+         // Night architectural lighting per facade: x facade top (m above the base), y crown (0 none, 1 wash,
+-        // 2 wash + LED lines on the wall edges), z palette index, w warm uplights along the base
++        // 2 wash + LED lines on the wall edges), z palette index + the building's axis angle in quarter turns as the
++        // fraction (facade.hlsli: the walls facing the axis directions carry the corner LEDs and aviation beacons),
++        // w warm uplights along the base
+         std::vector<vec4> fl(f.size(), vec4(0.f));
+         for (const World::Building& b : bs.buildings) {
+             if (b.facade >= fl.size()) continue;
+@@ -118,7 +121,8 @@
+                 default: break;
+             }
+             if (r0 < crownP) e.y = (b.style == World::BS_DECO || r1 > 0.55f) ? 2.f : 1.f;
+-            e.z = floorf(r1 * 7.99f);
++            float qa = atan2f(b.ax.y, b.ax.x) / kHalfPi;
++            e.z = floorf(r1 * 7.99f) + (qa - floorf(qa)) * 0.99f;
+             if (fmodf(r0 * 7.13f + r1 * 3.71f, 1.f) < floodP) e.w = 1.f;
+         }
+         facadeLightBuf.release();
+@@ -199,15 +203,16 @@
+     }
+ 
+     // Street lamp colours: installations change block to block (a 160 m grid): high-pressure sodium (~2050 K,
+-    // orange), warm-white LED (3000 K), neutral (4000 K) and cool-white (5000 K) LED, at the world's luminance.
+-    // props.hlsl picks the same colour for the lamp's lens from its position (lampColorAt).
++    // orange) on a fifth of the blocks (a view down a street meets one or two of them, not a whole orange city),
++    // warm-white LED (3000 K), neutral (4000 K, the commonest retrofit) and cool-white (5000 K) LED, at the world's
++    // luminance. props.hlsl picks the same colour for the lamp's lens from its position (lampColorAt).
+     static vec3 streetLampColor(vec3 pos, vec3 worldColor) {
+         u32 h = (u32)(int)floorf(pos.x / 160.f) * 73856093u ^ (u32)(int)floorf(pos.y / 160.f) * 19349663u;
+         h ^= h >> 13;
+         h *= 0x5bd1e995u;
+         h ^= h >> 15;
+         float r = (float)(h & 1023u) / 1023.f;
+-        vec3 k = r < 0.38f ? vec3(1.f, 0.46f, 0.11f) : (r < 0.62f ? vec3(1.f, 0.61f, 0.31f) : (r < 0.86f ? vec3(1.f, 0.76f, 0.52f) : vec3(1.f, 0.87f, 0.74f)));
++        vec3 k = r < 0.2f ? vec3(1.f, 0.46f, 0.11f) : (r < 0.45f ? vec3(1.f, 0.61f, 0.31f) : (r < 0.8f ? vec3(1.f, 0.76f, 0.52f) : vec3(1.f, 0.87f, 0.74f)));
+         float lumW = 0.2126f * worldColor.x + 0.7152f * worldColor.y + 0.0722f * worldColor.z;
+         return k * (lumW / (0.2126f * k.x + 0.7152f * k.y + 0.0722f * k.z));
+     }
+@@ -426,7 +431,15 @@
+                     case 0: k = SmoothStep(0.05f, 0.35f, night); break;           // street
+                     case 1: k = SmoothStep(0.2f, 0.6f, night); break;             // building / canopy
+                     case 2: k = 0.25f + 0.75f * night; break;                     // neon
+-                    case 4: k = night * (fmodf(time + li.pos.x * 0.01f, 1.6f) < 0.25f ? 1.f : 0.f); break;
++                    case 4: {   // aviation obstruction light: in step with its lamp (world.hlsl emissiveAnim pattern 1, same phase)
++                        float ph = (float)li.phase / 256.f;
++                        if (reduceFlashing) k = night * (0.55f + 0.25f * sinf(time * 1.2f + ph * 6.2832f)) / 1.6f;   // the lamp's slow pulse
++                        else {
++                            float f = time * 0.8f + ph;
++                            k = night * (f - floorf(f) < 0.18f ? 1.f : 0.f);   // 1.25 s period, 18% on
++                        }
++                        break;
++                    }
+                     case 5: {   // shop window spill: shops close between 22:00 and 01:00, some keep display lighting on
+                         u32 h = (u32)(int)floorf(li.pos.x * 2.f) * 73856093u ^ (u32)(int)floorf(li.pos.y * 2.f) * 19349663u;
+                         h ^= h >> 15;

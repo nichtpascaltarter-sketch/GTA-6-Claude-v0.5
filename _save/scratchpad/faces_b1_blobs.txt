@@ -1,0 +1,6 @@
+src/anim/face.cpp 889f9828d8bf385df0465ff800968b4dbd6b3ca9
+src/anim/hair.cpp c034bf8849d7279f31e5e53afe4982b72f64dfdc
+src/anim/character.cpp ca43854f5b7b3efd2575a9cc4badb78909e7c9f3
+src/anim/meshutil.cpp 80401cd306098dbb276c67001bd869dfcc0d3846
+tests/anim/anim_test.cpp a3a5caaee58c348e89ff8059eb5325e5802f0da0
+tests/anim/preview.cpp 4ba268b3fd091b9f68badd0f8b878de65333c8c9

@@ -1,0 +1,8 @@
+In file included from src/anim/anim_all.cpp:14,
+                 from src/main.cpp:49:
+src/anim/clips.cpp: In function 'void Anim::detail::clipMeleeHit(const AuthorCtx&, Anim::Clip, float, Rig&)':
+src/anim/clips.cpp:3013: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
+ 3013 |         for (int sd = 0; sd < 2; sd++) armFK(hit.arm[sd], sd, 0.5f, 0.35f, 1.1f, 0.4f, 0.4f);
+      | 
+src/anim/clips.cpp:3013: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
+-rwxr-xr-x 1 root root 11621376 Oct  1 01:33 bin/anim_agent2.exe

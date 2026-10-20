@@ -1,10 +1,7 @@
 // worldc: the world compiler (docs/HANDBUILT_WORLD.md, section 6.1). Reads every .ntw file under world/, checks it
 // against the schema (src/world/ntwschema.h, docs/NTW_FORMAT.md) and compiles it into world.bin, which the build embeds in
-// the exe as the RCDATA resource NT_WORLD (with the world.rc written next to it). What it compiles so far:
-// - the baked terrain (stage 0);
-// - the roads (stage 1), through the world model (src/world/worldmodel.h), with the world, district, signal and transit
-//   files they name: the roads sections (src/world/roadsbin.h). The other kinds' sections come with their consumers.
-// Blocks, buildings, places and the library are errors until their compilers exist.
+// the exe as the RCDATA resource NT_WORLD (with the world.rc written next to it). Stage 0 compiles the baked terrain;
+// the other kinds get their compilers as the format grows.
 // Build from the repo root:  g++ -std=c++17 -O2 -I. tools/worldc.cpp -o build/worldc
 // Run from the repo root:    build/worldc [--world=world] [--out=build/gen/world.bin]
 //                            build/worldc --check=<file.ntw>     (one file against the schema, nothing written)
@@ -15,11 +12,6 @@
 #include "src/world/gridcodec.cpp"
 #include "src/world/lz.cpp"
 #include "src/world/worldbin.cpp"
-#include "src/core/math.cpp"
-#include "src/world/roadnet.cpp"
-#include "src/world/worldmodel.cpp"
-#include "src/world/worldmodel_roads.cpp"
-#include "src/world/roadsbin.cpp"
 #include <algorithm>
 #include <chrono>
 #include <filesystem>
@@ -253,44 +245,6 @@ bool compileTerrain(const Source& src, WorldBinWriter& out) {
     return true;
 }
 
-// The kinds the world model reads in stage 1: the roads, and the files they name
-bool modelKind(const std::string& k) { return k == "world" || k == "district" || k == "roads" || k == "signal" || k == "transit"; }
-
-// Those files through the world model: the roads compiled into the roads sections. Moves the files' documents out.
-bool compileModel(std::vector<Source>& files, const std::vector<size_t>& which, WorldBinWriter& out) {
-    const int errorsBefore = gErrors;
-    std::vector<Hand::File> parsed;
-    for (size_t i : which) {
-        Hand::File f;
-        f.path = files[i].path;
-        f.kind = files[i].doc.kind;
-        f.doc = std::move(files[i].doc);
-        f.valid = true;   // (load() reported every file with errors, and run() stops before this on any)
-        parsed.push_back(std::move(f));
-    }
-    Hand::Model model;
-    std::vector<Hand::Error> errs;
-    Hand::loadParsed(std::move(parsed), model, errs);
-    RoadNetwork roads;
-    Hand::RoadIndex index;
-    Hand::compileRoads(model, roads, index, errs);
-    for (const Hand::Error& e : errs) {
-        const bool inFile = e.src.file >= 0 && e.src.file < (int)model.files.size();
-        error(inFile ? model.files[(size_t)e.src.file].path : gWorld, inFile ? e.src.line : 0, e.message + " [" + e.code + "]");
-    }
-    if (gErrors != errorsBefore) return false;
-    if (roads.nodes.empty() && roads.edges.empty()) return true;
-    std::vector<std::string> nodeIds, edgeIds;
-    for (int mi : index.nodeOf) nodeIds.push_back(model.nodes[(size_t)mi].id);
-    for (int mi : index.edgeOf) edgeIds.push_back(model.edges[(size_t)mi].id);
-    writeRoads(roads, &nodeIds, &edgeIds, out);
-    int lights = 0;
-    for (const RoadNode& n : roads.nodes) lights += n.control == 2;
-    printf("worldc: roads %zu nodes, %zu edges, %d signalised; %zu districts, %zu signal plans, %zu transit lines\n", roads.nodes.size(), roads.edges.size(), lights,
-           model.districts.size(), model.signals.size(), model.transit.size());
-    return true;
-}
-
 std::vector<Source> discover() {
     std::vector<Source> files;
     std::error_code ec;
@@ -318,23 +272,18 @@ int run() {
     WorldBinWriter out;
     int terrains = 0;
     std::string manifest = "world.bin manifest 1\n";
-    std::vector<size_t> modelFiles;
-    for (size_t i = 0; i < files.size(); i++) {
-        const Source& s = files[i];
+    for (const Source& s : files) {
         char line[512];
         snprintf(line, sizeof(line), "%s %s %016llx\n", s.rel.c_str(), s.doc.kind.c_str(), (unsigned long long)textHash(s.text));
         manifest += line;
         if (s.doc.kind == "terrain") {
             if (s.rel != "terrain/terrain.ntw") error(s.path, 0, "the terrain file is world/terrain/terrain.ntw");
             else if (compileTerrain(s, out)) terrains++;
-        } else if (modelKind(s.doc.kind)) {
-            modelFiles.push_back(i);
         } else {
-            error(s.path, 0, "no compiler for " + s.doc.kind + " files yet (blocks, buildings, places and the library come with their compilers)");
+            error(s.path, 0, "no compiler for " + s.doc.kind + " files yet");
         }
     }
     if (terrains != 1 && !gErrors) error(gWorld, 0, "no world/terrain/terrain.ntw");
-    if (!gErrors && !modelFiles.empty()) compileModel(files, modelFiles, out);
     if (gErrors) {
         fprintf(stderr, "worldc: %d error(s); %s not written\n", gErrors, gOut.c_str());
         return 1;

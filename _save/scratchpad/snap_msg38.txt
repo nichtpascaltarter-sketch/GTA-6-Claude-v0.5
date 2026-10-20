@@ -1,0 +1,55 @@
+Street life 2: car alarms and key fobs, running for the bus, rubbernecking, riding along, panhandlers, crossings
+
+AI sets 5-9 (src/game: ai.cpp, ai_core.h, ai_game.h, app.cpp, barks.cpp, events.cpp, pedai.cpp, pednav.cpp,
+police.cpp, traffic.cpp, traffic_core.cpp, wildlife.cpp/.h; peds.cpp gets the AI look block after the reach block):
+- Car alarms and key fobs:
+  - An alarm going off is heard. People stop for a look and a few grumble. Anyone who sees the player breaking in
+    shouts "Hey! That's not your car!".
+  - The owner comes for half of them. For a knocked car they stop the alarm with the fob from a few metres, check
+    the paint and often drive off. If it is being stolen, they run after it.
+  - Three in four drivers lock their car with a chirp and a flash a few steps off. Owners unlock it 6 m away with
+    the arm out.
+  - A stolen car's alarm now stops after 14-24 s. A knocked kerbside car no longer wails forever.
+- Street life:
+  - A panhandler with a paper cup asks the player for change ($2, with thanks).
+  - People run for a bus that's pulling out ("Hold the bus!"), and the driver waits if they're close.
+  - Cars tearing past the kerb make people start back ("Slow down!").
+  - Beat officers call to jaywalkers, who now cross in the gaps between parked cars.
+  - People react to the player standing too close ("Can I help you?") or following them ("Are you following me?").
+  - Without an umbrella, some cover their head with a hand in the rain.
+  - Pedestrians ask officers the way.
+- Traffic:
+  - Three in four drivers slow down to look at a wreck, a fire or a stop, and turn their heads to it.
+  - Drivers the player cuts up lean on the horn.
+  - Cars stopped in traffic sometimes look at the player walking by.
+- Movement:
+  - Walkers turn at most 3 rad/s and slow the step on sharp turns.
+  - Companions keep their slot smoothly, and leaders no longer shy away from their own companions.
+  - People settle onto their spot instead of overshooting it.
+  - Couples walking hand in hand let go when one of them walks a dog on a leash.
+- Crossings: when the walk sign lights, each person steps off after their own short delay, so a crowd no longer moves
+  as one. Waiting people look along the road, the near traffic's way first, and look again as they step off.
+- Riding along: a companion whose leader drives off goes round to a passenger door and gets in, and the car waits.
+  Riders get out with the driver, or on their own if the car is abandoned.
+- Head turns: at a bus stop or hailing a taxi people look down the street the vehicle will come from, and a low
+  police helicopter gets looked at. These run through the AI look hook (PedAI::lookAtPt).
+- The player knocked flat:
+  - Nearby people gasp, and the nearest steady one comes over and asks "are you okay?". The spot follows the player
+    if they slide.
+  - A driver who hits the player stops seven times in ten, crouches beside them and apologises.
+- Officers busy with somebody tell a player standing right by them to step back. Two people at a bus stop sometimes
+  chat about the bus.
+- Greetings are no longer drowned out by phone talkers: a call line comes at most once per 5 s, and a dropped greeting
+  is retried. The most-heard bark banks get more lines.
+- A prisoner left waiting is walked to the kerb before sitting down (one sat on a zebra crossing before).
+
+Checks (AI agent's autoplay runs on nt_ai77f, which is exactly this graft built on cda29a1; all rc 0, no crashes or GPU
+errors, clean shutdowns):
+- Passed: crossing, rideoff, hitplayer, walkby, alarm, panhandle, crowded, followed, jaywalk, rain, crashscene, life,
+  and a 300 s soak.
+  - walkby: 9 greetings and 4 "are you okay?" (0 and 0 before).
+  - soak: traffic health all zero, AI 0.6-0.8 ms a frame.
+- Still open, none a regression; all are addressed in AI sets 10-13:
+  - pedstop: one officer never reached a person across the street.
+  - busrun: 2 of 3 buses passed their stops, older traffic_core behaviour.
+  - nearmiss: the test did not exercise the feature.

@@ -1,0 +1,389 @@
+[
+  {
+    "sha": "bcb8a71a0a5f8eea6d057663b06d30bb5d4fe37e",
+    "node_id": "C_kwDOUzajudoAKGJjYjhhNzFhMGE1ZjhlZWE2ZDA1NzY2M2IwNmQzMGJiNWQ0ZmUzN2U",
+    "commit": {
+      "author": {
+        "name": "nichtpascaltarter-sketch",
+        "email": "237822115+nichtpascaltarter-sketch@users.noreply.github.com",
+        "date": "2026-10-20T04:41:51Z"
+      },
+      "committer": {
+        "name": "GitHub",
+        "email": "noreply@github.com",
+        "date": "2026-10-20T04:41:51Z"
+      },
+      "message": "Merge pull request #53: the hand-built world's file format frozen at v1, and worldv checks the world files\n\nThe hand-built world's file format is frozen at v1, and worldv checks the world files",
+      "tree": {
+        "sha": "21e3bfc70dc2511b6529b192486199b2c6552048",
+        "url": "https://api.github.com/repos/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/git/trees/21e3bfc70dc2511b6529b192486199b2c6552048"
+      },
+      "url": "https://api.github.com/repos/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/git/commits/bcb8a71a0a5f8eea6d057663b06d30bb5d4fe37e",
+      "comment_count": 0,
+      "verification": {
+        "verified": true,
+        "reason": "valid",
+        "signature": null,
+        "payload": null,
+        "verified_at": "2026-10-20T04:41:52Z"
+      }
+    },
+    "url": "https://api.github.com/repos/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/commits/bcb8a71a0a5f8eea6d057663b06d30bb5d4fe37e",
+    "html_url": "https://github.com/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/commit/bcb8a71a0a5f8eea6d057663b06d30bb5d4fe37e",
+    "comments_url": "https://api.github.com/repos/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/commits/bcb8a71a0a5f8eea6d057663b06d30bb5d4fe37e/comments",
+    "author": {
+      "login": "nichtpascaltarter-sketch",
+      "id": 237822115,
+      "node_id": "U_kgDODizgow",
+      "avatar_url": "https://avatars.githubusercontent.com/u/237822115?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/nichtpascaltarter-sketch",
+      "html_url": "https://github.com/nichtpascaltarter-sketch",
+      "followers_url": "https://api.github.com/users/nichtpascaltarter-sketch/followers",
+      "following_url": "https://api.github.com/users/nichtpascaltarter-sketch/following{/other_user}",
+      "gists_url": "https://api.github.com/users/nichtpascaltarter-sketch/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/nichtpascaltarter-sketch/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/nichtpascaltarter-sketch/subscriptions",
+      "organizations_url": "https://api.github.com/users/nichtpascaltarter-sketch/orgs",
+      "repos_url": "https://api.github.com/users/nichtpascaltarter-sketch/repos",
+      "events_url": "https://api.github.com/users/nichtpascaltarter-sketch/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/nichtpascaltarter-sketch/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "web-flow",
+      "id": 19864447,
+      "node_id": "MDQ6VXNlcjE5ODY0NDQ3",
+      "avatar_url": "https://avatars.githubusercontent.com/u/19864447?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/web-flow",
+      "html_url": "https://github.com/web-flow",
+      "followers_url": "https://api.github.com/users/web-flow/followers",
+      "following_url": "https://api.github.com/users/web-flow/following{/other_user}",
+      "gists_url": "https://api.github.com/users/web-flow/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/web-flow/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/web-flow/subscriptions",
+      "organizations_url": "https://api.github.com/users/web-flow/orgs",
+      "repos_url": "https://api.github.com/users/web-flow/repos",
+      "events_url": "https://api.github.com/users/web-flow/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/web-flow/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "837b39c751fa63ce8458be5366dd0635c9f320dc",
+        "url": "https://api.github.com/repos/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/commits/837b39c751fa63ce8458be5366dd0635c9f320dc",
+        "html_url": "https://github.com/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/commit/837b39c751fa63ce8458be5366dd0635c9f320dc"
+      },
+      {
+        "sha": "2c80a3802485f8a31b3720a9e19f25cee2cb3808",
+        "url": "https://api.github.com/repos/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/commits/2c80a3802485f8a31b3720a9e19f25cee2cb3808",
+        "html_url": "https://github.com/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/commit/2c80a3802485f8a31b3720a9e19f25cee2cb3808"
+      }
+    ]
+  },
+  {
+    "sha": "2c80a3802485f8a31b3720a9e19f25cee2cb3808",
+    "node_id": "C_kwDOUzajudoAKDJjODBhMzgwMjQ4NWY4YTMxYjM3MjBhOWUxOWYyNWNlZTJjYjM4MDg",
+    "commit": {
+      "author": {
+        "name": "Neon Tide",
+        "email": "dev@example.invalid",
+        "date": "2026-10-20T04:36:27Z"
+      },
+      "committer": {
+        "name": "Neon Tide",
+        "email": "dev@example.invalid",
+        "date": "2026-10-20T04:36:27Z"
+      },
+      "message": "The hand-built world's file format is frozen at v1, and worldv checks the world files\n\nStage 0 steps 3 and 4 of the hand-built world (docs/HANDBUILT_WORLD.md). The game is unchanged: the procedural world\nstays the default, and --world=hand loads the same terrain as before (worldc writes a byte-identical world.bin apart\nfrom the new manifest and the compressed terrain record).\n\nStep 3 (formatter, schema framework, compression, worldc over all of world/):\n- src/world/ntw.cpp/.h: comments are kept, and the canonical formatter writes fields in schema order and precision,\n  2-space blocks, lines wrapped at 120; numbers in compounds, ranges and sizes are normalised; CRLF and a BOM are\n  read as LF.\n- src/world/lz.cpp/.h: an LZ77 codec (LZ4-like) with a bounds-checked decoder. src/world/worldbin.*: LZ sections\n  (addCompressed, and bytes() that reads raw or LZ); handworld.cpp reads the terrain record through it.\n- tools/worldc.cpp: finds every world/**/*.ntw, parses and schema-checks each (errors as file:line), writes a\n  manifest section (file, kind, hash of the text as LF without a BOM, so a CRLF checkout compiles the same world.bin),\n  and has --check=<file>. tools/ntwfmt.cpp rewrites files canonically (--check reports). terrainbake writes canonical\n  text, and world/terrain/terrain.ntw is now in canonical form (grids byte-identical).\n\nStep 4 (the format, frozen at v1):\n- docs/NTW_FORMAT.md: the syntax (files, records, values, units and frames, ids and references, canonical form,\n  versions, where files live) and every kind's records and fields in canonical order: roads out of draft with the\n  AI's records (lanes, moves, stop lines, signal phases, kerbside, stops, lots, spots, zones, anchors), and the stair\n  and door fields of the building kit (doc 4.9). From here it changes only as its section 7 allows.\n- src/world/ntwschema.cpp/.h: the schema for all 17 kinds, and schemaRefs(), the reference-target table the\n  validator resolves against (87 rows).\n- tests/world/world_format_test.cpp: 16 samples (one per kind, a stairs/lift/revolving-door layout, the terrain),\n  each clean, canonical, stable, and read the same with CRLF and a BOM; kinds == 17; schemaRefs agreeing with the\n  schema both ways; the grid codec, parser, formatter, LZ and world.bin tests.\n\nChecks (city agent): world_format_test with CI's GCC flags (UBSan, -Werror) passes (also re-run by the lead on this\ntree); clang -Wall -Wextra -Wvla -Wgnu -Wpedantic clean on the test, worldc and ntwfmt; ntwfmt --check clean on the\n16 samples, the 9 examples in the two docs and world/; every field table in NTW_FORMAT.md agrees with the schema;\nCRLF and BOM copies compile to an identical world.bin; one --world=hand shot (terrain from the exe, 6 sections).\n\nworldv, the world validator (tools engineer; host tools only, nothing in the game build):\n- src/world/validate.cpp/.h, validate_layout.cpp/.h and tools/worldv.cpp. Discovery as worldc (every\n  world/**/*.ntw). Per file: file.read, file.parse, file.schema, file.canonical. Across the world: id.form\n  (NTW_FORMAT section 5 patterns), id.unique, id.path, ref.form, ref.missing and ref.kind, resolved through\n  ntwschema's schemaRefs() table (floor elements through the building's plan and layout).\n- Layout checks (doc 9.1 and the stair and door limits of 4.9): wall.cross, room.closed, room.overlap, door.wall,\n  window.wall, door.rooms, window.room, door.width (error under 0.8 m clear), door.landing (0.9 m of level landing in\n  front of a door), corridor.width (1.0 m), stair.run, stair.tread (error under 0.25 m at the walking line),\n  stair.riser, stair.landing, stair.walkline (error under 0.5 m), stair.width/radius/busy warnings, and room.reach\n  (every room reachable through doors from a way in; hatches and other floors' stairs count in world runs).\n- Diagnostics as file:line: severity: message [check.id]; a summary line; exit 1 on errors; --only=<path or id>;\n  --incremental with a hash-keyed cache (build/worldv.cache) that re-resolves references across the world; --jobs=N.\n- tests/world/worldv_test.cpp with 78 fixtures (the 16 samples, a 30-file world, 30 bad files marked with the\n  findings they must produce): patterns, the schema table both ways, planted errors at exact file:line, geometry,\n  the cache, --only, 1 vs 4 threads, every check id reported at least once. Two of the city's samples are excerpts\n  and give 6 known layout findings until the city completes them; the test expects exactly those.\n- Checks (tools agent, re-run by the lead on this tree): worldv_test passes with CI's GCC flags; worldv reports 0\n  errors on world/ and the fixture world; clang -Wshadow-all and -Wconversion clean; a synthetic full-size world\n  (37,304 files, 800 layouts) checks in 5.2 s, 1.9 s incremental.\n\nCI (.github/workflows/windows-build.yml, GCC job only; timeout 5 -> 10 minutes): four new steps after the bit-scan\nregression tests, with the same flags (-Wall -Wextra -Werror, UBSan): the updater logic test, the world format test,\nthe world validator test, and worldv built and run on world/ (errors fail the job). The MSVC job is unchanged.",
+      "tree": {
+        "sha": "21e3bfc70dc2511b6529b192486199b2c6552048",
+        "url": "https://api.github.com/repos/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/git/trees/21e3bfc70dc2511b6529b192486199b2c6552048"
+      },
+      "url": "https://api.github.com/repos/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/git/commits/2c80a3802485f8a31b3720a9e19f25cee2cb3808",
+      "comment_count": 0,
+      "verification": {
+        "verified": false,
+        "reason": "unsigned",
+        "signature": null,
+        "payload": null,
+        "verified_at": null
+      }
+    },
+    "url": "https://api.github.com/repos/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/commits/2c80a3802485f8a31b3720a9e19f25cee2cb3808",
+    "html_url": "https://github.com/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/commit/2c80a3802485f8a31b3720a9e19f25cee2cb3808",
+    "comments_url": "https://api.github.com/repos/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/commits/2c80a3802485f8a31b3720a9e19f25cee2cb3808/comments",
+    "author": null,
+    "committer": null,
+    "parents": [
+      {
+        "sha": "837b39c751fa63ce8458be5366dd0635c9f320dc",
+        "url": "https://api.github.com/repos/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/commits/837b39c751fa63ce8458be5366dd0635c9f320dc",
+        "html_url": "https://github.com/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/commit/837b39c751fa63ce8458be5366dd0635c9f320dc"
+      }
+    ]
+  },
+  {
+    "sha": "837b39c751fa63ce8458be5366dd0635c9f320dc",
+    "node_id": "C_kwDOUzajudoAKDgzN2IzOWM3NTFmYTYzY2U4NDU4YmU1MzY2ZGQwNjM1YzlmMzIwZGM",
+    "commit": {
+      "author": {
+        "name": "nichtpascaltarter-sketch",
+        "email": "237822115+nichtpascaltarter-sketch@users.noreply.github.com",
+        "date": "2026-10-20T02:51:29Z"
+      },
+      "committer": {
+        "name": "GitHub",
+        "email": "noreply@github.com",
+        "date": "2026-10-20T02:51:29Z"
+      },
+      "message": "Merge pull request #52: the game updates itself, and the hand-built world loads its baked terrain with --world=hand\n\nThe game updates itself, and the hand-built world loads: --world=hand runs the baked terrain from the exe",
+      "tree": {
+        "sha": "e27fe1da4be78173361a9f38ff0c35ab0adf38ee",
+        "url": "https://api.github.com/repos/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/git/trees/e27fe1da4be78173361a9f38ff0c35ab0adf38ee"
+      },
+      "url": "https://api.github.com/repos/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/git/commits/837b39c751fa63ce8458be5366dd0635c9f320dc",
+      "comment_count": 0,
+      "verification": {
+        "verified": true,
+        "reason": "valid",
+        "signature": null,
+        "payload": null,
+        "verified_at": "2026-10-20T02:51:30Z"
+      }
+    },
+    "url": "https://api.github.com/repos/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/commits/837b39c751fa63ce8458be5366dd0635c9f320dc",
+    "html_url": "https://github.com/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/commit/837b39c751fa63ce8458be5366dd0635c9f320dc",
+    "comments_url": "https://api.github.com/repos/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/commits/837b39c751fa63ce8458be5366dd0635c9f320dc/comments",
+    "author": {
+      "login": "nichtpascaltarter-sketch",
+      "id": 237822115,
+      "node_id": "U_kgDODizgow",
+      "avatar_url": "https://avatars.githubusercontent.com/u/237822115?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/nichtpascaltarter-sketch",
+      "html_url": "https://github.com/nichtpascaltarter-sketch",
+      "followers_url": "https://api.github.com/users/nichtpascaltarter-sketch/followers",
+      "following_url": "https://api.github.com/users/nichtpascaltarter-sketch/following{/other_user}",
+      "gists_url": "https://api.github.com/users/nichtpascaltarter-sketch/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/nichtpascaltarter-sketch/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/nichtpascaltarter-sketch/subscriptions",
+      "organizations_url": "https://api.github.com/users/nichtpascaltarter-sketch/orgs",
+      "repos_url": "https://api.github.com/users/nichtpascaltarter-sketch/repos",
+      "events_url": "https://api.github.com/users/nichtpascaltarter-sketch/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/nichtpascaltarter-sketch/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "web-flow",
+      "id": 19864447,
+      "node_id": "MDQ6VXNlcjE5ODY0NDQ3",
+      "avatar_url": "https://avatars.githubusercontent.com/u/19864447?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/web-flow",
+      "html_url": "https://github.com/web-flow",
+      "followers_url": "https://api.github.com/users/web-flow/followers",
+      "following_url": "https://api.github.com/users/web-flow/following{/other_user}",
+      "gists_url": "https://api.github.com/users/web-flow/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/web-flow/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/web-flow/subscriptions",
+      "organizations_url": "https://api.github.com/users/web-flow/orgs",
+      "repos_url": "https://api.github.com/users/web-flow/repos",
+      "events_url": "https://api.github.com/users/web-flow/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/web-flow/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "f595703c2bab567f653c16d7031b222a88284036",
+        "url": "https://api.github.com/repos/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/commits/f595703c2bab567f653c16d7031b222a88284036",
+        "html_url": "https://github.com/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/commit/f595703c2bab567f653c16d7031b222a88284036"
+      },
+      {
+        "sha": "d208e02a37f5107149a673e0ad600bad4c7237bf",
+        "url": "https://api.github.com/repos/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/commits/d208e02a37f5107149a673e0ad600bad4c7237bf",
+        "html_url": "https://github.com/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/commit/d208e02a37f5107149a673e0ad600bad4c7237bf"
+      }
+    ]
+  },
+  {
+    "sha": "d208e02a37f5107149a673e0ad600bad4c7237bf",
+    "node_id": "C_kwDOUzajudoAKGQyMDhlMDJhMzdmNTEwNzE0OWE2NzNlMGFkNjAwYmFkNGM3MjM3YmY",
+    "commit": {
+      "author": {
+        "name": "Neon Tide",
+        "email": "dev@example.invalid",
+        "date": "2026-10-20T02:46:21Z"
+      },
+      "committer": {
+        "name": "Neon Tide",
+        "email": "dev@example.invalid",
+        "date": "2026-10-20T02:46:21Z"
+      },
+      "message": "The game updates itself, and the hand-built world loads: --world=hand runs the baked terrain from the exe\n\nAutomatic updates (src/platform/updater.cpp/.h, update_logic.cpp/.h, src/core/version.h):\n- At startup a background thread reads the repository's release list (/releases?per_page=10: drafts skipped,\n  pre-releases count, highest version by tag) over WinHTTP with TLS checks on and short timeouts, and downloads a\n  newer NeonTide*.exe next to the game. It keeps the download only after checking that it came over https, has the\n  size GitHub lists, is an x64 Windows program, and matches its SHA-256 (BCrypt) against GitHub's per-asset digest,\n  else a .sha256 / SHA256SUMS asset, else a hash in the release notes. Never an equal or older version.\n- The next start checks the pending file again (record, newer version, size, SHA-256, program header), swaps it in\n  (the old exe is kept as <exe>.old until the new version has its window), restarts with the same command line and\n  continues the same log. \"Restart now\" in the main menu (U, pad Y or a click) does it at once; when the folder isn't\n  writable the menu offers the download page instead. One line in the pause menu; nothing interrupts play.\n- Settings > Gameplay > Automatic Updates (default On); --no-update; never in automated runs (--autotest, --shot,\n  --benchmark ...). The main menu shows the version (0.02.7-dev between releases; VERSION=0.02.7 ./build.sh or\n  set VERSION=0.02.7 before build.bat for a release). README.md and PROGRESS.md describe the release steps.\n- Checks (autoupdater agent): tests/updater/update_logic_test.cpp, 196 checks with GitHub's real responses as\n  fixtures (-Wall -Wextra -Werror, UBSan); end to end under Wine with real game exes and a local server: download,\n  verify, install, relaunch into the new version, and rejections for a wrong checksum, wrong size, a non-program\n  file, equal or older versions and an unreachable server; Restart now in the real main menu; the drive smoke's log\n  differs only by the version and \"no update check (automated run)\".\n\nStage 0 step 2 of the hand-built world (docs/HANDBUILT_WORLD.md). The procedural world stays the default and runs as\nbefore; --world=hand selects the new one, which at this stage is the bare terrain: no roads, buildings or plants yet.\n\n- tools/worldc.cpp: the world compiler. It reads world/terrain/terrain.ntw, checks every grid against its hash and\n  size, and writes build/gen/world.bin (2.67 MB, 5 sections) and world.rc. build.sh and build.bat build and run it and\n  link the resource into the exe (RCDATA NT_WORLD); in build.sh every output goes through a temp file and a rename,\n  and nothing is redone while the resource is newer than worldc and world/, so builds sharing build/ never see a\n  half-written file.\n- src/world/ntw.cpp/.h: the NTW text parser (records, ids, fields, continuation lines, blocks, comments, strict value\n  readers; CRLF and a UTF-8 BOM accepted). Only worldc uses it; the game reads no text.\n- src/world/worldbin.cpp/.h: the world.bin container: named, 16-byte aligned sections behind a header whose FNV-1a\n  hash covers the table and the data, so a damaged or truncated file is refused.\n- src/world/handworld.cpp/.h: --world=hand|procedural, the embedded world.bin (FindResource, no copy), and the loader:\n  the four grids decoded in parallel into WorldMap (heights, water, regions, coast distance, outlines, channels), the\n  splat recomputed, and empty roads and buildings so every query finds nothing. --worldfile=<path> loads a world.bin\n  from disk for development.\n- src/game/app.cpp: in hand mode the loader thread loads the hand world, the game isn't initialised and the free camera\n  stays up (stage 0 has nothing to play); --shot and --viewer work as before. src/world/cellgen.cpp generates nothing\n  in hand mode. src/render/renderer.cpp skips the GPU grass and decor scatter in hand mode (every plant is to be placed\n  by hand, decision D2).\n- .gitattributes: NTW text keeps LF on every checkout, NTG grids are binary.\n- docs/HANDBUILT_WORLD.md v1.1: the AI's details and validator checks (overlapping carriageways, conflicting greens,\n  fence crossings), and stair and door geometry for the building kit (4.9) from the animation harness.\n\nChecks (city agent): worldc builds with -Wall clean and compiles the terrain in 0.57 s; host load test ALL OK\n(heights within 5 mm of the generator, water and regions identical, damaged files refused); CRLF and BOM copies of\nworld/ compile to a byte-identical world.bin; a simulated Windows checkout keeps terrain.ntw LF and the grids\nunchanged. In game (Wine): --world=hand, 4 shots (Calle Luna, downtown from the air, Port Isle, the lake and ridge):\nbare terrain, no plants, terrain from the exe in 3.75 s; the drive and melee smokes on the same exe ran to their ends.",
+      "tree": {
+        "sha": "e27fe1da4be78173361a9f38ff0c35ab0adf38ee",
+        "url": "https://api.github.com/repos/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/git/trees/e27fe1da4be78173361a9f38ff0c35ab0adf38ee"
+      },
+      "url": "https://api.github.com/repos/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/git/commits/d208e02a37f5107149a673e0ad600bad4c7237bf",
+      "comment_count": 0,
+      "verification": {
+        "verified": false,
+        "reason": "unsigned",
+        "signature": null,
+        "payload": null,
+        "verified_at": null
+      }
+    },
+    "url": "https://api.github.com/repos/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/commits/d208e02a37f5107149a673e0ad600bad4c7237bf",
+    "html_url": "https://github.com/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/commit/d208e02a37f5107149a673e0ad600bad4c7237bf",
+    "comments_url": "https://api.github.com/repos/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/commits/d208e02a37f5107149a673e0ad600bad4c7237bf/comments",
+    "author": null,
+    "committer": null,
+    "parents": [
+      {
+        "sha": "f595703c2bab567f653c16d7031b222a88284036",
+        "url": "https://api.github.com/repos/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/commits/f595703c2bab567f653c16d7031b222a88284036",
+        "html_url": "https://github.com/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/commit/f595703c2bab567f653c16d7031b222a88284036"
+      }
+    ]
+  },
+  {
+    "sha": "f595703c2bab567f653c16d7031b222a88284036",
+    "node_id": "C_kwDOUzajudoAKGY1OTU3MDNjMmJhYjU2N2Y2NTNjMTZkNzAzMWIyMjJhODgyODQwMzY",
+    "commit": {
+      "author": {
+        "name": "nichtpascaltarter-sketch",
+        "email": "237822115+nichtpascaltarter-sketch@users.noreply.github.com",
+        "date": "2026-10-20T02:05:50Z"
+      },
+      "committer": {
+        "name": "GitHub",
+        "email": "noreply@github.com",
+        "date": "2026-10-20T02:05:50Z"
+      },
+      "message": "Merge pull request #51: ear canals read as holes, rose lips on pink-toned fair skin, the hand-built world's design document\n\nEar canals read as holes, lips on pink-toned fair skin are rose; the hand-built world's design document",
+      "tree": {
+        "sha": "7204c211f4ac45c0410542dfd0b66eb19d8caf2f",
+        "url": "https://api.github.com/repos/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/git/trees/7204c211f4ac45c0410542dfd0b66eb19d8caf2f"
+      },
+      "url": "https://api.github.com/repos/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/git/commits/f595703c2bab567f653c16d7031b222a88284036",
+      "comment_count": 0,
+      "verification": {
+        "verified": true,
+        "reason": "valid",
+        "signature": null,
+        "payload": null,
+        "verified_at": "2026-10-20T02:05:51Z"
+      }
+    },
+    "url": "https://api.github.com/repos/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/commits/f595703c2bab567f653c16d7031b222a88284036",
+    "html_url": "https://github.com/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/commit/f595703c2bab567f653c16d7031b222a88284036",
+    "comments_url": "https://api.github.com/repos/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/commits/f595703c2bab567f653c16d7031b222a88284036/comments",
+    "author": {
+      "login": "nichtpascaltarter-sketch",
+      "id": 237822115,
+      "node_id": "U_kgDODizgow",
+      "avatar_url": "https://avatars.githubusercontent.com/u/237822115?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/nichtpascaltarter-sketch",
+      "html_url": "https://github.com/nichtpascaltarter-sketch",
+      "followers_url": "https://api.github.com/users/nichtpascaltarter-sketch/followers",
+      "following_url": "https://api.github.com/users/nichtpascaltarter-sketch/following{/other_user}",
+      "gists_url": "https://api.github.com/users/nichtpascaltarter-sketch/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/nichtpascaltarter-sketch/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/nichtpascaltarter-sketch/subscriptions",
+      "organizations_url": "https://api.github.com/users/nichtpascaltarter-sketch/orgs",
+      "repos_url": "https://api.github.com/users/nichtpascaltarter-sketch/repos",
+      "events_url": "https://api.github.com/users/nichtpascaltarter-sketch/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/nichtpascaltarter-sketch/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "web-flow",
+      "id": 19864447,
+      "node_id": "MDQ6VXNlcjE5ODY0NDQ3",
+      "avatar_url": "https://avatars.githubusercontent.com/u/19864447?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/web-flow",
+      "html_url": "https://github.com/web-flow",
+      "followers_url": "https://api.github.com/users/web-flow/followers",
+      "following_url": "https://api.github.com/users/web-flow/following{/other_user}",
+      "gists_url": "https://api.github.com/users/web-flow/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/web-flow/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/web-flow/subscriptions",
+      "organizations_url": "https://api.github.com/users/web-flow/orgs",
+      "repos_url": "https://api.github.com/users/web-flow/repos",
+      "events_url": "https://api.github.com/users/web-flow/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/web-flow/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "2b3102e1c2969d59d591392111a14b8602ce7e22",
+        "url": "https://api.github.com/repos/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/commits/2b3102e1c2969d59d591392111a14b8602ce7e22",
+        "html_url": "https://github.com/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/commit/2b3102e1c2969d59d591392111a14b8602ce7e22"
+      },
+      {
+        "sha": "82b9e603545ba64462420e1e4edeb38c82d2d700",
+        "url": "https://api.github.com/repos/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/commits/82b9e603545ba64462420e1e4edeb38c82d2d700",
+        "html_url": "https://github.com/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/commit/82b9e603545ba64462420e1e4edeb38c82d2d700"
+      }
+    ]
+  },
+  {
+    "sha": "82b9e603545ba64462420e1e4edeb38c82d2d700",
+    "node_id": "C_kwDOUzajudoAKDgyYjllNjAzNTQ1YmE2NDQ2MjQyMGUxZTRlZGViMzhjODJkMmQ3MDA",
+    "commit": {
+      "author": {
+        "name": "Neon Tide",
+        "email": "dev@example.invalid",
+        "date": "2026-10-20T02:00:43Z"
+      },
+      "committer": {
+        "name": "Neon Tide",
+        "email": "dev@example.invalid",
+        "date": "2026-10-20T02:00:43Z"
+      },
+      "message": "Ear canals read as holes, lips on pink-toned fair skin are rose; the hand-built world's design document\n\nFaces batch 11 (src/anim/face.cpp, tests/anim/anim_test.cpp):\n- Ears: the relief took the ear canal some 2 cm in along the ear's axis, about 8 mm under the head's own surface, so\n  the head's skin closed it from inside and showed as a pale dot or teardrop in profile at conversation distance. The\n  canal and the concha's floor are now pushed out until they clear the head by 1.5 mm, the canal's cap sits at its\n  floor (the 12-13 mm spike is gone), and the opening is painted darker so the shallower canal still reads as a hole.\n- Lips: on fair skin the blue lift from batch 10 now stops where the lip's CIELAB hue angle comes down to 28 degrees\n  (real lips: about 25-30). Pink-toned fair skin has little yellow to take out, and the full lift turned its lips\n  lavender by day. The floor fades in with skin luminance, so deep skin keeps the full lift. Of 15 people measured,\n  only Mari (25.1 -> 29.6 degrees) and Dex (24.3 -> 30.0) change.\n- Checks (faces agent): new anim_test EarCanal (sight lines into 16 ears: 0.33% meet the head first, was 29% with 32\n  failures); LipColour gains pink-toned fair skin (hue >= 26 degrees; batch 10 fails it at 16-25). anim_test ALL\n  PASSED on 2b3102e + these files. Triangle counts unchanged for 8 people. Wine D3D12: 16 shots per exe (mouths at\n  0.5 m day and 1 m night, ears in profile at 0.5 m), 0 FATAL / vkd3d lines.\n\ndocs/HANDBUILT_WORLD.md (v1, city agent): the architecture of the hand-built world that replaces the procedural one,\nkeeping only the terrain. It covers the NTW text format and the world/ layout, the library of buildings, interiors and\nprops, world.bin and how the game streams it, the occupancy model for people indoors, the validator, the Calle Luna\npilot, staffing and the machine budget, risks, and the decisions approved so far. Section 12 holds the AI's needs from\nthe new data (roads, sidewalks and crossings, spots, zones and anchors, interiors, validation), derived by default\nwith authored overrides. Code comments from the terrain bake on refer to it.",
+      "tree": {
+        "sha": "7204c211f4ac45c0410542dfd0b66eb19d8caf2f",
+        "url": "https://api.github.com/repos/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/git/trees/7204c211f4ac45c0410542dfd0b66eb19d8caf2f"
+      },
+      "url": "https://api.github.com/repos/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/git/commits/82b9e603545ba64462420e1e4edeb38c82d2d700",
+      "comment_count": 0,
+      "verification": {
+        "verified": false,
+        "reason": "unsigned",
+        "signature": null,
+        "payload": null,
+        "verified_at": null
+      }
+    },
+    "url": "https://api.github.com/repos/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/commits/82b9e603545ba64462420e1e4edeb38c82d2d700",
+    "html_url": "https://github.com/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/commit/82b9e603545ba64462420e1e4edeb38c82d2d700",
+    "comments_url": "https://api.github.com/repos/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/commits/82b9e603545ba64462420e1e4edeb38c82d2d700/comments",
+    "author": null,
+    "committer": null,
+    "parents": [
+      {
+        "sha": "2b3102e1c2969d59d591392111a14b8602ce7e22",
+        "url": "https://api.github.com/repos/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/commits/2b3102e1c2969d59d591392111a14b8602ce7e22",
+        "html_url": "https://github.com/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/commit/2b3102e1c2969d59d591392111a14b8602ce7e22"
+      }
+    ]
+  }
+]

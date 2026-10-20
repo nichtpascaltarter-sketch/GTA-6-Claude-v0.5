@@ -1,0 +1,13 @@
+-rwxr-xr-x 1 root root 12882944 Oct 14 05:35 bin/NeonTide-0.02.6.exe
+	DLL Name: GDI32.dll
+	DLL Name: KERNEL32.dll
+	DLL Name: SHELL32.dll
+	DLL Name: USER32.dll
+	DLL Name: WINMM.dll
+	DLL Name: dxgi.dll
+	DLL Name: msvcrt.dll
+	DLL Name: ole32.dll
+[ 175.234] autoplay t=9.5 pos 1806.7 201.1 4.6 state 2 health 200 veh 1 speed 11.1 | peds 88 vehicles 63 wanted 0 | cpu ms player 0.04 ai 0.
+[ 235.420] autoplay t=17.5 pos 1806.7 270.6 3.5 state 2 health 200 veh 1 speed 17.6 | peds 85 vehicles 65 wanted 0 | cpu ms player 0.06 ai 0
+e8b78ce907eefb21a3d1a53514fe4fb18598da375d90333944192e8bd9f935a4  bin/NeonTide-0.02.6.exe
+RELEASE READY

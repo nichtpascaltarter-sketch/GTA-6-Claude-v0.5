@@ -1,0 +1,5 @@
+ntw 1 layout id=lib.layout.test.schema
+# schema errors only: the references below are wrong too, but stay unreported until the schema errors are fixed
+wall w1 a=0.00,0.00 b=1.00,0.00 t=0.20 colour=red # expect file.schema
+wall w2 a=1.00,0.00 b=1.00,1.00 # expect file.schema
+door d1 wall=w9 at=0.50 w=0.90 h=2.10 kind=hinged leads=out:hall

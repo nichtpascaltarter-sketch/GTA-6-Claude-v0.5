@@ -1,0 +1,4 @@
+ntw 1 set id=lib.set.living.family_04 room=living style=family income=mid
+fits w=3.60-6.00 d=3.00-5.50
+item kind=lib.kit.sofa_3seat at=0.00,3.40 yaw=180.0
+item kind=lib.kit.tv_stand at=0.00,0.40

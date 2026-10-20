@@ -1,0 +1,7 @@
+start 03:54:22
+build st19a 03:56:23
+build st19a rc 1
+src/game/app.cpp:7291: error: expected primary-expression before '.' token
+ 7291 |                 if (!near.empty()) continue;
+      | 
+no exe for st19a

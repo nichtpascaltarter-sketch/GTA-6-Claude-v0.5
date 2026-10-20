@@ -1,0 +1,14 @@
+r_1650_2361            col 0 hard Ns): stuck 0 kturn 0 reloc 0 dead 0 unhung 0
+r_1742_359             col 0 hard Ns): stuck 0 kturn 0 reloc 0 dead 0 unhung 0
+r_1850_-629            col 0 hard Ns): stuck 0 kturn 0 reloc 0 dead 0 unhung 0
+r_2713_763             col 0 hard Ns): stuck 0 kturn 0 reloc 0 dead 0 unhung 0
+r_2750_1529            col 0 hard Ns): stuck 0 kturn 0 reloc 0 dead 0 unhung 0
+r_3050_-629            col 0 hard Ns): stuck 1 kturn 0 reloc 1 dead 0 unhung 0
+r_3093_1600            col 1 hard Ns): stuck 1 kturn 1 reloc 1 dead 0 unhung 0
+r_3275_1200            col 1 hard Ns): stuck 0 kturn 0 reloc 1 dead 0 unhung 0
+r_3275_400             col 0 hard Ns): stuck 0 kturn 1 reloc 0 dead 0 unhung 0
+r_3300_3900            col 0 hard Ns): stuck 0 kturn 0 reloc 0 dead 0 unhung 0
+r_4000_-160            col 0 hard Ns): stuck 4 kturn 0 reloc 5 dead 2 unhung 1
+r_5000_1250            col 0 hard Ns): stuck 0 kturn 7 reloc 0 dead 0 unhung 0
+r_979_-200             col 0 hard Ns): stuck 0 kturn 7 reloc 0 dead 1 unhung 0
+r_979_1300             col 1 hard Ns): stuck 1 kturn 0 reloc 2 dead 3 unhung 0

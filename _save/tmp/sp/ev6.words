@@ -1,0 +1,79 @@
+   female     word accuracy  90.3% (84/93)
+   male       word accuracy  89.2% (83/93)
+   oldgruff   word accuracy  90.3% (84/93)
+   presetF    word accuracy  89.2% (83/93)
+   presetM    word accuracy  91.4% (85/93)
+== parakeet: word accuracy 90.1%
+   vat      x5: say the word that again | say the word that again | say the word that again | say the word that again | say the word that again
+   cud      x5: say the word cut again | say the word cut again | say the word cut again | say the word cut again | say the word cut again
+   three    x5: say the word free again | say the word free again | say the word free again | say the word free again | say the word free again
+   bite     x4: say the word by it again | say the word by it again | say the word buy it again | say the word by it again
+   bout     x4: say the word about again | say the word about again | say the word about again | say the word about again
+   jab      x3: say the word zab again | say the word nab again | say the word zab again
+   jazz     x3: say the word has again | say the word has again | say the word yes again
+   play     x3: say the word clay again | say the word clay again | say the word clay again
+   dad      x2: say the word bad again | say the word that again
+   gap      x2: say the word cap again | save a word cap again
+   bath     x2: say the word bass again | say the word bass again
+   boat     x2: say the word vote again | say the word vote again
+   shack    x1: say the word fack again
+   crash    x1: say the word trash again
+   bat      x1: say the word back again
+   bag      x1: say the word back again
+   nap      x1: say the word map again
+   pray     x1: say the word gray again
+   female     word accuracy  77.4% (72/93)
+   male       word accuracy  67.7% (63/93)
+   oldgruff   word accuracy  72.0% (67/93)
+   presetF    word accuracy  67.7% (63/93)
+   presetM    word accuracy  78.5% (73/93)
+== whisper-base: word accuracy 72.7%
+   bat      x5: save the word back again | say the word bad again | save a word back again | save a word back again | say the word bad again
+   vat      x5: save a word that again | say the word that again | save a word that again | save a word that again | say the word that again
+   jab      x5: save the workshop again | say the word lab again | save the workshop again | save a word tab again | say the word lab again
+   cud      x5: save the word cut again | say the word cut again | save a word cut again | save a word cut again | save the word cut again
+   bag      x5: save the work back again | say the word back again | save a work back again | save the work back again | save the work back again
+   bath     x5: save the work pass again | say the word back again | save the work back again | save the work back again | say the word bash again
+   ham      x5: save the word time again | say the word time again | save a word time again | save a word time again | say the word time again
+   boat     x5: save the word both again | say the word vote again | save a word both again | save a workboat again | save the word vote again
+   dad      x4: save a work bad again | save a word that again | save a word that again | she will work that again
+   zap      x4: say the words app again | say the words app again | save the words app again | say the word lap again
+   jazz     x4: see the work has again | save the work as again | save a word has again | see the work has again
+   bang     x4: save the work back again | save the word back again | save the word back again | say the word back again
+   salt     x4: save the words all it again | say the words all it again | save a word solved again | say the words all it again
+   scream   x4: say the word stream again | save a word stream again | say the word stream again | say the word stream again
+   green    x4: save a word 3 again | say the word breen again | save a word dream again | say the word dream again
+   snake    x4: save a wordsnake again | say the words nake again | say the words nake again | say the words nake again
+   swim     x4: save the words lim again | say the words win again | say the words win again | say the words win again
+   gap      x3: save the work cap again | save a word cap again | say the word cap again
+   bass     x3: save the word pass again | save the work pass again | say the word best again
+   heart    x3: say the word hard again | save the word hard again | say the word hard again
+   three    x3: say the words re again | save a word free again | save a word free again
+   crash    x3: say the word trash again | say the word trash again | say the word press again
+   bet      x3: save a word better again | say the word better again | say the word better again
+   book     x2: save the workbook again | save a workbook again
+   bite     x2: save the work by it again | say the word but again
+   cart     x2: save a word call it again | save a word call it again
+   street   x2: say the words treat again | say the words treat again
+   shrink   x2: say the words rink again | say the words ring again
+   car      x2: save a word call again | say the word par again
+   whale    x2: save a word way again | say the word way again
+   hole     x2: save a word poll again | save a word poll again
+   yak      x1: save the word the act again
+   bought   x1: save the word ball again
+   south    x1: save the word souse again
+   split    x1: say the words slit again
+   smoke    x1: save the words mo again
+   quick    x1: say the word click again
+   sat      x1: say the word sad again
+   thank    x1: say the word fank again
+   have     x1: save a word tab again
+   cot      x1: say the word taught again
+   hat      x1: save a word cat again
+   bout     x1: say the word about again
+   nap      x1: save a word map again
+   calf     x1: say the word caf again
+   bird     x1: shake a word birth again
+   pot      x1: say the word part again
+   howl     x1: say the word how again
+SUMMARY 

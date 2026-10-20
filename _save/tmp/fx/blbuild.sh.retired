@@ -1,0 +1,16 @@
+#!/bin/sh
+# Builds the private bindless tree /tmp/fx/bl (QUICK=1 -> -O1). OUT relative to the main repo.
+set -e
+if [ -e /tmp/neontide_build.lock ] && command -v flock >/dev/null 2>&1; then exec 9>>/tmp/neontide_build.lock; flock 9; fi
+REPO=/home/user/GTA-6-Claude-v0.5
+n=0; while [ "$(sh $REPO/tools/memfree.sh 2>/dev/null || echo 100000)" -lt 3200 ] && [ $n -lt 120 ]; do sleep 10; n=$((n+1)); done
+cd ${TREE:-/tmp/fx/bl}
+OPT="-O2 -DNDEBUG"; [ -n "$QUICK" ] && OPT="-O1 -DNDEBUG"
+mkdir -p build/gen bin
+[ -x build/embed_shaders ] || g++ -O2 -std=c++17 tools/embed_shaders.cpp -o build/embed_shaders
+./build/embed_shaders src/shaders build/gen/shaders_embedded.h
+x86_64-w64-mingw32-g++ -std=c++17 $OPT $EXTRA --param ggc-min-expand=20 --param ggc-min-heapsize=32768 -march=x86-64-v2 -mfpmath=sse -fno-strict-aliasing -Wall -Wno-unused-function -Wno-unused-variable \
+  -Wno-missing-braces -Wno-unused-but-set-variable -Wno-class-memaccess -Ibuild/gen \
+  src/main.cpp -o $REPO/${OUT:-bin/nt_bl.exe} -s -static -static-libgcc -static-libstdc++ -mwindows \
+  -ldxgi -luuid -lole32 -loleaut32 -lwinmm -lshell32 -luser32 -lgdi32 -lkernel32 -lavrt
+ls -la $REPO/${OUT:-bin/nt_bl.exe}

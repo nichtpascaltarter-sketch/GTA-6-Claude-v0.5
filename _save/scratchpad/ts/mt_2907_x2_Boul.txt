@@ -1,0 +1,11 @@
+meet test: edge 2907, Boulevard on lane 7176 against Boulevard on lane 7177
+  meeting point 14 at u 40.5 (5342.6, 245.6) curvature +0.0132: least gap  1.36 m (A 5.9 m/s, B 4.5 m/s), past each other in 7.1 s
+  meeting point 15 at u 42.5 (5342.6, 247.7) curvature +0.0154: least gap  1.28 m (A 6.1 m/s, B 5.0 m/s), past each other in 7.6 s
+  meeting point 16 at u 44.5 (5342.6, 249.7) curvature +0.0176: least gap  1.18 m (A 5.9 m/s, B 6.1 m/s), past each other in 7.8 s
+  meeting point 17 at u 46.5 (5342.1, 251.7) curvature +0.0166: least gap  1.25 m (A 6.1 m/s, B 3.1 m/s), past each other in 8.2 s
+  meeting point 18 at u 48.5 (5341.5, 253.7) curvature +0.0145: least gap  1.51 m (A 8.2 m/s, B 3.2 m/s), past each other in 8.6 s
+  meeting point 19 at u 50.5 (5340.9, 255.6) curvature +0.0124: least gap  1.49 m (A 7.4 m/s, B 3.1 m/s), past each other in 8.8 s
+  meeting point 20 at u 52.5 (5340.2, 257.6) curvature +0.0104: least gap  1.67 m (A 7.1 m/s, B 4.1 m/s), past each other in 9.0 s
+  meeting point 21 at u 54.5 (5339.6, 259.5) curvature +0.0075: least gap  1.75 m (A 6.9 m/s, B 4.5 m/s), past each other in 8.7 s
+  meeting point 22 at u 56.5 (5339.0, 261.4) curvature +0.0034: least gap  1.93 m (A 4.6 m/s, B 3.1 m/s), past each other in 8.4 s
+meet test: 36 meeting points, 0 touched, 0 not past each other, least gap 1.18 m

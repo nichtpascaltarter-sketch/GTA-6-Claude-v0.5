@@ -1,0 +1,9 @@
+{
+  "id": "45",
+  "subject": "Faces, eyes and skin realism pass",
+  "description": "Faces agent done (wind-down 13:28): batches 5, 6 merged; batch 7 signed off and queued for snapshot 41. Parked: buzz-cut prototype (/tmp/faces/dev14), lips/ears/upper-lid notes. Resume notes: scratchpad/resume/faces.md \"WIND-DOWN STATE\".",
+  "activeForm": "Running the faces realism pass",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": []
+}

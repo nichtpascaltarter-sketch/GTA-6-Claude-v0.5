@@ -1,0 +1,97 @@
+start 13:52:37
+check done
+build push0 rc 0
+-rwxr-xr-x 1 root root 12826112 Oct 12 14:51 bin/loco_push0.exe
+built push0 14:51:08
+gate: memory still short, not running
+build push1 rc 0
+Embedded 40 shader files.
+-rwxr-xr-x 1 root root 12826624 Oct 12 15:11 bin/loco_push1.exe
+built push1 15:11:18
+check done
+build sepclean rc 0
+-rwxr-xr-x 1 root root 12773888 Oct 12 15:30 bin/loco_sepclean.exe
+built sepclean 15:30:04
+run push0_push exit 0
+[ 183.070] locopush: Police HQ sidewalk at 3167.9 -242.3, along 1.00 0.00
+[ 212.353] locopush: a knot of 6 standing 5 m ahead
+[ 376.099] locopush 1 walk into the knot and through: touching 4.70 s (141 frames) | player while touching: actual 0.20 m/s, asked 1.36 m/s | whole phase: actual 0.66, asked 1.35 | first touch 3.30 s, last 7.97 s | knot shoved max 0.77 m | standing player shoved 0.00 m | walkers past 0 (last at -1.00 s)
+[ 514.344] locopush 2 walk back through: touching 0.33 s (10 frames) | player while touching: actual 0.99 m/s, asked 0.91 m/s | whole phase: actual 1.35, asked 1.34 | first touch 0.03 s, last 0.33 s | knot shoved max 0.77 m | standing player shoved 0.00 m | walkers past 0 (last at -1.00 s)
+[ 581.559] locopush 3 run through: touching 2.07 s (62 frames) | player while touching: actual 2.94 m/s, asked 6.90 m/s | whole phase: actual 4.12, asked 6.15 | first touch 2.00 s, last 4.03 s | knot shoved max 6.21 m | standing player shoved 0.00 m | walkers past 0 (last at -1.00 s)
+[ 783.587] locopush 4 stand, four walk at the player: touching 12.00 s (360 frames) | player while touching: actual 0.51 m/s, asked 0.13 m/s | whole phase: actual 0.00, asked 0.00 | first touch 0.03 s, last 12.00 s | knot shoved max 6.83 m | standing player shoved 5.00 m | walkers past 4 (last at 7.97 s)
+[ 783.587] locopush done
+run push0_melee exit 0
+[ 423.274] autoplay melee t=9.0 move 2 combo 2 block 0 dodge -1.00 stagger 0.00 takedown -1.00 target 1 health 194
+[ 469.609] autoplay melee t=10.0 move -1 combo 2 block 0 dodge -1.00 stagger 0.00 takedown -1.00 target 1 health 194
+[ 487.202] autoplay melee t=11.0 move -1 combo 0 block 0 dodge -1.00 stagger 0.00 takedown -1.00 target 2 health 194
+[ 503.724] autoplay melee t=12.0 move -1 combo 0 block 0 dodge -1.00 stagger 0.00 takedown -1.00 target 2 health 194
+[ 521.362] autoplay melee t=13.0 move -1 combo 0 block 0 dodge -1.00 stagger 0.00 takedown -1.00 target 2 health 194
+[ 564.364] autoplay melee t=14.0 move -1 combo 0 block 0 dodge -1.00 stagger 0.00 takedown -1.00 target 2 health 194
+[ 581.355] autoplay melee t=15.0 move -1 combo 0 block 0 dodge -1.00 stagger 0.10 takedown -1.00 target 2 health 186
+[ 600.388] autoplay melee t=16.0 move -1 combo 0 block 0 dodge -1.00 stagger 0.00 takedown -1.00 target 2 health 186
+[ 615.603] autoplay melee t=17.0 move -1 combo 0 block 0 dodge -1.00 stagger 0.00 takedown -1.00 target 2 health 186
+[ 665.244] autoplay melee t=18.0 move -1 combo 0 block 0 dodge -1.00 stagger 0.00 takedown -1.00 target 2 health 186
+[ 687.895] autoplay melee t=19.0 move -1 combo 0 block 0 dodge -1.00 stagger 0.00 takedown -1.00 target 2 health 186
+[ 708.646] autoplay melee t=20.0 move -1 combo 0 block 0 dodge -1.00 stagger 0.00 takedown -1.00 target 2 health 186
+push0 short runs done 16:16:59
+run push1_push exit 0
+[ 122.794] locopush: Police HQ sidewalk at 3167.9 -242.3, along 1.00 0.00
+[ 159.344] locopush: a knot of 6 standing 5 m ahead
+[ 329.472] locopush 1 walk into the knot and through: touching 4.70 s (141 frames) | player while touching: actual 0.66 m/s, asked 1.01 m/s | whole phase: actual 0.93, asked 1.14 | first touch 3.30 s, last 7.97 s | knot shoved max 2.98 m | standing player shoved 0.00 m | walkers past 0 (last at -1.00 s)
+[ 467.713] locopush 2 walk back through: touching 0.53 s (16 frames) | player while touching: actual 1.11 m/s, asked 1.11 m/s | whole phase: actual 1.35, asked 1.35 | first touch 0.03 s, last 0.53 s | knot shoved max 3.01 m | standing player shoved 0.00 m | walkers past 0 (last at -1.00 s)
+[ 534.847] locopush 3 run through: touching 2.40 s (72 frames) | player while touching: actual 2.01 m/s, asked 2.39 m/s | whole phase: actual 3.24, asked 3.47 | first touch 1.67 s, last 4.03 s | knot shoved max 5.11 m | standing player shoved 0.00 m | walkers past 0 (last at -1.00 s)
+[ 745.324] locopush 4 stand, four walk at the player: touching 12.00 s (360 frames) | player while touching: actual 0.44 m/s, asked 0.22 m/s | whole phase: actual 0.00, asked 0.00 | first touch 0.03 s, last 12.00 s | knot shoved max 5.26 m | standing player shoved 5.03 m | walkers past 4 (last at 7.97 s)
+[ 745.324] locopush done
+run push1_melee exit 0
+[ 458.483] autoplay melee t=9.0 move 2 combo 2 block 0 dodge -1.00 stagger 0.00 takedown -1.00 target 1 health 194
+[ 509.165] autoplay melee t=10.0 move -1 combo 2 block 0 dodge -1.00 stagger 0.00 takedown -1.00 target 1 health 194
+[ 526.387] autoplay melee t=11.0 move -1 combo 0 block 0 dodge -1.00 stagger 0.00 takedown -1.00 target 2 health 194
+[ 543.809] autoplay melee t=12.0 move -1 combo 0 block 0 dodge -1.00 stagger 0.00 takedown -1.00 target 2 health 194
+[ 560.943] autoplay melee t=13.0 move -1 combo 0 block 0 dodge -1.00 stagger 0.00 takedown -1.00 target 2 health 194
+[ 604.821] autoplay melee t=14.0 move -1 combo 0 block 0 dodge -1.00 stagger 0.00 takedown -1.00 target 2 health 194
+[ 621.355] autoplay melee t=15.0 move -1 combo 0 block 0 dodge -1.00 stagger 0.23 takedown -1.00 target 2 health 186
+[ 639.242] autoplay melee t=16.0 move -1 combo 0 block 0 dodge -1.00 stagger 0.00 takedown -1.00 target 2 health 186
+[ 656.059] autoplay melee t=17.0 move -1 combo 0 block 0 dodge -1.00 stagger 0.00 takedown -1.00 target 2 health 186
+[ 699.878] autoplay melee t=18.0 move -1 combo 0 block 0 dodge -1.00 stagger 0.00 takedown -1.00 target 2 health 186
+[ 718.037] autoplay melee t=19.0 move -1 combo 0 block 0 dodge -1.00 stagger 0.00 takedown -1.00 target 2 health 186
+[ 735.020] autoplay melee t=20.0 move -1 combo 0 block 0 dodge -1.00 stagger 0.00 takedown -1.00 target 2 health 186
+push1 short runs done 17:03:48
+run push0 exit 0
+[2219.109] locostairs trace 176 dn a29.42 v 1.30 ph0.45 mw1.00 | 0 pl1 h  2.6 b  0.0 t 16.9 g  0.17,  0.00 u29.128,29.375 st-1.00 SL -9.00 sh 0.00 sd0 bp0 fz  0.17 | 1 pl0 h 27.3 b 32.6 t 34.5 g -0.17, -0.17 u29.664,29.898 st-1.00 SL -0.17 sh-0.11 sd1 bp0 fz  0.08
+[2222.317] locostairs trace 176 dn a29.46 v 1.30 ph0.49 mw1.00 | 0 pl1 h  4.9 b  0.1 t 16.9 g  0.17,  0.00 u29.133,29.379 st-1.00 SL -9.00 sh 0.00 sd0 bp0 fz  0.17 | 1 pl0 h 25.9 b 30.8 t 49.5 g -0.17, -0.34 u29.706,29.942 st-1.00 SL -0.17 sh-0.11 sd1 bp0 fz  0.08
+[2222.333] locostairs trace 176 dn a29.51 v 1.30 ph0.52 mw1.00 | 0 pl1 h  7.4 b  0.3 t 16.9 g  0.17,  0.00 u29.141,29.383 st-1.00 SL -9.00 sh 0.00 sd0 bp0 fz  0.17 | 1 pl1 h  0.0 b  4.1 t 22.5 g -0.17, -0.34 u29.715,29.954 st-1.00 SL -9.00 sh 0.00 sd0 bp0 fz -0.17
+[2222.343] locostairs trace 176 dn a29.55 v 1.30 ph0.55 mw1.00 | 0 pl1 h  9.7 b  0.5 t 16.9 g  0.17,  0.00 u29.151,29.387 st-1.00 SL -9.00 sh 0.00 sd0 bp0 fz  0.17 | 1 pl1 h  0.0 b  2.4 t 20.2 g -0.17, -0.34 u29.715,29.958 st-1.00 SL -9.00 sh 0.00 sd0 bp0 fz -0.17
+[2222.349] locostairs trace 176 dn a29.59 v 1.30 ph0.58 mw1.00 | 0 pl1 h 11.4 b  0.7 t 16.9 g  0.17,  0.00 u29.161,29.390 st-1.00 SL -9.00 sh 0.00 sd0 bp0 fz  0.17 | 1 pl1 h  0.0 b  0.7 t 17.9 g -0.17, -0.34 u29.715,29.960 st-1.00 SL -9.00 sh 0.00 sd0 bp0 fz -0.17
+[2222.359] locostairs trace 176 dn a29.64 v 1.30 ph0.61 mw1.00 | 0 pl1 h 12.3 b  0.8 t 16.9 g  0.34,  0.17 u29.168,29.392 st-1.00 SL -9.00 sh 0.00 sd0 bp0 fz  0.34 | 1 pl1 h  0.0 b  0.1 t 17.1 g  0.00, -0.17 u29.715,29.960 st-1.00 SL -9.00 sh 0.00 sd0 bp0 fz  0.00
+[2222.370] locostairs trace 176 dn a29.68 v 1.30 ph0.64 mw1.00 | 0 pl0 h 14.5 b  3.1 t 19.0 g  0.34,  0.17 u29.167,29.391 st-1.00 SL -9.00 sh 0.00 sd0 bp0 fz  0.34 | 1 pl1 h  0.0 b  0.1 t 17.0 g  0.00, -0.17 u29.715,29.960 st-1.00 SL -9.00 sh 0.00 sd0 bp0 fz  0.00
+[2222.371] locostairs up   steps  297 | slide cm/step mean 1.91 p90 3.94 max 42.96 | scuffs 26
+[2222.371] locostairs up   planted foot-frames 6001 | across a riser 67.9% | sunk 1 cm 3.6%, 3 cm 3.0% | lifted 1.5% | lowest sole -233.4 mm
+[2222.371] locostairs down steps  272 | slide cm/step mean 0.95 p90 4.46 max 11.25 | scuffs 29
+[2222.371] locostairs down planted foot-frames 5575 | across a riser 76.4% | sunk 1 cm 1.2%, 3 cm 1.2% | lifted 5.6% | lowest sole -169.0 mm
+[2222.371] locostairs trips 26 | peds cpu 2.20 ms per frame (mean over 3002 frames)
+[ 192.021] locostairs: 8 walkers
+[2222.371] locostairs up   steps  297 | slide cm/step mean 1.91 p90 3.94 max 42.96 | scuffs 26
+[2222.371] locostairs up   planted foot-frames 6001 | across a riser 67.9% | sunk 1 cm 3.6%, 3 cm 3.0% | lifted 1.5% | lowest sole -233.4 mm
+[2222.371] locostairs down steps  272 | slide cm/step mean 0.95 p90 4.46 max 11.25 | scuffs 29
+[2222.371] locostairs down planted foot-frames 5575 | across a riser 76.4% | sunk 1 cm 1.2%, 3 cm 1.2% | lifted 5.6% | lowest sole -169.0 mm
+[2222.371] locostairs trips 26 | peds cpu 2.20 ms per frame (mean over 3002 frames)
+run push1 exit 0
+[2112.995] locostairs trace 176 dn a28.86 v 1.30 ph0.86 mw1.00 | 0 pl0 h 19.7 b 38.3 t 38.9 g  0.00, -0.17 u28.971,29.216 st-1.00 SL -0.34 sh 0.01 sd1 bp0 fz  0.12 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17 u28.809,29.052 st-1.00 SL -9.00 sh 0.00 sd0 bp0 fz  0.00
+[2117.018] locostairs trace 176 dn a28.90 v 1.30 ph0.89 mw1.00 | 0 pl0 h 34.6 b 38.3 t 56.6 g -0.17, -0.34 u29.128,29.369 st-1.00 SL -0.34 sh 0.01 sd1 bp0 fz  0.12 | 1 pl1 h  0.0 b  0.0 t 16.9 g  0.00, -0.17 u28.809,29.052 st-1.00 SL -9.00 sh 0.00 sd0 bp0 fz  0.00
+[2117.032] locostairs trace 176 dn a28.94 v 1.30 ph0.92 mw1.00 | 0 pl0 h 13.7 b 35.6 t 37.4 g -0.17, -0.34 u29.259,29.495 st-1.00 SL -0.34 sh 0.01 sd1 bp0 fz -0.07 | 1 pl1 h  0.7 b  0.0 t 16.9 g  0.00, -0.17 u28.809,29.053 st-1.00 SL -9.00 sh 0.00 sd0 bp0 fz  0.00
+[2117.040] locostairs trace 176 dn a28.99 v 1.30 ph0.95 mw1.00 | 0 pl0 h 29.1 b 34.4 t 36.4 g -0.34, -0.34 u29.351,29.586 st-1.00 SL -0.34 sh 0.01 sd1 bp0 fz -0.07 | 1 pl1 h  2.4 b  0.0 t 16.9 g  0.00, -0.17 u28.811,29.056 st-1.00 SL -9.00 sh 0.00 sd0 bp0 fz  0.00
+[2117.045] locostairs trace 176 dn a29.03 v 1.30 ph0.98 mw1.00 | 0 pl0 h 10.0 b 15.0 t 33.7 g -0.34, -0.51 u29.398,29.634 st-1.00 SL -0.34 sh 0.01 sd1 bp0 fz -0.25 | 1 pl1 h  4.6 b  0.1 t 16.9 g  0.00, -0.17 u28.815,29.060 st-1.00 SL -9.00 sh 0.00 sd0 bp0 fz  0.00
+[2117.052] locostairs trace 176 dn a29.07 v 1.30 ph0.02 mw1.00 | 0 pl1 h  0.0 b  4.2 t 22.6 g -0.17, -0.34 u29.409,29.648 st-1.00 SL -9.00 sh 0.00 sd0 bp0 fz -0.17 | 1 pl1 h  7.1 b  0.3 t 16.9 g  0.17,  0.00 u28.823,29.064 st-1.00 SL -9.00 sh 0.00 sd0 bp0 fz  0.17
+[2117.072] locostairs trace 176 dn a29.12 v 1.30 ph0.05 mw1.00 | 0 pl1 h  0.0 b  2.6 t 20.5 g -0.17, -0.34 u29.409,29.652 st-1.00 SL -9.00 sh 0.00 sd0 bp0 fz -0.17 | 1 pl1 h  9.5 b  0.5 t 16.9 g  0.17,  0.00 u28.833,29.068 st-1.00 SL -9.00 sh 0.00 sd0 bp0 fz  0.17
+[2117.073] locostairs up   steps  295 | slide cm/step mean 1.62 p90 3.58 max 8.26 | scuffs 29
+[2117.073] locostairs up   planted foot-frames 6101 | across a riser 65.8% | sunk 1 cm 4.3%, 3 cm 3.7% | lifted 1.1% | lowest sole -169.0 mm
+[2117.073] locostairs down steps  279 | slide cm/step mean 0.88 p90 3.16 max 8.08 | scuffs 32
+[2117.073] locostairs down planted foot-frames 5753 | across a riser 78.7% | sunk 1 cm 1.8%, 3 cm 1.8% | lifted 5.2% | lowest sole -169.0 mm
+[2117.073] locostairs trips 27 | peds cpu 2.16 ms per frame (mean over 3002 frames)
+[ 188.226] locostairs: 8 walkers
+[2117.073] locostairs up   steps  295 | slide cm/step mean 1.62 p90 3.58 max 8.26 | scuffs 29
+[2117.073] locostairs up   planted foot-frames 6101 | across a riser 65.8% | sunk 1 cm 4.3%, 3 cm 3.7% | lifted 1.1% | lowest sole -169.0 mm
+[2117.073] locostairs down steps  279 | slide cm/step mean 0.88 p90 3.16 max 8.08 | scuffs 32
+[2117.073] locostairs down planted foot-frames 5753 | across a riser 78.7% | sunk 1 cm 1.8%, 3 cm 1.8% | lifted 5.2% | lowest sole -169.0 mm
+[2117.073] locostairs trips 27 | peds cpu 2.16 ms per frame (mean over 3002 frames)
+orch10 done 18:20:43

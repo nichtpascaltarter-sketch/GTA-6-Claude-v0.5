@@ -1,0 +1,42 @@
+Results:
+
+On nt_ai101:
+- knock: PASS, both rounds. This is a real fender bender between two cars 1 m apart in a kerb lane.
+  - In ST_C each driver walks round a free end of their car to the driver's door and gets in through it (door clips 2.92-3.14 s).
+  - They are away 8-10 s after ST_C. On HEAD this was a 25 s warp after a stall at a corner.
+- trafficstop: PASS. The officer gets out through the door (ST_B), stands at the window from t=20 to t=39, then goes back in through the door in ST_D (2.92 s clip). Both cars are away at ST_E. On HEAD he is warped in at the door.
+- crashscene: PASS.
+  - In ST_C the drivers go round the rear and the front of their cars to their doors and in, and the scene is over 13 s after ST_C.
+  - Unit 71's crew go back in one each: seat 0, then seat 1, both 2.92 s clips.
+  - A group of three got into one car through three doors at once (the seat claims).
+- hitped: PASS.
+  - The walker is hit at t=8.6. Once up, they wait (6.4 s left) while the driver gets out and comes over (5.0 -> 1.8 m).
+  - The word comes at t~16 and the wait is over at t~18.
+  - The driver goes back to his car and in through the door, away at t=28.5, and the walker walks on.
+- nightwalk: PASS. On Ocean Promenade at 22:30 there were 6 night chats by t=50 (on nt_ai86: 0 in 146 s), seen in the subtitles.
+- breakdown: PASS.
+  - The player fixes the car at t=9.
+  - The driver walks round the front to the driver's door and gets in through it (3.44 s clip). The event is over and the car away by t~24.
+- copreturn: PASS, both rounds, with no overlapping clips.
+  - Round 1: seat 0 then seat 1 (3.22 s clips). Both in at t=19.2, away at t=20.4.
+  - Round 2: 2.92 s clips. Both in at t=74.2, away at t=75.8.
+- events, crash slot: FOUND the kerb-side case.
+  - Driver 117 went for his car's front end, which aiCarEndFree had tested as free. He stood by a row of planters off its nose until the 25 s warp.
+  - That gave the 12 s fallback.
+- nearmiss: TEST BUG. The lane pick found no lane, so the player stayed on foot and nothing ran. That gave the first nearmiss fix.
+
+On nt_ai101c:
+- events, crash slot: PASS. It is the same crash. Driver 115 goes round the rear to his door (3.12 s clip).
+  - Driver 117 again stood by the planters. 12 s into ST_C he took the boxed-in way: in by the passenger door (seat 1, 3.35 s clip), then "across to the wheel".
+  - The crash was over 18 s after ST_C, against 25 s with the warp.
+- nearmiss (first fix): the car was placed and routed. But a pickup queued at the light ahead held it up; it got round over the sidewalk (flee mode) and passed the people slowly, so there were no near misses. That gave the second fix.
+
+On nt_ai101d:
+- nearmiss (second fix): PASS.
+  - Two cars queued ahead were sent away, and the four were placed 28-61 m ahead, 2.16 m out from the middle of the 3.2 m lane.
+  - The car was at 20.4 m/s by t=5. There were 2 near misses by t=5 and all 4 by t=10, with "Hey! It's a city street!" shouted after it.
+- knock was not run again on nt_ai101c/d. The 12 s fallback only changes a driver still on the kerb side 12 s into ST_C, and nt_ai101's knock rounds had both drivers in 3-7 s after ST_C. Knock runs again on set 18's build.
+
+Seen in passing (not from this set's code):
+- copreturn round 2: a passer-by in the road beside the two officers went down and got up again (t~64-67). It was not logged; probably a fall or a dive.
+- nearmiss's first version: the flee-mode car mounted the sidewalk to get round the pickup queued at the light ("People live here, you know."). This is existing flee driving; it is up to you whether that is wanted near people.

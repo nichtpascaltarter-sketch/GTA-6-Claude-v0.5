@@ -1,0 +1,11 @@
+ntw 1 terrain
+# a small bake: one grid of each layer kind, two water classes, an outline and a channel
+source tool=terrainbake generator=procedural seed=0x5EA11A7A commit=0c288db
+grid res=64 cell=8.00 origin=-256.00,-256.00
+layer height file=height.ntg type=i16 unit=0.01 hash=ea53b9afef88dfc9 range=-4.93,16.85
+layer water file=water.ntg type=u8 hash=b0c57636cd3fb154
+water c0 level=none
+water c1 level=0.0000
+layer coast file=coast.ntg type=i16 res=16 cell=32.00 unit=0.250 hash=856c8ef74cf14105
+outline mainland pts=-200.00,-200.00;200.00,-200.00;200.00,150.00;-200.00,150.00
+channel ch.00 width0=12.00 width1=20.00 depth=2.50 pts=-100.00,-200.00;-80.00,0.00;-60.00,150.00

@@ -1,0 +1,98 @@
+--- a/src/anim/animator.cpp	2026-10-19 22:27:10.141516946 +0000
++++ b/src/anim/animator.cpp	2026-10-19 22:27:10.154588377 +0000
+@@ -457,6 +457,8 @@
+     vec3 fp[2], heel[2], ball[2];
+     quat fq[2];
+     float fyaw[2], wBall[2], toeZ[2];
++    float roll[2] = {0.f, 0.f}, contactD[2] = {0.f, 0.f};   // (twisted on the ground: the heel's roll up about the ball; the contact's place along the foot from the heel)
++    bool onHeel[2] = {false, false};                        // (a heel strike, the toes up: it turns on its heel)
+     // pelvis model transform (root -> pelvis), the legs from it
+     const quat qr = p.rot[B_ROOT];
+     const vec3 pr = sk.bindLocalPos[B_ROOT];
+@@ -471,6 +473,27 @@
+         qcalf[s] = qt * p.rot[lows[s]];
+         fp[s] = knee[s] + rotate(qcalf[s], sk.bindLocalPos[ends[s]]);
+         fq[s] = qcalf[s] * p.rot[ends[s]];
++        // (a foot on the ground twisted past what the leg turns pivots where it touches: on its heel at a heel strike, the
++        // toes up; else on the ball, the heel up 0.2 rad - the pose's own heel lift counted, and one still flat or a little
++        // toes-up rolled down onto its ball first. The pose is rolled so before its contact, its pin onto the ground and the
++        // IK are worked out, so they all hold the contact down. Let go, the roll eases out: no toes brought down to land)
++        {
++            const float pw = A.pivotW[s] * A.plantOn;
++            const vec3 F0 = rotate(fq[s], vec3(0, 1, 0));
++            const float pitch0 = asinf(Clamp(F0.z, -1.f, 1.f));
++            const vec3 h0 = fp[s] + rotate(fq[s], vec3(0.f, -A.footHeel, -A.footAnkleH));
++            const vec3 b0 = fp[s] + rotate(fq[s], vec3(0.f, A.footBall, -A.footAnkleH));
++            onHeel[s] = b0.z - h0.z > 0.015f * scale;
++            if (pw > 1e-3f && !onHeel[s]) {
++                const float pt = A.planted[s] || A.footHold[s] ? pitch0 : Min(pitch0, 0.f);
++                roll[s] = pt > 0.f ? pw * (0.2f + pt) : Max(0.f, 0.2f * pw + pt);
++                if (roll[s] > 1e-4f) {
++                    const quat rp = quatAxisAngle(rotate(fq[s], vec3(1.f, 0.f, 0.f)), -roll[s]);
++                    fp[s] = b0 + rotate(rp, fp[s] - b0);
++                    fq[s] = normalize(rp * fq[s]);
++                }
++            }
++        }
+         vec3 F = rotate(fq[s], vec3(0, 1, 0));
+         fyaw[s] = atan2f(-F.x, F.y);
+         float pitch = asinf(Clamp(F.z, -1.f, 1.f));
+@@ -481,7 +504,10 @@
+         // toe tip on the sole under the (bent) toe bone
+         const int tb = s ? B_TOE_R : B_TOE_L;
+         const vec3 toeJ = fp[s] + rotate(fq[s], sk.bindLocalPos[tb]);
+-        toeZ[s] = (toeJ + rotate(fq[s] * p.rot[tb], vec3(0.f, sk.boneLength[tb], -(A.footAnkleH + sk.bindLocalPos[tb].z)))).z;
++        // (rolled: the toes stay flat - the toe bone turns back by the roll)
++        const vec3 toeTip = toeJ + rotate(fq[s] * qx(roll[s]) * p.rot[tb], vec3(0.f, sk.boneLength[tb], -(A.footAnkleH + sk.bindLocalPos[tb].z)));
++        toeZ[s] = toeTip.z;
++        contactD[s] = onHeel[s] ? 0.f : (toeTip.z < ball[s].z - 0.003f * scale ? L + sk.boneLength[tb] : L);
+     }
+     auto pivotA = [&](int s) { return lerp(heel[s], ball[s], wBall[s]); };
+     // planted pivot: the same point of the sole on a footprint (heel point h, yaw y)
+@@ -819,16 +845,16 @@
+             }
+         } else if (A.planted[s] || A.footHold[s]) {
+             // on the ground (planted, or let go at toe-off while the pose still has it down): it stays where it is. Twisted
+-            // further than the leg turns comfortably (a quick turn while walking), it pivots on its ball, which stays put,
+-            // the heel coming up a little
++            // further than the leg turns comfortably (a quick turn while walking), it pivots where it touches, which stays
++            // put: on its heel at a heel strike, else on the ball (or the toe tip, rolled onto it), the heel coming up
+             const float tw = wrapAngle(A.plantYaw[s] - fyaw[s]), allow = walking ? 0.45f : 1.f;
+             bool piv = false;
+             if (fabsf(tw) > allow) {
+                 const float ex = tw - Clamp(tw, -allow, allow);
+-                const vec3 bw = A.plantP[s] + rotate(qz(A.plantYaw[s]), vec3(0.f, L, 0.f));
++                const vec3 cw = A.plantP[s] + rotate(qz(A.plantYaw[s]), vec3(0.f, contactD[s], 0.f));
+                 A.plantYaw[s] = wrapAngle(A.plantYaw[s] - ex);
+-                A.plantP[s] = bw - rotate(qz(A.plantYaw[s]), vec3(0.f, L, 0.f));
+-                piv = true;
++                A.plantP[s] = cw - rotate(qz(A.plantYaw[s]), vec3(0.f, contactD[s], 0.f));
++                piv = !onHeel[s];
+             }
+             A.pivotW[s] = approach(A.pivotW[s], piv ? 1.f : 0.f, dt * (piv ? 10.f : 4.f));
+             vec3 pp = pivotP(s, A.plantP[s], A.plantYaw[s]);
+@@ -1024,21 +1050,14 @@
+         float grounded = 1.f - sstep(0.02f, 0.08f, pa.z);
+         quat want = rc * fq[s];
+         if (grounded > 0.f && (fabsf(slopeY) > 0.01f || fabsf(slopeX) > 0.01f)) want = nlerp(want, tilt * want, grounded);
+-        // pivoting on the ball: the heel comes up about it
+-        if (A.pivotW[s] * w > 1e-3f) {
+-            const quat rp = quatAxisAngle(rotate(want, vec3(1.f, 0.f, 0.f)), -0.2f * A.pivotW[s] * w);
+-            const vec3 bp = target + rotate(want, vec3(0.f, A.footBall, -A.footAnkleH));
+-            target = bp + rotate(rp, target - bp);
+-            want = normalize(rp * want);
+-        }
+         // the knee and the calf's forward axis give the pole
+         vec3 pole = knee[s] + rotate(qcalf[s], vec3(0.f, 0.4f, 0.f));
+         p.rot[ends[s]] = normalize(conj(qcalf[s]) * want);   // the IK keeps the foot's model rotation
+         legIK(sk, p, ups[s], lows[s], ends[s], qp, pp, target, pole);
+-        // (pivoting: the toes stay flat on the ground)
+-        if (A.pivotW[s] * w > 1e-3f) {
++        // (pivoting, the heel rolled up: the toes stay flat on the ground)
++        if (roll[s] > 1e-4f) {
+             const int tb = s ? B_TOE_R : B_TOE_L;
+-            p.rot[tb] = normalize(qx(0.2f * A.pivotW[s] * w) * p.rot[tb]);
++            p.rot[tb] = normalize(qx(roll[s]) * p.rot[tb]);
+         }
+     }
+ }

@@ -1,0 +1,5 @@
+100644 a4c4aee9a5459a6d34ccbeaf07e54b73734bf9de	src/game/app.cpp
+100644 f6e17a99bb93968b0332ccdffa9b6e4048cf6bc6	src/ui/menus.cpp
+100644 0001c663c19bad2492e40a5cae1dd15244f37415	src/ui/hud.h
+100644 d6fefb847634f647fceff766f05cb855840ddab0	src/platform/updater.h
+100644 b7ed671e97809a63e62c9fecfedbfdb31768c2b5	src/platform/updater.cpp

@@ -1,0 +1,107 @@
+--- a/src/anim/animator.cpp
++++ b/src/anim/animator.cpp
+@@ -328,6 +328,8 @@
+ // lower one) and feet on the ground tilt with the slope.
+ static void footPlanting(Animator& A, const AnimInput& in, float dt, Pose& p, bool planting, bool terrain, float duty, float cycle) {
+     const Skeleton& sk = *A.skel;
++    // (a stair's bend - a spiral's, winders' - is a steady turn; a walker's weave down a straight flight is not)
++    A.turnRateS += (in.turnRate - A.turnRateS) * (1.f - expf(-dt / 0.6f));
+     const bool walking = A.moveW > 0.3f && duty > 0.05f;
+     // how far through its swing each foot is (0 in stance or standing)
+     float swingU[2] = {0.f, 0.f};
+@@ -482,6 +484,7 @@
+         A.stepFromYaw[s] = wrapAngle(A.stepFromYaw[s] - dpsi);
+         A.scanLand[s] = rotate(qBack, A.scanLand[s]) - d;
+         A.stairDir[s] = rotate(qBack, A.stairDir[s]);
++        A.stairLat[s] = rotate(qBack, A.stairLat[s]);
+         A.stepScanFrom[s] = rotate(qBack, A.stepScanFrom[s]) - d;
+         A.stepScanDir[s] = rotate(qBack, A.stepScanDir[s]);
+     }
+@@ -635,6 +638,10 @@
+             else if (frontEdge) hi = f - mg - L;
+             if (upBehind) lo = r + mg + 0.04f * scale;
+             else if (rearEdge) lo = r + mg - 0.7f * L;   // (on the forefoot: the ground under it is probed under the ball)
++            // (going up, a tread too short for the foot whose toes-short landing would leave the ball off it - a winder's
++            // narrow end: the ball on it at least, the toes nearer the riser ahead. Not a run below where the foot was to
++            // land: going down, that one is the far side of a turn)
++            if (lo > hi && upAhead && rearEdge && !upBehind && hi + L < r + mg && g[k0] > gFoot - 0.03f) lo = hi = r + mg - L;
+             // (a tread shorter than the foot: no toes in a riser, and only if nothing else will do; down a flight, the
+             // heel's and the ball's margins share what is missing)
+             const float uh = lo <= hi ? Clamp(uHeel, lo, hi) : (upAhead ? hi : (upBehind && frontEdge ? 0.5f * (lo + hi) : lo));
+@@ -881,6 +888,7 @@
+     for (int s = 0; s < 2; s++) {
+         vec3 pa = pivotA(s);
+         if (A.stepT[s] >= 0.f || A.planted[s] || A.footHold[s]) {
++            A.stairLat[s] = vec3(0);
+             A.stairShift[s] = 0.f;
+             A.stairLand[s] = -9.f;
+             A.stairBall[s] = false;
+@@ -993,7 +1001,7 @@
+                 // (onto the tread its landing was fitted to by the time it lands: quicker for a fit made late in the swing)
+                 const float tLand = A.stairLand[s] > -8.f && swingU[s] > 0.f && cycle > 0.f ? (1.f - swingU[s]) * (1.f - duty) * cycle / Max(spd, 0.3f) : 1.f;
+                 float k = expf(-dt / Clamp(0.35f * tLand, 0.025f, 0.07f));
+-                const vec3 to = A.stairDir[s] * A.stairShift[s];
++                const vec3 to = A.stairDir[s] * A.stairShift[s] + A.stairLat[s];
+                 A.plantCorr[s] = to + (A.plantCorr[s] - to) * k;
+                 A.corrYaw[s] *= k;
+             }
+@@ -1063,7 +1071,7 @@
+         // the turning way)
+         if (A.probeAhead[s]) {
+             const float sT = Clamp(cycle * (swinging ? (1.f - swingU[s]) * (1.f - duty) : 1.f - phP) * A.rootRatio, 0.f, 1.2f);
+-            m = landAhead(m, sT, leadM + A.stairShift[s] + 0.65f * L);
++            m = landAhead(m, sT, leadM + A.stairShift[s] + 0.65f * L) + A.stairLat[s];
+         } else if (swinging && A.stairLand[s] > -8.f && A.stairLand[s] < (s ? A.footR : A.footL) - 0.04f)
+             m = pa + A.plantCorr[s] * w + rotate(qz(A.corrYaw[s] * w), heel[s] - pa);   // (down a step: under the heel, till it clears the nose)
+         else if (A.stepT[s] >= 0.f && A.stairSeen < 1.5f)
+@@ -1108,6 +1116,17 @@
+             vec3 lm = pa + A.plantCorr[s] * w + rotate(qz(A.corrYaw[s] * w), mid - pa);
+             const float sT = Clamp(cycle * (1.f - swingU[s]) * (1.f - duty) * A.rootRatio, 0.f, 1.2f);
+             lm = landAhead(lm, sT, leadM);
++            // (down round a tight bend on stairs - a spiral, winders - the inner foot lands further out than its gait would
++            // put it, where the wedge treads are deeper: 3 cm for each 1/m of the bend's steady curvature, at most 7 cm - on
++            // a bend of 0.5 /m or more: a straight flight's weave is not one)
++            vec3 latNew(0.f);
++            if (A.stairSeen < 1.5f && A.rootVz < -0.1f && A.turnRateS * in.turnRate > 0.f && (A.turnRateS > 0.f ? s == 0 : s == 1) &&
++                fabsf(A.turnRateS) / Max(spd, 0.3f) > 0.5f) {
++                const float curv = fabsf(A.turnRateS) / Max(spd, 0.3f);
++                const vec3 ltw = rotate(qz(turnOver(sT)), vec3(-md.y, md.x, 0.f));
++                latNew = ltw * ((A.turnRateS > 0.f ? -1.f : 1.f) * Min(0.03f * curv, 0.07f) * scale);
++            }
++            lm = lm + latNew;
+             // (scanned along the foot as it will land - the pose's yaw now, turned with the body till then - so that its
+             // heel, ball and toe tip lie on the line scanned even where it lands turned from the way, onto a flight from a
+             // landing)
+@@ -1129,6 +1148,7 @@
+                 A.scanDir = rotate(qBack, sdw);
+                 A.scanFrom = vec3(lm.x, lm.y, 0.f) - A.scanDir * kScanBack;
+                 A.stairDir[s] = sdw;
++                A.stairLat[s] = latNew;
+             }
+         }
+     }
+@@ -1887,6 +1907,7 @@
+         groundRaw[k] = groundAhead[k] = pivotW[k] = stairShift[k] = 0.f;
+         stairLand[k] = -9.f;
+         stairRear[k] = 9.f;
++        stairLat[k] = vec3(0);
+         stairBall[k] = ballProbe[k] = false;
+         scanDone[k] = false;
+         stepScanAsked[k] = stepScanHave[k] = stepFitBall[k] = false;
+@@ -1894,7 +1915,7 @@
+         stepFitShift[k] = 0.f;
+         plantedPrev[k] = footHold[k] = probeAhead[k] = false;
+     }
+-    plantOn = bodyLag = headLead = accS = accV = prevSpeed = stepShift = legSink = 0.f;
++    plantOn = bodyLag = headLead = accS = accV = prevSpeed = stepShift = legSink = turnRateS = 0.f;
+     rootVz = passW = passYaw = passShift = 0.f;
+     scanWant = scanForStep = false;
+     stairSeen = 99.f;
+@@ -3169,6 +3190,7 @@
+                 stairShift[s] = 0.f;
+                 stairLand[s] = -9.f;
+                 stairRear[s] = 9.f;
++                stairLat[s] = vec3(0);
+                 stairBall[s] = ballProbe[s] = false;
+                 stepScanAsked[s] = stepScanHave[s] = stepFitBall[s] = false;
+                 stepFitLand[s] = -9.f;

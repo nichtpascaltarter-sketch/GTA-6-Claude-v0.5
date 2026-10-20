@@ -1,0 +1,15 @@
+build st19 09:15:57
+build st19 rc 0
+      | 
+src/game/../game/gameworld.cpp:367: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
+-rwxr-xr-x 1 root root 15870464 Oct 20 09:30 bin/loco_st19.exe
+build st19a 09:30:25
+build st19a rc 0
+      | 
+src/game/../game/gameworld.cpp:523: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
+-rwxr-xr-x 1 root root 15857152 Oct 20 09:54 bin/loco_st19a.exe
+build st20 09:54:21
+build st20 rc 0
+      | 
+src/game/../game/gameworld.cpp:350: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
+-rwxr-xr-x 1 root root 15871488 Oct 20 10:13 bin/loco_st20.exe

@@ -105,19 +105,12 @@ inline u32 roomSeed(u32 buildingSeed, u32 floorIndex, u32 roomIndex) {
     return roomHash(buildingSeed ^ roomHash(floorIndex * 0x9e3779b9u + roomIndex * 0x85ebca77u + 1u)) & 4095u;
 }
 
-// The minute of the day for roomLight(), 0..1439, from the game clock's hours (0..24). The renderer's frame constants
-// and the CPU callers both take it from here, from the same float, so the two copies never split over a rounding.
-inline u32 roomMinute(float timeOfDay) {
-    const float m = timeOfDay * 60.f;
-    return m > 0.f ? (m < 1439.f ? (u32)m : 1439u) : 0u;   // (NaN and negative times give 0)
-}
-
 // The light level of a room, 0 (off) to 254:
 // - schedule: a RoomSchedule; seed: roomSeed() (only its low 12 bits count); windows: 1 when the room has windows,
 //   and for exterior lights (so that a dusk or porch light waits for the dark);
-// - day: the game day (day % 7: 0 Monday ... 5 Saturday, 6 Sunday); minute: 0..1439 into it, from roomMinute();
-// - night: how dark it is outside, 0 (full day) to 255 (full night); the frame's value (the renderer's roomNight()),
-//   the same for the CPU and the shader.
+// - day: the game day (day % 7: 0 Monday ... 5 Saturday, 6 Sunday); minute: 0..1439 into it;
+// - night: how dark it is outside, 0 (full day) to 255 (full night); the frame's value, the same for the CPU and the
+//   shader.
 // A daylit class (homes, garages, dusk and porch lights) with windows switches on only once `night` passes the room's
 // own threshold, 48-111 (the seed spreads the moment across rooms). Rooms differ a little in brightness (191-254 at
 // full level).

@@ -1,0 +1,15 @@
+start 09:15:58
+run st19pl 09:30:28 memfree 5272
+run st19pl exit 0 (renderevery 30)
+done st19pl 09:52:44
+run st19apl 09:54:44 memfree 4480
+run st19apl exit 0 (renderevery 30)
+done st19apl 10:12:16
+run st19n 10:12:16 memfree 11441
+run st19n exit 0 (renderevery 30)
+done st19n 10:20:21
+run st20n 10:20:22 memfree 11300
+run st20n exit 0 (renderevery 30)
+done st20n 10:28:16
+run st20pl 10:33:16 memfree 11500
+run st20pl exit 0 (renderevery 30)

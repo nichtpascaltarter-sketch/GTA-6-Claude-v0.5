@@ -1,0 +1,15 @@
+ks_conch1 front 22128 15 2 3 60 10
+ks_conch2 front 22180 15 2 -3 60 10
+ks_conch3 front 22217 14 2 3 60 10
+ks_conch4 front 22126 15 2 -3 60 10
+ks_conch5 front 22200 14 2 3 60 10
+ks_conch6 front 22131 15 2 -3 60 10
+ks_motel1 front 22130 22 3 4 60 10
+ks_motel2 front 22178 22 3 -4 60 10
+ks_motel3 front 22125 24 3 4 60 10
+tp_stilt1 front 23376 13 2 3 60 10
+tp_stilt2 front 23375 13 2 -3 60 10
+tp_stilt3 front 23404 13 2 3 60 10
+tp_conch1 front 23408 15 2 -3 60 10
+ks_town_air aerial -8150 -9400 120 200 42 55 10
+tp_air aerial -8500 -2080 110 200 42 55 10

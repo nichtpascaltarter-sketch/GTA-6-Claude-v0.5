@@ -1,0 +1,42 @@
+snapshot-safe: running round a switchback's turn, the outer foot no longer lands inside the wall (animation). On c14, which is HEAD's: HEAD 7b9146d, bases unchanged.
+
+FILES (on HEAD; base blobs = HEAD's)
+- src/anim/animator.cpp: base d30f47a5509cb48bb93d20dc6eba88eaf7e71f60 -> 47845aa1af63f19a03df0844932262c26b30c5bf (written with hash-object -w)
+- src/anim/character.h: base bd6d781f29b5bc5692bb04bea5aa798e98098cd9 -> d2d5127d2375ae87f343876206b42ce8e0c29b15 (additive only: five per-foot fields wallPull, wallSeen, wallScan, wallCheck, wallFlip)
+- Patches: SP/loco/qs/wallguard_animator_d30f47a5.patch (+87/-13) and SP/loco/qs/wallguard_character_bd6d781f.patch (+5). They give exactly the blobs above.
+- No other files.
+
+WHAT (player-facing)
+At a switchback's 180-degree turn (every hand-built stairwell), the player running round it used to put the outer foot into the wall: the whole foot past the wall face, sunk 20-30 cm into the floor. Now that foot lands on the landing next to the wall. Running up and down the switchback, feet also sink into the steps less (numbers below). Walking, and anything with no wall or drop next to the feet, is unchanged.
+
+HOW (animator.cpp)
+- The game's probes under a wall read the street below it (the wall's top is out of reach). The ground scan ahead of a landing (12 samples, 5 cm apart) now marks such samples as "no ground": as low as the scan reads (1 m) and nearer than the steepest stair would allow, or past a drop of 40 cm or more between two neighbouring samples whose low side is out of a stair's reach. No stair has either. A landing next to one keeps its toes short of it ahead, and its heel past it behind (moves of up to 0.45 m instead of 0.2).
+- A swing whose landing is found over no ground is pulled in toward where the body will be when it lands, 0.3 of the way each time it is found, at most 0.6 m. It is found by that scan, or by its landing probe reading the game's clamp: within 0.3 m of the body, or past that where the scan found it too. The pull only acts on a fresh finding (the landing still within 10 cm of where it was found): a body stopped by the wall brings a landing that was predicted past it back by itself.
+- While a swing is pulled, every other landing probe goes where it would land without the pull. When that one finds ground, the pull halves.
+- A probe taken as no ground is not used as the ground. That's what used to sink the foot toward the street under the wall.
+
+TESTS
+- anim_test: ALL PASSED (SP/loco/sl/at_qs16o.log, HEAD's tree with the two blobs). The results match HEAD's (at_head16.log) except for timings.
+- In game, the player running and sprinting up and down the test switchback 8 times each (locoplayer, LOCO_SWONLY=1 LOCO_PLAYERLAPS=8, with per-frame traces of every foot that lands 12 cm or more inside a step), c14 st20sw -> c16 st22osw. Planted frames 3 cm or more inside a step / lifted / frames a riser or more inside / lowest:
+[[SW]]
+  - Traces of a foot in the outer wall: [[OW]].
+- In game, the player at the controls (walk, run and sprint up and down the metro flight and the test switchback, twice each), c14 st20pl3 -> c16 st22opl: [[PL]]
+- In game, 4 people walking the test switchback at 0.5 m/s for 170 s (LOCO_PLAYERLAPS=0 LOCO_NPCSWITCH=4), c14 st20nj3 -> c16 st22onj: [[NJ]]
+- In game, locostairs at 0.5 m/s on the metro flight, c14 st20p3 -> c16 st22op: [[P]]
+- Harness, the switchback with its walls as the game's test switchback has them (24 runs per case, 60 Hz), frames with a planted foot's heel, ball or toe inside a wall (3 cm or more inside / deepest), c14 -> c16:
+  - the game's route and the player's turning (square corners at the landing's middle, aimed 1.1 m ahead): run up 177 (147 / 16 cm) -> 0, run down 193 (175 / 15 cm) -> 0; frames a riser or more inside a step 41 / 49 -> 0 / 0; sunk 3 cm 4.5% / 9.5% -> 3.3% / 7.2%. At 30 Hz (the game's rate): 94 / 93 -> 0 / 0. At 3.5 m/s (8 starts): 302 (175 / 11.3 cm) -> 71 (31 / 4.0 cm, the tight switchback's toe tips).
+  - the walkers' route and the AI's turn: run up 78 (33 / 8.6 cm) -> 12 (0 / 0.5 cm), run down 41 (27 / 6.6 cm) -> 5 (0 / 0.5 cm), sprint up 85 (50 / 21 cm) -> 0, walk tight switchback down 23 -> 2.
+  - Without the walls the game's route gives c14's numbers exactly. The walkers' route without walls has an open drop between the flights; there the walk down gets better (sunk 3 cm 4.1% -> 2.7%), and the tight switchback's worst landing frame comes down 18 cm high instead of 10 (one frame, then it settles).
+- Harness, everything else (full suites at 30 / 60 Hz, interior at the walkers' own pace and at 0.5 m/s, the kit sweep, player speeds): changes only where the harness has an open drop next to the feet (a spiral's open outer edge and well, an L stair's open sides, between a switchback's flights). Mostly better: kit spirals down sunk 3 cm 13.3% -> 11.7% and float frames 1428 -> 1031 (0.5 m/s), 13.6% -> 12.8% and 726 -> 558 (own pace); the 60 Hz spiral descent's 1.2 m float maximum from the c14 KNOWN LIMITS is gone. Player speeds without walls: identical, except the switchback walk down sunk 3 cm 4.1% -> 2.7%.
+  - Small losses: the spirals' open-edge slide maxima (a foot held through the turn at the top, the harness edge case under KNOWN LIMITS) 42.9 -> 56.8 cm and 67.5 -> 80.4 cm; kit L stair up at own pace float frames 7 -> 14; tight switchback down 60 Hz float maximum 5.1 -> 6.6 cm. In the harness with walls, landing lifts at a run and sprint go up a little: run up 1.8% -> 2.9%, down 5.2% -> 6.4%, sprint down 8.1% -> 10.0% (frames that used to be feet in the wall now stand on the landing, a few with the forefoot 2-5 cm up at toe-off).
+
+KNOWN LIMITS
+- [[KL1 in-game residual]]
+- Sprinting down, the in-game floats (switchback 27% lifted, straight sprint 11%) are unchanged. That's option 2, next after c15's re-offer.
+- The tight switchback (0.9 m flights) at a sprint in the harness's walkers' route still puts feet in its walls (231 -> 163 frames up, 28 -> 14 down). AI walkers don't sprint up stairs, and the kit keeps flights wider.
+
+EVIDENCE
+- In game: SP/locotour/log_st20sw.txt, log_st22osw.txt (c16), also log_st22sw.txt and log_st22msw.txt (two earlier versions of the same fix); log_st20pl3.txt, log_st22opl.txt; log_st20nj3.txt, log_st22onj.txt; log_st20p3.txt, log_st22op.txt. Test code SP/locotour/block_player_v3l.cpp in both trees (test builds only). Side by side: python3 SP/locotour/lpcmp.py <c14 log> <c16 log>; the wall traces: python3 SP/locotour/trcls.py <log>.
+- Harness: SP/loco/r11/sbg1_c14w_*, sbg1_c16o_* (game route with walls), sbw1_* (walkers' route), python3 SP/loco/sbwcmp.py [-g] c14w c16o; full eval EVP=ev2 python3 SP/loco/evsum2.py c14w c16o; kit python3 SP/loco/kitcmp2.py c14w c16o; player speeds python3 SP/loco/qs/plsum.py lm_c14w lm_c16o.
+- anim_test: SP/loco/sl/at_qs16o.log
+- SP = /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad

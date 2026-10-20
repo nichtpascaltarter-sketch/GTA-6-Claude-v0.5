@@ -1,0 +1,9 @@
+{
+  "id": "55",
+  "subject": "Snapshot 62: source-built updater + --datadir, campus fix, PC worker fixes, doc v1.2, roomlight",
+  "description": "Merged as PR #55 (0bdeab3), Codex: no findings; grafted. PC live updater test queued as package 03 (P = 7b9146d).",
+  "activeForm": "Landing snapshot 62",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": []
+}

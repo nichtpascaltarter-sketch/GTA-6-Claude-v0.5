@@ -1,4 +1,4 @@
-// The hand-built world at runtime (handworld.h): the baked terrain from world.bin, and its roads where it has them.
+// The hand-built world at runtime (handworld.h). Stage 0: the baked terrain from world.bin.
 #ifdef _WIN32
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
@@ -11,7 +11,6 @@
 #include "handworld.h"
 #include "gridcodec.h"
 #include "roads.h"
-#include "roadsbin.h"
 #include "buildings.h"
 #include "worldtypes.h"
 #include "../core/jobs.h"
@@ -194,21 +193,16 @@ bool loadHandWorld(const char* worldFile, WorldMap& map, RoadNetwork& roads, Bui
     if (!bin.open(data, size, error)) return false;
     if (!loadHandTerrain(bin, map, error)) return false;
     gMap = &map;
-    // the roads where the world has them (stage 1), else an empty network with its lookup table, so every query finds
-    // nothing; no buildings yet: an empty set with its cell lists
+    // stage 0 has no roads or buildings: empty sets with their lookup tables, so every query finds nothing
     roads = RoadNetwork();
-    if (bin.find("roads")) {
-        if (!readRoads(bin, roads, nullptr, nullptr, error)) return false;
-    } else {
-        roads.buildHash();
-    }
+    roads.buildHash();
     gRoads = &roads;
     buildings = BuildingSet();
     buildings.cellLists.assign((size_t)kCellsPerSide * kCellsPerSide, {});
     buildings.openCellLists.assign((size_t)kCellsPerSide * kCellsPerSide, {});
     gBuildings = &buildings;
-    LOG("Hand world: terrain and %zu road nodes, %zu edges from %s (%zu KB, %zu sections) in %.2f s", roads.nodes.size(), roads.edges.size(),
-        worldFile && *worldFile ? worldFile : "the exe", size / 1024, bin.sections.size(), TimeSeconds() - t0);
+    LOG("Hand world: terrain from %s (%zu KB, %zu sections) in %.2f s", worldFile && *worldFile ? worldFile : "the exe", size / 1024,
+        bin.sections.size(), TimeSeconds() - t0);
     return true;
 }
 

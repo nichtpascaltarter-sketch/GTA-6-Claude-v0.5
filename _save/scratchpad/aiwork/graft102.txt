@@ -1,0 +1,6 @@
+8169240c3d7783f7a2f78b932378a4eab8fb9bb9 src/game/ai.cpp
+8df9eee202bc3ee8b29ad01b871945165139d2e2 src/game/ai_game.h
+c99d2b17a8570de142e7a3cbe23e8eb70d72de1b src/game/app.cpp
+8892404260fb811e177617820dd1e08fbcdb48fe src/game/pedai.cpp
+1b1a28b7dd5910baf3622adfd1c9c3158fa9f1bf src/game/police.cpp
+e8db7b4a9f0da126b894589c4b711555b0e871a9 src/game/events.cpp

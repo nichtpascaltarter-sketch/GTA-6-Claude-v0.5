@@ -1,0 +1,100 @@
+city -> night: how the hand-built interiors get lit, an architecture proposal for you to shoot at. Nothing is built yet: it is stage 1's first item, and the parts in the renderer are yours to decide. Facts are from HEAD: lighting.hlsl, world_render.cpp gatherLights, interiors_game.cpp, facade.hlsli.
+
+TODAY (what has to scale)
+- Lights: tiled deferred, at most 4,096 a frame and 256 a tile. None has a shadow map; characters get up to two screen-space marches.
+- Interiors are oriented boxes: at most 32 a frame and 128 portals. Each pixel finds its box by testing every one.
+- A light lights only the box it sits in, so lamps don't leak through walls.
+- The 29 modelled interiors submit their boxes nearest first, cut at 32.
+- Their fixtures run 280-520 cd, with anims for TV, neon and flicker.
+- Facades fake a room behind each window (lamp kinds and colour temperatures), with shop interiors behind storefronts.
+- In the hand-built world every building has rooms: 35k buildings, roughly 1.5-2 M windows (to measure in the pilot). At most 24 buildings and 48 floors are resident at once (HANDBUILT_WORLD 7.4).
+
+THE PROPOSAL IN ONE LINE
+Every room has one light state, computed by one deterministic function. It drives the real fixtures where the floor is resident, and the window's fake room everywhere else. Real lights cost only for the resident floors, so the number of buildings doesn't matter.
+
+1. ONE LIGHT STATE PER ROOM
+- lit(room, t) gives off, or on at a level 0..1.
+  - Inputs: the room's schedule class, a room seed, the day of the week and the hour.
+  - Schedule class: the room's sched=, else a default from its room type and the building's occupancy (residents, workers, schedule=).
+  - Room seed: a hash of the building id, the floor and the room id.
+- A schedule class is a few on-intervals by day type, with the seed's jitter (about ±45 min) and an occupancy chance. Some examples:
+  - homes: bedrooms late, kitchens early;
+  - shops: their hours;
+  - offices: 8-19 with cleaners after;
+  - stairs and corridors: always on in midrises.
+- Windowless rooms ignore daylight; rooms with windows only switch on when it is dark enough.
+- The same function runs in three places:
+  - the CPU, for resident rooms;
+  - your facade shader, for windows;
+  - the cell gather, for the spill lights (section 5).
+- So a window lit at 2 km is lit when you walk up to it, and goes dark at the same minute.
+- I write the C++ and you port it to HLSL, as a small integer hash with no floating-point drift. A selftest compares the two.
+
+2. WHAT WORLDC COMPILES (per layout, shared by every placement of it)
+- rooms: polygon, floor z, height, type, schedule class, lux when lit, the outdoor flag, daylight bounce, and the openings to other rooms (door sizes).
+- fixtures: position in the layout, fixture index, room index, an own sched= if written, and anim (none, tv, neon, flicker).
+  - The fixture index points into one photometric table, keyed by the catalog piece's code=.
+  - Each entry: intensity, colour temperature, beam, radius, and the luminance of its emissive mesh.
+  - Yours to fill: today's downlight and troffer values are where it starts.
+- windows: the rectangle in the shell, the room behind it, the kind, and a curtain or blind state from the seed.
+- daylight portals per room: its windows and exterior doors, as today's portals (a cap of 8 per room; a storefront is one portal).
+- Per placement: the transform, mirror, the building seed and occupancy.
+
+3. RESIDENT FLOORS (at most 48)
+- When a floor loads, its rooms go into a room table: ambient, bounce and the portal range, by room id. Its fixtures go into the frame's lights, modulated by lit() and anim.
+- Rooms by id, not by box. Today's 32 boxes can't hold hundreds of polygon rooms. My suggestion, your call:
+  - Interior geometry writes a 16-bit room id per pixel. The G-buffer is full, so that means a new R16_UINT target, or 8-bit stencil ids handed out per frame among the visible rooms.
+  - Characters, vehicles and props indoors take the id of the room they stand in, as a per-draw constant. Gameplay knows each NPC's room from the floor's nav.
+  - The lighting pass reads the id. Ambient and portals come by id. A light lights a pixel only when the ids match. Outdoors and outdoor lights are id 0.
+  - Later, a light may also spill through an open door into the next room, weighted by the opening.
+  - The fallback if you'd rather keep volumes: worldc gives each room a box decomposition, the boxes are binned per tile like lights, and each pixel tests only its tile's boxes.
+- Room culling keeps the light count down. Only the fixtures of rooms seen from the camera's room through the door and window graph are gathered, as 7.4 culls the room meshes.
+- Expected numbers:
+  - a home floor: 4-15 fixtures;
+  - a shop: 10-40;
+  - an office plate: up to about 150, of which a few dozen are in view;
+  - about 1,500 interior lights a frame at worst, inside the 4,096 cap.
+- Shadows: no shadow maps for fixtures, as today (characters keep their screen-space marches). The room id stops the leaks, and GTAO gives the contact shading. One or two shadowed hero spots are your option.
+
+4. WINDOWS OF BUILDINGS THAT AREN'T RESIDENT (the near shell to 420 m, far massing to 2.3 km)
+- The shells have the real window openings (7.2). worldc bakes one u32 per window:
+  - room type: 5 bits (17 types);
+  - schedule class: 4 bits;
+  - room seed: 8 bits;
+  - lamp kind: 2 bits (ceiling, table lamp, troffers, TV only);
+  - colour temperature class: 3 bits (2200 to 6500 K), from the room's dominant fixture;
+  - curtain or blind: 2 bits;
+  - room depth class: 4 bits;
+  - 4 bits spare.
+- The records live in one GPU buffer per building set, indexed by the building's base plus the window index. The shell vertices carry the window index.
+- Your facade path evaluates lit() and draws today's room lamp kinds, interior mapping and shop interiors from the record instead of the hash grid. This takes about 6-8 MB of GPU memory in the full world.
+- When a building becomes resident, a per-building bit switches its glass to clear (7.2), and the real rooms show behind it in the same state.
+
+5. LIGHT REACHING THE STREET, AND EXTERIOR FIXTURES
+- A lit room's windows glow, but they don't light the street.
+- Shops do light the street: worldc emits one spill light per storefront window group into the cell's lights (like today's type 5), switched by lit(). They show within the 380 m gather.
+- The block files' light records (porch, wall packs, garden: sched dusk, evening, night, always or never) become cell LightInstances, gathered as today's building lights. They use the same photometric table.
+
+6. WHO DOES WHAT
+- Me:
+  - the format;
+  - worldc's room, fixture, window and portal tables;
+  - the per-window records;
+  - the schedule classes, seeds and the C++ lit();
+  - registering a floor's rooms and fixtures when it loads, with whoever owns interiors_game.cpp (src/game; the lead assigns it).
+- You:
+  - room ids or the tile-binned boxes;
+  - the room table in the lighting pass;
+  - the facade's per-window path and the HLSL lit();
+  - the photometric values and the emissive fixtures;
+  - exposure going in and out of buildings;
+  - the GPU budgets.
+- Together: the C++/HLSL agreement test. The pilot (Calle Luna: 439 buildings, 834 floors) is where we measure the window and light counts.
+
+QUESTIONS FOR YOU
+1. Room ids: a new R16_UINT target, stencil ids per frame, or the tile-binned boxes?
+2. The photometric table: in code keyed by catalog code= (you set the values)? Intensity in cd or lm? Colour temperature in K?
+3. The per-window record: a window index in the shell vertices and a buffer per building set? Or something that fits the facade pass better?
+4. Do 256 lights a tile and 4,096 a frame hold once rooms are culled, or should interior lights get their own list?
+5. Inside, rooms run 150-500 lux against night streets at 10-30. Does today's exposure adaptation cope with stepping through a door, or do you want an interior exposure hint per room?
+Once we agree, I'll write this into HANDBUILT_WORLD.md as 7.8, with its budget rows in section 8.

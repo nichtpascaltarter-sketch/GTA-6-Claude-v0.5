@@ -1,0 +1,54 @@
+Places: Ocean Promenade hotel row, 11 hotels at x 5365 (ground 2.4), park 681..1050
+Places: Porto Sol University at (1950, 3700), ground 3.3, 13 halls
+Places: Santa Marea Cemetery at (1600, -750), ground 3.5, 67 mourners
+Places: Palmera State Penitentiary at (350, 9075), ground 6.9
+Places: Palmera Speedway at (400, 5790), ground 6.8
+Places: layout 0.002 s, 5 places, 624 anchors
+Transit: SkyLine loop 8.60 km, 8 stations, 4299 samples; 3 ferry piers
+Sites: 111 pads, 613 elements, 25 roads, 53 buildings requested (0.09 s)
+World map generated in 25.39 s
+/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/dev13/src/world/roads.cpp:544:169: runtime error: index -8 out of bounds for type 'char *[10]'
+=================================================================
+==6529==ERROR: AddressSanitizer: global-buffer-overflow on address 0x55c49dcc3280 at pc 0x55c49d8e075a bp 0x7ffd25bdfce0 sp 0x7ffd25bdfcd0
+READ of size 8 at 0x55c49dcc3280 thread T0
+    #0 0x55c49d8e0759 in World::RoadNetwork::generate(World::WorldMap&) (/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/wc/wc_dev13_asan+0xe31759) (BuildId: 1e136ceacb556928fe737dc79abe27f6d2f985b9)
+    #1 0x55c49da6c061 in main (/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/wc/wc_dev13_asan+0xfbd061) (BuildId: 1e136ceacb556928fe737dc79abe27f6d2f985b9)
+    #2 0x7f6d5562a1c9 in __libc_start_call_main ../sysdeps/nptl/libc_start_call_main.h:58
+    #3 0x7f6d5562a28a in __libc_start_main_impl ../csu/libc-start.c:360
+    #4 0x55c49cae4e64 in _start (/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/wc/wc_dev13_asan+0x35e64) (BuildId: 1e136ceacb556928fe737dc79abe27f6d2f985b9)
+
+0x55c49dcc3280 is located 32 bytes before global variable 'kStreetSuffix' defined in '/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/dev13/src/world/roads.cpp:152:13' (0x55c49dcc32a0) of size 80
+0x55c49dcc3280 is located 0 bytes after global variable 'kFirst' defined in '/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/dev13/src/world/buildings.cpp:74:13' (0x55c49dcc3180) of size 256
+SUMMARY: AddressSanitizer: global-buffer-overflow (/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/wc/wc_dev13_asan+0xe31759) (BuildId: 1e136ceacb556928fe737dc79abe27f6d2f985b9) in World::RoadNetwork::generate(World::WorldMap&)
+Shadow bytes around the buggy address:
+  0x55c49dcc3000: f9 f9 f9 f9 00 00 00 00 00 00 00 00 00 00 00 00
+  0x55c49dcc3080: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x55c49dcc3100: 00 00 00 00 00 00 00 00 00 00 00 00 f9 f9 f9 f9
+  0x55c49dcc3180: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x55c49dcc3200: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+=>0x55c49dcc3280:[f9]f9 f9 f9 00 00 00 00 00 00 00 00 00 00 f9 f9
+  0x55c49dcc3300: f9 f9 f9 f9 00 00 00 00 00 00 00 00 00 00 00 00
+  0x55c49dcc3380: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x55c49dcc3400: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x55c49dcc3480: 00 00 00 00 00 00 00 00 00 00 00 00 f9 f9 f9 f9
+  0x55c49dcc3500: 00 f9 f9 f9 f9 f9 f9 f9 00 00 00 00 00 00 00 00
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:           00
+  Partially addressable: 01 02 03 04 05 06 07 
+  Heap left redzone:       fa
+  Freed heap region:       fd
+  Stack left redzone:      f1
+  Stack mid redzone:       f2
+  Stack right redzone:     f3
+  Stack after return:      f5
+  Stack use after scope:   f8
+  Global redzone:          f9
+  Global init order:       f6
+  Poisoned by user:        f7
+  Container overflow:      fc
+  Array cookie:            ac
+  Intra object redzone:    bb
+  ASan internal:           fe
+  Left alloca redzone:     ca
+  Right alloca redzone:    cb
+==6529==ABORTING

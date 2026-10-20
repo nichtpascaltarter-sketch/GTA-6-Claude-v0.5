@@ -1,0 +1,15 @@
+start 16:18:58
+build st13 rc 0
+Embedded 40 shader files.
+-rwxr-xr-x 1 root root 12838912 Oct 19 16:27 bin/loco_st13.exe
+built st13 16:27:43
+run st13t 16:27:43
+run st13t exit 0
+[2473.995] locotour steps standing          n   51 | slide cm/step mean 3.49 p90 12.44 max 37.43 | pivot deg/step mean 5.1 | scuffs 5
+[2473.996] locotour steps walking straight  n  580 | slide cm/step mean 1.58 p90 2.01 max 52.98 | pivot deg/step mean 0.4 | scuffs 21
+[2473.996] locotour steps walking, turning  n  201 | slide cm/step mean 4.50 p90 8.32 max 127.87 | pivot deg/step mean 17.6 | scuffs 15
+[2473.996] locotour steps jogging/running   n    0 | slide cm/step mean 0.00 p90 0.00 max 0.00 | pivot deg/step mean 0.0 | scuffs 0
+[2473.996] locotour steps all               n  832 | slide cm/step mean 2.40 p90 4.42 max 127.87 | scuffs 41
+[2473.996] locotour feet: 75110 foot-frames, planted but more than 15 mm off the ground 159, lowest sole point -293.3 mm
+[2473.997] locotour slides over 20 cm by stance: 0:11 7:5 8:2 11:1 | by AI activity: 0:12 1:5 9:2
+orch28 done 17:27:14

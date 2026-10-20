@@ -1,0 +1,4 @@
+=== series --testlimit 12 (17:30)
+[ 948.593] [missiontest] series t=12.1: FAILED at stage 1 - Test timeout
+[1435.102] [missiontest] SUMMARY: 0 passed, 1 failed
+[1435.110] [missiontest]   series: FAILED (stage 1, 12 s) - Test timeout

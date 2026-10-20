@@ -1,0 +1,6 @@
+Embedded 35 shader files.
+[ 705.916] autoplay t=9.5 pos 1806.7 201.1 4.6 state 2 health 200 veh 1 speed 11.3 | peds 88 vehicles 62 wanted 0 | cpu ms player 0.05 ai 1.41 veh 0.54 peds 2.4
+[ 959.121] autoplay t=17.5 pos 1806.7 247.5 3.5 state 2 health 200 veh 1 speed 10.9 | peds 88 vehicles 66 wanted 0 | cpu ms player 1.27 ai 0.43 veh 0.83 peds 2.
+07d01f2 Hospitals, prison and speedway, greetings and street meets, body extremes, wall stipple fix
+branch 'claude/neon-tide' set up to track 'origin/claude/neon-tide'.
+COMMITTED 6d6c43f9b21126bb94b5bc7de4f4e95850027d87

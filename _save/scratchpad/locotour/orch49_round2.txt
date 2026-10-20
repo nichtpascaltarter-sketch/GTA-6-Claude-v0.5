@@ -1,0 +1,9 @@
+start 12:19:03
+  nothing ready 12:28:33
+run st20spk 12:29:03 memfree 13668
+run st20spk exit 0 (renderevery 30)
+done st20spk 12:33:00
+run st21spk 12:39:30 memfree 13669
+run st21spk exit 0 (renderevery 30)
+done st21spk 12:42:58
+orch49 done 12:42:58

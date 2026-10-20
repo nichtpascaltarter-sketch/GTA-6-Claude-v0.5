@@ -1,0 +1,7 @@
+ntw 1 layout id=lib.layout.garage.shed_a_f0
+wall w1 a=0.00,0.00 b=3.00,0.00 t=0.15 ext=front
+wall w2 a=3.00,0.00 b=3.00,4.00 t=0.15 ext=right
+wall w3 a=3.00,4.00 b=0.00,4.00 t=0.15 ext=back
+wall w4 a=0.00,4.00 b=0.00,0.00 t=0.15 ext=left
+room shed type=store poly=0.00,0.00;3.00,0.00;3.00,4.00;0.00,4.00 cap=1
+door d1 wall=w1 at=1.50 w=0.90 h=2.00 kind=hinged hinge=left swing=out leads=out:shed lock=key

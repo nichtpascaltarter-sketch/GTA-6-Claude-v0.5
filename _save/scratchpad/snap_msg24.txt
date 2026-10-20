@@ -1,0 +1,40 @@
+GPU-driven props; police sidewalk stops, witness statements and coffee breaks; bystanders take cover
+
+Renderer: vegetation phase 1, GPU-driven props (looks identical)
+- Every near-cell prop sits in a persistent GPU instance buffer. It is rebuilt only when the near cells or the set of
+  knocked-down props change.
+- A compute pass culls them each frame (src/shaders/propcull.hlsl), for the camera and the 3 prop shadow cascades,
+  by distance per prototype and by frustum. It writes per-prototype instance lists plus compacted
+  DrawIndexedInstanced arguments and a count.
+- Each pass draws every prototype with one ExecuteIndirect, selecting its instances by StartInstanceLocation.
+- The CPU gather over every near-cell prop, four times a frame, is gone.
+- Traffic signals keep the CPU-instanced path, since their lamps follow the AI phases every frame.
+- Checks:
+  - Props are identical at tour stops 4-13 (image diff against the same base).
+  - API draws per frame go 525 -> 468 and dynamic uploads 685 -> 636 KB. Descriptors go 957 -> 972, for the
+    cull's views.
+  - GPU pass times relative to lighting are unchanged.
+  - --gfxselftest gains a 20th check, GPU-written instances with indexed indirect draws.
+
+AI: second set of street life
+- Police sidewalk stops:
+  - Beat pairs stop people on the sidewalk. Each stop ends one of three ways: the subject is let go; a warrant means
+    cuffs and then a transport; or the subject runs and is chased and tackled.
+  - After an arrest, an officer takes a witness statement.
+  - When an escort walks a prisoner from far off, the partner brings the car round.
+- Patrol cars take coffee breaks at the kerb.
+- Dispatch picks units by route length, at most 1.7x the straight line, so units no longer drive away first.
+- Units held up in traffic go on foot. Foot chases follow a breadcrumb trail to the last-seen spot.
+- Pedestrians:
+  - Bystanders duck into doorways or dash behind parked cars.
+  - Walkers sidestep runners, and strangers ask the way with a point.
+  - Couples walk side by side, a little closer. The hand-hold pose comes with the next AI batch.
+- A passer-by chases a purse snatcher and sometimes tackles him.
+- Escorts, prisoners, officers walking back to the car and every generic GOTO walker go round benches, planters
+  and bins.
+- New --autoplay pedstop, copbreak and life test modes. The arrest test window is 260 s.
+- Tests: arrest, events (all six staged), takeover, pedstop (all three endings), panic, life (200 s, no stuck
+  walkers) and brawl, all with rc 0 and no crashes.
+- Known: in the arrest test's third stage, a transport held up in traffic doesn't get its prisoner in within the
+  260 s window. The next AI batch fixes it: a held-up transport pulls over, the escort waits on the kerb, and units
+  go on foot only within 45 m.

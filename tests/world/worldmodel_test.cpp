@@ -3,7 +3,6 @@
 // - a two-district world (tests/world/fixtures/model, worldv-clean): the tables, their order, the references;
 // - the findings on broken input (codes and lines), and files that don't parse or break the schema;
 // - the roads compile: widths, heights, flags, junction radii, cut-backs and control, seeds, the spatial hash;
-// - the roads through world.bin (src/world/roadsbin.h): back exactly as written, and damaged sections refused;
 // - the rooms' light state (src/world/roomlight.h): fixed test vectors, which the renderer's HLSL copy must match too,
 //   and the schedules' properties.
 // Build and run from the repo root, as CI's GCC job does:
@@ -16,9 +15,6 @@
 #include "../../src/world/roadnet.cpp"
 #include "../../src/world/worldmodel.cpp"
 #include "../../src/world/worldmodel_roads.cpp"
-#include "../../src/world/lz.cpp"
-#include "../../src/world/worldbin.cpp"
-#include "../../src/world/roadsbin.cpp"
 #include "../../src/world/roomlight.h"
 #include <chrono>
 #include <cmath>
@@ -549,9 +545,6 @@ static void testRoomLight() {
     EXPECT(RS_COUNT <= 16, "roomLight: %d classes don't fit the window record's 4 bits", (int)RS_COUNT);
     for (u32 c = 0; c < (u32)RS_COUNT; c++) EXPECT(roomScheduleName(c)[0] != 0, "roomLight: class %u has no name", c);
     EXPECT(roomScheduleName(RS_COUNT)[0] == 0 && roomLight(RS_COUNT, 1u, 0u, 2u, 720u, 255u) == 0u, "roomLight: a class past the table is dark");
-    EXPECT(roomMinute(0.f) == 0u && roomMinute(0.01f) == 0u && roomMinute(7.25f) == 435u && roomMinute(23.999f) == 1439u &&
-               roomMinute(24.f) == 1439u && roomMinute(-0.5f) == 0u && roomMinute(1e9f) == 1439u && roomMinute(std::nanf("")) == 0u,
-           "roomMinute: the minute of the clock");
 
     // the classes' properties over many rooms
     int always = 0, never = 0, dayHome = 0, darkHome = 0, shopNoon = 0, shopNight = 0, shopNightChanged = 0, homeChanged = 0, lateBar = 0, porch = 0;
@@ -580,110 +573,12 @@ static void testRoomLight() {
     EXPECT(lateBar > rooms * 8 / 10 && porch == rooms, "roomLight: bars at 1:00 %d, porch lights on at 21:30 and off at 3:00 %d of %d", lateBar, porch, rooms);
 }
 
-// ---------------------------------------------------------------------------------------- the roads through world.bin
-
-static bool sameNetwork(const RoadNetwork& a, const RoadNetwork& b) {
-    if (a.nodes.size() != b.nodes.size() || a.edges.size() != b.edges.size() || a.hashRes != b.hashRes || a.hash != b.hash) return false;
-    for (size_t i = 0; i < a.nodes.size(); i++) {
-        const RoadNode &x = a.nodes[i], &y = b.nodes[i];
-        if (x.p.x != y.p.x || x.p.y != y.p.y || x.z != y.z || x.edges != y.edges || x.control != y.control || x.highway != y.highway || x.radius != y.radius) return false;
-    }
-    for (size_t i = 0; i < a.edges.size(); i++) {
-        const RoadEdge &x = a.edges[i], &y = b.edges[i];
-        if (x.n0 != y.n0 || x.n1 != y.n1 || x.cls != y.cls || x.flags != y.flags || x.lanesF != y.lanesF || x.lanesB != y.lanesB || x.halfWidth != y.halfWidth ||
-            x.sidewalk != y.sidewalk || x.length != y.length || x.cut0 != y.cut0 || x.cut1 != y.cut1 || x.seed != y.seed || x.name != y.name || x.dist != y.dist ||
-            x.pts.size() != y.pts.size())
-            return false;
-        for (size_t k = 0; k < x.pts.size(); k++)
-            if (x.pts[k].x != y.pts[k].x || x.pts[k].y != y.pts[k].y || x.pts[k].z != y.pts[k].z) return false;
-    }
-    return true;
-}
-
-// A world.bin holding only a "roads" section with these bytes
-static std::vector<u8> binWithRoads(const std::vector<u8>& payload) {
-    WorldBinWriter w;
-    w.add("roads", WSK_RAW, payload);
-    return w.finish();
-}
-
-static void testRoadsSection() {
-    Model m;
-    std::vector<Error> errors;
-    load(kWorld, m, errors);
-    RoadNetwork rn;
-    RoadIndex ix;
-    compileRoads(m, rn, ix, errors);
-    EXPECT(errors.empty() && rn.edges.size() == 8, "roads section: the test world compiles");
-    std::vector<std::string> nodeIds, edgeIds;
-    for (int mi : ix.nodeOf) nodeIds.push_back(m.nodes[(size_t)mi].id);
-    for (int mi : ix.edgeOf) edgeIds.push_back(m.edges[(size_t)mi].id);
-
-    // written, opened and read back: the same network to the bit, with its ids
-    WorldBinWriter w;
-    writeRoads(rn, &nodeIds, &edgeIds, w);
-    const std::vector<u8> bin = w.finish();
-    WorldBinView view;
-    std::string why;
-    EXPECT(view.open(bin.data(), bin.size(), &why) && view.find("roads") && view.find("roads.ids"), "roads section: world.bin opens (%s)", why.c_str());
-    RoadNetwork back;
-    std::vector<std::string> backNodes, backEdges;
-    EXPECT(readRoads(view, back, &backNodes, &backEdges, &why), "roads section: read failed: %s", why.c_str());
-    EXPECT(sameNetwork(rn, back), "roads section: the network read back differs");
-    EXPECT(backNodes == nodeIds && backEdges == edgeIds && backEdges.size() == 8 && backEdges[7] == "tr.e00001", "roads section: the ids read back differ");
-    float s = 0.f, d = 0.f;
-    EXPECT(back.nearestEdge(vec2(300.f, 152.f), 10.f, &s, &d) == 0 && same(d, 2.f, 0.01f), "roads section: the hash works after reading");
-
-    // without ids, and an empty network
-    WorldBinWriter w2;
-    writeRoads(RoadNetwork(), nullptr, nullptr, w2);
-    const std::vector<u8> bin2 = w2.finish();
-    WorldBinView view2;
-    RoadNetwork empty;
-    EXPECT(view2.open(bin2.data(), bin2.size(), &why) && !view2.find("roads.ids") && readRoads(view2, empty, &backNodes, &backEdges, &why) && empty.nodes.empty() &&
-               empty.edges.empty() && backNodes.empty() && empty.hashRes > 0,
-           "roads section: an empty network");
-
-    // damaged sections are refused with a reason, never read half
-    std::vector<u8> payload;
-    EXPECT(view.bytes("roads", payload) && payload.size() > 100, "roads section: its bytes");
-    struct Damage {
-        const char* what;
-        std::vector<u8> bytes;
-    };
-    std::vector<Damage> damages;
-    damages.push_back({"truncated", std::vector<u8>(payload.begin(), payload.end() - 7)});
-    damages.push_back({"one byte too many", payload});
-    damages.back().bytes.push_back(0);
-    damages.push_back({"another version", payload});
-    damages.back().bytes[0] = 2;
-    damages.push_back({"an edge naming node 1000", payload});
-    const size_t firstEdge = 4 + 4 + rn.nodes.size() * 20 + 4;   // version, node count, the nodes, edge count
-    damages.back().bytes[firstEdge] = 0xE8;                          // n0 = 1000 (0x3E8)
-    damages.back().bytes[firstEdge + 1] = 0x03;
-    damages.push_back({"empty", std::vector<u8>()});
-    for (const Damage& dmg : damages) {
-        const std::vector<u8> b = binWithRoads(dmg.bytes);
-        WorldBinView v;
-        RoadNetwork bad;
-        why.clear();
-        EXPECT(v.open(b.data(), b.size(), &why) && !readRoads(v, bad, nullptr, nullptr, &why) && !why.empty() && bad.edges.empty(), "roads section: %s was read", dmg.what);
-    }
-    WorldBinWriter w3;
-    w3.add("terrain", WSK_RAW, std::vector<u8>(8, 0));
-    const std::vector<u8> bin3 = w3.finish();
-    WorldBinView view3;
-    RoadNetwork none;
-    EXPECT(view3.open(bin3.data(), bin3.size(), &why) && !readRoads(view3, none, nullptr, nullptr, &why), "roads section: a world.bin without one");
-}
-
 int main() {
     testDiscover();
     testSamples();
     testWorld();
     testCompile();
     testErrors();
-    testRoadsSection();
     testRoomLight();
     printf(gFails ? "worldmodel_test: %d FAILURES\n" : "worldmodel_test: all passed\n", gFails);
     return gFails ? 1 : 0;

@@ -1,0 +1,7 @@
+In file included from src/main.cpp:70:
+src/game/app.cpp: In member function 'void Game::App::updatePhone(const InputState&, float)':
+src/game/app.cpp:6236: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
+ 6236 |         if (a.type != UI::PA_NONE && phoneHandle(game, ph, a)) return;   // calls, messages and apps
+      | 
+src/game/app.cpp:6236: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
+-rwxr-xr-x 1 root root 13296128 Oct 20 02:13 /home/user/GTA-6-Claude-v0.5/bin/nt_v2.exe

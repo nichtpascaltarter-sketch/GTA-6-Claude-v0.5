@@ -1,0 +1,9 @@
+In file included from src/game/../game/game_all.cpp:61,
+                 from src/game/app.cpp:14,
+                 from src/main.cpp:75:
+src/game/../game/gameworld.cpp: In member function 'void Game::GameWorld::submitRender()':
+src/game/../game/gameworld.cpp:523: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
+  523 |                 if (a.spec.wheels[w].left) wr = wr * mat3FromQuat(quatAxisAngle(vec3(0, 0, 1), kPi));
+      | 
+src/game/../game/gameworld.cpp:523: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
+-rwxr-xr-x 1 root root 15857152 Oct 20 09:54 bin/loco_st19a.exe

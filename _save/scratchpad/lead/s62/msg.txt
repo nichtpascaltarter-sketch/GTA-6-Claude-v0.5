@@ -1,0 +1,51 @@
+The game updates itself from main's source code, and test runs keep to their own data folder
+
+The updater (tools engineer; src/platform/updater*, update_logic*, version.h, win32.cpp, menus.cpp, hud.h, viewer.cpp,
+build.bat, build.sh), as the user asked: no more release exes. It builds the source of GitHub's main, which holds
+merged pull requests only, and lists the new ones.
+- Every build carries the commit it was built from (NT_COMMIT: the environment variable, else git's HEAD when the
+  build folder is a git checkout, else "unknown"). The main menu shows "Version 0.02.7-dev • a0c1e2f", and the log's
+  first line names the commit.
+- At startup: GitHub's compare of that commit with main, about 13 KB. It updates only when main is ahead, with the
+  pull requests read from main's merge commits ("2 new updates: #55 ..., #54 ..."). Identical, behind, diverged and
+  unknown commits log why not. An "unknown" build updates once. One API request per start, two with an update.
+- Download: main's source archive, https to github.com and its subdomains only, TLS checks on. Each redirect is
+  followed by hand and checked by the same rule, and Windows' tar.exe unpacks it. The archive's one folder must name
+  the commit.
+- Build: build.bat in the background (Visual Studio via vswhere, else MinGW), at below-normal priority with no
+  window, inside a job object. The build ends when the game exits, the setting goes off or a benchmark starts, and
+  after 60 minutes at most.
+  - With no compiler or tar.exe, a notice with "Open help page" (the README's Updates section) appears and nothing is
+    downloaded.
+  - A failed build shows "Update build failed" with "Open log", and that commit isn't retried with the same compiler.
+- Install as before: <exe>.pending is checked again at the next start (its record, size, SHA-256, the x64 PE image,
+  the commit inside), then swapped in and relaunched. The release path is gone.
+- build.bat no longer fails on a Visual Studio install without vcvars64.bat: it goes on to cl, then g++.
+- Tests: update_logic_test has 243 checks with real GitHub answers as fixtures (UBSan, ASan). Under Wine against a
+  local GitHub stand-in, the full flow passes 62/62 with a test exe and 53/53 with the game exe. The menu regression
+  test gives 2646/0, and the drive smoke is unchanged. The Windows CI job gains a check that the MSVC exe carries its
+  own commit.
+
+--datadir=<dir> (or NEONTIDE_DATADIR) moves the whole data folder. That is the log, settings, saves, photos,
+benchmark results, the shader cache and the updater's builds. Test runs on the user's PC can then never touch the
+player's own %LOCALAPPDATA%\NeonTide.
+
+Also:
+- Campus (city; src/world/campus.cpp): the walk from the dorms to the field house went 18 m straight through the
+  building to its south-facing door. It now goes round the west end, with its paving and shade trees. The procedural
+  census is otherwise identical; traffic_sim --walkcheck finds no walk link through a building now (1 -> 0).
+- The hand-built world (city; docs/HANDBUILT_WORLD.md v1.2, src/world/roomlight.h, tests/world/worldmodel_test.cpp):
+  - 7.8 says how the interiors are lit: one deterministic light state per room, the real fixtures on resident floors
+    and the windows' fake rooms elsewhere.
+  - roomlight.h holds that state's function: 13 schedule classes, integer arithmetic only, so the shader's copy
+    matches it bit for bit.
+  - worldmodel_test pins it with 104 vectors and property checks over 2,000 rooms. Nothing in the game uses it yet.
+- The PC worker (lead; docs/PC_WORKER.md, tools/pc/next_package.sh, tools/pc/next_package.ps1), after its first two
+  packages on the user's PC passed (an MSVC build of main, and the host tools and tests with MSVC):
+  - `.\build.bat`;
+  - a PowerShell waiter, since Git for Windows' sh can't fork inside the PC session;
+  - the queue's README is no longer taken for a package;
+  - a lasting clone for the worker.
+
+Checks (lead, on this tree): CI's six GCC steps pass with its flags (-Wall -Wextra -Werror, UBSan). Then the snapshot
+smoke: the -O2 build, the 150 shaders, and the drive and melee autoplays.

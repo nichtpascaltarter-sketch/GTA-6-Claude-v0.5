@@ -1,0 +1,30 @@
+Hospitals, prison and speedway, greetings and street meets, body extremes, wall stipple fix
+
+- World: hospitals at every hospital blip. Tidewater General and Midtown General have a podium with the entrance
+  canopy, a ward tower with a lit H and a roof helipad, and an emergency wing with an ambulance canopy and bays. The
+  community hospitals and clinics are smaller, with ground helipads; the town hospitals that sat in the sea, the swamp
+  or the fields now stand in their towns. Palmera State Penitentiary: a perimeter wall with seven guard towers, the
+  sally port, cell blocks, an exercise yard under floodlights. Palmera Speedway: the oval with its catch fence, a
+  grandstand under race control, pit road and garages, the flag stand and light towers. Campus and deco strip
+  refinements.
+- Living world: greetings at the airport curb. A traveler and the driver hug, kiss on the cheek or shake hands at
+  pick-ups and drop-offs, the case parked by the foot, the driver waving them in. Acquaintances run into each other on
+  the sidewalk ("Hey! Look who it is!"), greet, talk in turns with lip-synced lines and walk on. Places keep hours
+  (prison yard time, hospital visiting hours) and fill with pit crews, a flagman and ambulance crews; circles and
+  tables take turns talking.
+- Characters: build extremes. Very heavy bodies carry it on the upper arms, thighs, belly, back and under the chin; old
+  age thins the limbs and thickens the waist; athletic builds taper from the lats; heavy faces are rounder. Garments
+  get a crease channel (fine wrinkles at the knees, elbows and waist). One source of truth for the protagonists
+  (protagonists.h): Mari in a tank top, jeans and flats; Dex in a grey tee under an open olive work jacket, jeans and
+  work boots. Shop outfits no longer inherit the everyday layers; loafers sound like leather.
+- Renderer: the regular dash grid on flat, ambient-lit walls is gone. AO, contact shadows and PCF use a per-pixel
+  temporal jitter stepped by the golden ratio, so TAA converges to the mean. A pedestrian faded in front of the
+  camera is not drawn below 30% coverage. AO blur stops only at geometric edges, cloth gets a soft sheen in shade, and
+  contact shadows are skipped at a grazing sun.
+- Missions: scenes staged inside interiors wait until the interior has streamed in; the Blue Line opening camera sees
+  the platform from beside the viaduct; the storm holds through King Tide; shop and business menus close while a
+  mission or cutscene runs. Fishing needs a clear line for a cast, falls back to the Lake Town shore, and the camera
+  settles behind the angler.
+- Tests and tools: animation tests (clothing clipping, greetings, standing), autoplay "greet" and auto-aimed "places"
+  cameras, traffic_sim --place anchor dumps, and a dedicated Wine slot for snapshot checks (tools/run.sh
+  NT_LEAD_SLOT).

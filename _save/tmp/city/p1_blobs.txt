@@ -1,0 +1,21 @@
+world/world.ntw e9a2579f new
+world/districts/cl/district.ntw 6f7c692f new
+world/districts/cl/roads.ntw 5653df78 new
+world/lib/signals/cl_twophase.ntw c6eefe72 new
+src/world/terrainops.cpp b70b54c7 new
+src/world/roadgrade.cpp 10f72e3c new
+src/world/worldmap.cpp 1e2d7e22 on 8521a606 (62)
+src/world/roads.cpp a5aa449a on 120a1113 (62)
+src/world/roads.h 4d3e7381 on 8f46021f (62)
+src/world/worldmodel_roads.cpp 9a483004 on f2230630 (62)
+src/world/cellgen.cpp 8eb6875b on ba81842d (62)
+src/world/roadmesh.cpp 135e02ed on c97c2f9e (62)
+src/world/handworld.cpp 3ba94b98 on 6b769ce8 (the roads set)
+src/world/handworld.h 07b87c19 on 76052426 (the roads set)
+tools/worldc.cpp 2d9f8b93 on 4ef1bdf8 (the roads set)
+build.sh 44700f46 on ff1e292c (the roads set)
+docs/HANDBUILT_WORLD.md 85d9f2bf on 2803a921 (the roads set)
+docs/NTW_FORMAT.md 3a48c19a on c1559061 (the roads set)
+tests/world/worldmodel_test.cpp a6485fde on c9a77220 (the roads set)
+src/game/app.cpp 4e191ac8 on 30f8a386 (62)
+src/game/savegame.cpp e2cd8963 on b1593762 (62)

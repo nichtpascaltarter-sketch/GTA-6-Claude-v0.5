@@ -1,0 +1,26 @@
+city snapshot-safe: batch 17, the beacon-sync world side: aviation lights blink with their red lamps. 7 files on top of HEAD 1a83e24 (each is the same at HEAD as at b71d339, where I made the change), copied into the shared tree over HEAD's copies. worldtypes.h is already in: you put 63a9e6e3 (on 21d26d2) in with the night agent's half. Blobs written with git hash-object -w. MinGW syntax check in the shared tree: {{SYN}}, with the other agents' current edits in place (/tmp/city/syntax_shared_b18.log).
+
+FILES
+{{FILES}}
+
+WHAT
+Every type-4 light now carries its lamp's blink phase in LightInstance::phase (1/256 of a period). With the night agent's world_render.cpp case 4, the light and the lamp's emissive switch on and off together.
+- sitegeo.cpp: new beaconLight(g, p, colour, radius, phase), a type-4 light with that phase.
+- landmarks.cpp: Solaris One's spire lamps (each level had its own phase, k*30) now all use phase 90, with the tip and the four corners, so the tower flashes as one, as real towers do. The corner lamps keep their size (0.6 m). City Hall's spire beacon: phase 5, its lamp's.
+- leisure.cpp: the Ferris wheel, (seed >> 3) & 255, its lamp's; the drop tower, 3.
+- airport.cpp: the control tower's antenna, 17.
+- port.cpp: each STS crane's boom tip and apex lamps now share one phase (seed & 255), and the light takes it.
+- rural.cpp: the radio mast's levels and the sugar mill's three stacks move from the slow blink (pattern 7) to pattern 1, phases 40 and 60, as you chose ("don't keep the slow ones"). Each structure flashes as one.
+- buildmesh.cpp: the antenna beacon's light gets phase 0 explicitly; its lamp is pattern 1, phase 0.
+
+CHANGELOG (player-facing): Aviation warning lights on towers, cranes, masts, the Ferris wheel and the drop tower now flash in step with their red lamps, and each tower's lights flash together. The radio mast and the sugar mill stacks flash at the same rate as every other aviation light instead of a slow blink.
+
+TESTS
+- worldcheck on dev28 (b71d339 + these 8 files), FP_BEACONS: 154 aviation lights. 97 have a pattern-1 lamp within 1.6 m, and all 97 share its phase: 0 out of step, 0 on another pattern. 57 have no lamp: buildmesh's crown lights, unchanged at phase 0. 0 overlapping building pairs; passed.
+- MSVC-safety scan (clang over src/world): 0 diagnostics. MinGW on dev28: 0 errors, 0 warnings.
+- Story regression on nt_dev27, which carries these files plus my held work (batches 16, 18, 19): 27/27 passed. Buildings, restyles, story places and the 29 interior hosts are identical to the earlier baseline.
+- Tours 2-5, nt_dev27 against nt_dev24 (HEAD 0d67933): {{TOURS}}
+
+NOT IN THIS SIGN-OFF (held, as you said): the second bag-pile variant, the larger Solaris One corner beacons, the four MAT_PLASTIC sites (batch 19) and the props_render.cpp line, which nothing needs now. They stay in my private trees (dev26, dev27) and aren't in the shared tree.
+
+EVIDENCE: worldcheck /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/wc/dev28.txt; checks /tmp/city/cq30.status; regression /tmp/city/reg_dev27_log.txt; tours /tmp/city/tour_dev27_log.txt and /tmp/city/tour_dev24_log.txt.

@@ -1,0 +1,2 @@
+ntw 1 set id=lib.set.kitchen.cottage_02 room=living # expect id.form
+fits w=3.00-5.00 d=3.00-5.00

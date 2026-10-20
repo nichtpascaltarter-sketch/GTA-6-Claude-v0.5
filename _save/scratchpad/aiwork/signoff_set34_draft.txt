@@ -1,0 +1,26 @@
+AI snapshot-safe, sets 3+4 (on top of set 2). Tested on nt_ai62 = HEAD <hash> plus the blobs below.
+[blobs]
+
+Police:
+- Parking tickets (police_ticket). A beat officer comes past a car parked at the kerb and writes it up: round to the windscreen, a look at it, the ticket on the device, then a hand under the wiper while the partner waits on the sidewalk. Now and then the owner comes hurrying over and protests. The officer answers ("Take it up with the city") and goes. The owner then takes the ticket off, reads it, grumbles and drives off.
+- Fender benders (police_scene, PT_SCENE). Four crashes in ten get a unit, sent from out of view up the same street. It pulls over behind with the light bar on. One officer takes the drivers' details (a few questions, then the device); the other stands at the back of the car waving traffic round. Then they get back in and drive off. The driver who was hit photographs the damage.
+- Someone down hurt: a beat pair nearby comes over. The lead kneels with a hand on the shoulder; the partner radios for EMS.
+- Arrests:
+  - The escort waits with the prisoner on the kerb while a crewmate brings the car round.
+  - A transport held up within 60 m pulls over after 12 s.
+  - The officer's hand goes on the prisoner's head at the car door.
+  - Units go on foot only within 45 m (or after 8 s crawling within 75 m).
+  - No witness statement after a warrant turns up at a stop.
+- Stop and statement walk-ups go round obstacles and log when they give up.
+- Officers call out cover and flanking moves. Beat pairs chat, and greet the player ("Sir.").
+Pedestrians:
+- A word for the player walking past (greetings by time of day, "On your left" from joggers, "Are you okay?" when the player is hurt) and a reaction to the player's horn.
+- Pairs walking together are overheard, with one line and the other's answer.
+- A mutter at long red lights. A press of the crossing button on a pole within reach.
+- Getting lost: a look at the map on the phone, then back the way they came. Stopping to tie a shoelace.
+- Rain: those without umbrellas hurry, four in ten jog. Some shelter under bus stops until it eases, and a few remark on it.
+- A proposal event: down on one knee with the ring, passers-by filming. Usually a yes (cheers, the hug, off hand in hand), now and then a no.
+- Drivers honk at jaywalkers ("Use the crosswalk!"), who hurry on.
+- More walk-round users: owners walking to their cars, cowering dashes, the hurrying ticket owner, the ticket officer and partner.
+The reach hook: PedAI::reachAt / reachT plus a peds.cpp block (below). Used for the ticket under the wiper, the ring, the crossing button, the helper's hand on the shoulder, the traffic-stop officer's hand on the roof, and the hand on the prisoner's head.
+Tests: ticket, proposal, crashscene, rain and night modes; the hurt test now has a beat pair; the pedstop camera follows a new stop. New census counters.

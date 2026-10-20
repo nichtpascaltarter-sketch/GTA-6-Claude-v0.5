@@ -1,0 +1,277 @@
+17:49:44 start: --sim 3600 3200 450 --cars 140 --peds 120 --minutes 6 --seed 2 -v
+binary traffic_sim2061f
+Places: Ocean Promenade hotel row, 11 hotels at x 5365 (ground 2.4), park 681..1050
+Places: Porto Sol University at (1950, 3700), ground 3.3, 13 halls
+Places: Santa Marea Cemetery at (1600, -750), ground 3.5, 67 mourners
+Places: Palmera State Penitentiary at (350, 9075), ground 6.9
+Places: Palmera Speedway at (400, 5790), ground 6.8
+Places: layout 0.001 s, 5 places, 624 anchors
+Transit: SkyLine loop 8.60 km, 8 stations, 4299 samples; 3 ferry piers
+Sites: 111 pads, 613 elements, 25 roads, 53 buildings requested (0.10 s)
+World map generated in 17.18 s
+Road gen: 18 interchanges, 50 ramps (22 left out where they could not come down in time)
+Road gen: 1 arterial ends at a lone on/off ramp given a turnaround
+Road gen: 37 stretches of road laid inside a bigger road's carriageway cut out (3019 m; 10 joins back onto it, 5 junctions left inside it moved onto it, 0 dead ends linked to it, 5 roads left hanging and 2 left doubled up dropped; 38 edges gone, 27 split to keep the edge order, 0 new at the end; 0 left where the bigger road gives way itself)
+Road gen: junction plateaus, 468 profile points levelled (largest change 0.50 m, 5 short links ramped plateau to plateau)
+Road network: 6260 nodes, 9547 edges, 1679 signalized; hwy 61.7 km, streets 1163.1 km (3.42 s)
+Transit: 0 buildings cleared from the SkyLine corridor
+Places: Okahatchee Union Church at (-48, 6872) on edge 4965, 6 buildings made way, 186 graves, 19 mourners
+Places: Old Fort Church at (4501, 7893) on edge 4035, 4 buildings made way, 166 graves, 18 mourners
+Places: Tidewater General Hospital (city) at (1698, 1100) on edge 6868, 7 buildings made way
+Places: Midtown General (city) at (3698, 3195) on edge 9083, 15 buildings made way
+Places: Westbrook Hospital (community) at (-2399, 1647) on edge 5533, 4 buildings made way
+Places: Sol Beach Clinic (clinic) at (5172, -904) on edge 3026, 3 buildings made way
+Places: Harlow County Hospital (community) at (-4886, 5241) on edge 5324, 4 buildings made way
+Places: Okahatchee Medical (community) at (-54, 6622) on edge 4961, 7 buildings made way
+Places: Redland Health (clinic) at (-315, -5222) on edge 2100, 0 buildings made way
+Places: Fort Castell Hospital (community) at (4572, 8021) on edge 4096, 3 buildings made way
+Places: after the lots 0.110 s
+Buildings: 35597 (towers 351, midrise 2416, condo 426, deco 687, shops 4602, strip 640, houses 22172, villas 899, warehouses 1618) in 1.98 s
+Sites: 69 highway billboards
+Sites: 155 silos, 50 windmills
+Sites: 242 beach access paths
+Transit: 3 ferry piers, 1 routes, 4.24 km of water path (0.01 s)
+Transit: ferry pier Sol Beach  base (4836, -1250) length 90 deck 2.3 berth (4741, -1250)
+Transit: ferry pier Port Isle  base (4280, -1044) length 26 deck 2.3 berth (4280, -1075)
+Transit: ferry pier Key Coral  base (4350, -2973) length 58 deck 2.3 berth (4350, -2910)
+Transit: 4 bus routes, 62 stops (47 new shelters) (0.01 s); rejects class 1105 cut 1731 deck 81 road 32 avoid 0 pad 2 furn 286 stop 0
+Transit: bus 3   Airport      8.2 km, 17 stops, 4 buses, headway 6.3 min
+Transit: bus 7   Calle Luna   6.4 km, 15 stops, 3 buses, headway 6.7 min
+Transit: bus 9   Sol Beach    7.1 km, 14 stops, 4 buses, headway 5.4 min
+Transit: bus 12  Bayshore     8.6 km, 20 stops, 4 buses, headway 6.8 min
+Transit: Sol Beach Streetcar 6.24 km, 16 stops, 64 junctions (32 signalled, 29 stop signs), 230 poles, 4 streetcars, headway 4.9 min (0.01 s)
+Transit: streetcar stop Collins-Solano Ave & 46th St s    136 shelter (5191.0, 1496.1, 1.8) travel (-0.00, -1.00)
+Transit: streetcar stop 42nd St              s    511 shelter (5231.0, 1126.8, 1.7) travel (-0.00, -1.00)
+Transit: streetcar stop 38th St              s    892 shelter (5239.0, 746.9, 1.7) travel (-0.00, -1.00)
+Transit: streetcar stop 34th St              s   1277 shelter (5207.0, 367.8, 1.8) travel (0.00, -1.00)
+Transit: streetcar stop 30th St              s   1691 shelter (5239.0, -39.2, 1.9) travel (-0.00, -1.00)
+Transit: streetcar stop 26th St              s   2053 shelter (5231.1, -397.7, 1.8) travel (-0.30, -0.95)
+Transit: streetcar stop 22nd St              s   2427 shelter (5215.0, -773.2, 1.8) travel (-0.00, -1.00)
+Transit: streetcar stop 18th St              s   2811 shelter (5190.5, -1149.6, 1.9) travel (-0.30, -0.95)
+Transit: streetcar stop Ferry Terminal       s   3165 shelter (4941.9, -1174.6, 2.7) travel (0.30, 0.95)
+Transit: streetcar stop 21st St              s   3527 shelter (4973.4, -815.2, 2.9) travel (0.00, 1.00)
+Transit: streetcar stop 25th St              s   3920 shelter (4981.5, -425.5, 2.5) travel (0.30, 0.95)
+Transit: streetcar stop 29th St              s   4291 shelter (4997.4, -55.2, 2.0) travel (0.00, 1.00)
+Transit: streetcar stop 33rd St              s   4688 shelter (4965.4, 336.8, 2.5) travel (-0.00, 1.00)
+Transit: streetcar stop 37th St              s   5070 shelter (4997.4, 712.8, 2.7) travel (0.00, 1.00)
+Transit: streetcar stop 41st St              s   5443 shelter (4994.0, 1086.6, 1.9) travel (-0.30, 0.95)
+Transit: streetcar stop Bay Road & 46th St   s   5926 shelter (4938.0, 1561.6, 3.0) travel (-0.30, 0.95)
+Transit: SkyLine profile 12.9..25.4 m above the street, 274 piers (0 straddle bents) (0.04 s)
+Transit: station Calle Luna       s    691 at (1850, -629) rail 16.5 street 3.1 exits -1/+1
+Transit: station Solaris          s   1891 at (3050, -629) rail 15.0 street 1.5 exits -1/+1
+Transit: station Civic Center     s   3068 at (3275, 400) rail 14.9 street 1.5 exits -1/+1
+Transit: station Midtown          s   3868 at (3275, 1200) rail 15.0 street 1.6 exits -1/+1
+Transit: station Canvas District  s   4644 at (2750, 1529) rail 16.4 street 2.2 exits -1/+1
+Transit: station Palmetto Flats   s   5744 at (1650, 1529) rail 17.0 street 3.5 exits -1/+1
+Transit: station Airport          s   6567 at (979, 1300) rail 17.7 street 4.3 exits -1/+1
+Transit: station Westbrook        s   8067 at (979, -200) rail 17.8 street 4.4 exits -1/+1
+Site runway 09L|27R  from (-1180, 2080) to (820, 2080) z 4.6 width 60
+Site runway 09R|27L  from (-1100, 780) to (700, 780) z 4.6 width 45
+Site terminal             at (628, 1440, 4.6)
+Site control tower        at (730, 1832, 4.6)
+Site container ship       at (4625, -800, 0.0)
+Site container ship       at (4616, -330, 0.0)
+Site port gate            at (4008, -160, 3.0)
+Site Key Coral marina     at (4039, -4035, 0.0)
+Site beach club           at (4873, -3866, 1.2)
+Site beach club           at (4808, -4183, 2.2)
+Site Solaris One          at (3350, -750, 1.4)
+Site stadium              at (3565, 445, 1.6)
+Site City Hall            at (3000, 372, 2.0)
+Site Canvas Park          at (3100, 1800, 1.7)
+Site Sol Beach Pier from (5414, 1250) to (5840, 1250) deck z 5.6
+Site Ferris wheel         at (5504, 1270, 5.6)
+Site lighthouse           at (-2206, -8000, 0.5)
+Site radio mast           at (-6744, 7248, 166.1)
+Site sugar mill           at (1430, 7500, 8.1)
+Site Rio Sol marina       at (2280, 188, 0.0)
+Site Okahatchee boat ramp at (-515, 6822, 7.7)
+Site Sawgrass tower       at (-4873, 420, 0.6)
+Sites finalized: 1481 elements (0.05 s)
+Interiors: 29 planned (convenience 7, gun shops 2) in 11.5 ms
+  interior 'Mari's Apartment' kind 0 building 28122 at (1771.22, 359.23, 3.77) ax (1.0000, 0.0000) x -6.55..2.18 depth 11.50 ceil 3.84: 3 rooms, 3 openings, 3 doors, 3 portals, 0 npc points
+  interior 'Mama Lucha's' kind 2 building 26727 at (1351.86, 340.76, 4.29) ax (-1.0000, -0.0000) x -8.43..8.43 depth 16.00 ceil 4.20: 4 rooms, 5 openings, 4 doors, 5 portals, 34 npc points
+  interior 'Rook's Garage' kind 3 building 27268 at (1562.94, 2361.63, 4.30) ax (1.0000, 0.0000) x -9.74..9.74 depth 20.00 ceil 7.11: 3 rooms, 5 openings, 4 doors, 5 portals, 5 npc points
+  interior 'Dex's Trailer' kind 1 building 25507 at (1106.75, 2666.39, 4.87) ax (1.0000, 0.0000) x -17.46..17.46 depth 16.71 ceil 2.25: 3 rooms, 7 openings, 3 doors, 7 portals, 0 npc points
+  interior 'Police Headquarters' kind 5 building 32484 at (3167.89, -240.34, 1.86) ax (1.0000, 0.0000) x -11.84..11.84 depth 16.00 ceil 5.59: 2 rooms, 8 openings, 2 doors, 8 portals, 14 npc points
+  interior 'Tidewater General Hospital' kind 6 building 35579 at (1692.75, 1073.40, 3.63) ax (1.0000, 0.0000) x -9.55..9.55 depth 16.00 ceil 4.20: 2 rooms, 7 openings, 2 doors, 7 portals, 12 npc points
+  interior 'Palmetto Arms' kind 7 building 25518 at (988.27, 2896.06, 4.79) ax (0.0000, 1.0000) x 0.00..9.20 depth 14.00 ceil 4.20: 2 rooms, 1 openings, 2 doors, 1 portals, 3 npc points
+  interior 'Northside Arms' kind 7 building 32977 at (3284.62, 4017.67, 2.09) ax (0.0000, 1.0000) x -6.33..6.33 depth 14.00 ceil 4.03: 2 rooms, 4 openings, 2 doors, 4 portals, 3 npc points
+  interior 'Threads' kind 9 building 19659 at (5141.16, -280.63, 1.88) ax (-1.0000, 0.0000) x -5.68..8.51 depth 15.00 ceil 3.91: 2 rooms, 6 openings, 2 doors, 6 portals, 4 npc points
+  interior 'Port Isle Warehouse' kind 12 building 35532 at (4034.00, -820.00, 3.15) ax (-0.0000, 1.0000) x -23.22..23.22 depth 38.00 ceil 8.93: 2 rooms, 10 openings, 4 doors, 10 portals, 4 npc points
+  interior 'TideStop Mart' kind 8 building 26826 at (1475.59, -259.27, 4.22) ax (-1.0000, -0.0000) x -6.05..6.05 depth 17.00 ceil 4.20: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+  interior 'Bodega La Luna' kind 8 building 29633 at (2255.23, 540.74, 2.91) ax (-1.0000, -0.0000) x -5.95..5.95 depth 17.00 ceil 3.98: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+  interior 'Canvas Corner Market' kind 8 building 32525 at (3090.56, 1476.66, 2.21) ax (0.0000, 1.0000) x -7.40..7.40 depth 17.00 ceil 3.92: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+  interior 'Sunrise Food Mart' kind 8 building 19701 at (5227.62, 641.71, 1.78) ax (0.0000, 1.0000) x -7.96..7.96 depth 17.00 ceil 3.43: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+  interior 'Northside Quick Stop' kind 8 building 29894 at (2304.43, 3761.63, 3.12) ax (1.0000, 0.0000) x -6.89..6.89 depth 17.00 ceil 4.12: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+  interior 'Flats Food & Fuel' kind 8 building 24822 at (467.58, 3361.67, 5.21) ax (1.0000, 0.0000) x -10.79..3.60 depth 17.00 ceil 4.20: 2 rooms, 1 openings, 2 doors, 1 portals, 5 npc points
+  interior 'Grove Pantry' kind 8 building 1190 at (2175.54, -3113.27, 2.23) ax (0.0207, -0.9998) x -6.96..6.96 depth 17.00 ceil 2.80: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+  interior 'Palm Motors' kind 17 building 31274 at (2686.87, 1279.16, 2.69) ax (0.0000, 1.0000) x -9.08..12.11 depth 20.00 ceil 3.90: 2 rooms, 8 openings, 3 doors, 8 portals, 5 npc points
+  interior 'Tide Customs Calle Luna' kind 18 building 29581 at (2278.47, -140.75, 2.99) ax (1.0000, 0.0000) x -7.61..7.61 depth 18.00 ceil 4.17: 1 rooms, 6 openings, 2 doors, 6 portals, 3 npc points
+  interior 'Tide Customs Sol Beach' kind 18 building 19770 at (5127.28, 1999.35, 1.92) ax (-1.0000, 0.0000) x -8.01..8.01 depth 18.00 ceil 3.72: 1 rooms, 6 openings, 2 doors, 6 portals, 3 npc points
+  interior 'Sunwash Car Wash' kind 19 building 29024 at (1988.34, 1491.32, 3.44) ax (0.0000, 1.0000) x -7.41..7.41 depth 20.00 ceil 8.08: 1 rooms, 5 openings, 3 doors, 5 portals, 2 npc points
+  interior 'Key Coral Villa' kind 0 building 23698 at (4516.12, -4203.72, 1.64) ax (0.9992, 0.0401) x -7.21..7.21 depth 12.00 ceil 2.80: 3 rooms, 5 openings, 3 doors, 5 portals, 0 npc points
+  interior 'Sol Beach Condo Lobby' kind 20 building 19753 at (5114.61, 1619.32, 1.86) ax (-1.0000, 0.0000) x -5.88..5.88 depth 10.00 ceil 4.20: 2 rooms, 4 openings, 2 doors, 4 portals, 2 npc points
+  interior 'Sol Beach Condo' kind 21 building 19753 at (5114.61, 1619.32, 31.52) ax (-1.0000, 0.0000) x -9.80..5.88 depth 12.00 ceil 2.61: 6 rooms, 4 openings, 5 doors, 4 portals, 0 npc points
+  interior 'Downtown Penthouse Lobby' kind 20 building 33523 at (3511.22, -715.16, 1.71) ax (-0.0000, -1.0000) x -5.25..5.25 depth 10.00 ceil 4.20: 2 rooms, 3 openings, 2 doors, 3 portals, 2 npc points
+  interior 'Downtown Penthouse' kind 21 building 33523 at (3511.22, -715.16, 52.15) ax (-0.0000, -1.0000) x -10.49..10.49 depth 14.00 ceil 2.80: 6 rooms, 4 openings, 5 doors, 4 portals, 0 npc points
+  interior 'Club Riptide' kind 4 building -1 at (5424.10, 900.00, 1.36) ax (0.0000, -1.0000) x -55.00..17.00 depth 32.00 ceil 4.00: 4 rooms, 0 openings, 0 doors, 0 portals, 32 npc points
+  interior 'Solaris One' kind 10 building -1 at (3350.00, -786.00, 1.89) ax (1.0000, -0.0000) x -18.40..18.40 depth 31.00 ceil 8.30: 3 rooms, 4 openings, 4 doors, 4 portals, 17 npc points
+  interior 'Solaris One Penthouse' kind 11 building -1 at (3365.30, -759.93, 457.34) ax (0.5442, 0.8390) x -18.24..18.24 depth 36.48 ceil 8.20: 4 rooms, 4 openings, 1 doors, 4 portals, 15 npc points
+Buildings: 33904 restyled by district palettes in 137.6 ms (taxpayer 1393, 1920s block 922, med revival 773, mimo shop 1038, bodega 340, arcade 118, gallery 11, walk-up 499, mimo apts 765, med apts 532, office 60s 129, modern 371, loft 80, condo slab 134, glass condo 112, mimo hotel 98, podium condo 77, ranch 5431, bungalow 2806, med house 3409, two-storey 2417, mimo house 1930, split level 2246, conch 265, modern villa 188, streamline 176, med hotel 117, mimo motel 132, sawtooth 540, ware office 551, body shop 281, med villa 306, colonial villa 135, stilt house 73, mimo motor court 161, med motel 90, keys motel 113, motor inn 89, mission strip 199, mimo strip 186, power center 255, gambrel barn 34, pole barn 43, gable barn 24, mission church 47, board church 46, brick church 25, a-frame church 43, cbs house 3231, folk victorian 363, raised keys house 63, mobile home 147)
+Transit: 0 buildings cleared from the SkyLine corridor
+Buildings: block infill 3452 back buildings (garage rows 719, sheds 1867, back houses 866, 0 in the viaduct corridor dropped, 1206 near a street left as yards), 1464 rear parking lots, 5767 yards in 144.7 ms
+Transit: 0 buildings cleared from the SkyLine corridor
+Buildings: frontage fill 4304 gaps: 1681 vacant lots, 730 street parking lots, 646 side yards, 458 service yards, 789 left bare (201.7 ms)
+Buildings: repetition (neighbours within 150 m with the same style, archetype, massing, roof, height band and facade pattern): 2.0% overall, 56% of buildings without a twin; by district: Downtown Porto Sol 2.8%, Solaris 2.9%, Canvas District 0.8%, North Porto Sol 1.0%, Calle Luna 1.4%, Sol Beach 1.7%, Key Coral 4.6%, The Grove 2.1%, Palmetto Flats 1.2%, Westbrook 2.5%, Redland 3.0%, Ten Palms 1.6%, Palmera Farmlands 5.0%, Okahatchee 3.5%, Harlow 2.8%, Fort Castell 1.7%, Key Solano 2.5% (119.4 ms)
+Lane graph: 183 plaza walkways and 2 zebra crossings from the sites
+Lane graph: 25484 lanes, 56556 connectors (1149772 pts), 40666 walk nodes, 56333 walk links, dead-end turning circles moved 22 / obstructed 0 (0.90 s)
+Loaded 30 collision cells
+Simulating 6.0 minutes around (3600, 3200) r=450 with 140 cars, 120 peds, 0 parked
+LATDEV t=10.0 car 102 (Raijin 1000) at 3408.5 3549.3 lane 23500 u 8.5 latErr -0.91 v 4.4 vT 4.4 steer 0.42 diag e 0.00 psi 0.00 ff 0.00 st 0.00
+PSIJUMP t=10.1 car 137 psi 0.01 real -0.24 fp 23815 fu 21.15 u 19.69 lcLane 23814 lcU0 16.7 lcLen 16.0 lcFrom 0.00 lcTo -3.40 lat -0.31 nudge 0.00
+PSIJUMP t=10.3 car 94 psi 0.01 real -0.24 fp 24195 fu 21.50 u 20.19 lcLane 24194 lcU0 16.8 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.39 nudge 0.00
+PSIJUMP t=13.8 car 30 psi 0.08 real -0.17 fp 21935 fu 16.66 u 15.33 lcLane 21934 lcU0 11.9 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.38 nudge 0.00
+PSIJUMP t=21.7 car 138 psi 0.11 real -0.15 fp 23060 fu 21.32 u 19.80 lcLane 23059 lcU0 16.8 lcLen 16.0 lcFrom 0.00 lcTo -3.40 lat -0.31 nudge 0.00
+PSIJUMP t=22.2 car 116 psi -0.12 real 0.13 fp 24676 fu 16.18 u 14.80 lcLane 24677 lcU0 11.5 lcLen 16.0 lcFrom 0.00 lcTo 3.30 lat 0.37 nudge 0.00
+PSIJUMP t=28.4 car 139 psi -0.07 real 0.18 fp 22596 fu 18.63 u 17.38 lcLane 22597 lcU0 11.9 lcLen 18.1 lcFrom 0.00 lcTo 3.30 lat 0.72 nudge 0.00
+PSIJUMP t=29.5 car 57 psi 0.11 real -0.14 fp 24213 fu 21.19 u 19.79 lcLane 24212 lcU0 16.7 lcLen 16.0 lcFrom 0.00 lcTo -3.40 lat -0.32 nudge 0.00
+PSIJUMP t=33.4 car 126 psi 0.11 real -0.14 fp 24153 fu 21.28 u 19.84 lcLane 24152 lcU0 16.8 lcLen 16.0 lcFrom 0.00 lcTo -3.40 lat -0.31 nudge 0.00
+PSIJUMP t=44.6 car 88 psi 0.09 real -0.16 fp 1045 fu 21.21 u 19.80 lcLane 1044 lcU0 16.7 lcLen 16.0 lcFrom 0.00 lcTo -3.40 lat -0.33 nudge 0.00
+PSIJUMP t=49.4 car 20 psi 0.01 real -0.24 fp 1047 fu 21.51 u 20.15 lcLane 1046 lcU0 16.8 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.37 nudge 0.00
+PSIJUMP t=49.9 car 19 psi 0.09 real -0.16 fp 1045 fu 21.21 u 19.68 lcLane 1044 lcU0 16.8 lcLen 16.0 lcFrom 0.00 lcTo -3.40 lat -0.30 nudge 0.00
+PSIJUMP t=52.5 car 39 psi -0.07 real 0.18 fp 23080 fu 17.96 u 16.53 lcLane 23081 lcU0 12.2 lcLen 17.2 lcFrom 0.00 lcTo 3.30 lat 0.53 nudge 0.00
+PSIJUMP t=55.4 car 63 psi -0.09 real 0.16 fp 24192 fu 48.53 u 47.13 lcLane 24193 lcU0 42.9 lcLen 17.4 lcFrom 0.00 lcTo 3.40 lat 0.50 nudge 0.00
+  sim 60 s: collisions 0 (hard 0), red 0, stuck 0, deadlocks 0, ped hits 0, respawns 40 (wall 15 s)
+PSIJUMP t=64.4 car 89 psi 0.12 real -0.13 fp 24496 fu 21.27 u 19.74 lcLane 24495 lcU0 16.8 lcLen 16.0 lcFrom 0.00 lcTo -3.40 lat -0.31 nudge 0.00
+PSIJUMP t=64.6 car 136 psi -0.07 real 0.18 fp 24208 fu 25.00 u 23.63 lcLane 24209 lcU0 18.1 lcLen 18.5 lcFrom 0.00 lcTo 3.40 lat 0.72 nudge 0.00
+PSIJUMP t=76.3 car 108 psi 0.12 real -0.13 fp 24213 fu 21.32 u 19.80 lcLane 24212 lcU0 16.8 lcLen 16.0 lcFrom 0.00 lcTo -3.40 lat -0.31 nudge 0.00
+PSIJUMP t=83.9 car 117 psi 0.33 real 0.08 fp 24677 fu 16.21 u 14.68 lcLane 24676 lcU0 11.5 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.34 nudge 0.00
+LATDEV t=84.1 car 34 (Glint) at 3656.7 3447.3 lane 24222 u 56.7 latErr 1.00 v 8.8 vT 11.3 steer -0.12 diag e 0.87 psi -0.11 ff 0.00 st -0.06
+PSIJUMP t=84.3 car 89 psi -0.21 real 0.04 fp 24668 fu 21.52 u 19.99 lcLane 24669 lcU0 16.8 lcLen 16.0 lcFrom 0.00 lcTo 3.30 lat 0.35 nudge 0.00
+PSIJUMP t=87.1 car 76 psi 0.21 real -0.04 fp 1099 fu 21.19 u 19.53 lcLane 1098 lcU0 16.7 lcLen 16.0 lcFrom 0.00 lcTo -3.40 lat -0.28 nudge 0.00
+PSIJUMP t=93.2 car 27 psi 0.18 real -0.08 fp 1099 fu 21.29 u 19.85 lcLane 1098 lcU0 16.8 lcLen 16.0 lcFrom 0.00 lcTo -3.40 lat -0.33 nudge 0.00
+PSIJUMP t=94.6 car 125 psi 0.01 real -0.24 fp 23055 fu 21.37 u 20.06 lcLane 23054 lcU0 16.7 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.37 nudge 0.00
+PSIJUMP t=99.0 car 0 psi -0.01 real -0.26 fp 23047 fu 21.51 u 20.06 lcLane 23046 lcU0 16.8 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.36 nudge 0.00
+LATDEV t=106.6 car 47 (Harbor) at 3797.3 3105.1 lane 24545 u 44.9 latErr 1.00 v 11.1 vT 11.6 steer -0.13 diag e 0.90 psi -0.10 ff 0.00 st -0.05
+PSIJUMP t=107.2 car 113 psi 0.32 real 0.07 fp 1056 fu 21.32 u 19.89 lcLane 1055 lcU0 16.8 lcLen 16.0 lcFrom 0.00 lcTo -3.40 lat -0.33 nudge 0.00
+LATDEV t=110.9 car 132 (Harbor) at 3896.2 3138.3 lane 24677 u 11.7 latErr -1.19 v 3.0 vT 13.7 steer 0.36 diag e -0.93 psi 0.19 ff 0.00 st 0.22
+PSIJUMP t=115.1 car 109 psi 0.11 real -0.14 fp 24184 fu 151.56 u 150.17 lcLane 24183 lcU0 146.8 lcLen 16.4 lcFrom 0.00 lcTo -3.40 lat -0.38 nudge 0.00
+PSIJUMP t=115.5 car 139 psi 0.09 real -0.16 fp 22587 fu 21.32 u 20.06 lcLane 22586 lcU0 16.8 lcLen 16.0 lcFrom 0.00 lcTo -3.40 lat -0.36 nudge 0.00
+  sim 120 s: collisions 0 (hard 0), red 0, stuck 0, deadlocks 0, ped hits 0, respawns 90 (wall 34 s)
+LATDEV t=123.9 car 39 (Governor) at 3397.3 3308.3 lane 23485 u 41.7 latErr 1.00 v 10.4 vT 11.1 steer -0.14 diag e 0.89 psi -0.10 ff 0.00 st -0.05
+PSIJUMP t=126.3 car 54 psi 0.02 real -0.23 fp 24673 fu 21.49 u 20.25 lcLane 24672 lcU0 16.8 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.40 nudge 0.00
+PSIJUMP t=127.3 car 35 psi -0.05 real 0.20 fp 22590 fu 20.45 u 19.21 lcLane 22591 lcU0 12.0 lcLen 19.1 lcFrom 0.00 lcTo 3.30 lat 1.06 nudge 0.00
+PSIJUMP t=129.1 car 86 psi 0.13 real -0.12 fp 23469 fu 57.50 u 55.86 lcLane 23468 lcU0 53.0 lcLen 16.0 lcFrom 0.00 lcTo -3.40 lat -0.28 nudge 0.00
+PSIJUMP t=132.8 car 73 psi -0.02 real 0.23 fp 23034 fu 16.65 u 14.21 lcLane 23035 lcU0 11.9 lcLen 16.0 lcFrom 0.00 lcTo 3.30 lat 0.18 nudge 0.00
+PSIJUMP t=136.4 car 32 psi 0.10 real -0.15 fp 24190 fu 21.20 u 19.94 lcLane 24189 lcU0 16.7 lcLen 16.0 lcFrom 0.00 lcTo -3.40 lat -0.35 nudge 0.00
+PSIJUMP t=136.5 car 56 psi 0.04 real -0.21 fp 23477 fu 21.30 u 20.07 lcLane 23476 lcU0 16.9 lcLen 16.0 lcFrom 0.00 lcTo -3.40 lat -0.36 nudge 0.00
+PSIJUMP t=137.9 car 10 psi -0.07 real 0.19 fp 24692 fu 18.50 u 17.05 lcLane 24693 lcU0 12.0 lcLen 17.8 lcFrom 0.00 lcTo 3.30 lat 0.65 nudge 0.00
+LATDEV t=151.6 car 111 (Mochi 125) at 3400.7 3458.5 lane 23494 u 8.5 latErr -0.94 v 4.8 vT 4.9 steer 0.42 diag e 0.00 psi 0.00 ff 0.00 st 0.00
+LATDEV t=154.3 car 114 (Kiko) at 3797.3 3412.8 lane 24551 u 37.2 latErr 1.07 v 12.1 vT 12.1 steer -0.12 diag e 0.97 psi -0.10 ff 0.00 st -0.05
+PSIJUMP t=158.2 car 127 psi 0.08 real -0.17 fp 24665 fu 16.61 u 15.28 lcLane 24664 lcU0 11.9 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.38 nudge 0.00
+PSIJUMP t=166.2 car 75 psi 0.02 real -0.23 fp 24166 fu 21.29 u 19.93 lcLane 24165 lcU0 16.9 lcLen 16.0 lcFrom 0.00 lcTo -3.40 lat -0.33 nudge 0.00
+PSIJUMP t=166.6 car 29 psi -0.01 real -0.26 fp 1061 fu 21.40 u 19.84 lcLane 1060 lcU0 16.7 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.32 nudge 0.00
+LATDEV t=171.1 car 84 (Raijin 1000) at 3699.3 2931.3 lane 24491 u 18.7 latErr -0.91 v 5.2 vT 12.3 steer 0.36 diag e 0.00 psi 0.00 ff 0.00 st 0.00
+LATDEV t=175.2 car 122 (Sawgrass) at 3797.3 3513.5 lane 24553 u 36.5 latErr 1.06 v 13.2 vT 14.4 steer -0.16 diag e 0.98 psi -0.07 ff 0.00 st -0.06
+PSIJUMP t=178.2 car 77 psi 0.08 real -0.17 fp 23481 fu 16.55 u 15.17 lcLane 23480 lcU0 11.8 lcLen 16.1 lcFrom 0.00 lcTo -3.30 lat -0.37 nudge 0.00
+  sim 180 s: collisions 0 (hard 0), red 0, stuck 0, deadlocks 0, ped hits 0, respawns 140 (wall 54 s)
+LATDEV t=182.5 car 25 (Seiran) at 3644.7 3547.3 lane 24230 u 44.7 latErr 1.00 v 11.3 vT 12.2 steer -0.13 diag e 0.90 psi -0.09 ff 0.00 st -0.05
+PSIJUMP t=186.8 car 61 psi 0.07 real -0.18 fp 23487 fu 16.57 u 15.10 lcLane 23486 lcU0 11.8 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.36 nudge 0.00
+PSIJUMP t=192.6 car 85 psi 0.07 real -0.18 fp 23093 fu 16.65 u 15.07 lcLane 23092 lcU0 11.9 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.33 nudge 0.00
+PSIJUMP t=193.4 car 129 psi -0.05 real 0.20 fp 24173 fu 25.33 u 23.96 lcLane 24174 lcU0 16.9 lcLen 19.6 lcFrom 0.00 lcTo 3.40 lat 1.02 nudge 0.00
+PSIJUMP t=195.2 car 88 psi 0.11 real -0.15 fp 24150 fu 21.26 u 19.94 lcLane 24149 lcU0 16.8 lcLen 16.0 lcFrom 0.00 lcTo -3.40 lat -0.34 nudge 0.00
+PSIJUMP t=196.1 car 39 psi 0.03 real -0.22 fp 23073 fu 16.68 u 15.26 lcLane 23072 lcU0 11.9 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.37 nudge 0.00
+PSIJUMP t=197.0 car 125 psi 0.04 real -0.22 fp 23057 fu 16.58 u 15.20 lcLane 23056 lcU0 11.9 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.37 nudge 0.00
+PSIJUMP t=203.5 car 104 psi -0.09 real 0.16 fp 24208 fu 21.31 u 19.97 lcLane 24209 lcU0 16.8 lcLen 16.0 lcFrom 0.00 lcTo 3.40 lat 0.35 nudge 0.00
+LATDEV t=210.3 car 103 (Kiko) at 3197.3 3210.8 lane 22589 u 39.2 latErr 1.07 v 12.1 vT 12.3 steer -0.12 diag e 0.98 psi -0.10 ff 0.00 st -0.05
+PSIJUMP t=214.9 car 12 psi 0.01 real -0.24 fp 24669 fu 21.38 u 20.07 lcLane 24668 lcU0 16.7 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.37 nudge 0.00
+LATDEV t=217.5 car 84 (Raijin 1000) at 3799.3 2741.5 lane 24537 u 8.5 latErr -0.91 v 4.4 vT 4.4 steer 0.43 diag e 0.00 psi 0.00 ff 0.00 st 0.00
+PSIJUMP t=227.5 car 33 psi 0.04 real -0.22 fp 24166 fu 21.36 u 20.05 lcLane 24165 lcU0 16.9 lcLen 16.0 lcFrom 0.00 lcTo -3.40 lat -0.35 nudge 0.00
+DEADLOCK t=234.2 car 19 at 3901.5 3141.6 conn 2372 turn 0 appr 0 node 280 ctl 0 u 3.1/16.2 hold 0.0 committed 0 gateNode 280 stopDist 1000000000.0 obst 3.3 (body 65) sig 4
+   -> car 65 conn 2373 turn 0 node 280 u 17.4/21.1 hold 0.0 committed 0 v=0.0 vT=0.2 stop 1000000000.0 obst 2.6(47) wait 54.0 gateConn 2373 gateNode 280 stopDone 0 lat -0.98
+   -> car 47 conn 2343 turn 0 node 278 u 23.1/33.8 hold 0.0 committed 0 v=1.1 vT=17.5 stop 1000000000.0 obst 1000000000.0(-1) wait 12.2 gateConn 2343 gateNode 278 stopDone 0 lat -0.00
+LATDEV t=236.7 car 5 (Stevedore) at 3710.4 3547.3 lane 24230 u 110.4 latErr 0.99 v 9.2 vT 11.1 steer -0.15 diag e 0.87 psi -0.08 ff 0.00 st -0.08
+DEADLOCK t=237.0 car 105 at 3901.7 3134.4 lane e9243 d1 i0 u 84.4/88.5 stopU -1.0 next conn 2372 turn 0 ctl 0 gateNode 280 stopDist 1000000000.0 obst 2.0 (body 19) sig 4
+   -> car 19 conn 2372 turn 0 node 280 u 3.1/16.2 hold 0.0 committed 0 v=0.1 vT=0.5 stop 1000000000.0 obst 3.7(65) wait 62.8 gateConn 2372 gateNode 280 stopDone 0 lat -0.07
+   -> car 65 conn 2373 turn 0 node 280 u 17.9/21.1 hold 0.0 committed 0 v=0.6 vT=2.2 stop 1000000000.0 obst 1000000000.0(-1) wait 55.1 gateConn 2373 gateNode 280 stopDone 0 lat -1.01
+  sim 240 s: collisions 0 (hard 0), red 0, stuck 0, deadlocks 2, ped hits 0, respawns 205 (wall 67 s)
+LATDEV t=240.5 car 44 (Tomo) at 3802.7 2795.4 lane 24538 u 45.4 latErr 1.02 v 12.7 vT 14.3 steer -0.14 diag e 0.93 psi -0.08 ff 0.00 st -0.05
+LATDEV t=242.7 car 115 (Governor) at 3661.3 3547.3 lane 24230 u 61.3 latErr 1.02 v 11.1 vT 11.9 steer -0.14 diag e 0.91 psi -0.10 ff 0.00 st -0.05
+PSIJUMP t=243.4 car 77 psi 0.11 real -0.14 fp 24187 fu 21.29 u 19.90 lcLane 24186 lcU0 16.8 lcLen 16.0 lcFrom 0.00 lcTo -3.40 lat -0.33 nudge 0.00
+PSIJUMP t=245.5 car 85 psi 0.10 real -0.15 fp 24145 fu 21.28 u 20.14 lcLane 24144 lcU0 16.8 lcLen 16.0 lcFrom 0.00 lcTo -3.40 lat -0.39 nudge 0.00
+PSIJUMP t=248.4 car 21 psi 0.32 real 0.07 fp 1056 fu 21.23 u 19.82 lcLane 1055 lcU0 16.7 lcLen 16.0 lcFrom 0.00 lcTo -3.40 lat -0.33 nudge 0.00
+PSIJUMP t=249.6 car 12 psi 0.09 real -0.16 fp 1059 fu 21.32 u 19.95 lcLane 1058 lcU0 16.9 lcLen 16.0 lcFrom 0.00 lcTo -3.40 lat -0.33 nudge 0.00
+PSIJUMP t=250.2 car 20 psi 0.00 real -0.25 fp 23489 fu 21.47 u 20.11 lcLane 23488 lcU0 16.8 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.37 nudge 0.00
+PSIJUMP t=255.5 car 6 psi 0.11 real -0.14 fp 23063 fu 21.34 u 20.08 lcLane 23062 lcU0 16.8 lcLen 16.0 lcFrom 0.00 lcTo -3.40 lat -0.37 nudge 0.00
+PSIJUMP t=258.6 car 123 psi 0.02 real -0.23 fp 23073 fu 16.54 u 15.05 lcLane 23072 lcU0 11.8 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.35 nudge 0.00
+LATDEV t=259.1 car 42 (Mochi 125) at 3808.5 3549.3 lane 24556 u 8.5 latErr -0.93 v 4.9 vT 4.9 steer 0.40 diag e 0.00 psi 0.00 ff 0.00 st 0.00
+PSIJUMP t=259.4 car 128 psi -0.07 real 0.18 fp 21944 fu 18.67 u 17.28 lcLane 21945 lcU0 11.9 lcLen 18.1 lcFrom 0.00 lcTo 3.30 lat 0.70 nudge 0.00
+PSIJUMP t=262.4 car 119 psi 0.04 real -0.21 fp 23073 fu 16.58 u 15.21 lcLane 23072 lcU0 11.9 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.37 nudge 0.00
+LATDEV t=266.2 car 102 (Seiran) at 3488.1 3447.3 lane 23496 u 88.1 latErr 0.99 v 9.9 vT 10.6 steer -0.14 diag e 0.88 psi -0.10 ff 0.00 st -0.06
+DEADLOCK t=266.6 car 98 at 3894.8 3146.0 conn 2344 turn 0 appr 0 node 278 ctl 2 u 13.5/33.9 hold 0.0 committed 0 gateNode 278 stopDist 1000000000.0 obst 3.3 (body 110) sig 2
+   -> car 110 conn 2373 turn 0 node 280 u 18.1/21.1 hold 0.0 committed 0 v=0.0 vT=0.2 stop 0.4 obst 1000000000.0(-1) wait 19.0 gateConn 2373 gateNode 280 stopDone 0 lat -0.40
+DEADLOCK t=268.3 car 10 at 3881.9 3181.9 lane e275 d-1 i0 u 68.6/83.5 stopU 78.4 next conn 2352 turn 2 ctl 2 gateNode 278 stopDist 26.6 obst 3.3 (body 27) sig 2
+   -> car 27 lane e275 d-1 i0 u 76.6/83.5 v=0.0 vT=0.0 stop -0.4 obst 30.5(98) wait 13.8 gateConn 2352 gateNode 278 stopDone 1 lat -0.01
+   -> car 98 conn 2344 turn 0 node 278 u 13.5/33.9 hold 0.0 committed 0 v=0.0 vT=0.2 stop 1000000000.0 obst 3.3(110) wait 61.8 gateConn 2344 gateNode 278 stopDone 0 lat -0.01
+   -> car 110 conn 2373 turn 0 node 280 u 18.1/21.1 hold 0.0 committed 0 v=0.0 vT=0.2 stop 0.4 obst 35.2(60) wait 20.8 gateConn 2373 gateNode 280 stopDone 0 lat -0.40
+   -> car 60 lane e273 d1 i1 u 42.4/72.8 v=9.0 vT=11.5 stop 23.2 obst 1000000000.0(-1) wait 0.0 gateConn 2362 gateNode 279 stopDone 0 lat -0.00
+DEADLOCK t=271.9 car 138 at 3894.4 3139.2 conn 2344 turn 0 appr 0 node 278 ctl 2 u 6.6/33.9 hold 0.0 committed 0 gateNode 278 stopDist 1000000000.0 obst 0.1 (body 185) [ped state 0 link kind 2 x 3.1/14.2 pos 3892.8 3142.3 vel 0.15] sig 2
+DEADLOCK t=272.7 car 72 at 3882.3 3189.8 lane e275 d-1 i0 u 60.6/83.5 stopU 78.4 next conn 2352 turn 2 ctl 2 gateNode 278 stopDist 34.8 obst 3.3 (body 10) sig 2
+   -> car 10 lane e275 d-1 i0 u 68.6/83.5 v=0.0 vT=0.2 stop 26.6 obst 3.3(27) wait 64.3 gateConn 2352 gateNode 278 stopDone 0 lat -0.00
+   -> car 27 lane e275 d-1 i0 u 76.6/83.5 v=0.0 vT=0.0 stop -0.4 obst 30.5(98) wait 18.1 gateConn 2352 gateNode 278 stopDone 1 lat -0.01
+   -> car 98 conn 2344 turn 0 node 278 u 13.5/33.9 hold 0.0 committed 0 v=0.0 vT=0.2 stop 1000000000.0 obst 3.3(110) wait 66.1 gateConn 2344 gateNode 278 stopDone 0 lat -0.01
+   -> car 110 conn 2373 turn 0 node 280 u 18.1/21.1 hold 0.0 committed 0 v=0.0 vT=0.2 stop 0.4 obst 1000000000.0(-1) wait 25.1 gateConn 2373 gateNode 280 stopDone 0 lat -0.40
+LATDEV t=275.3 car 45 (Harbor) at 3512.9 3347.3 lane 23492 u 112.9 latErr 1.00 v 11.1 vT 11.7 steer -0.13 diag e 0.90 psi -0.10 ff 0.00 st -0.05
+LATDEV t=276.6 car 17 (Tomo) at 3202.7 3102.1 lane 22580 u 52.1 latErr 0.98 v 10.9 vT 11.5 steer -0.13 diag e 0.87 psi -0.09 ff 0.00 st -0.05
+DEADLOCK t=277.6 car 69 at 3893.7 3130.0 lane e272 d1 i2 u 83.4/85.8 stopU 80.7 next conn 2344 turn 0 ctl 2 gateNode 278 stopDist 1000000000.0 obst 2.1 (body 138) sig 1
+   -> car 138 conn 2344 turn 0 node 278 u 6.6/33.9 hold 0.0 committed 0 v=0.0 vT=0.0 stop 1000000000.0 obst 0.5(185) wait 65.6 gateConn 2344 gateNode 278 stopDone 0 lat -0.00
+LATDEV t=293.6 car 73 (Seiran) at 3802.7 3096.1 lane 24544 u 46.1 latErr 1.00 v 10.3 vT 10.6 steer -0.12 diag e 0.88 psi -0.10 ff 0.00 st -0.05
+DEADLOCK t=297.9 car 62 at 3860.2 3145.0 lane e273 d-1 i1 u 60.3/67.9 stopU 62.8 next conn 2356 turn 0 ctl 2 gateNode 278 stopDist 0.4 obst 33.3 (body 138) sig 2
+   -> car 138 conn 2344 turn 0 node 278 u 7.1/33.9 hold 0.0 committed 0 v=0.6 vT=0.9 stop 1000000000.0 obst 0.0(185) wait 84.5 gateConn 2344 gateNode 278 stopDone 0 lat -0.01
+PSIJUMP t=299.8 car 74 psi 0.04 real -0.21 fp 22599 fu 16.58 u 15.26 lcLane 22598 lcU0 11.8 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.39 nudge 0.00
+  sim 300 s: collisions 0 (hard 0), red 0, stuck 0, deadlocks 8, ped hits 0, respawns 252 (wall 79 s)
+LATDEV t=300.0 car 4 (Kumo) at 3202.7 2998.4 lane 22572 u 48.4 latErr 1.02 v 9.2 vT 8.7 steer -0.14 diag e 0.91 psi -0.11 ff 0.00 st -0.06
+DEADLOCK t=307.3 car 132 at 3868.9 3024.2 lane e269 d1 i2 u 76.1/84.0 stopU 78.9 next conn 2304 turn 0 ctl 2 gateNode 275 stopDist 0.4 obst 1000000000.0 (body -1) sig 0
+DEADLOCK t=326.6 car 87 at 3898.9 3153.4 conn 2373 turn 0 appr 0 node 280 ctl 0 u 17.1/21.1 hold 0.0 committed 0 gateNode 280 stopDist 1.1 obst 2.3 (body 185) [ped state 2 link kind 1 x 14.5/21.1 pos 3893.8 3152.9 vel 1.69] sig 4
+COLLISION t=334.40 imp 493 at 3897.0 3152.7
+   A 87: Palomino v=0.1 vT=0.0 conn 2373 node 280 turn 0 ctl 0 u=17.1/21.1 lc -1 lat 0.00 nudge 0.00 obst 0.3(138) stop 1.1 dummy 0
+   B 138: Sawgrass v=0.7 vT=0.9 conn 2344 node 278 turn 0 ctl 2 u=19.4/33.9 lc -1 lat 0.00 nudge 0.00 obst 0.0(185) stop 1000000000.0 dummy 0
+   conflict A->B: none | appr A 0 B 0 to A 1053 B 1056 | enterTime A 251.48 B 200.43 committed 0 0
+LATDEV t=336.8 car 17 (Tomo) at 3397.4 3081.8 lane 23471 u 68.2 latErr 0.92 v 5.2 vT 6.2 steer -0.16 diag e 0.75 psi -0.13 ff 0.00 st -0.10
+DEADLOCK t=337.2 car 36 at 3901.6 3137.7 lane e9243 d1 i0 u 87.7/88.5 stopU -1.0 next conn 2372 turn 0 ctl 0 gateNode 280 stopDist 14.8 obst 2.0 (body 80) sig 4
+   -> car 80 conn 2372 turn 0 node 280 u 6.2/16.2 hold 0.0 committed 0 v=0.0 vT=0.0 stop 7.4 obst 1.6(87) wait 33.0 gateConn 2372 gateNode 280 stopDone 0 lat -0.11
+   -> car 87 conn 2373 turn 0 node 280 u 17.1/21.1 hold 0.0 committed 0 v=0.0 vT=0.0 stop 1.2 obst 0.4(138) wait 70.6 gateConn 2373 gateNode 280 stopDone 0 lat -0.44
+   -> car 138 conn 2344 turn 0 node 278 u 19.6/33.9 hold 0.0 committed 0 v=0.0 vT=0.9 stop 1000000000.0 obst -0.0(185) wait 28.3 gateConn 2344 gateNode 278 stopDone 0 lat -0.06
+LATDEV t=339.5 car 73 (Seiran) at 3762.0 3352.7 lane 24215 u 38.0 latErr 1.00 v 10.4 vT 10.6 steer -0.13 diag e 0.89 psi -0.10 ff 0.00 st -0.05
+DEADLOCK t=339.7 car 76 at 3901.6 3130.0 lane e9243 d1 i0 u 80.0/88.5 stopU -1.0 next conn 2372 turn 0 ctl 0 gateNode 280 stopDist 22.1 obst 2.6 (body 36) sig 4
+   -> car 36 lane e9243 d1 i0 u 87.7/88.5 v=0.0 vT=0.2 stop 14.8 obst 2.0(80) wait 62.6 gateConn 2372 gateNode 280 stopDone 1 lat -0.01
+   -> car 80 conn 2372 turn 0 node 280 u 6.2/16.2 hold 0.0 committed 0 v=0.0 vT=0.0 stop 7.4 obst 1.6(87) wait 35.6 gateConn 2372 gateNode 280 stopDone 0 lat -0.11
+   -> car 87 conn 2373 turn 0 node 280 u 17.1/21.1 hold 0.0 committed 0 v=0.0 vT=0.0 stop 1.2 obst 0.3(138) wait 73.1 gateConn 2373 gateNode 280 stopDone 0 lat -0.43
+   -> car 138 conn 2344 turn 0 node 278 u 20.1/33.9 hold 0.0 committed 0 v=0.0 vT=0.0 stop 1000000000.0 obst 0.0(87) wait 29.9 gateConn 2344 gateNode 278 stopDone 0 lat -0.06
+   -> car 87 conn 2373 turn 0 node 280 u 17.1/21.1 hold 0.0 committed 0 v=0.0 vT=0.0 stop 1.2 obst 0.3(138) wait 73.1 gateConn 2373 gateNode 280 stopDone 0 lat -0.43
+DEADLOCK t=341.6 car 27 at 3883.1 3155.7 conn 2352 turn 2 appr 2 node 278 ctl 2 u 11.3/23.5 hold 14.0 committed 0 gateNode 278 stopDist 0.4 obst 1000000000.0 (body -1) sig 1
+PSIJUMP t=342.7 car 139 psi -0.06 real -0.31 fp 24673 fu 21.43 u 19.68 lcLane 24672 lcU0 16.7 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.29 nudge 0.00
+PSIJUMP t=345.5 car 67 psi 0.08 real -0.17 fp 24693 fu 16.60 u 15.20 lcLane 24692 lcU0 11.9 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.36 nudge 0.00
+PSIJUMP t=351.9 car 4 psi 0.09 real -0.16 fp 22591 fu 16.71 u 15.38 lcLane 22590 lcU0 12.0 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.39 nudge 0.00
+PSIJUMP t=354.2 car 7 psi 0.07 real -0.18 fp 23079 fu 16.56 u 15.03 lcLane 23078 lcU0 11.8 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.34 nudge 0.00
+DEADLOCK t=354.4 car 110 at 3890.4 3154.9 conn 2349 turn 0 appr 1 node 278 ctl 2 u 1.1/23.7 hold 0.0 committed 0 gateNode 278 stopDist 1000000000.0 obst 3.3 (body 27) sig 2
+   -> car 27 conn 2352 turn 2 node 278 u 11.3/23.5 hold 14.0 committed 0 v=0.0 vT=0.2 stop 0.4 obst 1000000000.0(-1) wait 72.8 gateConn 2352 gateNode 278 stopDone 0 lat -0.12
+LATDEV t=355.3 car 25 (Harbor) at 3842.7 3352.7 lane 1072 u 52.3 latErr 1.00 v 11.5 vT 12.4 steer -0.12 diag e 0.90 psi -0.10 ff 0.00 st -0.04
+DEADLOCK t=356.4 car 128 at 3903.7 3147.0 conn 2373 turn 0 appr 0 node 280 ctl 0 u 8.7/21.1 hold 0.0 committed 0 gateNode 280 stopDist 1000000000.0 obst 2.6 (body 87) sig 4
+   -> car 87 conn 2373 turn 0 node 280 u 17.1/21.1 hold 0.0 committed 0 v=0.0 vT=0.0 stop 1000000000.0 obst 0.3(138) wait 89.9 gateConn 2373 gateNode 280 stopDone 0 lat -0.43
+   -> car 138 conn 2344 turn 0 node 278 u 21.2/33.9 hold 0.0 committed 0 v=3.1 vT=21.4 stop 1000000000.0 obst 1000000000.0(-1) wait 0.0 gateConn 2344 gateNode 278 stopDone 0 lat -0.04
+PSIJUMP t=356.9 car 26 psi 0.11 real -0.14 fp 23053 fu 21.29 u 19.97 lcLane 23052 lcU0 16.8 lcLen 16.0 lcFrom 0.00 lcTo -3.40 lat -0.34 nudge 0.00
+PSIJUMP t=357.9 car 54 psi 0.02 real -0.23 fp 23045 fu 21.40 u 20.16 lcLane 23044 lcU0 16.7 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.40 nudge 0.00
+
+==== Traffic metrics (360 s simulated, 140 cars, 120 peds, 14.00 vehicle-hours) ====
+collisions: 1 (0.07 per vehicle-hour), hard (>3000 Ns): 0 (0.00/veh-h)
+static impacts (walls/props >2500 Ns): 0, props broken: 0
+red-light violations: 0, stop-sign violations: 0
+stuck recoveries: 0, three-point turns: 3, relocalizations: 0, deadlocks (>60 s waits): 15, respawns: 306, lifted off ledges: 0
+pedestrians hit: 0
+average speed by road class (km/h):  boulevard 13.7 (14561 s)  avenue 17.8 (9996 s)  street 17.5 (17220 s)
+lane-center error (RMS, lanes, v>3 m/s): 0.054 m
+AI cost per 60 Hz tick: traffic 0.453 ms + peds 0.041 ms (avg), p50 0.456 ms, p99 0.814 ms, max 3.360 ms
+physics per 120 Hz step: 1.037 ms (140 cars)
+17:51:43 rc=0

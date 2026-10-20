@@ -1,0 +1,5 @@
+=== repo_man,series,blueprints --testlimit 16 (17:03)
+(no summary: the runner died)
+[ 892.712] [missiontest] repo_man t=10.6: screenshot Z:\tmp\story\repo_man_05_stage4.bmp
+Killed
+X connection to :104 broken (explicit kill or server shutdown).

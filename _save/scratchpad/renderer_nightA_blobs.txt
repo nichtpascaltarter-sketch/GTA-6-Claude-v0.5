@@ -1,0 +1,5 @@
+# renderer-night phase A (local exposure, lit interiors through glass, sharpening clamp) on HEAD 590854d (= 61a3b7b for these files); git hash-object -w; COPIED into the shared tree 18:52 (guard: each file == HEAD before copy)
+502a79bd6db49bd5c933bf0862ff7674c8d3661b src/shaders/post.hlsl
+351e24c1cc1c37c4fcc14002e6fcb91761dd9294 src/render/post.cpp
+d4fae17445d77576f348328a4b61e6fa983b6112 src/shaders/facade.hlsli
+630aebd582d7d6ab8275aaaa38d4c6817f15cf04 PROGRESS.md

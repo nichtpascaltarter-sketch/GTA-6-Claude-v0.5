@@ -1,0 +1,59 @@
+// Room light state (docs/HANDBUILT_WORLD.md 7.8): the HLSL copy of World::roomLight() (src/world/roomlight.h), for
+// the facade's windows. It must give the CPU's answers bit for bit (the renderer's room-light self-test compares the
+// two over a sweep and the header's test vectors), so it is uint arithmetic only (uint multiplies wrap mod 2^32 as
+// the C++ u32 ones do), line by line from the header. The inputs are the frame's three integers - the game day, the
+// minute of the day and how dark it is outside (0..255), all computed on the CPU - and the window record's schedule
+// class (4 bits) and seed (12 bits). A change to the header's table or function is a change here too.
+#ifndef ROOMLIGHT_HLSLI
+#define ROOMLIGHT_HLSLI
+
+// The header's kTable, packed: index (schedule * 2 + weekend) * 3 + k (weekend: day % 7 >= 5);
+//   x = start | end << 16;  y = chance | level << 8 | jitter << 16 | daily << 24
+static const uint2 kRoomIntervals[78] = {
+@TABLE@
+};
+static const uint kRoomScheduleCount = 13u;   // RS_COUNT
+static const uint kRoomScheduleNever = 1u;    // RS_NEVER
+
+// src/core/rng.h hash32's mixing (roomlight.h roomHash)
+uint roomHash(uint x) {
+    x ^= x >> 16;
+    x *= 0x7feb352du;
+    x ^= x >> 15;
+    x *= 0x846ca68bu;
+    x ^= x >> 16;
+    return x;
+}
+
+// homes (2..5), garages (10), dusk (11) and porch (12) lights switch off in daylight
+uint roomScheduleDaylit(uint s) { return ((s >= 2u && s <= 5u) || s == 10u || s == 11u || s == 12u) ? 1u : 0u; }
+
+// The light level of a room, 0 (off) to 254 (roomlight.h roomLight)
+uint roomLight(uint schedule, uint seed, uint windows, uint day, uint minute, uint night) {
+    const uint rs = roomHash((seed & 4095u) * 0x9e3779b9u + 0x632be5abu);   // the 12-bit seed spread over 32 bits
+    if (windows != 0u && roomScheduleDaylit(schedule) != 0u && night < 48u + ((rs >> 26) & 63u)) return 0u;
+    const uint dimmer = 191u + ((rs >> 20) & 63u);
+    const uint sc = schedule < kRoomScheduleCount ? schedule : kRoomScheduleNever;   // past the table: never
+    uint best = 0u;
+    [loop] for (uint back = 0u; back < 2u; back++) {   // today's intervals, then yesterday's that run past midnight
+        if (back == 1u && day == 0u) break;
+        const uint d = day - back;
+        const uint base = (sc * 2u + (d % 7u >= 5u ? 1u : 0u)) * 3u;
+        const uint m = minute + back * 1440u;          // the minute on that day's clock
+        [loop] for (uint k = 0u; k < 3u; k++) {
+            const uint2 iv = kRoomIntervals[base + k];
+            const uint start = iv.x & 0xffffu, end = iv.x >> 16;
+            const uint chance = iv.y & 255u, level = (iv.y >> 8) & 255u, jitter = (iv.y >> 16) & 255u, daily = iv.y >> 24;
+            if (chance == 0u) continue;
+            const uint h = roomHash(rs ^ roomHash((daily != 0u ? d * 0x632be5abu : 0x51ed270bu) + k * 0x2545f491u + 7u));
+            if ((h & 255u) > chance) continue;          // this room doesn't have it (that day)
+            const uint span = 2u * jitter + 1u;         // both ends move by 0..2*jitter, less jitter
+            const uint s0 = start + (h >> 8) % span, s1 = end + (h >> 16) % span;
+            if (m + jitter < s0 || m + jitter >= s1) continue;
+            best = max(best, level * dimmer / 255u);
+        }
+    }
+    return best;
+}
+
+#endif

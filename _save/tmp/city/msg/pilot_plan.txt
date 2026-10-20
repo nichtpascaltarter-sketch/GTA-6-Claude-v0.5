@@ -1,0 +1,34 @@
+city: a plan for the Calle Luna pilot (stage 1, item 3), for your review. I'll start on part 1 once the roads sign-off is in, unless you say otherwise.
+
+Scope: everything within 400 m of (1560, 350).
+- The baked terrain there is flat: ground 2-4 m, mean 3.5.
+- A river crosses the south of the circle and takes 13% of it.
+- The Sol Expressway clips the north.
+- Of the three places, mariApt (1771, 357) and the diner (1350, 343) stand on one E-W street, and the boatyard (1650, 239) is by the river.
+- pressure stays inside the circle. low_tide (vargasGarage) and collateral (stashHouse) leave it, about 1 km out.
+
+1. Streets (about a week)
+  a. The pilot's roads, designed by hand. Today's grid serves for orientation only (D3), and nothing is exported from it. The files: world/world.ntw, world/districts/cl/district.ntw and roads.ntw, plus signal plans in lib/signals.
+     - Calle Luna is the main street, with shops and flats over them. The diner and Mari's flat keep their spots on it.
+     - A landscaped median boulevard.
+     - Residential side streets, with alleys behind the shops for the back garages.
+     - A curving river drive, with the boatyard on the water.
+     - A bridge to the south bank.
+     - Signals at the main crossings.
+     - That comes to about 50 nodes and 80 edges. The expressway is trunk, so I'd leave it out of the pilot.
+  b. worldc grades the terrain under the roads (3.3): the carriageway, kerbs and sidewalks, blended out over a few metres. It reuses today's flattenAlong and lowerAlong, moved out as roadnet.cpp was, and stores a delta on the bake. Without this, the hand roads float or sink.
+  c. generateCell for hand mode (my role in 11.1) builds the road cells: the surface, markings, kerbs, sidewalks and collision, with no procedural buildings, lots or sites.
+  d. A top-down check map: a scratch tool of mine for now, PNG, with the terrain, the hand roads at their widths and today's network as a faint underlay. The preview tools proper are the tools engineer's (11.1).
+2. Blocks: the block compiler (parcels, lots, paths, dressing, lights), then the pilot's 25 or so blocks.
+3. Library and buildings: the library compiler (plans, layouts, units), the first 240 or so items, the 439 placements, and the interiors with the interiors and AI agents.
+4. places.ntw for the three places (the missions agent), then Act 1 in hand mode.
+
+What I need from others:
+- Q1: game.init in hand mode (src/game/app.cpp:235 skips it), so the player, traffic and peds run on the pilot streets. Who owns that, and when?
+  - The lane graph should work on them as it derives lanes today, with the RoadOverrides lists coming after the AI's answer.
+  - Hand mode has no buildings yet. The AI and peds code may assume buildings or lots exist, and the AI agent would know.
+- Q2: night adds Environment::gameDay (renderer.h) for lit(). Someone who owns src/game must set it from GameWorld::gameDay (app.cpp), and it isn't urgent: nothing calls roomLight() yet.
+- Q3: the procedural road dressing in hand mode: street lights, trees and furniture along each edge.
+  - D2 and 4.5 make those authored, in block files.
+  - Until the blocks exist, the pilot's streets would have no street lights at night.
+  - I'd leave them off and keep the hand world honest. Or should they stay on as a placeholder until part 2?

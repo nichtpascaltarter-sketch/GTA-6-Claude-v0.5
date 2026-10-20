@@ -1,0 +1,34 @@
+city snapshot-safe: stage 0 step 2, --world=hand: the game loads the baked terrain from the world.bin embedded in the exe. Procedural stays the default and runs as before. Files are on top of HEAD {{HEAD}}: 5 over HEAD's copies, which equal 1a83e24's, where I made the change; app.cpp is on 17333c63 as you asked. There are also 7 new files. Blobs written with git hash-object -w. MinGW syntax check in the shared tree: {{SYN}}, with the other agents' current edits in place (/tmp/city/syntax_shared_st2.log). I haven't merged anything into another version of these files.
+
+FILES
+{{FILES}}
+
+WHAT
+- src/world/ntw.h/.cpp: the NTW parser (moved up from step 3, as agreed): records, ids, fields, continuation lines, blocks by a schema predicate, comments, strict value readers. worldc reads world/terrain/terrain.ntw with it. The game doesn't parse text.
+- src/world/worldbin.h/.cpp: the world.bin container. Its header has a hash of the whole data, and the table is named sections, each 16-byte aligned. Opening checks the magic, version, table and hash, so a damaged or truncated file is refused.
+- tools/worldc.cpp: the world compiler, stage 0 version (a host tool, a small TU of about 5 s). It reads terrain.ntw, checks every layer's grid against its hash and size, and writes build/gen/world.bin and world.rc. world.bin holds 5 sections in 2.67 MB: the terrain record plus the four NTG grids.
+- src/world/handworld.h/.cpp:
+  - World::gWorldKind (procedural by default) and selectWorldKind() for --world=hand|procedural.
+  - embeddedWorldBin(): FindResource/LoadResource/LockResource on RCDATA NT_WORLD. There is no copy: the OS pages it in.
+  - loadHandTerrain() decodes the four grids in parallel, fills WorldMap (heights, water levels, regions, coast distance, outlines, channels) and recomputes the splat.
+  - loadHandWorld() takes the --worldfile=<path> dev override or the embedded data, and sets up empty roads (with their hash) and buildings (with their cell lists), so every query finds nothing.
+- src/world/cellgen.cpp: generateCell returns empty in hand mode. Stage 0 has the terrain only, which the renderer draws from the height map.
+- src/main.cpp: the three includes, next to world/interiors.cpp.
+- src/game/app.cpp: the three hunks, all behind World::isHandWorld():
+  (a) select the world kind from --world before the loader thread;
+  (b) the loader's hand branch: loadHandWorld, or FatalError with the reason;
+  (c) skip game.init, and stay in the free camera instead of the menu or a new game. --shot and --viewer work as today.
+- build.sh: builds tools/worldc when it or its sources are newer, runs it, then windres in build/gen. WORLD_OBJ is set on its own lines, and `$WORLD_OBJ \` is a new line inside the link command; no existing line changed.
+- build.bat, modelled on the embed_shaders step, with each command's own `|| exit /b 1`. MSVC branch: cl builds build\worldc.exe, it runs, then rc /fo world.res inside build\gen; WORLD_RES is set on its own line and appended to the cl link line (the one existing line changed, after avrt.lib). MinGW branch: the same with g++ and windres, with WORLD_OBJ appended after -lavrt. CI's Windows build is the first MSVC test.
+
+TESTS
+- worldc: builds, and compiles the terrain into world.bin in 0.57 s. windres turns world.rc into a 2.67 MB .rsrc object.
+- Host load test (the game's loader on the --worldfile path, against a fresh run of the bake's source): loads in 1.8 s. Against the source: heights within 0.005 m (cm rounding); water and regions identical on every texel; coast distance within 0.125 m (half its 0.25 m step); outlines and channels within 0.005 m. The splat differs on 2.0% of texels, where cm-rounded heights cross a slope threshold. Hand-mode cells come out empty, the empty roads and buildings answer every query with nothing, and a damaged or truncated world.bin is refused. ALL OK.
+- MSVC-safety scans (clang): worldc 0 diagnostics; the host test's unity (handworld.cpp, worldbin.cpp, cellgen.cpp and all of src/world) 1, a macro clash inside my test file only. MinGW syntax of the game on my private tree: 0/0.
+- The exe through build.sh (nt_s0.exe, {{EXESIZE}}): {{BUILD}}
+- Hand mode in game, --world=hand with 4 shots of the bare terrain: {{HAND}}
+- Procedural smoke tests on the same exe, your snapshot's commands: drive {{DRIVE}}; melee {{MELEE}}.
+
+EVIDENCE: shots {{SHOTS}}; logs /tmp/city/s0hand_log.txt, /tmp/city/s0smoke_drive_log.txt and /tmp/city/s0smoke_melee_log.txt; host test /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/s0test/handload_run.log.
+
+NEXT: step 3 (formatter, schema framework, LZ sections, worldc's file discovery and manifest, tools/ntwfmt) is written and queued for its checks. Step 4 (docs/NTW_FORMAT.md and the full schema) is drafted, with roads as a draft until the AI agent's requirements.

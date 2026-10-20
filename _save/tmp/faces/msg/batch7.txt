@@ -1,0 +1,71 @@
+faces snapshot-safe — batch 7 (brows and lashes for snapshot 36's card accumulation). Three files, a delta on HEAD b49bc7f; they apply unchanged with snapshot 40.
+
+FILES (blobs written with git hash-object -w; the copies are in the shared tree now, and in /tmp/faces/batch7/)
+  src/anim/face.cpp          76b7512ea0bb5e5ab6e5b7590a65070b575c8f08
+  tests/anim/anim_test.cpp   70e6dc618bba265c4b3d17a37de59efe40877147
+  tests/anim/preview.cpp     c9f08c07c97a7d8437ad1268c4cd2417b94d05f5
+At HEAD these three files are batch 6's (a8610b8c / a60c092c / 86f8a2bd). No other files change: no character.h, no shaders.
+
+CHANGELOG (player-facing)
+- Brows look like hair again, not solid black pencil strokes.
+  - Why: since snapshot 36, overlapping strand cards add up, and about nine overlap through a brow's body, so the dark brows of Mari, c17, c27 and c38 had turned solid at 0.5 m.
+  - Fix: brow cards are now 0.45x as dense. The body still reads full, a little skin shows between the hairs, and the edges are soft.
+- Lashes look like a fringe again, not eyeliner. Lash cards are at 0.75x density:
+  - top row 0.95 -> 0.71;
+  - second row 0.32-0.55 -> 0.24-0.41;
+  - lower lid 0.32 -> 0.24.
+- Final values differ from the plan I sent (cards 0.55x, tint 0.5x, lashes 0.7x). I shot four variants in game under snapshot 36's shaders:
+  - k4: cards 0.38x, tint 0.5x;
+  - k6: cards 0.55x, tint 0.85x;
+  - k7: cards 0.45x, tint 1x;
+  - the planned mix.
+  - Halving the skin tint made the brows faint at 1 m again: c17 dropped back to 0.6 stops below her forehead. So the tint stays, and the cards' density alone carries the fix (k7).
+- Brow darkness at 1 m by day (stops below the forehead):
+
+  | Person | Batch 7 | Before snapshot 36 | Main |
+  |---|---|---|---|
+  | Mari | 1.8 | 1.8 | 2.0 |
+  | Dex | 2.1 | 2.2 | 2.6 |
+  | c7 | 1.5 | 1.6 | 1.6 |
+  | c17 | 0.7 | 0.7 | 1.0 |
+  | c27 | 2.3 | 2.5 | 2.4 |
+  | c38 | 2.2 | 2.6 | 2.7 |
+
+  Batch 7 is back to the pre-snapshot-36 read; up close the strand texture returns.
+- Only card densities (vertex alpha) change. Shapes, colours, the skin tint, the LOD1/LOD2 brow painting and beards are untouched. Mesh vertex and triangle counts are identical to batch 6 (checked on five characters).
+- One side effect: brow cards now sit below the card shadow pass's alpha cut (0.45), so they no longer cast into the sun's shadow map. That is far below a shadow texel either way. The feature shadows still apply.
+
+TESTS
+- anim_test: ALL PASSED on HEAD b49bc7f + these files (/tmp/faces/anim_test_b7h.log; b49bc7f's new animator.cpp and character.h are included), and on b907098 + these files.
+- New test, FaceHairCoverage:
+  - It composites the brow and lash cards the way psHairCard now does (1 - prod(1 - coverage), each card at hairCardCoverage's sub-pixel average), over eight characters.
+  - Results: brow body 0.78-0.85 (range 0.6-0.9), upper lash line 0.42-0.51 (range 0.35-0.62).
+  - With batch 6's densities it reports 0.98-0.99 and 0.54-0.64, and fails.
+- tests/anim/preview.cpp:
+  - The card dither now gives each card its own offset, as psHairCard does.
+  - hairCardCoverage is re-ported (tip fade, box-filtered strand edges).
+  - So the preview predicts the game again. preview and tests/anim/carview.cpp compile and run on b49bc7f.
+- O2 build of b907098 + these files: /tmp/faces/nt_b7_o2.exe.
+- Wine D3D12, 30 portraits (Mari, Dex, 7, 17, 27, 38 at 0.5, 1 and 4 m by day, and 1 and 4 m at night under the street lamp): 0 FATAL / vkd3d lines (/tmp/faces/log_b7.txt, shots in /tmp/faces/b7/).
+- Hair under hats (people 2, 4, 22, 23 at 0.5 and 1 m by day and 1 m at night), main vs batch 7: identical, 0 FATAL.
+- Perf, tour stop 7, cpu ms peds. The machine was heavily loaded (load average 11-14), so main and batch 7 were run alternately:
+
+  | Run | ai | veh | peds | Assets built |
+  |---|---|---|---|---|
+  | main b907098, run 1 | 1.29 | 0.56 | 4.27 | 49.9 s |
+  | batch 7, run 1 | 0.88 | 0.55 | 5.01 | 36.5 s |
+  | main b907098, run 2 | 1.14 | 0.80 | 4.69 | 28.2 s |
+  | batch 7, run 2 | 1.02 | 0.61 | 4.35 | 41.3 s |
+
+  - Means: main 4.48, batch 7 4.68. That is within the spread of each pair, and ai and veh swing as much.
+  - An earlier single batch 7 run, at the heaviest load, read 6.49 with ai and veh doubled too.
+  - profPeds times updatePeds + Interiors::update, which don't read mesh data, and the meshes are identical apart from alpha: unchanged within noise.
+  - 0 FATAL / vkd3d in all perf runs.
+
+MONTAGES (scratchpad = /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad)
+- scratchpad/faces/b7_c{0,1,7,17,27,38}.png: main b907098 vs batch 7 at 0.5, 1 and 4 m by day, and 1 and 4 m at night.
+- scratchpad/faces/b7_brows_0p5m.png: before snapshot 36 | main | batch 7, all six at 0.5 m by day.
+- scratchpad/faces/b7_lashes_0p5m.png: the eyes and lashes, same three columns.
+- scratchpad/faces/b7_1m_day.png: main vs batch 7 at 1 m.
+- scratchpad/faces/b7_hats.png: hair under hats.
+- Variant comparisons: scratchpad/faces/k4_brows_0p5m.png, k67_brows_0p5m.png, k6_1m_day.png, k7_1m_night.png.

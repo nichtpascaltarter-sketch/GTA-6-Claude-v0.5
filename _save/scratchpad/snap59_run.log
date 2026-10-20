@@ -1,0 +1,9 @@
+snapshot 59 tree e27fe1da4be78173361a9f38ff0c35ab0adf38ee on f595703 at 02:21 (restart after container reboot)
+Embedded 40 shader files.
+150 shaders, 0 failed
+[ 328.474] autoplay t=9.5 pos 1806.7 199.3 4.7 state 2 health 200 veh 1 speed 11.5 | peds 88 vehicles 61 wanted 0 | cpu ms player 0.17 ai 0.50 veh 0.53 peds 1.2
+[ 447.555] autoplay t=17.5 pos 1806.7 270.4 3.5 state 2 health 200 veh 1 speed 17.5 | peds 89 vehicles 67 wanted 0 | cpu ms player 0.07 ai 0.67 veh 0.61 peds 0.
+[ 355.308] autoplay t=13.5 pos 1791.3 160.9 6.5 state 0 health 188 veh -1 speed 0.0 | peds 97 vehicles 64 wanted 1 | cpu ms player 0.08 ai 0.53 veh 0.60 peds 0.
+d208e02 The game updates itself, and the hand-built world loads: --world=hand runs the baked terrain from the exe
+branch 'claude/neon-tide' set up to track 'origin/claude/neon-tide'.
+COMMITTED e27fe1da4be78173361a9f38ff0c35ab0adf38ee

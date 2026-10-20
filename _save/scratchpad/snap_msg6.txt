@@ -1,0 +1,16 @@
+Braids and locs, side-stepping jog, injury reactions in the animator, real hospitals, landmark map labels
+
+- Hair: cornrows, box braids and locs (long locs, short locs and twists) built from ropes, some in braiding hair of
+  their own colour (burgundy, honey blonde, copper, jet black). Locs and box braids don't go under a hat; cornrows
+  do.
+- Animation: an aiming side-step jog between 1.8 and 2.6 m/s, and a back-pedalling jog. Impacts and injuries in the
+  animator (AnimInput): directional flinches by bone layered over any locomotion; heavy hits that knock the body off
+  balance and are caught with quick steps (staggerVelocity for the game); a limp per leg; a hunched, guarded walk with
+  laboured breathing when badly hurt; a free hand clutching the wound while standing, walking, crouched or lying hurt
+  (stance 24, writhing); and a bracing fall (arms out, chin tucked) to hand over to the ragdoll from.
+- Hospitals: the map blips, the paramedic drop-offs and the respawn after being wasted use the hospitals as the world
+  built them (no more respawning in the sea off Fort Castell); Calle Luna Medical is Tidewater General Hospital.
+- Map: landmarks (Ocean Promenade, Porto Sol University, Santa Marea Cemetery, the churches, the penitentiary, the
+  speedway) are labelled in a tier under the districts, shown when zoomed in.
+- Missions and tests: the bait-shop market test runs at night with an approach frame, Paper Trail's autotest takes a
+  look at the safe marker before walking in, and traffic_sim gets place anchor dumps.

@@ -1,0 +1,29 @@
++namespace ai_board {   // ai.cpp: getting into a car through its door (GameWorld::startCarEntry; PS_ENTERING while the clip runs)
++bool begin(GameWorld& g, int id, int veh, int seat);
++void boarded(GameWorld& g, int id, int veh, int seat);
++}  // namespace ai_board
++        if (g.ai.ped[s].clipTimer > 0.f && d < 1.6f && (sp.state == PS_ONFOOT || sp.state == PS_ENTERING) && !sp.ragdoll) {
++                pa.doorWalkT = 0.f;
++                    // to that seat's door (round the car to one on the far side) and in through it - ai_board: the door clip,
++                    // back on patrol once in (ai_board::boarded); 8 s without getting to the door: in all the same
++                    const Vehicles::VehicleModel& hs = vassets[vehicles[hv].model].spec;
++                    vec2 door = vp3.xy();
++                    if (seat < (int)hs.seats.size()) {
++                        bool dl = hs.seats[seat].exitLeft;
++                        door = (vp3 + rotate(vehicles[hv].sim.body.rot, vec3(dl ? -(hs.boxHalf.x + 0.45f) : hs.boxHalf.x + 0.45f,
++                                                                             hs.seats[seat].pos.y - (seat == 0 ? 0.2f : 0.f), 0.f))).xy();
++                    }
++                    vec2 tod = door - pos;
++                    pa.doorWalkT += dt;
++                    if (length(tod) > 0.7f && pa.doorWalkT < 8.f) {
++                        float spd = Min(1.8f, length(tod) * 2.f + 0.4f);
++                        vec2 st = aiWalkRound(*this, id, door, spd, dt) - pos;
++                        desired = (length(st) > 1e-3f ? normalize(st) : normalize(tod)) * spd;
++                        faceYaw = atan2f(-desired.x, desired.y);
++                    } else {
++                        pa.doorWalkT = 0.f;
++                        if (ai_board::begin(*this, id, hv, seat)) return;
++                        warpPedIntoVehicle(id, hv, seat);
++                        ai_board::boarded(*this, id, hv, seat);
++                        return;
++                    }

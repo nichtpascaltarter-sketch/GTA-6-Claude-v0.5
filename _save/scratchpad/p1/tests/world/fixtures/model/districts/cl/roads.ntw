@@ -1,0 +1,34 @@
+ntw 1 roads district=cl
+# a four-way junction with signals, a dead end with a turning circle, a one-way lane
+node cl.n0001 at=200.00,150.00 z=3.00 control=signal plan=lib.signal.fourway offset=10.0
+  approaches=n:cl.e0003,e:cl.e0001,s:cl.e0004,w:cl.e0002
+node cl.n0003 at=0.00,150.00 z=2.80 bulb=8.00
+node cl.n0004 at=200.00,300.00 z=3.20
+node cl.n0005 at=200.00,0.00 z=2.90
+edge cl.e0001 from=cl.n0001 to=tr.n00001 class=avenue name="Calle Ocho" lanes=2/2 sidewalk=both:3.50
+  shape=200.00,150.00;400.00,150.00
+end
+edge cl.e0002 from=cl.n0003 to=cl.n0001 class=street name="SW 8th St" lanes=1/1 parking=both:2.40 speed=11.0
+  shape=0.00,150.00;100.00,150.00;200.00,150.00 profile=0.00:2.80;200.00:3.00
+  crossing at=190.00 kind=signal w=4.00
+  busstop cl.bus.01 at=120.00 side=right shelter=lib.prop.shelter_a wait=120.00,143.00:3.00 routes=bus.1
+  parkbay from=20.00 to=60.00 side=left kind=parallel meter=1
+  nostop from=185.00 to=200.00 side=right why=junction
+  curbcut at=150.00 side=left w=5.00 to=cl.b001.lot1
+  sign at=10.00 side=right kind=name value="SW 8th St"
+end
+edge cl.e0003 from=cl.n0001 to=cl.n0004 class=street name="NW 12th Ave" lanes=1/1 median=1.50:barrier
+  shape=200.00,150.00;200.00,300.00
+  lanes from=0.00 to=40.00 dir=bwd count=2 add=left taper=10.00
+  lane dir=fwd index=right use=bike
+  noswitch dir=bwd from=0.00 to=30.00
+  moves at=n0 lanes=l,sr
+end
+edge cl.e0004 from=cl.n0005 to=cl.n0001 class=lane lanes=1/0 sidewalk=left:1.80 shape=200.00,0.00;200.00,150.00
+end
+junction cl.n0001 turns=no_uturn
+  stopline edge=cl.e0002 at=6.50
+  connect from=cl.e0002:0 to=cl.e0003:0 turn=left protected=1
+  ban from=cl.e0004 to=cl.e0002
+  head at=212.00,140.00,5.50 faces=cl.e0001:bwd
+end

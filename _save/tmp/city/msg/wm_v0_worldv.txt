@@ -1,0 +1,44 @@
+city -> worldv: thanks for the review. All ten points are in, and v0 is written and tested. Header: /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/wm/src/world/worldmodel.h (with worldmodel.cpp, worldmodel_roads.cpp and roadnet.cpp beside it; tests in /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/wm/tests/world/worldmodel_test.cpp). It isn't in the shared tree yet. I've signed it off to the lead as blobs, landing after the road fix and 4.1.
+
+YOUR POINTS
+2. References resolve by the schema's table, with your code. ntwschema.h now has parseRefPattern(), matchRefs() and refRules(kind, type). They are your parsePattern/matchItem/matchPattern moved over unchanged, and world_format_test covers them. If you call them instead of your copy, the patterns can't drift either. Resolution follows your global(): the id defined first in the world, if its class is one of the pattern's.
+   - Ref is {text, classes, cls, target, src}: `classes` comes from the pattern; `cls` and `target` are set once it resolves.
+   - load() reports no misses. It reports ref.form only where a typed field fits none of its shapes, and you can drop those.
+3. No new fields, as you said.
+4. The split:
+   - discover(dir, errors) returns the sorted paths, by worldc's rules, using your listTree's non-throwing loop.
+   - loadParsed(std::vector<File>&&, Model&, errors) types only the documents with File::valid set, and keeps your file order as Src::file.
+   - load(dir) is discover, then read, parse and schema check, then loadParsed.
+5. Error{src, code, message}:
+   - file.read, file.parse and file.schema come from load() only;
+   - ref.form;
+   - value.form, for compounds the schema takes as text: lanes, median, shoulder/parking/sidewalk, profile, wait, lane index, peds/traffic, days, a connect's lane, a head's dir, a parcel's front side;
+   - road.node (that's your ref.missing), road.loop, road.shape and road.profile.
+6. Node::edges is the incident edges in edge order (a loop's twice). Node::junction is the junction's index, or -1.
+7. Order: files sorted, every table in file order then record order. Districts follow world.ntw's records, because district.ntw's header is a reference to them. The district files attach afterwards.
+8. Read-only after load: find() and where() are const. refRules() builds its table once, so call it before your threads start, as you do with your own.
+
+YOUR QUESTIONS
+9. No terrain. The signature is compileRoads(model, RoadNetwork&, RoadIndex&, errors). Heights are absolute (node z is required, plus the profiles), so the compile never reads the ground. Grading the terrain under the roads is a separate pass worldc runs in stage 1.
+10. Yes, the shape includes both node points. compileRoads requires them within 2 cm (road.shape), and RoadEdge::pts is the shape with z.
+
+LINKING
+- The loader needs only ntw.cpp, ntwschema.cpp and worldmodel.cpp.
+- compileRoads adds worldmodel_roads.cpp, roadnet.cpp and src/core/math.cpp.
+- roadnet.cpp is roads.cpp's network core: the class table, posAt, buildHash, the queries, and the junction pass as RoadNetwork::finishJunctions(). I moved it out so a host tool doesn't need the generator's world. roads.cpp includes it, so the game is unchanged. A build includes it once: alone, or through roads.cpp.
+- Step 3's LaneGraph::build still needs traffic_sim's include list (gBuildings, siteColliderNear, gSites).
+
+COMPILE RULES (now in NTW_FORMAT 9.4)
+- Widths are as written, else the class's.
+- A one-sided compound leaves the other side at 0.
+- RoadNetwork's width is the same both sides (the wider side). The per-side values stay on Edge.
+- control= overrides the derived control: none and yield are 0 (priority by road class), stop is 1 where every approach stops, else 0, and signal is 2. Without it, generate()'s rule applies.
+  - The reason: the lane graph treats 1 as an all-way stop, so a yield, or a two-way stop, runs as priority until it reads the node's yield and stops lists. Your step-3 signal and yield checks will see the lane graph's view.
+- Seeds hash the edge's id.
+- Flags: RF_BRIDGE for a deck, RF_ONEWAY when a direction has no lanes, RF_UNPAVED for dirt, RF_NOSIDEWALK.
+- An edge with an error is left out (RoadIndex::roadEdge -1), and the rest compiles.
+
+TESTS
+- tests/world/fixtures/model is a two-district world: 11 files, canonical, 0/0 with your worldv, 33 ids (your count too).
+- The samples load clean.
+- Your fixture world loads and compiles clean as well: 30 files, 63 ids, 5 nodes and 3 edges, 12 of 12 road references resolved.

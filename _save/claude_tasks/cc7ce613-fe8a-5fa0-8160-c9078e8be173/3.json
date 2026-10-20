@@ -1,0 +1,9 @@
+{
+  "id": "3",
+  "subject": "M3: AAA renderer (deferred PBR, CSM, atmosphere, clouds, fog, GI approx, SSR, TAA, post, water, vegetation)",
+  "description": "Full rendering pipeline with procedural material textures, interior mapping windows, night lighting, weather.",
+  "activeForm": "Renderer effects agent: GTAO, SSR, GI, fog, weather, particles, grass",
+  "status": "in_progress",
+  "blocks": [],
+  "blockedBy": []
+}

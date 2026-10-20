@@ -1,0 +1,33 @@
+Results (nt_ai62 unless noted; all rc=0, no crash, no GPU errors):
+- life (200 s): fine; couples hand in hand appear; their hands still had a gap then - found since: the animation agent's
+  pass-by lean treated the companion as a passer; the couple block's passWeight = 0 fixes it (nt_ai73: a clasp).
+- arrest (260 s): stage 3 now completes at t=165.4. Stage 1: the transport pulled over 44 m out, the prisoner in 86 s
+  after the cuffs, the statement 29 s. Stage 3: a unit sent from 183 m, the prisoner in 33 s, the statement 30 s.
+- ticket (150 s): written up at 19 s and 15 s; no owner came in the test (fixed in sets 5+6: a worker can be the owner,
+  rushing owners only for cars with room to pull out, and a log line when nobody comes).
+- proposal (150 s): a yes (2 watching) and a no (4 watching); the ring, the kneel, the cheers, off hand in hand.
+- crashscene (150 s): unit 71 sent from 144 m, pulled over 25 m back, the crew out (details / waving traffic round),
+  done by t=82. (The test camera was blocked by an arcade: fixed in the sets 5+6 app.cpp.)
+- rain (90 s): 7 under bus shelters, umbrellas out, the dash for cover and remarks.
+- hurt: on nt_ai62 the victim was one of the quarter who get up again; rerun on nt_ai72 (victim chosen to stay down):
+  ped 99 knocked down 3 m from the player at t=6, down hurt (writhing, "Help me... please...") from t=10; the beat
+  pair 20 m off came over at once (cop aid 1: the lead kneeling, the partner on the radio - "Dispatch, I need EMS at my
+  location, one down."), a crowd gathered; the ambulance sent from 185 m pulled up 25 m off at t=57, the medic saw to
+  them (t=63-73), up at t=73 and walked to the ambulance, in by t=95.
+- walkby (nt_ai72, 150 s): greetings 0, "are you okay?" 0. Cause (seen in the shots): phone talkers near the player said
+  a line at every free moment (BK_PHONE_CHAT was tried every frame), holding the street's bark slot, so the hellos were
+  dropped - and the dropped one used up the pass. Fixed in set 8 (phone lines once per 5 s, a drowned-out greeting
+  retried within the pass; the walkby test forces a word for every close pass to check the path).
+- pedstop (240 s): three stops - let go after 27 s; a warrant (cuffed, a transport sent from 165 m out of view,
+  pulled over 22 m off, the prisoner in 58 s after the cuffs); a runner (caught by the partner, cuffed, the transport on
+  patrol turned round from 102 m, in 51 s after the cuffs), a witness statement (30 s), and a parking ticket written by
+  the first pair in between. Census: stops 3 (warrants 1, runs 1), custody 2, transports 2. One thing seen in the
+  shots: a prisoner caught on a corner sat waiting on the zebra stripes - fixed in sets 7-9 (walked to the kerb first).
+- events (240 s): six forced one after another - a mugging, a purse snatch (the thief running across a crossing), a
+  fender bender (both drivers out), a police chase, a breakdown (smoke, people round it), a traffic stop; all staged and
+  run through, events 6, no crash.
+- night (200 s, the downtown corner at 23:00, nothing forced): a quiet street - a few people out, a pair walking with
+  an overheard line ("We should've taken the car."), 3 ambient events, a greeting, 3 lost, 3 cars driven off; AI 0.3-0.5 ms.
+- crowd (28.5 s, four stops): beach afternoon 45 on foot within 70 m, downtown lunch 49, club night 80 (32 at the
+  venues: queues, door staff; 7 dancing, 10 talking, a couple hand in hand), park evening 40 (2 meets); AI 0.77 ms.
+- soak (300 s): [SOAK]

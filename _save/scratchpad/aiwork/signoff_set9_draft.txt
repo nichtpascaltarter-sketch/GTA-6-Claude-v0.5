@@ -1,0 +1,10 @@
+AI snapshot-safe, set 9 (on top of set 8). Tested on nt_ai77 = HEAD <hash> plus the blobs below.
+[blobs]
+
+- The player knocked flat close by (a car, a fall, a blast): people within 14 m who see it gasp ("Oh my God!",
+  "Somebody call an ambulance!" - BK_PLAYER_DOWN), the nearest steady one comes over and stands by them, and once
+  they are up asks "are you okay?"; the rest stop for a look (pedai.cpp; AIState::playerDownT / playerHelper).
+- A driver who knocks the player flat stops seven times in ten (no horn), gets out and runs over: crouched beside them
+  while they are down, sorry ("I didn't see you! Are you okay?!" - BK_DRIVER_SORRY), then back to the car once they
+  are up and away (ai.cpp detects it, traffic.cpp stops the car, pedai.cpp ACT_ROADRAGE's other way round).
+Tests: hitplayer mode (twice: the player put just ahead of a car at speed); census "sorry drivers", "asked okay".

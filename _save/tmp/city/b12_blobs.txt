@@ -1,0 +1,6 @@
+src/world/buildmesh.cpp 46cfe87e1fd22ba837e2baa996897135807acc74 (HEAD f6747fb)
+src/world/propmesh.cpp 6eb67390b3d0a03117f1a842ae03389bbcc8bd86 (HEAD e2e3022)
+src/world/landmarks.cpp cb2b991fcfd0589a0ee83ef7d96ce1280767c0f5 (HEAD 38e1433)
+src/world/leisure.cpp 8a227ddb9a69e5b38beaa7c71e3f926dc06fe5ea (HEAD 0279fc3)
+src/shaders/facade.hlsli 07a30a1f90dfc397cabf6f62e61933538bf561f3 (HEAD d4fae17)
+src/shaders/world.hlsl 32126ee5e320343657b5d39a2fb4fb898b409c14 (HEAD 4f3089a)

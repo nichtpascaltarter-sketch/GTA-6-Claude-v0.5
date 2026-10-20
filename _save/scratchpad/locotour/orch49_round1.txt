@@ -1,0 +1,17 @@
+start 11:47:20
+run st21spi 11:48:51 memfree 11493
+run st21spi exit 0 (renderevery 30)
+done st21spi 11:52:34
+run st20spi 11:52:35 memfree 11219
+run st20spi exit 0 (renderevery 30)
+done st20spi 11:56:20
+run st21pl 11:56:21 memfree 11443
+run st21pl exit 0 (renderevery 30)
+done st21pl 12:06:15
+run st19nj 12:06:15 memfree 11286
+run st19nj exit 0 (renderevery 30)
+done st19nj 12:10:37
+run st20nj 12:10:37 memfree 13609
+run st20nj exit 0 (renderevery 30)
+done st20nj 12:14:48
+orch49 done 12:14:48

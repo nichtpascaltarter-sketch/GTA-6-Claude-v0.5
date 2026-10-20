@@ -1,0 +1,7 @@
+In file included from src/main.cpp:70:
+src/game/app.cpp: In member function 'void Game::App::updateBenchmark(Game::Controls&, float)':
+src/game/app.cpp:6193: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
+ 6193 |         if (!pl) return;
+      | 
+src/game/app.cpp:6193: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
+-rwxr-xr-x 1 root root 13314560 Oct 19 16:48 bin/nt_ai101c.exe

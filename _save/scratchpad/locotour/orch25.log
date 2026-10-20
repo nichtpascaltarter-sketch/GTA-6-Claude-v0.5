@@ -1,0 +1,25 @@
+start 07:33:02
+build st10 rc 0
+Embedded 40 shader files.
+-rwxr-xr-x 1 root root 12835840 Oct 13 07:42 bin/loco_st10.exe
+built st10 07:42:59
+run st10s 07:53:59
+run st10s exit 0
+[ 694.492] locostairs bigslide 178 dn foot 0: 20.6 cm over 20 frames | biggest 7.0 cm at frame 14: planted 0 hold 0 stepT -1.00 age 0.00 rootRatio 1.00 v 0.42 a 20.77
+[ 737.342] locostairs bigslide 182 up foot 0: 18.7 cm over 27 frames | biggest 3.2 cm at frame 26: planted 1 hold 0 stepT -1.00 age 0.90 rootRatio 1.00 v 0.67 a 22.08
+[1658.353] locostairs bigslide 177 up foot 0: 19.7 cm over 7 frames | biggest 7.4 cm at frame 1: planted 0 hold 1 stepT -1.00 age 0.00 rootRatio 1.00 v 0.00 a 19.43
+[2463.501] locostairs up   steps  270 | slide cm/step mean 1.78 p90 3.59 max 26.73 | scuffs 44
+[2463.501] locostairs up   planted foot-frames 6389 | across a riser 86.1% | sunk 1 cm 4.3%, 3 cm 3.9% | lifted 0.6% | lowest sole -169.0 mm
+[2463.501] locostairs down steps  277 | slide cm/step mean 1.42 p90 3.84 max 27.50 | scuffs 23
+[2463.501] locostairs down planted foot-frames 6568 | across a riser 82.7% | sunk 1 cm 2.6%, 3 cm 2.6% | lifted 3.3% | lowest sole -169.0 mm
+[2463.501] locostairs trips 16 | peds cpu 2.46 ms per frame (mean over 3002 frames)
+run st10 08:37:54
+run st10 exit 0
+[ 234.455] locostairs: station Calle Luna, stair top 1815.4 -638.0 17.6, foot 1848.1 -638.0 3.1, 32.7 m long
+[ 248.215] locostairs: 8 walkers
+[2347.485] locostairs up   steps  298 | slide cm/step mean 1.62 p90 3.33 max 8.27 | scuffs 22
+[2347.485] locostairs up   planted foot-frames 6089 | across a riser 87.6% | sunk 1 cm 1.4%, 3 cm 1.1% | lifted 0.5% | lowest sole -169.0 mm
+[2347.485] locostairs down steps  277 | slide cm/step mean 0.84 p90 3.16 max 8.08 | scuffs 27
+[2347.485] locostairs down planted foot-frames 5754 | across a riser 86.5% | sunk 1 cm 1.8%, 3 cm 1.7% | lifted 6.1% | lowest sole -169.0 mm
+[2347.485] locostairs trips 27 | peds cpu 2.36 ms per frame (mean over 3002 frames)
+orch25 done 09:17:31

@@ -1,0 +1,113 @@
+IEV lstair.up_1.0 p0 run 0 t6.850 foot 1 low  -3.2 h 12.7 b  0.0 t  1.8 at   1.28,  4.62 fy  -86.9 gz  1.92/ 2.10/ 2.10 age 0.03 st -1.00 v 1.00 tr -0.19 yaw  -83.4
+IEV lstair.up_1.0 p1 run 1 t6.550 foot 1 low -17.5 h  6.4 b  0.2 t-17.5 at   0.28,  4.62 fy  -65.5 gz  1.40/ 1.40/ 1.57 age 0.70 st -1.00 v 1.00 tr -0.31 yaw  -79.2
+IEV lstair.up_1.0 p1 run 1 t6.567 foot 1 low -17.5 h  7.4 b  0.3 t-17.5 at   0.28,  4.63 fy  -65.7 gz  1.40/ 1.40/ 1.57 age 0.72 st -1.00 v 1.00 tr -0.30 yaw  -79.5
+IEV lstair.up_1.0 p1 run 1 t6.583 foot 1 low -17.5 h  8.3 b  0.3 t-17.5 at   0.29,  4.63 fy  -65.9 gz  1.40/ 1.40/ 1.57 age 0.73 st -1.00 v 1.00 tr -0.29 yaw  -79.8
+IEV lstair.up_1.0 p1 run 1 t6.600 foot 1 low -17.5 h  9.1 b  0.4 t-17.5 at   0.29,  4.63 fy  -66.1 gz  1.40/ 1.40/ 1.57 age 0.75 st -1.00 v 1.00 tr -0.29 yaw  -80.1
+IEV lstair.up_1.0 p1 run 1 t6.617 foot 1 low -17.5 h  9.9 b  0.5 t-17.5 at   0.29,  4.63 fy  -66.3 gz  1.40/ 1.40/ 1.57 age 0.77 st -1.00 v 1.00 tr -0.28 yaw  -80.3
+IEV lstair.up_1.0 p1 run 1 t6.633 foot 1 low -17.5 h 10.6 b  0.6 t-17.5 at   0.30,  4.64 fy  -66.5 gz  1.40/ 1.40/ 1.57 age 0.78 st -1.00 v 1.00 tr -0.27 yaw  -80.6
+IEV lstair.up_1.0 p1 run 1 t6.650 foot 1 low -17.5 h 11.2 b  0.6 t-17.5 at   0.30,  4.64 fy  -66.7 gz  1.40/ 1.40/ 1.57 age 0.80 st -1.00 v 1.00 tr -0.27 yaw  -80.8
+IEV lstair.up_1.0 p1 run 1 t6.667 foot 1 low -17.5 h 11.6 b  0.7 t-17.5 at   0.30,  4.64 fy  -66.9 gz  1.40/ 1.40/ 1.57 age 0.82 st -1.00 v 1.00 tr -0.26 yaw  -81.1
+IEV lstair.up_1.0 p1 run 1 t6.683 foot 1 low -17.5 h 12.0 b  0.7 t-17.5 at   0.30,  4.64 fy  -67.1 gz  1.40/ 1.40/ 1.57 age 0.83 st -1.00 v 1.00 tr -0.25 yaw  -81.3
+IEV lstair.up_1.0 p1 run 1 t6.700 foot 1 low -17.5 h 12.1 b  0.7 t-17.5 at   0.30,  4.64 fy  -67.3 gz  1.40/ 1.40/ 1.57 age 0.85 st -1.00 v 1.00 tr -0.25 yaw  -81.6
+IEV lstair.up_1.0 p1 run 1 t6.717 foot 1 low -17.5 h 12.2 b  0.8 t-17.5 at   0.30,  4.64 fy  -67.4 gz  1.40/ 1.40/ 1.57 age 0.87 st -1.00 v 1.00 tr -0.24 yaw  -81.8
+IEV lstair.up_1.0 p2 run 2 t3.650 foot 1 low -17.5 h  7.7 b  0.3 t-17.5 at   0.09,  1.80 fy   -3.4 gz  0.00/ 0.00/ 0.17 age 0.65 st -1.00 v 1.00 tr -0.00 yaw    0.0
+IEV lstair.up_1.0 p2 run 2 t3.667 foot 1 low -17.5 h  8.9 b  0.4 t-17.5 at   0.09,  1.81 fy   -3.4 gz  0.00/ 0.00/ 0.17 age 0.67 st -1.00 v 1.00 tr -0.00 yaw    0.0
+IEV lstair.up_1.0 p2 run 2 t3.683 foot 1 low -17.5 h 10.0 b  0.5 t-17.5 at   0.09,  1.81 fy   -3.4 gz  0.00/ 0.00/ 0.17 age 0.68 st -1.00 v 1.00 tr -0.00 yaw    0.0
+IEV lstair.up_1.0 p2 run 2 t3.700 foot 1 low -17.5 h 11.0 b  0.5 t-17.5 at   0.09,  1.82 fy   -3.4 gz  0.00/ 0.00/ 0.17 age 0.70 st -1.00 v 1.00 tr -0.00 yaw    0.0
+IEV lstair.up_1.0 p2 run 2 t3.717 foot 1 low -17.5 h 11.9 b  0.6 t-17.5 at   0.09,  1.82 fy   -3.4 gz  0.00/ 0.00/ 0.17 age 0.72 st -1.00 v 1.00 tr -0.00 yaw    0.0
+IEV lstair.up_1.0 p2 run 2 t3.733 foot 1 low -17.5 h 12.6 b  0.7 t-17.5 at   0.09,  1.83 fy   -3.4 gz  0.00/ 0.00/ 0.17 age 0.73 st -1.00 v 1.00 tr -0.00 yaw    0.0
+IEV lstair.up_1.0 p2 run 2 t3.750 foot 1 low -17.5 h 13.2 b  0.8 t-17.5 at   0.09,  1.83 fy   -3.4 gz  0.00/ 0.00/ 0.17 age 0.75 st -1.00 v 1.00 tr -0.00 yaw    0.0
+IEV lstair.up_1.0 p2 run 2 t3.767 foot 1 low -17.5 h 13.5 b  0.9 t-17.5 at   0.09,  1.84 fy   -3.4 gz  0.00/ 0.00/ 0.17 age 0.77 st -1.00 v 1.00 tr -0.00 yaw    0.0
+IEV lstair.up_1.0 p2 run 2 t3.783 foot 1 low -17.5 h 13.8 b  0.9 t-17.5 at   0.09,  1.84 fy   -3.4 gz  0.00/ 0.00/ 0.17 age 0.78 st -1.00 v 1.00 tr -0.00 yaw    0.0
+IEV lstair.up_1.0 p2 run 2 t3.800 foot 1 low -17.5 h 13.7 b  1.0 t-17.5 at   0.09,  1.84 fy   -3.4 gz  0.00/ 0.00/ 0.17 age 0.80 st -1.00 v 1.00 tr -0.00 yaw    0.0
+IEV lstair.up_1.0 p3 run 3 t6.317 foot 1 low  -6.6 h  8.2 b 10.3 t -6.5 at   0.82,  4.57 fy  -87.1 gz  1.75/ 1.75/ 1.92 age 0.03 st -1.00 v 1.00 tr -0.43 yaw  -74.4
+IEV lstair.up_1.0 p3 run 3 t6.333 foot 1 low -17.0 h -1.9 b  0.0 t-16.8 at   0.82,  4.57 fy  -87.1 gz  1.75/ 1.75/ 1.92 age 0.05 st -1.00 v 1.00 tr -0.42 yaw  -74.8
+IEV lstair.up_1.0 p3 run 3 t6.350 foot 1 low -17.0 h -1.7 b -0.0 t-16.9 at   0.82,  4.57 fy  -87.1 gz  1.75/ 1.75/ 1.92 age 0.07 st -1.00 v 1.00 tr -0.41 yaw  -75.2
+IEV lstair.up_1.0 p3 run 3 t6.367 foot 1 low -17.1 h -1.4 b  0.0 t-17.0 at   0.82,  4.57 fy  -87.1 gz  1.75/ 1.75/ 1.92 age 0.08 st -1.00 v 1.00 tr -0.40 yaw  -75.6
+IEV lstair.up_1.0 p3 run 3 t6.383 foot 1 low -17.2 h -1.1 b  0.0 t-17.1 at   0.82,  4.57 fy  -87.1 gz  1.75/ 1.75/ 1.92 age 0.10 st -1.00 v 1.00 tr -0.39 yaw  -75.9
+IEV lstair.up_1.0 p3 run 3 t6.400 foot 1 low -17.3 h -0.8 b  0.0 t-17.2 at   0.82,  4.57 fy  -87.1 gz  1.75/ 1.75/ 1.92 age 0.12 st -1.00 v 1.00 tr -0.38 yaw  -76.3
+IEV lstair.up_1.0 p3 run 3 t6.417 foot 1 low -17.4 h -0.4 b  0.0 t-17.3 at   0.82,  4.57 fy  -87.1 gz  1.75/ 1.75/ 1.92 age 0.13 st -1.00 v 1.00 tr -0.37 yaw  -76.7
+IEV lstair.up_1.0 p3 run 3 t6.433 foot 1 low -17.4 h -0.2 b  0.0 t-17.4 at   0.82,  4.57 fy  -87.1 gz  1.75/ 1.75/ 1.92 age 0.15 st -1.00 v 1.00 tr -0.36 yaw  -77.0
+IEV lstair.up_1.0 p3 run 3 t6.450 foot 1 low -17.5 h  0.0 b  0.0 t-17.5 at   0.82,  4.57 fy  -87.1 gz  1.75/ 1.75/ 1.92 age 0.17 st -1.00 v 1.00 tr -0.36 yaw  -77.3
+IEV lstair.up_1.0 p3 run 3 t6.467 foot 1 low -17.5 h  0.1 b  0.0 t-17.5 at   0.82,  4.57 fy  -87.1 gz  1.75/ 1.75/ 1.92 age 0.18 st -1.00 v 1.00 tr -0.35 yaw  -77.7
+IEV lstair.up_1.0 p3 run 3 t6.483 foot 1 low -17.5 h  0.1 b  0.0 t-17.5 at   0.82,  4.57 fy  -87.1 gz  1.75/ 1.75/ 1.92 age 0.20 st -1.00 v 1.00 tr -0.34 yaw  -78.0
+IEV lstair.up_1.0 p3 run 3 t6.500 foot 1 low -17.5 h  0.1 b  0.0 t-17.5 at   0.82,  4.57 fy  -87.1 gz  1.75/ 1.75/ 1.92 age 0.22 st -1.00 v 1.00 tr -0.33 yaw  -78.3
+IEV lstair.up_1.0 p3 run 3 t6.517 foot 1 low -17.5 h  0.1 b  0.0 t-17.5 at   0.82,  4.57 fy  -87.1 gz  1.75/ 1.75/ 1.92 age 0.23 st -1.00 v 1.00 tr -0.32 yaw  -78.6
+IEV lstair.up_1.0 p3 run 3 t6.533 foot 1 low -17.5 h  0.1 b  0.0 t-17.5 at   0.82,  4.57 fy  -87.1 gz  1.75/ 1.75/ 1.92 age 0.25 st -1.00 v 1.00 tr -0.32 yaw  -78.9
+IEV lstair.up_1.0 p3 run 3 t6.550 foot 1 low -17.5 h  0.1 b  0.0 t-17.5 at   0.82,  4.57 fy  -87.1 gz  1.75/ 1.75/ 1.92 age 0.27 st -1.00 v 1.00 tr -0.31 yaw  -79.2
+IEV lstair.up_1.0 p3 run 3 t6.567 foot 1 low -17.5 h  0.1 b  0.0 t-17.5 at   0.82,  4.57 fy  -87.1 gz  1.75/ 1.75/ 1.92 age 0.28 st -1.00 v 1.00 tr -0.30 yaw  -79.5
+IEV lstair.up_1.0 p3 run 3 t6.583 foot 1 low -17.5 h  0.1 b  0.0 t-17.5 at   0.82,  4.57 fy  -87.1 gz  1.75/ 1.75/ 1.92 age 0.30 st -1.00 v 1.00 tr -0.29 yaw  -79.8
+IEV lstair.up_1.0 p3 run 3 t6.600 foot 1 low -17.5 h  0.1 b  0.0 t-17.5 at   0.82,  4.57 fy  -87.1 gz  1.75/ 1.75/ 1.92 age 0.32 st -1.00 v 1.00 tr -0.29 yaw  -80.1
+IEV lstair.up_1.0 p3 run 3 t6.617 foot 1 low -17.5 h  0.0 b  0.0 t-17.5 at   0.82,  4.57 fy  -87.1 gz  1.75/ 1.75/ 1.92 age 0.33 st -1.00 v 1.00 tr -0.28 yaw  -80.3
+IEV lstair.up_1.0 p3 run 3 t6.633 foot 1 low -17.5 h  0.0 b  0.0 t-17.5 at   0.82,  4.57 fy  -87.1 gz  1.75/ 1.75/ 1.92 age 0.35 st -1.00 v 1.00 tr -0.27 yaw  -80.6
+IEV lstair.up_1.0 p3 run 3 t6.650 foot 1 low -17.5 h  0.0 b  0.0 t-17.5 at   0.82,  4.57 fy  -87.1 gz  1.75/ 1.75/ 1.92 age 0.37 st -1.00 v 1.00 tr -0.27 yaw  -80.8
+IEV lstair.up_1.0 p3 run 3 t6.667 foot 1 low -17.5 h  0.0 b  0.0 t-17.5 at   0.82,  4.57 fy  -87.1 gz  1.75/ 1.75/ 1.92 age 0.38 st -1.00 v 1.00 tr -0.26 yaw  -81.1
+IEV lstair.up_1.0 p3 run 3 t6.683 foot 1 low -17.5 h  0.0 b  0.0 t-17.5 at   0.82,  4.57 fy  -87.1 gz  1.75/ 1.75/ 1.92 age 0.40 st -1.00 v 1.00 tr -0.25 yaw  -81.3
+IEV lstair.up_1.0 p3 run 3 t6.700 foot 1 low -17.5 h  0.0 b  0.0 t-17.5 at   0.82,  4.57 fy  -87.1 gz  1.75/ 1.75/ 1.92 age 0.42 st -1.00 v 1.00 tr -0.25 yaw  -81.6
+IEV lstair.up_1.0 p3 run 3 t6.717 foot 1 low -17.5 h  0.0 b  0.0 t-17.5 at   0.82,  4.57 fy  -87.1 gz  1.75/ 1.75/ 1.92 age 0.43 st -1.00 v 1.00 tr -0.24 yaw  -81.8
+IEV lstair.up_1.0 p3 run 3 t6.733 foot 1 low -17.5 h  0.0 b  0.0 t-17.5 at   0.82,  4.57 fy  -87.1 gz  1.75/ 1.75/ 1.92 age 0.45 st -1.00 v 1.00 tr -0.23 yaw  -82.0
+IEV lstair.up_1.0 p3 run 3 t6.750 foot 1 low -17.5 h  0.0 b  0.0 t-17.5 at   0.82,  4.57 fy  -87.1 gz  1.75/ 1.75/ 1.92 age 0.47 st -1.00 v 1.00 tr -0.23 yaw  -82.2
+IEV lstair.up_1.0 p3 run 3 t6.767 foot 1 low -17.5 h  0.0 b  0.0 t-17.5 at   0.82,  4.57 fy  -87.1 gz  1.75/ 1.75/ 1.92 age 0.48 st -1.00 v 1.00 tr -0.22 yaw  -82.5
+IEV lstair.up_1.0 p3 run 3 t6.783 foot 1 low -17.5 h  0.0 b  0.0 t-17.5 at   0.82,  4.57 fy  -87.1 gz  1.75/ 1.75/ 1.92 age 0.50 st -1.00 v 1.00 tr -0.22 yaw  -82.7
+IEV lstair.up_1.0 p3 run 3 t6.800 foot 1 low -17.5 h  0.0 b  0.0 t-17.5 at   0.82,  4.57 fy  -87.1 gz  1.75/ 1.75/ 1.92 age 0.52 st -1.00 v 1.00 tr -0.21 yaw  -82.9
+IEV lstair.up_1.0 p3 run 3 t6.817 foot 1 low -17.5 h  0.0 b  0.0 t-17.5 at   0.82,  4.57 fy  -87.1 gz  1.75/ 1.75/ 1.92 age 0.53 st -1.00 v 1.00 tr -0.20 yaw  -83.1
+IEV lstair.up_1.0 p3 run 3 t6.833 foot 1 low -17.5 h  0.1 b  0.0 t-17.5 at   0.82,  4.57 fy  -87.1 gz  1.75/ 1.75/ 1.92 age 0.55 st -1.00 v 1.00 tr -0.20 yaw  -83.2
+IEV lstair.up_1.0 p3 run 3 t6.850 foot 1 low -17.5 h  0.2 b  0.0 t-17.5 at   0.82,  4.57 fy  -87.1 gz  1.75/ 1.75/ 1.92 age 0.57 st -1.00 v 1.00 tr -0.19 yaw  -83.4
+IEV lstair.up_1.0 p3 run 3 t6.867 foot 1 low -17.5 h  0.5 b  0.0 t-17.5 at   0.82,  4.57 fy  -87.1 gz  1.75/ 1.75/ 1.92 age 0.58 st -1.00 v 1.00 tr -0.19 yaw  -83.6
+IEV lstair.up_1.0 p3 run 3 t6.883 foot 1 low -17.5 h  0.8 b  0.0 t-17.5 at   0.82,  4.57 fy  -87.1 gz  1.75/ 1.75/ 1.92 age 0.60 st -1.00 v 1.00 tr -0.18 yaw  -83.8
+IEV lstair.up_1.0 p3 run 3 t6.900 foot 1 low -17.5 h  1.2 b  0.0 t-17.5 at   0.82,  4.57 fy  -87.1 gz  1.75/ 1.75/ 1.92 age 0.62 st -1.00 v 1.00 tr -0.18 yaw  -84.0
+IEV lstair.up_1.0 p3 run 3 t6.917 foot 1 low -17.5 h  1.6 b  0.0 t-17.5 at   0.82,  4.57 fy  -87.1 gz  1.75/ 1.75/ 1.92 age 0.63 st -1.00 v 1.00 tr -0.17 yaw  -84.1
+IEV lstair.up_1.0 p3 run 3 t6.933 foot 1 low -17.5 h  2.1 b  0.0 t-17.5 at   0.82,  4.57 fy  -87.1 gz  1.75/ 1.75/ 1.92 age 0.65 st -1.00 v 1.00 tr -0.17 yaw  -84.3
+IEV lstair.up_1.0 p3 run 3 t6.950 foot 1 low -17.5 h  2.7 b  0.0 t-17.5 at   0.82,  4.57 fy  -87.1 gz  1.75/ 1.75/ 1.92 age 0.67 st -1.00 v 1.00 tr -0.16 yaw  -84.4
+IEV lstair.up_1.0 p3 run 3 t6.967 foot 1 low -17.5 h  3.2 b  0.1 t-17.5 at   0.82,  4.57 fy  -87.1 gz  1.75/ 1.75/ 1.92 age 0.68 st -1.00 v 1.00 tr -0.16 yaw  -84.6
+IEV lstair.up_1.0 p3 run 3 t6.983 foot 1 low -17.5 h  3.8 b  0.1 t-17.5 at   0.82,  4.57 fy  -87.1 gz  1.75/ 1.75/ 1.92 age 0.70 st -1.00 v 1.00 tr -0.16 yaw  -84.7
+IEV lstair.up_1.0 p3 run 3 t7.000 foot 1 low -17.5 h  4.4 b  0.1 t-17.5 at   0.82,  4.57 fy  -87.1 gz  1.75/ 1.75/ 1.92 age 0.72 st -1.00 v 1.00 tr -0.15 yaw  -84.9
+IEV lstair.up_1.0 p3 run 3 t7.017 foot 1 low -17.5 h  4.9 b  0.1 t-17.5 at   0.82,  4.57 fy  -87.1 gz  1.75/ 1.75/ 1.92 age 0.73 st -1.00 v 1.00 tr -0.15 yaw  -85.0
+IEV lstair.up_1.0 p3 run 3 t7.033 foot 1 low -17.5 h  5.4 b  0.1 t-17.5 at   0.83,  4.57 fy  -87.1 gz  1.75/ 1.75/ 1.92 age 0.75 st -1.00 v 1.00 tr -0.14 yaw  -85.2
+IEV lstair.up_1.0 p3 run 3 t7.050 foot 1 low -17.5 h  5.8 b  0.2 t-17.5 at   0.83,  4.57 fy  -87.1 gz  1.75/ 1.75/ 1.92 age 0.77 st -1.00 v 1.00 tr -0.14 yaw  -85.3
+IEV lstair.up_1.0 p3 run 3 t7.067 foot 1 low -17.5 h  6.2 b  0.2 t-17.5 at   0.83,  4.57 fy  -87.1 gz  1.75/ 1.75/ 1.92 age 0.78 st -1.00 v 1.00 tr -0.14 yaw  -85.4
+IEV lstair.up_1.0 p3 run 3 t7.083 foot 1 low -17.5 h  6.5 b  0.2 t-17.5 at   0.83,  4.57 fy  -87.1 gz  1.75/ 1.75/ 1.92 age 0.80 st -1.00 v 1.00 tr -0.13 yaw  -85.6
+IEV lstair.up_1.0 p3 run 3 t7.100 foot 1 low -17.5 h  6.8 b  0.2 t-17.5 at   0.83,  4.57 fy  -87.1 gz  1.75/ 1.75/ 1.92 age 0.82 st -1.00 v 1.00 tr -0.13 yaw  -85.7
+IEV lstair.up_1.0 p4 run 4 t3.767 foot 1 low  -3.1 h 12.9 b  0.0 t  1.7 at   0.10,  2.51 fy   -4.6 gz  0.35/ 0.52/ 0.52 age 0.03 st -1.00 v 1.00 tr -0.00 yaw    0.0
+IEV lstair.up_1.0 p4 run 4 t6.933 foot 0 low  -3.6 h 11.5 b -1.6 t  0.1 at   1.53,  4.83 fy  -79.7 gz  2.10/ 2.28/ 2.28 age 0.03 st -1.00 v 1.00 tr -0.17 yaw  -84.3
+IEV lstair.up_1.0 p4 run 4 t6.950 foot 0 low  -3.4 h 11.8 b -1.6 t -0.0 at   1.53,  4.83 fy  -79.7 gz  2.10/ 2.28/ 2.28 age 0.05 st -1.00 v 1.00 tr -0.16 yaw  -84.4
+IEV lstair.up_1.0 p5 run 5 t6.583 foot 1 low -17.5 h  9.4 b  0.6 t-17.5 at   0.26,  4.62 fy  -65.9 gz  1.40/ 1.40/ 1.57 age 0.72 st -1.00 v 1.00 tr -0.29 yaw  -79.8
+IEV lstair.up_1.0 p5 run 5 t6.600 foot 1 low -17.5 h 10.3 b  0.7 t-17.5 at   0.27,  4.62 fy  -66.1 gz  1.40/ 1.40/ 1.57 age 0.73 st -1.00 v 1.00 tr -0.29 yaw  -80.1
+IEV lstair.up_1.0 p5 run 5 t6.617 foot 1 low -17.5 h 11.1 b  0.9 t-17.5 at   0.27,  4.63 fy  -66.3 gz  1.40/ 1.40/ 1.57 age 0.75 st -1.00 v 1.00 tr -0.28 yaw  -80.3
+IEV lstair.up_1.0 p5 run 5 t6.633 foot 1 low -17.5 h 11.8 b  1.0 t-17.5 at   0.28,  4.63 fy  -66.5 gz  1.40/ 1.40/ 1.57 age 0.77 st -1.00 v 1.00 tr -0.27 yaw  -80.6
+IEV lstair.up_1.0 p5 run 5 t6.650 foot 1 low -17.5 h 12.4 b  1.1 t-17.5 at   0.28,  4.63 fy  -66.7 gz  1.40/ 1.40/ 1.57 age 0.78 st -1.00 v 1.00 tr -0.27 yaw  -80.8
+IEV lstair.up_1.0 p5 run 5 t6.667 foot 1 low -17.5 h 12.8 b  1.1 t-17.5 at   0.28,  4.63 fy  -66.9 gz  1.40/ 1.40/ 1.57 age 0.80 st -1.00 v 1.00 tr -0.26 yaw  -81.1
+IEV lstair.up_1.0 p5 run 5 t6.683 foot 1 low -17.5 h 13.0 b  1.2 t-17.5 at   0.28,  4.63 fy  -67.1 gz  1.40/ 1.40/ 1.57 age 0.82 st -1.00 v 1.00 tr -0.25 yaw  -81.3
+IEV lstair.up_1.0 p5 run 5 t6.700 foot 1 low -17.5 h 13.2 b  1.2 t-17.5 at   0.28,  4.63 fy  -67.3 gz  1.40/ 1.40/ 1.57 age 0.83 st -1.00 v 1.00 tr -0.25 yaw  -81.6
+IEV lstair.up_1.0 p5 run 5 t7.183 foot 1 low  -3.6 h 11.5 b -1.6 t  0.1 at   1.81,  4.62 fy  -97.6 gz  2.28/ 2.45/ 2.45 age 0.03 st -1.00 v 1.00 tr -0.11 yaw  -86.2
+IEV lstair.up_1.0 p5 run 5 t7.200 foot 1 low  -3.3 h 12.1 b -1.6 t -0.1 at   1.81,  4.62 fy  -97.6 gz  2.28/ 2.45/ 2.45 age 0.05 st -1.00 v 1.00 tr -0.11 yaw  -86.3
+IEV lstair.up_1.0 p5 run 5 t7.217 foot 1 low  -3.0 h 12.7 b -1.6 t -0.3 at   1.80,  4.62 fy  -97.6 gz  2.28/ 2.45/ 2.45 age 0.07 st -1.00 v 1.00 tr -0.11 yaw  -86.4
+IEV lstair.down_1.0 p0 run 6 t3.817 foot 1 low   3.3 h 12.2 b 18.2 t 17.5 at   2.30,  4.83 fy   86.6 gz  2.62/ 2.45/ 2.45 age 0.73 st -1.00 v 1.00 tr  0.00 yaw   90.0
+IEV lstair.down_1.0 p0 run 6 t3.833 foot 1 low   4.9 h 13.0 b 18.4 t 17.5 at   2.30,  4.83 fy   86.6 gz  2.62/ 2.45/ 2.45 age 0.75 st -1.00 v 1.00 tr  0.00 yaw   90.0
+IEV lstair.down_1.0 p0 run 6 t3.850 foot 1 low   5.2 h 13.7 b 18.4 t 17.5 at   2.29,  4.83 fy   86.6 gz  2.62/ 2.45/ 2.45 age 0.77 st -1.00 v 1.00 tr  0.00 yaw   90.0
+IEV lstair.down_1.0 p0 run 6 t3.867 foot 1 low   5.4 h 14.2 b 18.5 t 17.5 at   2.29,  4.83 fy   86.6 gz  2.62/ 2.45/ 2.45 age 0.78 st -1.00 v 1.00 tr  0.00 yaw   90.0
+IEV lstair.down_1.0 p0 run 6 t3.883 foot 1 low   5.5 h 14.5 b 18.6 t 17.5 at   2.29,  4.83 fy   86.6 gz  2.62/ 2.45/ 2.45 age 0.80 st -1.00 v 1.00 tr  0.00 yaw   90.0
+IEV lstair.down_1.0 p0 run 6 t3.900 foot 1 low   5.6 h 14.6 b 18.6 t 17.5 at   2.29,  4.83 fy   86.6 gz  2.62/ 2.45/ 2.45 age 0.82 st -1.00 v 1.00 tr  0.00 yaw   90.0
+IEV lstair.down_1.0 p4 run 10 t5.150 foot 0 low   3.2 h 11.7 b 18.3 t 17.5 at   0.92,  4.64 fy   94.6 gz  1.75/ 1.57/ 1.57 age 0.78 st -1.00 v 1.00 tr  1.37 yaw  100.3
+IEV lstair.down_1.0 p4 run 10 t5.167 foot 0 low   3.4 h 12.3 b 18.4 t 17.5 at   0.91,  4.64 fy   94.6 gz  1.75/ 1.57/ 1.57 age 0.80 st -1.00 v 1.00 tr  1.36 yaw  101.6
+IEV lstair.down_1.0 p4 run 10 t5.183 foot 0 low   3.6 h 12.9 b 18.5 t 17.5 at   0.91,  4.64 fy   94.6 gz  1.75/ 1.57/ 1.57 age 0.82 st -1.00 v 1.00 tr  1.34 yaw  102.9
+IEV lstair.down_1.0 p4 run 10 t5.200 foot 0 low   3.7 h 13.2 b 18.6 t 17.5 at   0.91,  4.64 fy   94.6 gz  1.75/ 1.57/ 1.57 age 0.83 st -1.00 v 1.00 tr  1.32 yaw  104.2
+IEV lstair.down_1.0 p4 run 10 t5.217 foot 0 low   3.8 h 13.4 b 18.6 t 17.5 at   0.91,  4.64 fy   94.6 gz  1.75/ 1.57/ 1.57 age 0.85 st -1.00 v 1.00 tr  1.30 yaw  105.4
+IEV lstair.down_1.0 p4 run 10 t5.233 foot 0 low   3.9 h 13.4 b 18.7 t 17.5 at   0.91,  4.64 fy   94.6 gz  1.75/ 1.57/ 1.57 age 0.87 st -1.00 v 1.00 tr  1.27 yaw  106.6
+IEV lstair.down_1.0 p4 run 10 t5.833 foot 1 low   3.2 h 16.2 b  4.2 t  3.2 at   0.31,  4.91 fy  136.7 gz  1.40/ 1.40/ 1.40 age 0.82 st -1.00 v 1.00 tr  0.41 yaw  164.9
+IEV lstair.down_1.0 p4 run 10 t5.850 foot 1 low   4.1 h 17.1 b  5.1 t  4.1 at   0.30,  4.90 fy  137.0 gz  1.40/ 1.40/ 1.40 age 0.83 st -1.00 v 1.00 tr  0.40 yaw  165.3
+IEV lstair.down_1.0 p4 run 10 t6.100 foot 1 low   6.9 h 10.8 b  7.0 t  6.9 at   0.02,  4.26 fy  170.5 gz  1.40/ 1.40/ 1.40 age 0.02 st -1.00 v 1.00 tr  0.28 yaw  170.2
+IEV lstair.down_1.0 p4 run 10 t6.283 foot 1 low   3.3 h  3.3 b  8.0 t 27.3 at  -0.06,  3.59 fy  169.0 gz  1.05/ 1.05/ 0.88 age 0.02 st -1.00 v 1.00 tr  0.21 yaw  172.7
+IEV lstair.down_1.0 p5 run 11 t4.717 foot 0 low   3.9 h 13.2 b 18.7 t 17.5 at   1.47,  4.62 fy  101.5 gz  2.10/ 1.92/ 1.92 age 0.83 st -1.00 v 1.00 tr  0.00 yaw   90.0
+IEV lstair.down_1.0 p5 run 11 t5.317 foot 1 low   3.2 h 11.4 b 18.4 t 17.5 at   0.91,  4.86 fy   78.5 gz  1.75/ 1.57/ 1.57 age 0.78 st -1.00 v 1.00 tr  1.39 yaw  112.6
+IEV lstair.down_1.0 p5 run 11 t5.333 foot 1 low   3.4 h 12.0 b 18.5 t 17.5 at   0.91,  4.86 fy   78.5 gz  1.75/ 1.57/ 1.57 age 0.80 st -1.00 v 1.00 tr  1.72 yaw  114.2
+IEV lstair.down_1.0 p5 run 11 t5.350 foot 1 low   3.6 h 12.5 b 18.6 t 17.5 at   0.90,  4.86 fy   78.5 gz  1.75/ 1.57/ 1.57 age 0.82 st -1.00 v 1.00 tr  1.71 yaw  115.9
+IEV lstair.down_1.0 p5 run 11 t5.367 foot 1 low   3.8 h 12.9 b 18.6 t 17.5 at   0.90,  4.86 fy   79.5 gz  1.75/ 1.57/ 1.57 age 0.83 st -1.00 v 1.00 tr  1.70 yaw  117.5
+IEV lstair.down_1.0 p5 run 11 t5.383 foot 1 low   3.8 h 13.1 b 18.7 t 17.5 at   0.90,  4.87 fy   81.0 gz  1.75/ 1.57/ 1.57 age 0.85 st -1.00 v 1.00 tr  1.69 yaw  119.1
+IEV lstair.down_1.0 p5 run 11 t5.400 foot 1 low   3.9 h 13.1 b 18.7 t 17.5 at   0.90,  4.88 fy   82.6 gz  1.75/ 1.57/ 1.57 age 0.87 st -1.00 v 1.00 tr  1.67 yaw  120.7
+IEV lstair.down_1.0 p5 run 11 t7.283 foot 0 low   3.3 h 11.5 b 18.4 t 17.5 at   0.14,  3.25 fy -173.5 gz  0.88/ 0.70/ 0.70 age 0.80 st -1.00 v 1.00 tr  0.04 yaw  178.7
+IEV lstair.down_1.0 p5 run 11 t7.300 foot 0 low   3.5 h 12.1 b 18.5 t 17.5 at   0.14,  3.24 fy -173.5 gz  0.88/ 0.70/ 0.70 age 0.82 st -1.00 v 1.00 tr  0.04 yaw  178.7
+IEV lstair.down_1.0 p5 run 11 t7.317 foot 0 low   3.7 h 12.7 b 18.6 t 17.5 at   0.14,  3.24 fy -173.5 gz  0.88/ 0.70/ 0.70 age 0.83 st -1.00 v 1.00 tr  0.04 yaw  178.7
+IEV lstair.down_1.0 p5 run 11 t7.333 foot 0 low   3.8 h 13.0 b 18.7 t 17.5 at   0.14,  3.24 fy -173.5 gz  0.88/ 0.70/ 0.70 age 0.85 st -1.00 v 1.00 tr  0.04 yaw  178.8
+IEV lstair.down_1.0 p5 run 11 t7.350 foot 0 low   3.9 h 13.2 b 18.7 t 17.5 at   0.14,  3.24 fy -173.5 gz  0.88/ 0.70/ 0.70 age 0.87 st -1.00 v 1.00 tr  0.04 yaw  178.8
+IEV lstair.down_1.0 p5 run 11 t7.367 foot 0 low   3.9 h 13.1 b 18.7 t 17.5 at   0.14,  3.24 fy -173.5 gz  0.88/ 0.70/ 0.70 age 0.88 st -1.00 v 1.00 tr  0.04 yaw  178.8

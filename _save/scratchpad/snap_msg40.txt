@@ -1,0 +1,14 @@
+Shop windows: the shop interiors are no longer washed out by a doubled glass lift
+
+City batch 10 (src/world/blockstyle.cpp):
+- Street-level shop glass now gets its clearing only from the facade shader (renderer PR #35). The world's own stopgap
+  lifted it by a further 45% towards clear (in facadeFor and in towerLook), and together they washed the shop interiors
+  out. By day and at night the shops read a little less washed-out and a little more saturated.
+
+Checks (city agent, on nt_dev14 = main b907098 with this one file; its src/world is identical to b49bc7f's apart from
+this file):
+- Story regression 27/27 passed, 0 changed against the batches 6-9 sign-off.
+- Story places and building counts identical.
+- 10 storefront views (Calle Luna, Midtown, Sol Beach, the bodegas; day and night) on nt_dev14 against a clean main
+  b907098: no doubled lift, slightly more saturated interiors.
+- No geometry change, so draws and triangles are unchanged.

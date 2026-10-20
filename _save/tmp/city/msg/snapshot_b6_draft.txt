@@ -1,0 +1,33 @@
+city snapshot-safe: batch 6 (Keys motels and conch houses, painted porch trim, side-gabled ranches and block houses, flat-roofed Mediterranean houses). It is copied into the shared tree on top of main @BASE@ and MinGW-syntax-checked there (x86_64-w64-mingw32-g++-posix -std=c++17 -fsyntax-only -Ibuild/gen -Isrc src/main.cpp: @SYNTAX@; log /tmp/city/syntax_shared_b6.log). The blobs are written to the object store (git hash-object -w).
+
+FILES (src/world). Against batch 5: @NCHANGED@
+@BLOBS@
+
+CHANGELOG (player-facing)
+@CHANGELOG@
+
+TESTS
+The build under test is /tmp/city/nt_dev9.exe: an export of 6afc8b2 with batches 5 and 6, so exactly these files.
+- Story regression (missiontest story, 27 missions): @REG@
+- Story places: @PLACES@
+- worldcheck passed on these files ($S/wc/dev9.txt): 0 colliders or props in drivable lanes, dead ends with room, no unguarded falls, lanes match the physics ground. Colliders 644,921 and props 416,839, as in batch 5.
+- Building triangles (citylab), batch 5 -> batch 6:
+  - near ring (420 m) at tour stops 2/3/4/5: 116k/79k/223k/163k, unchanged;
+  - far ring (2.3 km) at tour stops 2/3/4/5: 125.9k/121.8k/133.2k/49.7k -> 125.7k/121.7k/133.1k/49.7k;
+  - whole-map far LOD: 1.070 M -> 1.068 M;
+  - near rings: Westbrook 863.6k -> 863.8k, Key Solano 495.4k -> 495.5k, the Grove 486.8k -> 486.9k; the others unchanged.
+- Draw calls: none added (one per visible cell).
+- Repetition, batch 5 -> batch 6 (debug log metric): 2.9% -> 2.3% overall:
+  - Westbrook 3.7% -> 2.9%;
+  - Key Solano 5.4% -> 4.0%;
+  - Okahatchee 4.9% -> 4.4%;
+  - Harlow 4.4% -> 3.8%;
+  - the Grove 2.7% -> 2.4%.
+@GFX@
+
+EVIDENCE ($S = /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad)
+@SHEETS@
+- Clay: $S/city/sheets/clay_b7/{keys_pairs,conch_two_storey}.png and $S/city/clay_med/med.png
+
+NEXT
+@NEXT@

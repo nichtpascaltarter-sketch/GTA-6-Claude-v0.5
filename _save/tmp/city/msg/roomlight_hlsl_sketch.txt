@@ -1,0 +1,42 @@
+// A sketch of the HLSL copy of roomLight() (src/world/roomlight.h), line by line from the C++, for the night agent to
+// take or rewrite. Not compiled here (no shader compiler on this box). The same logic in Python, reading the packed table
+// in roomlight_table.hlsl, matches all 104 test vectors (scratchpad rl/port.py).
+
+uint roomHash(uint x) {
+    x ^= x >> 16;
+    x *= 0x7feb352du;
+    x ^= x >> 15;
+    x *= 0x846ca68bu;
+    x ^= x >> 16;
+    return x;
+}
+
+// homes (2-5), garages (10), dusk (11) and porch (12) lights wait for the dark when they have windows
+uint roomScheduleDaylit(uint s) { return ((s >= 2u && s <= 5u) || s == 10u || s == 11u || s == 12u) ? 1u : 0u; }
+
+// schedule: 4 bits of the window record; seed: its 12 bits; windows: 1 for every facade window; day, minute, night:
+// the frame's three integers from the constant buffer. Returns 0 (off) to 254.
+uint roomLight(uint schedule, uint seed, uint windows, uint day, uint minute, uint night) {
+    const uint rs = roomHash((seed & 4095u) * 0x9e3779b9u + 0x632be5abu);
+    if (windows != 0u && roomScheduleDaylit(schedule) != 0u && night < 48u + ((rs >> 26) & 63u)) return 0u;
+    const uint dimmer = 191u + ((rs >> 20) & 63u);
+    const uint sc = schedule < 13u ? schedule : 1u;      // past the table: RS_NEVER
+    uint best = 0u;
+    for (uint back = 0u; back < 2u; back++) {             // today's intervals, then yesterday's past midnight
+        if (back == 0u || day != 0u) {                    // (day 0 has no yesterday)
+            const uint d = day - back;
+            const uint base = (sc * 2u + (d % 7u >= 5u ? 1u : 0u)) * 3u;
+            const uint m = minute + back * 1440u;
+            for (uint k = 0u; k < 3u; k++) {
+                const uint2 iv = kRoomIntervals[base + k];
+                const uint start = iv.x & 0xffffu, end = iv.x >> 16;
+                const uint chance = iv.y & 255u, level = (iv.y >> 8) & 255u, jitter = (iv.y >> 16) & 255u, daily = iv.y >> 24;
+                const uint h = roomHash(rs ^ roomHash((daily != 0u ? d * 0x632be5abu : 0x51ed270bu) + k * 0x2545f491u + 7u));
+                const uint span = 2u * jitter + 1u;
+                const uint s0 = start + (h >> 8) % span, s1 = end + (h >> 16) % span;
+                if (chance != 0u && (h & 255u) <= chance && m + jitter >= s0 && m + jitter < s1) best = max(best, level * dimmer / 255u);
+            }
+        }
+    }
+    return best;
+}

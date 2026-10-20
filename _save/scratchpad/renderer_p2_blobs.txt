@@ -1,0 +1,8 @@
+# renderer phase 2 (GPU-placed decor plants), on 06580c3 / 8ee5699; git hash-object -w
+79f30ada2674309239e2af4f0049c464088abe15 src/render/vegdecor.cpp
+b6e68ab9e7bac2e0b7ae09a5fa841591204d679e src/render/props_render.cpp
+7cdc403ccd68b53cf9660a31186a5af43a38ceb5 src/render/renderer.cpp
+f17331089b5997dccd25d5ca4417daf7fb4c5fd0 src/shaders/propcull.hlsl
+a3c5249e1c0fae560f994e18250ea65697756c8d src/shaders/overhead.hlsl
+107bc5b98b29f34530f722f3c291d1d3597ecabf src/shaders/grass.hlsl
+1a212f7ea2abe8979fa150f95120af4dfea158ad PROGRESS.md

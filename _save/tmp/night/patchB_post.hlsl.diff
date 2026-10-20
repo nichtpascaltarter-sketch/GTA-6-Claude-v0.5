@@ -1,0 +1,21 @@
+--- w/src/shaders/post.hlsl	2026-10-06 06:38:55.046696434 +0000
++++ wb/src/shaders/post.hlsl	2026-10-06 06:38:55.047914575 +0000
+@@ -428,7 +428,17 @@
+         float3 uwc = c * trans * (1.0 + caustic * 0.35 * saturate(1.0 - dist / 25.0)) + fogC * (1.0 - trans);
+         c = lerp(c, uwc, uw);
+     }
+-    // White balance / warmth (sub-tropical grade) and saturation
++    // Night vision (mesopic): at moonlight levels the rods take over, colours fade and the scene shifts towards blue
++    // (Purkinje: reds darken first, blue-greens hold). Weighted by the absolute luminance (this frame's exposure,
++    // gExposureBuf[1]): fully below ~0.005 cd/m2, gone above ~2.5 cd/m2, so lamp pools, signs and lit rooms keep their
++    // colour while the moonlit surroundings turn blue-grey. Night only (the eye is not dark-adapted by day).
++    if (gExposure.w > 0.0) {
++        float absL = luminance(c) / max(gExposureBuf[1].x, 1e-12);
++        float m = gExposure.w * (1.0 - smoothstep(-2.3, 0.4, log10(max(absL, 1e-7))));
++        float ys = dot(c, float3(0.08, 0.57, 0.35));   // rod response (neutral grey unchanged)
++        c = lerp(c, ys * float3(0.82, 1.0, 1.36), m * 0.8);
++    }
++    // White balance / warmth (sub-tropical grade by day, neutral at night) and saturation
+     c *= float3(1.0 + gPost2.y * 0.06, 1.0, 1.0 - gPost2.y * 0.08);
+     c *= gFx1.rgb;
+     float l = luminance(c);

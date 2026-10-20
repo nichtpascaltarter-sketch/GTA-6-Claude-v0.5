@@ -1,0 +1,141 @@
+{
+  "url": "https://api.github.com/repos/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/compare/c7b2d62209634104856d4f660b732eb5c51bbf50...main",
+  "html_url": "https://github.com/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/compare/c7b2d62209634104856d4f660b732eb5c51bbf50...main",
+  "permalink_url": "https://github.com/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/compare/nichtpascaltarter-sketch:c7b2d62...nichtpascaltarter-sketch:bcb8a71",
+  "diff_url": "https://github.com/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/compare/c7b2d62209634104856d4f660b732eb5c51bbf50...main.diff",
+  "patch_url": "https://github.com/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/compare/c7b2d62209634104856d4f660b732eb5c51bbf50...main.patch",
+  "base_commit": {
+    "sha": "c7b2d62209634104856d4f660b732eb5c51bbf50",
+    "node_id": "C_kwDOUzajudoAKGM3YjJkNjIyMDk2MzQxMDQ4NTZkNGY2NjBiNzMyZWI1YzUxYmJmNTA",
+    "commit": {
+      "author": {
+        "name": "Neon Tide",
+        "email": "dev@example.invalid",
+        "date": "2026-10-20T03:26:05Z"
+      },
+      "committer": {
+        "name": "Neon Tide",
+        "email": "dev@example.invalid",
+        "date": "2026-10-20T03:26:05Z"
+      },
+      "message": "CI permission probe (throwaway branch, not for merge)",
+      "tree": {
+        "sha": "223c831ced75ec0fcd69be420abb8a3efc4f9fbc",
+        "url": "https://api.github.com/repos/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/git/trees/223c831ced75ec0fcd69be420abb8a3efc4f9fbc"
+      },
+      "url": "https://api.github.com/repos/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/git/commits/c7b2d62209634104856d4f660b732eb5c51bbf50",
+      "comment_count": 0,
+      "verification": {
+        "verified": false,
+        "reason": "unsigned",
+        "signature": null,
+        "payload": null,
+        "verified_at": null
+      }
+    },
+    "url": "https://api.github.com/repos/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/commits/c7b2d62209634104856d4f660b732eb5c51bbf50",
+    "html_url": "https://github.com/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/commit/c7b2d62209634104856d4f660b732eb5c51bbf50",
+    "comments_url": "https://api.github.com/repos/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/commits/c7b2d62209634104856d4f660b732eb5c51bbf50/comments",
+    "author": null,
+    "committer": null,
+    "parents": [
+      {
+        "sha": "837b39c751fa63ce8458be5366dd0635c9f320dc",
+        "url": "https://api.github.com/repos/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/commits/837b39c751fa63ce8458be5366dd0635c9f320dc",
+        "html_url": "https://github.com/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/commit/837b39c751fa63ce8458be5366dd0635c9f320dc"
+      }
+    ]
+  },
+  "merge_base_commit": {
+    "sha": "837b39c751fa63ce8458be5366dd0635c9f320dc",
+    "node_id": "C_kwDOUzajudoAKDgzN2IzOWM3NTFmYTYzY2U4NDU4YmU1MzY2ZGQwNjM1YzlmMzIwZGM",
+    "commit": {
+      "author": {
+        "name": "nichtpascaltarter-sketch",
+        "email": "237822115+nichtpascaltarter-sketch@users.noreply.github.com",
+        "date": "2026-10-20T02:51:29Z"
+      },
+      "committer": {
+        "name": "GitHub",
+        "email": "noreply@github.com",
+        "date": "2026-10-20T02:51:29Z"
+      },
+      "message": "Merge pull request #52: the game updates itself, and the hand-built world loads its baked terrain with --world=hand\n\nThe game updates itself, and the hand-built world loads: --world=hand runs the baked terrain from the exe",
+      "tree": {
+        "sha": "e27fe1da4be78173361a9f38ff0c35ab0adf38ee",
+        "url": "https://api.github.com/repos/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/git/trees/e27fe1da4be78173361a9f38ff0c35ab0adf38ee"
+      },
+      "url": "https://api.github.com/repos/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/git/commits/837b39c751fa63ce8458be5366dd0635c9f320dc",
+      "comment_count": 0,
+      "verification": {
+        "verified": true,
+        "reason": "valid",
+        "signature": null,
+        "payload": null,
+        "verified_at": "2026-10-20T02:51:30Z"
+      }
+    },
+    "url": "https://api.github.com/repos/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/commits/837b39c751fa63ce8458be5366dd0635c9f320dc",
+    "html_url": "https://github.com/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/commit/837b39c751fa63ce8458be5366dd0635c9f320dc",
+    "comments_url": "https://api.github.com/repos/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/commits/837b39c751fa63ce8458be5366dd0635c9f320dc/comments",
+    "author": {
+      "login": "nichtpascaltarter-sketch",
+      "id": 237822115,
+      "node_id": "U_kgDODizgow",
+      "avatar_url": "https://avatars.githubusercontent.com/u/237822115?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/nichtpascaltarter-sketch",
+      "html_url": "https://github.com/nichtpascaltarter-sketch",
+      "followers_url": "https://api.github.com/users/nichtpascaltarter-sketch/followers",
+      "following_url": "https://api.github.com/users/nichtpascaltarter-sketch/following{/other_user}",
+      "gists_url": "https://api.github.com/users/nichtpascaltarter-sketch/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/nichtpascaltarter-sketch/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/nichtpascaltarter-sketch/subscriptions",
+      "organizations_url": "https://api.github.com/users/nichtpascaltarter-sketch/orgs",
+      "repos_url": "https://api.github.com/users/nichtpascaltarter-sketch/repos",
+      "events_url": "https://api.github.com/users/nichtpascaltarter-sketch/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/nichtpascaltarter-sketch/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "web-flow",
+      "id": 19864447,
+      "node_id": "MDQ6VXNlcjE5ODY0NDQ3",
+      "avatar_url": "https://avatars.githubusercontent.com/u/19864447?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/web-flow",
+      "html_url": "https://github.com/web-flow",
+      "followers_url": "https://api.github.com/users/web-flow/followers",
+      "following_url": "https://api.github.com/users/web-flow/following{/other_user}",
+      "gists_url": "https://api.github.com/users/web-flow/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/web-flow/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/web-flow/subscriptions",
+      "organizations_url": "https://api.github.com/users/web-flow/orgs",
+      "repos_url": "https://api.github.com/users/web-flow/repos",
+      "events_url": "https://api.github.com/users/web-flow/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/web-flow/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "f595703c2bab567f653c16d7031b222a88284036",
+        "url": "https://api.github.com/repos/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/commits/f595703c2bab567f653c16d7031b222a88284036",
+        "html_url": "https://github.com/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/commit/f595703c2bab567f653c16d7031b222a88284036"
+      },
+      {
+        "sha": "d208e02a37f5107149a673e0ad600bad4c7237bf",
+        "url": "https://api.github.com/repos/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/commits/d208e02a37f5107149a673e0ad600bad4c7237bf",
+        "html_url": "https://github.com/nichtpascaltarter-sketch/GTA-6-Claude-v0.5/commit/d208e02a37f5107149a673e0ad600bad4c7237bf"
+      }
+    ]
+  },
+  "status": "diverged",
+  "ahead_by": 2,
+  "behind_by": 1,
+  "total_commits": 2,
+  "commits": []
+}

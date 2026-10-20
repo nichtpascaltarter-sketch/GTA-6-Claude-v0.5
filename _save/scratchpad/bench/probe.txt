@@ -1,0 +1,305 @@
+Sites: 91 pads, 324 elements, 23 roads, 21 buildings requested (0.05 s)
+World map generated in 22.26 s
+Road gen: 22 interchanges
+Road network: 6284 nodes, 10030 edges, 1734 signalized; hwy 61.7 km, streets 1189.6 km (2.35 s)
+Buildings: 36093 (towers 358, midrise 2400, condo 485, deco 838, shops 4829, strip 693, houses 21872, villas 928, warehouses 1686) in 1.85 s
+Sites: 66 highway billboards
+Sites: 112 silos, 55 windmills
+Site runway 09L|27R  from (-1180, 2080) to (820, 2080) z 4.6 width 60
+Site runway 09R|27L  from (-1100, 780) to (700, 780) z 4.6 width 45
+Site terminal             at (628, 1440, 4.6)
+Site control tower        at (730, 1832, 4.6)
+Site container ship       at (4625, -800, 0.0)
+Site container ship       at (4616, -330, 0.0)
+Site port gate            at (4008, -160, 3.0)
+Site Key Coral marina     at (4039, -4035, 0.0)
+Site beach club           at (4873, -3866, 1.2)
+Site beach club           at (4808, -4183, 2.2)
+Site Solaris One          at (3350, -750, 1.4)
+Site stadium              at (3565, 445, 1.6)
+Site City Hall            at (3000, 372, 2.0)
+Site Canvas Park          at (3100, 1800, 1.7)
+Site Sol Beach Pier from (5414, 1250) to (5840, 1250) deck z 5.6
+Site Ferris wheel         at (5504, 1270, 5.6)
+Site lighthouse           at (-2206, -8000, 0.5)
+Site radio mast           at (-6744, 7248, 166.1)
+Site sugar mill           at (1430, 7500, 8.1)
+Site Rio Sol marina       at (2280, 188, 0.0)
+Site Okahatchee boat ramp at (-515, 6822, 7.7)
+Site Sawgrass tower       at (-4873, 420, 0.6)
+Sites finalized: 557 elements (0.01 s)
+Interiors: 7 planned (convenience 7) in 1.5 ms
+  interior 'TideStop Mart' kind 8 building 3378 at (1449.11, -259.30, 4.30) ax (-1.0000, -0.0000) x -6.22..6.22 depth 17.00 ceil 3.45: 2 rooms, 4 openings, 2 doors, 4 portals, 5 npc points
+  interior 'Bodega La Luna' kind 8 building 6349 at (2248.50, 540.78, 2.92) ax (-1.0000, -0.0000) x -5.89..5.89 depth 17.00 ceil 3.52: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+  interior 'Canvas Corner Market' kind 8 building 8799 at (2981.20, 1582.59, 2.26) ax (0.0000, 1.0000) x -8.23..4.94 depth 17.00 ceil 3.44: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+  interior 'Sunrise Food Mart' kind 8 building 31838 at (5227.60, 643.36, 1.78) ax (0.0000, 1.0000) x -7.92..7.92 depth 17.00 ceil 3.66: 2 rooms, 7 openings, 2 doors, 7 portals, 5 npc points
+  interior 'Northside Quick Stop' kind 8 building 6599 at (2352.84, 3761.68, 3.08) ax (1.0000, 0.0000) x -6.39..6.39 depth 17.00 ceil 3.53: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+  interior 'Flats Food & Fuel' kind 8 building 1225 at (458.12, 3265.33, 5.16) ax (1.0000, 0.0000) x -5.58..5.58 depth 17.00 ceil 4.20: 2 rooms, 3 openings, 2 doors, 3 portals, 5 npc points
+  interior 'Grove Pantry' kind 8 building 12464 at (2167.47, -3046.89, 2.30) ax (0.0184, -0.9998) x -6.03..6.03 depth 17.00 ceil 3.78: 2 rooms, 4 openings, 2 doors, 4 portals, 5 npc points
+world 26.6 s
+== near (1720, 360) r 120
+  b4084 shops     c (1620.5, 298.0) 13.8 x 22.4 h 10.9 fl 3 front (-1.00, 0.00) gH 4.53 bayW 3.21 store 1 style 0 z 4.0 int -1 dist 117
+  b4085 shops     c (1623.2, 314.2) 16.1 x 28.0 h 10.9 fl 3 front (-1.00, 0.00) gH 4.46 bayW 3.35 store 1 style 0 z 4.0 int -1 dist 107
+  b4086 shops     c (1619.8, 328.3) 10.3 x 21.1 h 4.2 fl 1 front (-1.00, 0.00) gH 4.20 bayW 2.83 store 1 style 0 z 3.9 int -1 dist 105
+  b4087 shops     c (1650.0, 274.8) 19.4 x 23.5 h 4.6 fl 1 front (0.00, -1.00) gH 4.60 bayW 3.37 store 1 style 0 z 4.0 int -1 dist 110
+  b4088 shops     c (1670.7, 273.5) 19.0 x 21.1 h 5.0 fl 1 front (0.00, -1.00) gH 4.95 bayW 3.17 store 1 style 0 z 3.9 int -1 dist 100
+  b4091 shops     c (1622.1, 369.7) 14.2 x 25.6 h 10.5 fl 3 front (-1.00, 0.00) gH 4.07 bayW 3.61 store 1 style 0 z 3.9 int -1 dist 98
+  b4092 house     c (1619.7, 384.8) 9.6 x 11.8 h 3.0 fl 1 front (-1.00, 0.00) gH 3.00 bayW 4.99 store 0 style 5 z 3.9 int -1 dist 103
+  b4093 midrise   c (1620.9, 400.4) 14.2 x 23.2 h 14.1 fl 4 front (-1.00, 0.00) gH 3.82 bayW 2.86 store 1 style 0 z 3.9 int -1 dist 107
+  b4094 midrise   c (1623.1, 418.0) 17.7 x 27.5 h 10.8 fl 3 front (-1.00, 0.00) gH 4.73 bayW 3.43 store 0 style 0 z 3.9 int -1 dist 113
+  b4095 shops     c (1650.7, 371.9) 15.8 x 25.4 h 11.3 fl 3 front (0.00, -1.00) gH 4.88 bayW 3.64 store 1 style 0 z 3.9 int -1 dist 70
+  b4096 shops     c (1667.6, 370.2) 15.8 x 21.8 h 8.1 fl 2 front (0.00, -1.00) gH 4.92 bayW 3.43 store 1 style 0 z 3.9 int -1 dist 53
+  b4097 midrise   c (1650.1, 327.7) 14.6 x 26.0 h 11.4 fl 3 front (-0.00, 1.00) gH 4.76 bayW 3.29 store 0 style 0 z 3.9 int -1 dist 77
+  b4098 shops     c (1665.4, 330.1) 14.1 x 21.2 h 11.3 fl 3 front (-0.00, 1.00) gH 4.87 bayW 3.92 store 1 style 0 z 3.9 int -1 dist 62
+  b4099 shops     c (1679.1, 327.8) 11.1 x 25.9 h 4.8 fl 1 front (-0.00, 1.00) gH 4.79 bayW 2.89 store 1 style 0 z 3.8 int -1 dist 52
+  b4106 shops     c (1650.5, 429.3) 15.3 x 22.8 h 4.1 fl 1 front (-0.00, 1.00) gH 4.12 bayW 3.87 store 1 style 0 z 3.8 int -1 dist 98
+  b4107 shops     c (1667.5, 431.4) 16.3 x 18.7 h 7.4 fl 2 front (-0.00, 1.00) gH 4.21 bayW 3.30 store 1 style 0 z 3.8 int -1 dist 89
+  b4715 midrise   c (1679.4, 300.4) 20.0 x 22.7 h 10.7 fl 3 front (1.00, -0.00) gH 4.54 bayW 3.95 store 1 style 2 z 3.9 int -1 dist 72
+  b4716 shops     c (1719.1, 271.4) 10.7 x 19.6 h 4.9 fl 1 front (-1.00, 0.00) gH 4.90 bayW 3.97 store 1 style 0 z 3.9 int -1 dist 89
+  b4717 shops     c (1718.5, 282.9) 10.9 x 18.5 h 10.8 fl 3 front (-1.00, 0.00) gH 4.35 bayW 3.53 store 1 style 0 z 3.9 int -1 dist 77
+  b4718 shops     c (1721.4, 295.2) 11.5 x 24.2 h 4.6 fl 1 front (-1.00, 0.00) gH 4.63 bayW 3.59 store 1 style 0 z 3.9 int -1 dist 65
+  b4719 midrise   c (1721.1, 310.2) 16.6 x 23.7 h 14.0 fl 4 front (-1.00, 0.00) gH 4.63 bayW 2.67 store 1 style 2 z 3.9 int -1 dist 50
+  b4720 midrise   c (1718.9, 326.5) 14.4 x 19.3 h 13.7 fl 4 front (-1.00, 0.00) gH 3.93 bayW 3.45 store 1 style 2 z 3.8 int -1 dist 34
+  b4721 shops     c (1742.9, 272.7) 16.8 x 19.4 h 11.0 fl 3 front (0.00, -1.00) gH 4.57 bayW 4.00 store 1 style 0 z 3.8 int -1 dist 90
+  b4722 shops     c (1761.5, 272.1) 17.9 x 18.3 h 7.5 fl 2 front (0.00, -1.00) gH 4.34 bayW 3.96 store 1 style 0 z 3.8 int -1 dist 97
+  b4725 midrise   c (1677.9, 396.2) 17.8 x 25.5 h 13.9 fl 4 front (1.00, -0.00) gH 4.52 bayW 3.49 store 0 style 0 z 3.8 int -1 dist 55
+  b4726 shops     c (1719.0, 370.0) 13.5 x 19.6 h 4.5 fl 1 front (-1.00, 0.00) gH 4.50 bayW 3.25 store 1 style 0 z 3.8 int -1 dist 10
+  b4727 midrise   c (1721.9, 384.1) 12.2 x 25.3 h 14.7 fl 4 front (-1.00, 0.00) gH 4.45 bayW 2.81 store 1 style 2 z 3.8 int -1 dist 24
+  b4728 shops     c (1721.0, 397.6) 13.1 x 23.6 h 7.7 fl 2 front (-1.00, 0.00) gH 4.53 bayW 3.60 store 1 style 0 z 3.8 int -1 dist 38
+  b4729 house     c (1717.6, 411.5) 10.0 x 10.0 h 3.0 fl 1 front (-1.00, 0.00) gH 3.00 bayW 3.82 store 0 style 5 z 3.8 int -1 dist 52
+  b4730 midrise   c (1722.8, 425.8) 13.9 x 27.0 h 11.0 fl 3 front (-1.00, 0.00) gH 4.49 bayW 3.27 store 1 style 0 z 3.8 int -1 dist 66
+  b4731 midrise   c (1743.0, 369.1) 12.7 x 19.6 h 14.6 fl 4 front (0.00, -1.00) gH 4.67 bayW 3.57 store 0 style 2 z 3.8 int -1 dist 25
+  b4732 shops     c (1755.0, 372.1) 9.8 x 25.7 h 11.1 fl 3 front (0.00, -1.00) gH 4.72 bayW 3.71 store 1 style 0 z 3.8 int -1 dist 37
+  b4733 shops     c (1748.8, 327.4) 11.9 x 26.8 h 7.3 fl 2 front (-0.00, 1.00) gH 4.07 bayW 2.86 store 1 style 0 z 3.8 int -1 dist 44
+  b4734 midrise   c (1760.9, 330.1) 10.2 x 21.3 h 14.5 fl 4 front (-0.00, 1.00) gH 4.33 bayW 3.63 store 1 style 0 z 3.8 int -1 dist 51
+  b4735 midrise   c (1771.6, 328.1) 9.5 x 25.4 h 13.6 fl 4 front (-0.00, 1.00) gH 4.22 bayW 3.06 store 1 style 0 z 3.8 int -1 dist 61
+  b4737 house     c (1718.0, 468.2) 7.3 x 9.9 h 3.0 fl 1 front (-1.00, 0.00) gH 3.00 bayW 4.92 store 0 style 5 z 3.7 int -1 dist 108
+  b4741 shops     c (1750.9, 468.9) 16.2 x 19.4 h 4.8 fl 1 front (0.00, -1.00) gH 4.83 bayW 3.08 store 1 style 0 z 3.7 int -1 dist 113
+  b4742 shops     c (1764.7, 468.5) 10.3 x 18.5 h 4.7 fl 1 front (0.00, -1.00) gH 4.70 bayW 3.79 store 1 style 0 z 3.7 int -1 dist 117
+  b4743 midrise   c (1747.7, 430.2) 10.1 x 21.0 h 11.1 fl 3 front (-0.00, 1.00) gH 4.90 bayW 3.46 store 1 style 0 z 3.7 int -1 dist 75
+  b4744 shops     c (1763.7, 426.4) 20.2 x 28.6 h 7.4 fl 2 front (-0.00, 1.00) gH 4.18 bayW 2.94 store 1 style 0 z 3.7 int -1 dist 79
+  b4864 shops     c (1772.4, 299.6) 19.8 x 18.2 h 10.5 fl 3 front (1.00, -0.00) gH 4.13 bayW 3.70 store 1 style 0 z 3.8 int -1 dist 80
+  b4867 shops     c (1831.6, 321.4) 13.0 x 26.1 h 7.7 fl 2 front (-1.00, 0.00) gH 4.46 bayW 3.55 store 1 style 0 z 3.8 int -1 dist 118
+  b4871 shops     c (1770.9, 397.1) 16.3 x 21.0 h 4.8 fl 1 front (1.00, -0.00) gH 4.79 bayW 3.49 store 1 style 0 z 3.7 int -1 dist 63
+  b4872 shops     c (1827.8, 378.2) 13.7 x 18.6 h 7.3 fl 2 front (-1.00, 0.00) gH 4.14 bayW 3.94 store 1 style 0 z 3.7 int -1 dist 109
+  b4873 shops     c (1831.8, 394.2) 15.5 x 26.4 h 4.6 fl 1 front (-1.00, 0.00) gH 4.56 bayW 3.77 store 1 style 0 z 3.7 int -1 dist 117
+== near (1330, 330) r 120
+  b2638 shops     c (1233.4, 277.2) 12.1 x 29.8 h 10.9 fl 3 front (-1.00, 0.00) gH 4.46 bayW 4.00 store 1 style 0 z 4.5 int -1 dist 110
+  b2639 shops     c (1232.6, 293.1) 17.6 x 28.1 h 4.2 fl 1 front (-1.00, 0.00) gH 4.17 bayW 2.98 store 1 style 0 z 4.5 int -1 dist 104
+  b2640 shops     c (1231.4, 308.9) 11.5 x 25.6 h 11.4 fl 3 front (-1.00, 0.00) gH 4.98 bayW 3.00 store 1 style 0 z 4.4 int -1 dist 101
+  b2641 shops     c (1228.7, 321.8) 12.3 x 20.3 h 10.6 fl 3 front (-1.00, 0.00) gH 4.19 bayW 3.33 store 1 style 0 z 4.4 int -1 dist 102
+  b2642 shops     c (1259.1, 275.1) 15.2 x 24.3 h 7.4 fl 2 front (0.00, -1.00) gH 4.17 bayW 3.81 store 1 style 0 z 4.5 int -1 dist 90
+  b2643 shops     c (1274.5, 274.0) 12.9 x 22.1 h 4.6 fl 1 front (0.00, -1.00) gH 4.63 bayW 2.90 store 1 style 0 z 4.4 int -1 dist 79
+  b2648 shops     c (1228.6, 378.9) 15.2 x 20.1 h 4.2 fl 1 front (-1.00, 0.00) gH 4.16 bayW 3.00 store 1 style 0 z 4.4 int -1 dist 113
+  b2651 midrise   c (1254.8, 370.5) 19.4 x 22.6 h 10.4 fl 3 front (0.00, -1.00) gH 3.82 bayW 3.63 store 1 style 0 z 4.4 int -1 dist 85
+  b2652 midrise   c (1275.3, 370.3) 19.0 x 22.1 h 13.5 fl 4 front (0.00, -1.00) gH 3.88 bayW 3.84 store 0 style 2 z 4.4 int -1 dist 68
+  b2653 house     c (1250.8, 331.4) 8.4 x 10.2 h 6.0 fl 2 front (-0.00, 1.00) gH 3.00 bayW 5.02 store 0 style 5 z 4.4 int -1 dist 79
+  b2654 house     c (1263.0, 329.8) 8.3 x 12.4 h 6.0 fl 2 front (-0.00, 1.00) gH 3.00 bayW 4.36 store 0 style 5 z 4.4 int -1 dist 67
+  b2655 house     c (1276.9, 328.0) 11.0 x 13.8 h 6.0 fl 2 front (-0.00, 1.00) gH 3.00 bayW 4.51 store 0 style 5 z 4.3 int -1 dist 53
+  b2664 shops     c (1276.1, 425.7) 13.4 x 30.1 h 4.3 fl 1 front (-0.00, 1.00) gH 4.29 bayW 2.85 store 1 style 0 z 4.3 int -1 dist 110
+  b3249 shops     c (1281.5, 223.5) 13.6 x 18.5 h 7.8 fl 2 front (1.00, -0.00) gH 4.64 bayW 2.87 store 1 style 0 z 4.4 int -1 dist 117
+  b3251 midrise   c (1319.9, 212.5) 11.9 x 21.2 h 13.9 fl 4 front (-1.00, 0.00) gH 4.54 bayW 4.05 store 1 style 0 z 4.3 int -1 dist 118
+  b3252 shops     c (1280.0, 298.7) 16.5 x 21.4 h 7.5 fl 2 front (1.00, -0.00) gH 4.33 bayW 3.27 store 1 style 0 z 4.4 int -1 dist 59
+  b3253 shops     c (1321.7, 274.5) 16.4 x 24.9 h 4.3 fl 1 front (-1.00, 0.00) gH 4.35 bayW 3.92 store 1 style 0 z 4.4 int -1 dist 56
+  b3254 shops     c (1323.4, 288.7) 9.6 x 28.3 h 11.3 fl 3 front (-1.00, 0.00) gH 4.94 bayW 3.71 store 1 style 0 z 4.4 int -1 dist 42
+  b3255 shops     c (1319.5, 304.4) 20.0 x 20.5 h 4.9 fl 1 front (-1.00, 0.00) gH 4.94 bayW 3.79 store 1 style 0 z 4.4 int -1 dist 28
+  b3256 midrise   c (1320.7, 322.7) 14.9 x 22.7 h 11.7 fl 3 front (-1.00, 0.00) gH 4.77 bayW 2.77 store 1 style 0 z 4.4 int -1 dist 12
+  b3257 shops     c (1355.4, 273.4) 17.8 x 20.9 h 10.6 fl 3 front (0.00, -1.00) gH 4.21 bayW 3.62 store 1 style 0 z 4.3 int -1 dist 62
+  b3258 shops     c (1371.1, 272.5) 11.3 x 19.0 h 10.6 fl 3 front (0.00, -1.00) gH 4.22 bayW 3.16 store 1 style 0 z 4.3 int -1 dist 71
+  b3259 shops     c (1345.8, 223.2) 11.4 x 27.6 h 8.0 fl 2 front (-0.00, 1.00) gH 4.80 bayW 2.89 store 1 style 0 z 4.3 int -1 dist 108
+  b3260 shops     c (1361.3, 227.6) 18.2 x 18.8 h 7.6 fl 2 front (-0.00, 1.00) gH 4.43 bayW 3.41 store 1 style 0 z 4.3 int -1 dist 107
+  b3261 midrise   c (1280.0, 393.7) 14.1 x 21.5 h 14.3 fl 4 front (1.00, -0.00) gH 4.66 bayW 3.65 store 0 style 0 z 4.3 int -1 dist 81
+  b3262 midrise   c (1319.4, 369.4) 13.2 x 20.3 h 13.7 fl 4 front (-1.00, 0.00) gH 4.31 bayW 3.38 store 0 style 0 z 4.3 int -1 dist 41
+  b3263 house     c (1320.2, 387.0) 13.9 x 13.6 h 3.0 fl 1 front (-1.00, 0.00) gH 3.00 bayW 3.79 store 0 style 5 z 4.3 int -1 dist 58
+  b3264 shops     c (1319.1, 405.3) 14.3 x 19.7 h 7.3 fl 2 front (-1.00, 0.00) gH 4.12 bayW 3.44 store 1 style 0 z 4.3 int -1 dist 76
+  b3265 shops     c (1320.7, 419.5) 12.2 x 23.0 h 4.9 fl 1 front (-1.00, 0.00) gH 4.93 bayW 2.93 store 1 style 0 z 4.3 int -1 dist 90
+  b3266 midrise   c (1347.2, 370.3) 20.1 x 22.1 h 11.0 fl 3 front (0.00, -1.00) gH 4.60 bayW 4.18 store 1 style 0 z 4.3 int -1 dist 44
+  b3267 shops     c (1366.2, 372.3) 15.6 x 26.0 h 10.6 fl 3 front (0.00, -1.00) gH 4.19 bayW 3.15 store 1 style 0 z 4.3 int -1 dist 56
+  b3268 shops     c (1344.2, 329.3) 15.0 x 23.0 h 5.0 fl 1 front (-0.00, 1.00) gH 4.96 bayW 3.96 store 1 style 0 z 4.3 int -1 dist 14
+  b3269 midrise   c (1358.7, 328.2) 12.4 x 25.1 h 13.1 fl 4 front (-0.00, 1.00) gH 4.04 bayW 3.67 store 1 style 0 z 4.3 int -1 dist 29
+  b3270 midrise   c (1372.3, 330.7) 13.2 x 20.2 h 11.2 fl 3 front (-0.00, 1.00) gH 4.37 bayW 4.04 store 0 style 2 z 4.3 int -1 dist 42
+  b3279 shops     c (1345.7, 429.1) 16.8 x 23.2 h 11.2 fl 3 front (-0.00, 1.00) gH 4.77 bayW 2.84 store 1 style 0 z 4.3 int -1 dist 100
+  b3280 shops     c (1363.1, 430.7) 15.4 x 20.1 h 4.8 fl 1 front (-0.00, 1.00) gH 4.81 bayW 3.99 store 1 style 0 z 4.2 int -1 dist 106
+  b3281 shops     c (1377.7, 430.7) 12.1 x 20.0 h 7.8 fl 2 front (-0.00, 1.00) gH 4.60 bayW 3.27 store 1 style 0 z 4.2 int -1 dist 111
+  b3401 midrise   c (1378.5, 299.9) 19.6 x 24.5 h 13.7 fl 4 front (1.00, -0.00) gH 4.57 bayW 2.69 store 0 style 0 z 4.2 int -1 dist 57
+  b3402 house     c (1417.8, 276.7) 16.0 x 10.7 h 6.0 fl 2 front (-1.00, 0.00) gH 3.00 bayW 4.44 store 0 style 5 z 4.2 int -1 dist 103
+  b3403 shops     c (1422.3, 298.5) 20.6 x 26.0 h 8.1 fl 2 front (-1.00, 0.00) gH 4.85 bayW 3.43 store 1 style 0 z 4.2 int -1 dist 98
+  b3404 shops     c (1420.6, 319.5) 18.4 x 22.7 h 10.6 fl 3 front (-1.00, 0.00) gH 4.18 bayW 3.01 store 1 style 0 z 4.2 int -1 dist 91
+  b3409 midrise   c (1376.3, 402.4) 18.1 x 28.8 h 11.0 fl 3 front (1.00, -0.00) gH 4.66 bayW 3.05 store 0 style 0 z 4.2 int -1 dist 86
+  b3410 shops     c (1418.9, 370.7) 15.1 x 19.2 h 7.7 fl 2 front (-1.00, 0.00) gH 4.52 bayW 3.33 store 1 style 0 z 4.2 int -1 dist 98
+  b3411 house     c (1417.8, 388.9) 12.4 x 8.9 h 3.0 fl 1 front (-1.00, 0.00) gH 3.00 bayW 4.40 store 0 style 5 z 4.2 int -1 dist 106
+  b3412 shops     c (1422.4, 404.7) 10.8 x 26.3 h 4.5 fl 1 front (-1.00, 0.00) gH 4.47 bayW 2.91 store 1 style 0 z 4.2 int -1 dist 119
+  b3418 shops     c (1445.8, 327.2) 17.3 x 27.2 h 10.4 fl 3 front (-0.00, 1.00) gH 4.03 bayW 2.98 store 1 style 0 z 4.2 int -1 dist 116
+== near (1560, 2260) r 150
+  b3495 house     c (1427.9, 2293.0) 38.1 x 17.6 h 6.0 fl 2 front (-1.00, 0.00) gH 3.00 bayW 4.17 store 0 style 5 z 4.5 int -1 dist 136
+  b3496 shops     c (1438.8, 2221.7) 43.6 x 25.9 h 4.2 fl 1 front (-0.00, 1.00) gH 4.21 bayW 3.58 store 1 style 0 z 4.5 int -1 dist 127
+  b3837 shops     c (1531.0, 2183.8) 32.5 x 31.3 h 8.0 fl 2 front (-1.00, 0.00) gH 4.83 bayW 2.85 store 1 style 0 z 4.4 int -1 dist 82
+  b3838 shops     c (1544.9, 2121.8) 54.1 x 25.7 h 10.5 fl 3 front (-0.00, 1.00) gH 4.10 bayW 3.88 store 1 style 0 z 4.3 int -1 dist 139
+  b3839 shops     c (1471.9, 2275.7) 19.0 x 25.4 h 11.0 fl 3 front (1.00, -0.00) gH 4.64 bayW 2.94 store 1 style 0 z 4.4 int -1 dist 89
+  b3840 shops     c (1472.6, 2298.8) 20.5 x 24.2 h 10.7 fl 3 front (1.00, -0.00) gH 4.26 bayW 3.59 store 1 style 0 z 4.3 int -1 dist 96
+  b3841 warehouse c (1529.7, 2279.4) 25.5 x 28.7 h 9.0 fl 1 front (-1.00, 0.00) gH 9.01 bayW 6.93 store 0 style 4 z 4.4 int -1 dist 36
+  b3842 shops     c (1531.2, 2310.8) 30.0 x 31.5 h 7.4 fl 2 front (-1.00, 0.00) gH 4.24 bayW 3.52 store 1 style 0 z 4.3 int -1 dist 58
+  b3843 motel     c (1538.8, 2221.0) 44.3 x 27.3 h 6.0 fl 2 front (-0.00, 1.00) gH 3.00 bayW 4.20 store 0 style 0 z 4.3 int -1 dist 44
+  b3844 warehouse c (1470.4, 2375.0) 17.9 x 28.6 h 8.9 fl 1 front (1.00, -0.00) gH 8.91 bayW 7.23 store 0 style 4 z 4.4 int -1 dist 146
+  b3846 warehouse c (1536.3, 2393.8) 53.5 x 42.0 h 7.5 fl 1 front (-1.00, 0.00) gH 7.48 bayW 5.03 store 0 style 4 z 4.4 int -1 dist 136
+  b4223 house     c (1621.7, 2194.6) 41.6 x 11.1 h 3.0 fl 1 front (-1.00, 0.00) gH 3.00 bayW 4.41 store 0 style 5 z 4.2 int -1 dist 90
+  b4224 warehouse c (1666.7, 2177.2) 52.4 x 23.6 h 9.6 fl 1 front (0.00, -1.00) gH 9.56 bayW 6.08 store 0 style 4 z 4.2 int -1 dist 135
+  b4227 house     c (1578.0, 2275.8) 11.5 x 11.3 h 6.0 fl 2 front (1.00, -0.00) gH 3.00 bayW 4.06 store 0 style 5 z 4.2 int -1 dist 24
+  b4228 warehouse c (1574.1, 2306.5) 35.6 x 28.4 h 8.4 fl 1 front (1.00, -0.00) gH 8.45 bayW 5.19 store 0 style 4 z 4.2 int -1 dist 49
+  b4229 warehouse c (1629.9, 2277.6) 21.6 x 36.3 h 7.1 fl 1 front (-1.00, 0.00) gH 7.08 bayW 6.55 store 0 style 4 z 4.2 int -1 dist 72
+  b4230 house     c (1623.6, 2314.1) 29.8 x 15.1 h 6.0 fl 2 front (-1.00, 0.00) gH 3.00 bayW 3.61 store 0 style 5 z 4.2 int -1 dist 83
+  b4231 shops     c (1671.7, 2277.5) 25.8 x 24.1 h 8.0 fl 2 front (0.00, -1.00) gH 4.83 bayW 3.53 store 1 style 0 z 4.2 int -1 dist 113
+  b4233 shops     c (1650.6, 2223.5) 19.3 x 22.3 h 4.5 fl 1 front (-0.00, 1.00) gH 4.46 bayW 3.28 store 1 style 0 z 4.2 int -1 dist 98
+  b4234 factory   c (1676.2, 2216.3) 24.9 x 36.4 h 7.3 fl 1 front (-0.00, 1.00) gH 7.27 bayW 6.70 store 0 style 4 z 4.2 int -1 dist 124
+  b4237 house     c (1576.4, 2391.2) 16.0 x 14.3 h 3.0 fl 1 front (1.00, -0.00) gH 3.00 bayW 4.39 store 0 style 5 z 4.3 int -1 dist 132
+  b4238 warehouse c (1623.1, 2375.7) 24.2 x 22.8 h 8.3 fl 1 front (-1.00, 0.00) gH 8.27 bayW 5.70 store 0 style 4 z 4.3 int -1 dist 132
+  b4240 factory   c (1653.6, 2374.0) 20.1 x 24.5 h 27.0 fl 3 front (0.00, -1.00) gH 8.99 bayW 5.25 store 0 style 4 z 4.2 int -1 dist 147
+  b4243 house     c (1664.0, 2325.1) 24.9 x 13.9 h 3.0 fl 1 front (-0.00, 1.00) gH 3.00 bayW 4.16 store 0 style 5 z 4.2 int -1 dist 123
+== near (1250, 2650) r 150
+  b2043 house     c (1137.8, 2574.2) 28.8 x 13.8 h 3.0 fl 1 front (0.00, -1.00) gH 3.00 bayW 4.05 store 0 style 5 z 4.9 int -1 dist 135
+  b2052 house     c (1107.3, 2672.4) 25.0 x 13.3 h 6.0 fl 2 front (0.00, -1.00) gH 3.00 bayW 5.07 store 0 style 5 z 4.9 int -1 dist 144
+  b2053 warehouse c (1147.5, 2673.7) 31.1 x 24.0 h 7.8 fl 1 front (0.00, -1.00) gH 7.77 bayW 7.33 store 0 style 4 z 4.9 int -1 dist 105
+  b2056 warehouse c (1126.1, 2620.9) 55.5 x 34.8 h 7.4 fl 1 front (-0.00, 1.00) gH 7.39 bayW 5.70 store 0 style 4 z 4.9 int -1 dist 127
+  b2064 warehouse c (1131.5, 2724.5) 44.7 x 27.8 h 8.7 fl 1 front (-0.00, 1.00) gH 8.67 bayW 5.82 store 0 style 4 z 4.8 int -1 dist 140
+  b2784 warehouse c (1232.7, 2580.6) 18.5 x 23.4 h 7.1 fl 1 front (-1.00, 0.00) gH 7.09 bayW 5.72 store 0 style 4 z 4.9 int -1 dist 71
+  b2785 house     c (1268.2, 2576.8) 23.7 x 18.2 h 3.0 fl 1 front (0.00, -1.00) gH 3.00 bayW 5.04 store 0 style 5 z 4.7 int -1 dist 75
+  b2786 house     c (1304.5, 2573.6) 20.6 x 14.8 h 3.0 fl 1 front (0.00, -1.00) gH 3.00 bayW 5.01 store 0 style 5 z 4.7 int -1 dist 94
+  b2787 house     c (1336.2, 2577.2) 14.8 x 19.8 h 6.0 fl 2 front (0.00, -1.00) gH 3.00 bayW 4.55 store 0 style 5 z 4.6 int -1 dist 113
+  b2788 house     c (1366.5, 2578.6) 22.9 x 18.7 h 6.0 fl 2 front (0.00, -1.00) gH 3.00 bayW 4.23 store 0 style 5 z 4.6 int -1 dist 137
+  b2789 house     c (1279.6, 2528.2) 33.1 x 12.4 h 3.0 fl 1 front (-0.00, 1.00) gH 3.00 bayW 4.72 store 0 style 5 z 4.7 int -1 dist 125
+  b2791 shops     c (1238.4, 2687.4) 31.0 x 34.9 h 11.4 fl 3 front (-1.00, 0.00) gH 4.95 bayW 2.91 store 1 style 0 z 4.8 int -1 dist 39
+  b2792 house     c (1281.7, 2675.3) 25.5 x 15.2 h 6.0 fl 2 front (0.00, -1.00) gH 3.00 bayW 4.85 store 0 style 5 z 4.7 int -1 dist 41
+  b2793 house     c (1313.7, 2675.6) 15.6 x 17.9 h 3.0 fl 1 front (0.00, -1.00) gH 3.00 bayW 4.84 store 0 style 5 z 4.7 int -1 dist 69
+  b2794 warehouse c (1336.8, 2680.0) 19.2 x 36.6 h 8.2 fl 1 front (0.00, -1.00) gH 8.19 bayW 6.17 store 0 style 4 z 4.6 int -1 dist 92
+  b2795 house     c (1362.3, 2672.9) 20.1 x 12.6 h 6.0 fl 2 front (0.00, -1.00) gH 3.00 bayW 3.62 store 0 style 5 z 4.6 int -1 dist 115
+  b2796 house     c (1242.4, 2627.2) 31.1 x 12.6 h 3.0 fl 1 front (-0.00, 1.00) gH 3.00 bayW 5.02 store 0 style 5 z 4.8 int -1 dist 24
+  b2797 warehouse c (1279.8, 2625.4) 25.7 x 25.7 h 8.1 fl 1 front (-0.00, 1.00) gH 8.07 bayW 6.45 store 0 style 4 z 4.7 int -1 dist 39
+  b2798 warehouse c (1322.7, 2623.6) 49.5 x 29.4 h 8.3 fl 1 front (-0.00, 1.00) gH 8.30 bayW 7.24 store 0 style 4 z 4.6 int -1 dist 77
+  b2800 factory   c (1234.4, 2784.3) 25.4 x 26.8 h 7.8 fl 1 front (-1.00, 0.00) gH 7.83 bayW 5.42 store 0 style 4 z 4.8 int -1 dist 135
+  b2801 warehouse c (1272.3, 2776.8) 40.5 x 30.4 h 8.7 fl 1 front (0.00, -1.00) gH 8.68 bayW 7.81 store 0 style 4 z 4.7 int -1 dist 129
+  b2802 house     c (1309.9, 2771.9) 18.0 x 11.2 h 3.0 fl 1 front (0.00, -1.00) gH 3.00 bayW 4.99 store 0 style 5 z 4.7 int -1 dist 136
+  b2804 factory   c (1250.3, 2725.0) 55.6 x 26.7 h 9.6 fl 1 front (-0.00, 1.00) gH 9.55 bayW 6.82 store 0 style 4 z 4.7 int -1 dist 75
+  b2805 house     c (1309.2, 2727.6) 37.0 x 13.0 h 3.0 fl 1 front (-0.00, 1.00) gH 3.00 bayW 5.14 store 0 style 5 z 4.7 int -1 dist 98
+  b2806 warehouse c (1356.5, 2724.0) 34.8 x 28.8 h 7.2 fl 1 front (-0.00, 1.00) gH 7.16 bayW 5.41 store 0 style 4 z 4.6 int -1 dist 130
+== near (3050, -350) r 150
+  b8659 tower     c (2925.9, -420.8) 32.0 x 32.5 h 161.1 fl 40 front (-1.00, 0.00) gH 5.16 bayW 3.55 store 1 style 0 z 2.2 int -1 dist 143
+  b8662 tower     c (2926.9, -312.1) 48.7 x 34.5 h 114.6 fl 28 front (-1.00, 0.00) gH 6.76 bayW 2.14 store 1 style 1 z 2.2 int -1 dist 129
+  b8663 tower     c (2943.4, -377.4) 59.3 x 35.5 h 265.9 fl 73 front (-0.00, 1.00) gH 6.06 bayW 1.62 store 1 style 1 z 2.2 int -1 dist 110
+  b8764 tower     c (3038.1, -405.2) 46.1 x 38.3 h 130.0 fl 35 front (-1.00, 0.00) gH 5.59 bayW 1.62 store 1 style 1 z 2.1 int -1 dist 56
+  b8765 tower     c (2964.9, -307.9) 41.0 x 32.2 h 179.2 fl 49 front (1.00, -0.00) gH 5.65 bayW 2.37 store 1 style 1 z 2.1 int -1 dist 95
+  b8766 tower     c (3035.4, -301.1) 54.1 x 32.8 h 65.4 fl 17 front (-1.00, 0.00) gH 6.11 bayW 2.26 store 1 style 1 z 2.1 int -1 dist 51
+  b8768 tower     c (3035.4, -210.4) 36.1 x 32.9 h 312.3 fl 79 front (-1.00, 0.00) gH 5.59 bayW 1.78 store 1 style 1 z 2.1 int -1 dist 140
+  b9165 tower     c (3128.2, -416.5) 40.3 x 37.0 h 96.5 fl 24 front (-1.00, 0.00) gH 6.56 bayW 3.25 store 1 style 2 z 1.9 int -1 dist 103
+  b9166 tower     c (3074.0, -319.0) 35.6 x 32.7 h 148.9 fl 38 front (1.00, -0.00) gH 5.40 bayW 2.21 store 1 style 1 z 2.0 int -1 dist 39
+  b9167 tower     c (3125.9, -316.5) 40.3 x 32.6 h 187.7 fl 46 front (-1.00, 0.00) gH 6.39 bayW 2.15 store 1 style 1 z 2.0 int -1 dist 83
+  b9170 tower     c (3147.1, -276.1) 55.0 x 32.9 h 166.4 fl 42 front (-0.00, 1.00) gH 6.28 bayW 2.62 store 1 style 0 z 1.9 int -1 dist 122
+  b9289 tower     c (3171.4, -411.4) 50.2 x 37.8 h 264.1 fl 69 front (1.00, -0.00) gH 5.96 bayW 2.11 store 1 style 1 z 1.8 int -1 dist 136
+  b9291 tower     c (3173.6, -318.0) 37.4 x 33.5 h 191.4 fl 47 front (1.00, -0.00) gH 6.84 bayW 1.94 store 1 style 1 z 1.8 int -1 dist 128
+== near (1650, 1050) r 150
+  b3809 motel     c (1531.3, 1080.4) 17.5 x 31.9 h 6.0 fl 2 front (-1.00, 0.00) gH 3.00 bayW 4.20 store 0 style 0 z 3.9 int -1 dist 122
+  b3813 factory   c (1532.3, 1122.6) 31.5 x 24.0 h 8.0 fl 1 front (-0.00, 1.00) gH 7.97 bayW 7.10 store 0 style 4 z 3.8 int -1 dist 138
+  b4145 shops     c (1622.3, 917.0) 20.0 x 26.0 h 7.6 fl 2 front (-1.00, 0.00) gH 4.39 bayW 3.78 store 1 style 0 z 3.7 int -1 dist 136
+  b4153 warehouse c (1571.5, 1095.9) 36.6 x 33.8 h 8.5 fl 1 front (1.00, -0.00) gH 8.51 bayW 5.88 store 0 style 4 z 3.7 int -1 dist 91
+  b4154 factory   c (1629.5, 1091.3) 37.1 x 35.5 h 23.4 fl 3 front (-1.00, 0.00) gH 7.79 bayW 6.89 store 0 style 4 z 3.7 int -1 dist 46
+  b4155 warehouse c (1684.4, 1086.2) 52.4 x 30.6 h 8.5 fl 1 front (0.00, -1.00) gH 8.50 bayW 6.00 store 0 style 4 z 3.6 int -1 dist 50
+  b4156 warehouse c (1738.6, 1084.9) 44.6 x 27.8 h 9.1 fl 1 front (0.00, -1.00) gH 9.13 bayW 7.98 store 0 style 4 z 3.5 int -1 dist 95
+  b4158 house     c (1621.7, 1186.6) 25.0 x 13.0 h 3.0 fl 1 front (-1.00, 0.00) gH 3.00 bayW 4.71 store 0 style 5 z 3.8 int -1 dist 140
+  b4159 factory   c (1665.4, 1182.3) 47.8 x 34.0 h 27.1 fl 3 front (0.00, -1.00) gH 9.04 bayW 5.44 store 0 style 4 z 3.7 int -1 dist 133
+  b4160 shops     c (1708.8, 1179.2) 29.2 x 27.8 h 4.5 fl 1 front (0.00, -1.00) gH 4.49 bayW 3.28 store 1 style 0 z 3.6 int -1 dist 142
+  b4161 shops     c (1692.3, 1122.1) 20.2 x 25.1 h 7.6 fl 2 front (-0.00, 1.00) gH 4.36 bayW 3.86 store 1 style 0 z 3.7 int -1 dist 84
+  b4162 shops     c (1744.4, 1122.9) 51.5 x 23.5 h 8.1 fl 2 front (-0.00, 1.00) gH 4.90 bayW 3.71 store 1 style 0 z 3.5 int -1 dist 119
+== near (800, 2900) r 150
+  b1398 house     c (739.9, 2776.6) 16.7 x 17.6 h 6.0 fl 2 front (0.00, -1.00) gH 3.00 bayW 4.92 store 0 style 5 z 5.1 int -1 dist 137
+  b1399 house     c (769.2, 2777.4) 18.4 x 17.9 h 3.0 fl 1 front (0.00, -1.00) gH 3.00 bayW 4.43 store 0 style 5 z 5.1 int -1 dist 126
+  b1404 house     c (675.7, 2878.7) 16.6 x 17.8 h 6.0 fl 2 front (0.00, -1.00) gH 3.00 bayW 4.82 store 0 style 5 z 5.1 int -1 dist 126
+  b1405 house     c (710.6, 2875.8) 26.9 x 16.5 h 3.0 fl 1 front (0.00, -1.00) gH 3.00 bayW 3.90 store 0 style 5 z 5.1 int -1 dist 93
+  b1406 warehouse c (749.5, 2876.9) 32.4 x 30.5 h 8.1 fl 1 front (0.00, -1.00) gH 8.13 bayW 7.92 store 0 style 4 z 5.0 int -1 dist 56
+  b1408 warehouse c (682.8, 2820.9) 41.8 x 34.8 h 8.2 fl 1 front (-0.00, 1.00) gH 8.24 bayW 6.45 store 0 style 4 z 5.1 int -1 dist 141
+  b1409 house     c (720.9, 2826.1) 20.9 x 13.9 h 3.0 fl 1 front (-0.00, 1.00) gH 3.00 bayW 3.97 store 0 style 5 z 5.0 int -1 dist 108
+  b1412 warehouse c (699.8, 2990.7) 21.0 x 39.6 h 8.7 fl 1 front (0.00, -1.00) gH 8.68 bayW 6.08 store 0 style 4 z 5.0 int -1 dist 135
+  b1413 warehouse c (724.8, 2989.7) 22.4 x 37.3 h 7.2 fl 1 front (0.00, -1.00) gH 7.24 bayW 6.61 store 0 style 4 z 5.0 int -1 dist 117
+  b1414 warehouse c (716.5, 2918.6) 56.5 x 20.7 h 9.2 fl 1 front (-0.00, 1.00) gH 9.16 bayW 6.03 store 0 style 4 z 5.0 int -1 dist 86
+  b1557 warehouse c (831.6, 2785.3) 44.6 x 40.0 h 8.1 fl 1 front (-1.00, 0.00) gH 8.10 bayW 5.70 store 0 style 4 z 5.0 int -1 dist 119
+  b1559 warehouse c (826.8, 2876.2) 25.0 x 30.3 h 8.6 fl 1 front (-1.00, 0.00) gH 8.56 bayW 5.90 store 0 style 4 z 5.0 int -1 dist 36
+  b1560 warehouse c (822.7, 2903.6) 22.7 x 22.0 h 8.0 fl 1 front (-1.00, 0.00) gH 7.97 bayW 7.23 store 0 style 4 z 5.0 int -1 dist 23
+  b1561 warehouse c (825.6, 2826.9) 24.6 x 22.7 h 8.7 fl 1 front (-0.00, 1.00) gH 8.72 bayW 5.05 store 0 style 4 z 5.0 int -1 dist 77
+  b1562 house     c (777.8, 2985.6) 18.2 x 11.9 h 3.0 fl 1 front (1.00, -0.00) gH 3.00 bayW 4.87 store 0 style 5 z 5.0 int -1 dist 88
+  b1563 house     c (822.2, 2988.8) 26.3 x 11.0 h 3.0 fl 1 front (-1.00, 0.00) gH 3.00 bayW 4.13 store 0 style 5 z 5.0 int -1 dist 92
+  b1625 warehouse c (870.9, 2792.2) 26.7 x 27.6 h 9.3 fl 1 front (1.00, -0.00) gH 9.34 bayW 5.18 store 0 style 4 z 5.0 int -1 dist 129
+  b1627 shops     c (872.4, 2892.0) 47.6 x 24.5 h 8.0 fl 2 front (1.00, -0.00) gH 4.81 bayW 3.66 store 1 style 0 z 4.9 int -1 dist 73
+  b1628 shops     c (927.9, 2878.1) 23.2 x 25.2 h 7.9 fl 2 front (-1.00, 0.00) gH 4.67 bayW 2.85 store 1 style 0 z 4.9 int -1 dist 130
+  b1630 factory   c (869.1, 2998.2) 53.0 x 31.1 h 18.4 fl 2 front (1.00, -0.00) gH 9.22 bayW 6.50 store 0 style 4 z 4.9 int -1 dist 120
+  b1632 shops     c (935.9, 2912.8) 29.0 x 32.3 h 10.7 fl 3 front (-0.00, 1.00) gH 4.31 bayW 3.89 store 1 style 0 z 4.8 int -1 dist 137
+== near (3300, 3900) r 150
+  b8948 house     c (3163.9, 3873.6) 17.3 x 15.2 h 3.0 fl 1 front (0.00, -1.00) gH 3.00 bayW 3.81 store 0 style 5 z 2.0 int -1 dist 139
+  b8955 midrise   c (3174.7, 3827.3) 13.3 x 22.0 h 11.2 fl 3 front (-0.00, 1.00) gH 4.76 bayW 3.29 store 0 style 0 z 2.0 int -1 dist 145
+  b9432 house     c (3221.3, 3790.3) 13.9 x 11.2 h 3.0 fl 1 front (-1.00, 0.00) gH 3.00 bayW 3.68 store 0 style 5 z 2.0 int -1 dist 135
+  b9433 midrise   c (3225.2, 3811.1) 13.8 x 27.1 h 18.5 fl 5 front (-1.00, 0.00) gH 4.74 bayW 2.73 store 1 style 0 z 2.0 int -1 dist 116
+  b9434 shops     c (3243.7, 3775.8) 13.8 x 28.3 h 7.5 fl 2 front (0.00, -1.00) gH 4.35 bayW 3.20 store 1 style 0 z 1.9 int -1 dist 136
+  b9435 shops     c (3263.2, 3776.7) 19.7 x 30.0 h 7.4 fl 2 front (0.00, -1.00) gH 4.23 bayW 3.66 store 1 style 0 z 1.9 int -1 dist 129
+  b9437 house     c (3179.0, 3903.2) 13.0 x 12.1 h 3.0 fl 1 front (1.00, -0.00) gH 3.00 bayW 5.18 store 0 style 5 z 2.0 int -1 dist 121
+  b9438 midrise   c (3226.7, 3871.7) 17.1 x 30.1 h 21.9 fl 6 front (-1.00, 0.00) gH 4.43 bayW 2.87 store 0 style 2 z 2.0 int -1 dist 79
+  b9439 house     c (3221.9, 3894.3) 13.2 x 12.5 h 3.0 fl 1 front (-1.00, 0.00) gH 3.00 bayW 4.13 store 0 style 5 z 2.0 int -1 dist 78
+  b9440 shops     c (3259.7, 3875.6) 21.1 x 27.9 h 4.4 fl 1 front (0.00, -1.00) gH 4.40 bayW 3.70 store 1 style 0 z 1.9 int -1 dist 47
+  b9441 house     c (3255.0, 3827.7) 18.2 x 10.9 h 3.0 fl 1 front (-0.00, 1.00) gH 3.00 bayW 5.08 store 0 style 5 z 1.9 int -1 dist 85
+  b9444 midrise   c (3222.8, 3982.8) 21.9 x 22.3 h 11.3 fl 3 front (-1.00, 0.00) gH 4.47 bayW 3.32 store 0 style 0 z 2.1 int -1 dist 113
+  b9445 midrise   c (3223.5, 4009.0) 22.9 x 23.7 h 25.4 fl 7 front (-1.00, 0.00) gH 4.91 bayW 2.75 store 0 style 2 z 2.2 int -1 dist 133
+  b9446 shops     c (3247.9, 3983.9) 16.8 x 25.8 h 8.0 fl 2 front (0.00, -1.00) gH 4.85 bayW 3.83 store 1 style 0 z 2.1 int -1 dist 99
+  b9447 midrise   c (3233.7, 3918.4) 23.4 x 21.3 h 16.4 fl 5 front (-0.00, 1.00) gH 4.26 bayW 3.99 store 1 style 0 z 2.1 int -1 dist 69
+  b9448 motel     c (3258.2, 3914.1) 17.5 x 29.9 h 6.0 fl 2 front (-0.00, 1.00) gH 3.00 bayW 4.20 store 0 style 0 z 2.1 int -1 dist 44
+  b9451 midrise   c (3266.4, 4016.7) 17.7 x 24.8 h 19.7 fl 6 front (-0.00, 1.00) gH 4.47 bayW 4.14 store 1 style 0 z 2.2 int -1 dist 121
+  b9695 shops     c (3328.1, 3777.3) 21.2 x 25.4 h 10.7 fl 3 front (-1.00, 0.00) gH 4.32 bayW 3.34 store 1 style 0 z 1.9 int -1 dist 126
+  b9696 midrise   c (3330.1, 3799.4) 15.6 x 29.5 h 16.5 fl 5 front (-1.00, 0.00) gH 4.14 bayW 3.98 store 0 style 0 z 1.9 int -1 dist 105
+  b9697 midrise   c (3331.1, 3817.9) 14.6 x 31.6 h 13.6 fl 4 front (-1.00, 0.00) gH 4.46 bayW 3.69 store 0 style 0 z 1.9 int -1 dist 88
+  b9698 house     c (3361.3, 3774.4) 12.4 x 16.5 h 3.0 fl 1 front (0.00, -1.00) gH 3.00 bayW 4.22 store 0 style 5 z 1.8 int -1 dist 140
+  b9701 shops     c (3326.8, 3874.7) 16.1 x 23.0 h 10.6 fl 3 front (-1.00, 0.00) gH 4.19 bayW 3.16 store 1 style 0 z 1.9 int -1 dist 37
+  b9702 midrise   c (3329.4, 3894.0) 15.9 x 28.0 h 27.0 fl 8 front (-1.00, 0.00) gH 4.04 bayW 3.24 store 0 style 2 z 1.9 int -1 dist 30
+  b9703 shops     c (3329.6, 3912.7) 15.8 x 28.3 h 7.6 fl 2 front (-1.00, 0.00) gH 4.37 bayW 3.71 store 1 style 0 z 2.0 int -1 dist 32
+  b9704 shops     c (3349.9, 3872.4) 18.4 x 21.6 h 8.0 fl 2 front (0.00, -1.00) gH 4.83 bayW 2.94 store 1 style 0 z 1.9 int -1 dist 57
+  b9705 house     c (3371.7, 3871.8) 13.5 x 10.7 h 3.0 fl 1 front (0.00, -1.00) gH 3.00 bayW 3.72 store 0 style 5 z 1.8 int -1 dist 77
+  b9706 shops     c (3364.8, 3825.0) 25.3 x 26.5 h 4.5 fl 1 front (-0.00, 1.00) gH 4.52 bayW 3.19 store 1 style 0 z 1.8 int -1 dist 99
+  b9707 shops     c (3272.6, 3978.5) 14.7 x 24.0 h 8.0 fl 2 front (1.00, -0.00) gH 4.84 bayW 3.62 store 1 style 0 z 2.0 int -1 dist 83
+  b9708 midrise   c (3331.5, 3979.9) 17.1 x 32.3 h 26.3 fl 8 front (-1.00, 0.00) gH 4.05 bayW 3.71 store 0 style 0 z 2.0 int -1 dist 86
+  b9709 shops     c (3327.7, 4003.4) 23.4 x 24.6 h 10.6 fl 3 front (-1.00, 0.00) gH 4.19 bayW 3.77 store 1 style 0 z 2.1 int -1 dist 107
+  b9710 shops     c (3361.8, 3981.2) 19.9 x 20.6 h 7.6 fl 2 front (0.00, -1.00) gH 4.40 bayW 3.12 store 1 style 0 z 1.9 int -1 dist 102
+  b9711 midrise   c (3359.7, 3917.4) 17.0 x 23.3 h 11.2 fl 3 front (-0.00, 1.00) gH 4.41 bayW 3.07 store 1 style 2 z 1.9 int -1 dist 62
+  b9714 shops     c (3356.0, 4014.5) 20.7 x 29.1 h 7.7 fl 2 front (-0.00, 1.00) gH 4.52 bayW 3.44 store 1 style 0 z 2.1 int -1 dist 127
+  b9999 house     c (3421.8, 3827.2) 11.5 x 11.5 h 6.0 fl 2 front (-1.00, 0.00) gH 3.00 bayW 4.59 store 0 style 5 z 1.8 int -1 dist 142
+  b10011 house     c (3422.7, 3872.8) 13.1 x 11.5 h 3.0 fl 1 front (-1.00, 0.00) gH 3.00 bayW 5.20 store 0 style 5 z 1.8 int -1 dist 126
+  b10012 midrise   c (3424.9, 3893.8) 16.5 x 26.5 h 17.1 fl 5 front (-1.00, 0.00) gH 4.70 bayW 3.71 store 0 style 0 z 1.8 int -1 dist 125
+  b10013 house     c (3422.7, 3913.2) 9.7 x 12.7 h 3.0 fl 1 front (-1.00, 0.00) gH 3.00 bayW 4.79 store 0 style 5 z 1.8 int -1 dist 123
+  b10026 midrise   c (3423.6, 3983.7) 24.7 x 23.9 h 20.6 fl 6 front (-1.00, 0.00) gH 4.19 bayW 2.78 store 1 style 2 z 1.9 int -1 dist 149
+== near (5150, -300) r 150
+  b31371 deco      c (5290.7, -342.4) 22.8 x 23.9 h 7.8 fl 2 front (-0.00, -1.00) gH 4.51 bayW 3.30 store 1 style 6 z 1.9 int -1 dist 147
+  b31378 deco      c (5290.2, -299.3) 27.2 x 37.2 h 13.7 fl 4 front (0.00, 1.00) gH 4.47 bayW 3.38 store 1 style 6 z 1.9 int -1 dist 140
+  b31781 tower     c (5202.1, -429.4) 28.2 x 35.1 h 70.5 fl 17 front (1.00, -0.00) gH 6.52 bayW 1.59 store 1 style 3 z 1.8 int -1 dist 140
+  b31782 deco      c (5212.4, -392.9) 19.6 x 30.5 h 10.8 fl 3 front (1.00, -0.00) gH 4.27 bayW 3.30 store 1 style 6 z 1.8 int -1 dist 112
+  b31786 deco      c (5168.3, -435.8) 26.8 x 27.0 h 14.0 fl 4 front (-0.00, -1.00) gH 4.49 bayW 3.37 store 1 style 6 z 1.8 int -1 dist 137
+  b31787 condo     c (5142.4, -431.6) 20.3 x 35.3 h 51.3 fl 16 front (-0.00, -1.00) gH 5.37 bayW 5.46 store 0 style 3 z 1.8 int -1 dist 132
+  b31788 deco      c (5210.0, -331.0) 34.5 x 35.2 h 10.0 fl 3 front (1.00, -0.00) gH 4.02 bayW 2.86 store 1 style 6 z 1.9 int -1 dist 68
+  b31789 deco      c (5170.1, -390.8) 38.2 x 30.2 h 13.4 fl 4 front (0.00, 1.00) gH 4.13 bayW 3.30 store 1 style 6 z 1.9 int -1 dist 93
+  b31790 deco      c (5168.8, -342.0) 30.0 x 24.6 h 16.6 fl 5 front (-0.00, -1.00) gH 4.57 bayW 2.80 store 1 style 6 z 1.8 int -1 dist 46
+  b31791 tower     c (5209.6, -241.3) 24.6 x 36.1 h 88.4 fl 22 front (1.00, -0.00) gH 6.01 bayW 3.12 store 1 style 1 z 1.9 int -1 dist 84
+  b31792 condo     c (5210.5, -211.1) 30.6 x 34.1 h 71.6 fl 22 front (1.00, -0.00) gH 5.62 bayW 4.69 store 0 style 3 z 1.9 int -1 dist 108
+  b31793 shops     c (5196.9, -295.2) 33.4 x 29.2 h 4.1 fl 1 front (0.00, 1.00) gH 4.13 bayW 3.54 store 1 style 0 z 1.9 int -1 dist 47
+  b31794 deco      c (5162.9, -294.4) 29.5 x 27.4 h 17.2 fl 5 front (0.00, 1.00) gH 4.17 bayW 3.39 store 1 style 6 z 1.9 int -1 dist 14
+  b31795 shops     c (5174.1, -245.3) 18.5 x 27.9 h 10.5 fl 3 front (-0.00, -1.00) gH 4.07 bayW 2.84 store 1 style 0 z 1.9 int -1 dist 60
+  b31798 deco      c (5165.9, -201.2) 38.8 x 31.0 h 13.8 fl 4 front (0.00, 1.00) gH 4.75 bayW 3.26 store 1 style 6 z 1.9 int -1 dist 100
+  b32139 shops     c (5081.2, -431.5) 29.7 x 24.1 h 4.1 fl 1 front (1.00, -0.00) gH 4.07 bayW 3.04 store 1 style 0 z 1.8 int -1 dist 148
+  b32144 condo     c (5085.2, -341.1) 21.5 x 32.2 h 57.9 fl 18 front (1.00, -0.00) gH 5.47 bayW 5.20 store 0 style 3 z 1.8 int -1 dist 77
+  b32145 deco      c (5085.1, -314.8) 26.7 x 32.4 h 14.5 fl 4 front (1.00, -0.00) gH 4.45 bayW 2.67 store 1 style 6 z 1.8 int -1 dist 67
+  b32146 deco      c (5081.5, -388.8) 34.5 x 26.2 h 11.1 fl 3 front (0.00, 1.00) gH 4.62 bayW 2.69 store 1 style 6 z 1.8 int -1 dist 112
+  b32147 condo     c (5032.4, -390.4) 32.5 x 29.3 h 71.3 fl 21 front (0.00, 1.00) gH 5.41 bayW 4.38 store 0 style 3 z 1.7 int -1 dist 148
+  b32148 condo     c (5046.6, -340.0) 33.1 x 28.8 h 29.1 fl 9 front (-0.00, -1.00) gH 4.57 bayW 4.14 store 0 style 3 z 1.8 int -1 dist 111
+  b32149 condo     c (5011.9, -337.0) 30.4 x 34.7 h 24.0 fl 7 front (-0.00, -1.00) gH 5.26 bayW 5.27 store 0 style 3 z 2.1 int -1 dist 143
+  b32150 deco      c (5087.7, -241.6) 30.1 x 27.2 h 11.1 fl 3 front (1.00, -0.00) gH 4.62 bayW 3.01 store 1 style 6 z 1.9 int -1 dist 85
+  b32151 deco      c (5138.0, -242.5) 28.3 x 30.7 h 7.9 fl 2 front (-1.00, 0.00) gH 4.59 bayW 2.88 store 1 style 6 z 1.9 int -1 dist 59
+  b32152 deco      c (5050.6, -294.7) 23.4 x 28.0 h 7.5 fl 2 front (0.00, 1.00) gH 4.51 bayW 2.42 store 1 style 6 z 1.8 int -1 dist 100
+  b32153 deco      c (5017.6, -293.6) 35.1 x 25.9 h 11.4 fl 3 front (0.00, 1.00) gH 4.75 bayW 3.06 store 1 style 6 z 1.8 int -1 dist 133
+  b32154 deco      c (5051.6, -244.1) 34.4 x 30.4 h 14.8 fl 4 front (-0.00, -1.00) gH 4.60 bayW 2.44 store 1 style 6 z 1.8 int -1 dist 113
+  b32155 shops     c (5021.7, -246.0) 21.6 x 26.6 h 10.5 fl 3 front (-0.00, -1.00) gH 4.14 bayW 3.70 store 1 style 0 z 1.8 int -1 dist 139
+  b32157 condo     c (5149.1, -151.1) 22.1 x 36.9 h 54.1 fl 16 front (-1.00, 0.00) gH 5.35 bayW 4.19 store 0 style 3 z 1.9 int -1 dist 149
+  b32158 shops     c (5086.4, -198.5) 29.2 x 25.6 h 8.1 fl 2 front (0.00, 1.00) gH 4.86 bayW 3.41 store 1 style 0 z 1.9 int -1 dist 120
+  b32159 deco      c (5049.4, -200.2) 38.7 x 28.9 h 14.6 fl 4 front (0.00, 1.00) gH 4.71 bayW 3.01 store 1 style 6 z 1.8 int -1 dist 142
+== near (4004, -820) r 250
+  b36078 warehouse c (4004.0, -820.0) 356.0 x 60.0 h 10.3 fl 1 front (1.00, 0.00) gH 10.32 bayW 7.66 store 0 style 4 z 3.2 int -1 dist 0

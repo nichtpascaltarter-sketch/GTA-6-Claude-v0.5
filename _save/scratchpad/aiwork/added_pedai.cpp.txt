@@ -1,0 +1,420 @@
++// getting into a car through its door (ai.cpp ai_board: GameWorld::startCarEntry, PS_ENTERING while the door clip runs)
++namespace ai_board {
++bool begin(GameWorld& g, int id, int veh, int seat);
++void boarded(GameWorld& g, int id, int veh, int seat);
++}  // namespace ai_board
++
++// The way straight over a quiet, narrow street to the sidewalk opposite, from where a walker on a sidewalk link is now
++// (jaywalking; keeping clear of the player late at night): the spot on the far side (z: the road's), or false - a wide
++// street, too near a junction, the spot too close, something coming within 45 m either way, or a car standing at the
++// kerb across the way over (cars parked along the street elsewhere are no matter: people go over in the gaps)
++bool overTheStreet(GameWorld& g, const PedAI& pa, vec2 pos, vec3& target) {
++    if (pa.walk.link < 0 || pa.walk.link >= (int)g.laneGraph.walkLinks.size()) return false;
++    const AI::WalkLink& L = g.laneGraph.walkLinks[pa.walk.link];
++    if (L.kind != AI::WL_SIDEWALK || L.edge < 0) return false;
++    const World::RoadEdge& e = g.roads->edges[L.edge];
++    float along = L.length > 1e-3f ? Clamp(pa.walk.x / L.length, 0.f, 1.f) : 0.f;
++    float s = pa.walk.fromA ? Lerp(L.sa, L.sb, along) : Lerp(L.sb, L.sa, along);
++    bool narrow = e.halfWidth < 7.5f && e.cls != World::RC_HIGHWAY && e.cls != World::RC_RAMP && e.cls != World::RC_BOULEVARD;
++    if (!narrow || s <= 12.f || s >= e.length - 12.f) return false;
++    vec3 c3 = e.posAt(s);
++    vec3 t3 = e.tangentAt(s);
++    vec2 st2 = normalize(t3.xy() + vec2(1e-5f, 0.f));
++    vec2 rt = AI::rightOf(st2);
++    vec2 t2 = c3.xy() - rt * L.lat;   // the mirrored sidewalk
++    bool clear = true;
++    g.traffic.hash.query(g.traffic.bodies, c3.xy() - vec2(45.f), c3.xy() + vec2(45.f), [&](int bi) {
++        const AI::Body& ob = g.traffic.bodies[bi];
++        if (ob.kind == AI::BK_PED) return;
++        vec2 rel = ob.pos - c3.xy();
++        if (fabsf(dot(rel, rt)) >= e.halfWidth + 1.f) return;   // (off the street)
++        if ((ob.flags & AI::BF_PARKED) && ob.speed < 0.3f) {
++            if (fabsf(dot(rel, st2)) < ob.halfLen + 1.2f) clear = false;   // (across the way over)
++            return;
++        }
++        clear = false;   // (something on the move - or stood in the traffic lane)
++    });
++    if (!clear || length(t2 - pos) <= 4.f) return false;
++    target = vec3(t2, c3.z);
++    return true;
++}
++
++    if (pa.activity != ACT_WATCH) pa.plHelper = pa.plShow = false;
++    if (pa.slapT > 0.0 && time >= pa.slapT) {
++        // (the hand landing on the hood of the player's car stood on the crosswalk: the thump - below)
++        pa.slapT = -1.0;
++#ifdef HAVE_AUDIO
++        if (time < pa.reachT + 0.2) Audio::play(Audio::SFX_IMPACT_METAL, pa.reachAt, 0.35f);
++#endif
++    }
++        // tyres screeching close by (ai.cpp AIState::screech: a car braking hard, sliding, spinning): heads turn to it and
++        // follow it (below, as for a siren) - and now and then a word after it
++        if (calm && !gang && p.faction == FAC_CIVILIAN && p.visibleDist < 60.f && !ai.screech.empty() && time - pa.screechLookT > 8.f &&
++            time >= pa.lookAtT && pa.activity != ACT_WATCH) {
++            int kv = -1;
++            float kd = 30.f;
++            for (int vi : ai.screech) {
++                float d = length(vehicles[vi].sim.body.pos.toVec3().xy() - pos);
++                if (d < kd) {
++                    kd = d;
++                    kv = vi;
++                }
++            }
++            if (kv >= 0 && hashToFloat(hash32(p.uid * 271u + (u32)(time * 0.5))) < 0.75f) {
++                pa.screechLookT = (float)time;
++                pa.sirenVeh = kv;
++                pa.lookAtPt = vehicles[kv].sim.body.pos.toVec3() + vec3(0.f, 0.f, 0.6f);
++                pa.lookAtT = time + 1.6 + hashToFloat(hash32(p.uid * 277u)) * 1.4;
++                ai.stats.screechLooks++;
++                if (kd < 16.f && ai.screechBarkT <= 0.f && pa.barkCooldown <= 0.f && plDist < 40.f && !ai.showOn) {
++                    aiSay(id, BK_SCREECH, 0.8f);
++                    if (pa.barkCooldown > 0.f) ai.screechBarkT = 7.f;
++                }
++            }
++        }
++        // the player showing off in a car close by (ai.cpp AIState::showOn: donuts, a burnout, a slide going round in one
++        // spot): most stop to watch - turned to it, the bold with the phone up filming, a cheer and a shout now and then
++        // (ACT_WATCH with plShow, below); the steadier sort tut and walk on, the timid hurry off; an officer on foot calls
++        // out to knock it off and goes over for a look. Once a show each, when they first see it
++        if (ai.showOn && pa.showSeen != ai.showId && calm && !gang && !p.persistent && p.state == PS_ONFOOT && p.visibleDist < 80.f &&
++            (p.faction == FAC_CIVILIAN || p.faction == FAC_POLICE) && ai.showVeh >= 0 && ai.showVeh < (int)vehicles.size() && vehicles[ai.showVeh].used) {
++            vec3 sc = vehicles[ai.showVeh].sim.body.pos.toVec3();
++            float sd = length(sc.xy() - pos);
++            bool cop = p.faction == FAC_POLICE;
++            if (sd < (cop ? 45.f : 36.f) && lineOfSight(p.pos + dvec3(0, 0, 1.6), dvec3(sc) + dvec3(0, 0, 0.8), id, ai.showVeh)) {
++                pa.showSeen = ai.showId;
++                u32 hs = hash32(p.uid * 337u + (u32)ai.showId * 7919u);
++                float r = hashToFloat(hs);
++                vec2 aw = sd > 1e-3f ? (pos - sc.xy()) / sd : AI::yawDir(p.yaw + kPi);
++                if (cop) {
++                    aiSay(id, BK_COP_SHOW, 1.f, true);
++                    ai.stats.copShowCalls++;
++                    if ((pa.activity == ACT_WALK || pa.activity == ACT_GROUP) && pa.leader < 0) {
++                        pa.activity = ACT_INSPECT;
++                        pa.threatPos = sc.xy();
++                        pa.actTimer = 5.f + hashToFloat(hash32(hs)) * 3.f;
++                    }
++                    LOG("ai: officer %d calls out to the player's car show from %.0f m", id, sd);
++                } else {
++                    bool standing = pa.activity == ACT_SCENARIO && pa.stance != 6 && pa.stance != 12 && pa.stance != 21 && pa.stance != 22 &&
++                                    pa.stance != 9 && !pa.rainShelter;
++                    bool idle = pa.leader < 0 && pa.eventId < 0 && ((pa.activity == ACT_WALK && pa.walk.state != AI::WS_CROSSING) || standing);   // (not out in the road)
++                    bool steady = pa.role == PR_BUSINESS || (pa.temper == 0 && r < 0.6f);
++                    // (a look at it, whatever they do: the eyes on the car a moment)
++                    pa.lookAtPt = sc + vec3(0.f, 0.f, 0.6f);
++                    pa.lookAtT = time + 2.0;
++                    pa.sirenVeh = ai.showVeh;
++                    pa.screechLookT = (float)time;
++                    if (idle && steady) {
++                        if (pa.barkCooldown <= 0.f && ai.showBarkT <= 0.f && plDist < 60.f) {
++                            aiSay(id, BK_SHOW_TUT, 0.8f);
++                            if (pa.barkCooldown > 0.f) {
++                                ai.stats.showTuts++;
++                                ai.showBarkT = 1.5f;
++                            }
++                        }
++                        if (pa.activity == ACT_WALK) pa.walk.hurry = Max(pa.walk.hurry, pa.temper == 0 ? 1.7f : 1.35f);
++                    } else if (idle && pa.role != PR_JOGGER && r < 0.75f) {
++                        bool film = hashToFloat(hash32(hs * 5u + 1u)) < (pa.temper == 2 ? 0.65f : 0.35f);
++                        pa.activity = ACT_WATCH;
++                        pa.plShow = true;
++                        pa.plHelper = false;
++                        pa.anchor = pos + (sd < 9.f ? aw * Min(9.f - sd, 4.f) : vec2(0.f));   // (a step back if close)
++                        pa.anchorYaw = yawTo(pa.anchor, sc.xy());
++                        pa.stance = film ? 8 : 0;   // (the phone up)
++                        pa.clip = -1;
++                        pa.clipTimer = 0.4f + hashToFloat(hash32(hs * 7u)) * 1.6f;
++                        pa.actTimer = 18.f + hashToFloat(hash32(hs * 3u)) * 22.f;   // (seen enough after a while)
++                        p.phoneBrowse = false;
++                        ai.stats.showWatchers++;
++                        if (film) ai.stats.showFilmers++;
++                    } else if (pa.activity == ACT_WALK && sd < 10.f) {
++                        pa.walk.hurry = Max(pa.walk.hurry, 1.6f);   // (too close for comfort: on past it quickly)
++                    }
++                }
++            }
++        }
++        // the player's car stood on the crosswalk they are crossing (over the stripes), or up on the sidewalk they are
++        // walking: round it (pednav.cpp walks round a car stood in the way), a glare at the driver and a word about it - the
++        // bold, hands free, slap the hood going past ("Hey! I'm walking here!")
++        if (pl && pl->state == PS_INVEHICLE && pl->seat == 0 && pl->vehicle >= 0 && pl->vehicle < (int)vehicles.size() && calm && !gang &&
++            p.faction == FAC_CIVILIAN && b.type == BRAIN_WANDER && (pa.activity == ACT_WALK || pa.activity == ACT_GROUP) && plDist < 9.f &&
++            time - pa.hoodT > 30.f && pa.walk.link >= 0 && pa.walk.link < (int)laneGraph.walkLinks.size() && !isAircraft(pl->vehicle) &&
++            !isBoat(pl->vehicle)) {
++            const Vehicle& cv = vehicles[pl->vehicle];
++            const AI::WalkLink& L = laneGraph.walkLinks[pa.walk.link];
++            bool onCross = pa.walk.state == AI::WS_CROSSING && (L.kind == AI::WL_CROSSWALK || L.kind == AI::WL_ZEBRA);
++            bool onWalk = ai.plCarOnSidewalk && pa.walk.state == AI::WS_WALK && L.kind == AI::WL_SIDEWALK;
++            if ((onCross || onWalk) && cv.sim.speed() < 0.3f) {
++                const Vehicles::VehicleModel& cs = vassets[cv.model].spec;
++                vec2 cc = cv.sim.body.pos.toVec3().xy();
++                vec2 cf = normalize(cv.sim.forward().xy() + vec2(1e-4f, 0.f)), cr = AI::rightOf(cf);
++                vec2 lp = pos - cc;
++                float lx = dot(lp, cr), ly = dot(lp, cf);
++                float out = length(vec2(Max(0.f, fabsf(lx) - cs.boxHalf.x), Max(0.f, fabsf(ly) - cs.boxHalf.y)));   // (to its outline)
++                bool inWay = onWalk;
++                for (int k = 0; k <= 8 && !inWay; k++) {
++                    // (the stripes run under the car: it stands across their way over)
++                    vec2 A = laneGraph.walkNodes[L.a].p.xy(), B = laneGraph.walkNodes[L.b].p.xy();
++                    vec2 q = A + (B - A) * ((float)k / 8.f) - cc;
++                    inWay = fabsf(dot(q, cr)) < cs.boxHalf.x + 0.4f && fabsf(dot(q, cf)) < cs.boxHalf.y + 0.4f;
++                }
++                if (inWay && out < 1.4f) {
++                    pa.hoodT = (float)time;
++                    u32 hh = hash32(p.uid * 353u + (u32)(time * 4.0));
++                    float r = hashToFloat(hh);
++                    p.lookPed = player;
++                    p.lookT = 1.6f;
++                    float chance = pa.temper == 2 ? 0.9f : (pa.temper == 1 ? 0.5f : 0.2f);
++                    if (r < chance) {
++                        aiSay(id, onCross ? BK_WALKING_HERE : BK_SIDEWALK_CAR, 1.f);
++                        if (pa.barkCooldown > 0.f) {
++                            if (onCross) ai.stats.blockedCrossings++;
++                            else ai.stats.sidewalkCars++;
++                        }
++                    }
++                    if (onCross && pa.temper == 2 && out < 1.2f && pa.walkStance == 0 && effectiveCarry(p) == CARRY_NONE && hashToFloat(hash32(hh)) < 0.75f) {
++                        // (the flat of the hand on the bodywork nearest them, at hood height)
++                        vec2 at = cc + cr * Clamp(lx, -cs.boxHalf.x, cs.boxHalf.x) + cf * Clamp(ly, -cs.boxHalf.y, cs.boxHalf.y);
++                        pa.reachAt = vec3(at, (float)p.pos.z + 0.95f);
++                        pa.reachT = time + 0.45;
++                        pa.slapT = time + 0.3;
++                        ai.stats.hoodSlaps++;
++                    }
++                    LOG("ai: ped %d %s the player's car (%.1f m off it)%s", id, onCross ? "crossing round" : "on the sidewalk round", out,
++                        time < pa.reachT && onCross ? " - a slap on the hood" : "");
++                }
++            }
++        }
++        // the player running past close on foot (not wanted: that is a chase): a look after them, now and then a word
++        if (pl && pl->state == PS_ONFOOT && pinfo.wanted == 0 && calm && !gang && (p.faction == FAC_CIVILIAN || p.faction == FAC_POLICE) &&
++            plDist < 2.3f && length(pl->vel.xy()) > 4.5f && time - pa.runPastT > 20.f &&
++            (pa.activity == ACT_WALK || pa.activity == ACT_GROUP || pa.activity == ACT_SCENARIO || pa.activity == ACT_WAIT_BUS)) {
++            pa.runPastT = (float)time;
++            p.lookPed = player;
++            p.lookT = 2.f;
++            if (p.faction == FAC_CIVILIAN && pa.barkCooldown <= 0.f && hashToFloat(hash32(p.uid * 359u + (u32)time)) < (pa.temper == 2 ? 0.45f : 0.25f)) {
++                aiSay(id, BK_RUN_PAST, 1.f);
++                if (pa.barkCooldown > 0.f) ai.stats.runPasts++;
++            }
++        }
++        // the player's car stopped close by with the radio on: the young, the out-on-the-town and the bold move to it a few
++        // seconds where they stand (waiting at the kerb, stood about - the dance below), some call out ("Ayy, turn it up!");
++        // the steadier sort look over, a word now and then ("Turn that down!")
++        if (pl && pl->state == PS_INVEHICLE && pl->seat == 0 && pl->vehicle >= 0 && pl->vehicle < (int)vehicles.size() && calm && !gang &&
++            p.faction == FAC_CIVILIAN && plDist < 9.f && time - pa.musicT > 45.f && vehicles[pl->vehicle].radio >= 0 &&
++            vehicles[pl->vehicle].sim.speed() < 1.5f && !isBike(pl->vehicle) && !isBoat(pl->vehicle) && !isAircraft(pl->vehicle) && pa.leader < 0 &&
++            ((pa.activity == ACT_WALK && pa.walk.state == AI::WS_WAIT_CROSS) || ((pa.activity == ACT_SCENARIO || pa.activity == ACT_WAIT_BUS) &&
++                                                                                 (pa.stance == 0 || pa.stance == 7)))) {
++            pa.musicT = (float)time;
++            u32 hm = hash32(p.uid * 373u + (u32)time);
++            float r = hashToFloat(hm);
++            float tod = env ? env->timeOfDay : 12.f;
++            bool lively = pa.role == PR_BEACH || pa.role == PR_TOURIST || pa.temper == 2 || tod > 20.f || tod < 3.f;
++            if (pa.role == PR_BUSINESS || pa.temper == 0) {
++                p.lookPed = player;
++                p.lookT = 1.5f;
++                if (r < 0.35f && pa.barkCooldown <= 0.f) {
++                    aiSay(id, BK_LOUD_MUSIC, 1.f);
++                    if (pa.barkCooldown > 0.f) ai.stats.radioComplaints++;
++                }
++            } else if (r < (lively ? 0.6f : 0.25f)) {
++                pa.vibeT = time + 4.0 + hashToFloat(hash32(hm)) * 4.0;
++                ai.stats.radioDancers++;
++                if (r < 0.2f && pa.barkCooldown <= 0.f) aiSay(id, BK_GOOD_SONG, 1.f);
++            }
++        }
++        // late at night on a quiet street, the player coming at them along their sidewalk: the wary - the timid, some others
++        // out alone - cross over out of the way (overTheStreet: a narrow street, nothing coming), with a look back
++        if (pl && pl->state == PS_ONFOOT && env && (env->timeOfDay > 22.f || env->timeOfDay < 5.f) && pinfo.wanted == 0 && calm && !gang &&
++            p.faction == FAC_CIVILIAN && !p.persistent && pa.activity == ACT_WALK && pa.leader < 0 && b.type == BRAIN_WANDER &&
++            pa.walk.state == AI::WS_WALK && plDist < 20.f && plDist > 7.f && time - pa.avoidT > 90.f && time - pa.companyT[0] > 1.f &&
++            time - pa.companyT[1] > 1.f) {
++            vec2 toPl = (ppos - pos) / plDist;
++            bool meeting = dot(AI::yawDir(p.yaw), toPl) > 0.85f && (length(pl->vel.xy()) < 0.5f || dot(pl->vel.xy(), toPl) < -0.4f);
++            if (meeting) {
++                pa.avoidT = (float)time;   // (weighed once a meeting)
++                thread_local std::vector<int> about;
++                pedsNear(pos, 25.f, about);
++                int others = 0;
++                for (int j : about) others += j != id && j != player && peds[j].used && peds[j].state == PS_ONFOOT;
++                float r = hashToFloat(hash32(p.uid * 367u + (u32)time));
++                bool wary = pa.temper == 0 || (p.female && r < 0.45f) || r < 0.12f || ai.forceAvoid;
++                vec3 over;
++                if ((others == 0 || ai.forceAvoid) && wary && overTheStreet(*this, pa, pos, over)) {
++                    pa.activity = ACT_CROSS;
++                    b.type = BRAIN_GOTO;
++                    b.goal = dvec3(vec3(over.xy(), groundHeight(over.x, over.y, over.z + 1.5f)));
++                    b.speed = 1.6f;
++                    b.timer = 0.f;
++                    p.lookPed = player;
++                    p.lookT = 1.2f;
++                    ai.stats.nightAvoids++;
++                    LOG("ai: ped %d crosses over the street out of the player's way (late, %.0f m off)", id, plDist);
++                } else if ((others == 0 || ai.forceAvoid) && wary && pa.walk.link >= 0 && pa.walk.link < (int)laneGraph.walkLinks.size()) {
++                    // (no way over here: as wide a berth as the sidewalk gives, a quicker step, an eye on the player)
++                    const AI::WalkLink& WL = laneGraph.walkLinks[pa.walk.link];
++                    vec2 wd = laneGraph.walkTangent(pa.walk.link, pa.walk.x, pa.walk.fromA);
++                    float side = dot(ppos - pos, AI::rightOf(wd)) >= 0.f ? 1.f : -1.f;
++                    pa.walk.lat = -side * WL.halfWidth * 0.85f;   // (right of the way they walk: + - the player's other side)
++                    pa.walk.hurry = Max(pa.walk.hurry, 1.25f);
++                    p.lookPed = player;
++                    p.lookT = 1.5f;
++                    ai.stats.nightBerths++;
++                }
++            }
++        }
++    // (following a siren - or a car with its tyres screeching - going past with the eyes: peds.cpp PedAI::lookAtPt, set above)
++        if (pa.lookAtT > time && time - Max(pa.sirenLookT, pa.screechLookT) < 4.f && sv < (int)vehicles.size() && vehicles[sv].used)
++            // knocked down by a car whose driver stopped to see (ai.cpp): up again and not hurt, they stay where they are,
++            // turned to the driver getting out and coming over, for a word with them (ACT_ROADRAGE's sorry branch has
++            // them answer once the driver is close) - up to 8 s from getting up; on 1.5 s after their answer, or as soon
++            // as the driver gives it up or drives on
++            if (pa.waitDrv >= 0) {
++                int dv = pa.waitDrv;
++                const Ped* D = dv < (int)peds.size() && peds[dv].used && peds[dv].uid == pa.waitDrvUid && peds[dv].state != PS_DEAD ? &peds[dv] : nullptr;
++                const PedAI* da = D && dv < (int)ai.ped.size() && ai.ped[dv].uid == D->uid ? &ai.ped[dv] : nullptr;
++                bool coming = false;
++                if (D && D->state == PS_INVEHICLE && D->vehicle >= 0 && D->vehicle < (int)vehicles.size()) {
++                    const VehAI& wv = vehAI(D->vehicle);   // (still pulling up)
++                    coming = wv.rage >= 1 && wv.rageSorry && wv.rageFor == id;
++                } else if (D && (D->state == PS_ONFOOT || D->state == PS_EXITING) && da) {   // (getting out - the door clip - or on foot)
++                    coming = da->activity == ACT_ROADRAGE && da->rageSorry && da->sorryFor == id && da->sorryForUid == p.uid && da->actTimer > 0.f;
++                }
++                if (pa.waitT < 0.f) pa.waitT = (float)time + 8.f;   // (just up)
++                if (coming && da && da->sorryCalled && pa.replyAt < 0.f) pa.waitT = Min(pa.waitT, (float)time + 1.5f);   // (had their word)
++                if (!coming || time > pa.waitT || pa.activity == ACT_HURT || pa.activity == ACT_CUFFED || p.state != PS_ONFOOT) {
++                    pa.waitDrv = -1;
++                } else {
++                    faceYaw = yawTo(pos, D->pos.toVec3().xy());
++                    faceSet = true;
++                    turnRate = 4.f;
++                    p.lookPed = dv;
++                    p.lookT = Max(p.lookT, 0.4f);
++                    break;   // (stood there: nothing else this frame)
++                }
++            }
++                        int rc = la0.activity == ACT_DRIVE_OFF && (L0.state == PS_ONFOOT || L0.state == PS_ENTERING) ? la0.homeVeh   // (at its door: ai_board)
++                            // jaywalking: straight across a quiet, narrow street to the sidewalk opposite (overTheStreet:
++                            // nothing coming, no car standing at the kerb across the way over)
++                            vec3 over;
++                            if (overTheStreet(*this, pa, pos, over)) {
++                                pa.activity = ACT_CROSS;
++                                b.type = BRAIN_GOTO;
++                                b.goal = dvec3(vec3(over.xy(), groundHeight(over.x, over.y, over.z + 1.5f)));
++                                b.speed = 1.7f;   // a brisk walk across
++                                b.timer = 0.f;
++                                if (ai.forceJaywalk) {
++                                    ai.forceJaywalk = false;
++                                    LOG("ai: ped %d crosses mid-block at %.0f %.0f (forced)", id, pos.x, pos.y);
++                                break;
++                    if (pa.activity == ACT_WATCH && pa.plShow) {
++                        // watching the player's car show (ai.cpp): turned to the car as it goes round, the eyes on it; the
++                        // car sliding their way - a step back out of its path (and stay back). The show over (or they have
++                        // seen enough: actTimer): a moment, a last word from some, and on their way
++                        int sv = ai.showVeh;
++                        bool on = ai.showOn && pa.showSeen == ai.showId && sv >= 0 && sv < (int)vehicles.size() && vehicles[sv].used;
++                        if (on) {
++                            const Vehicle& cv = vehicles[sv];
++                            vec3 c3 = cv.sim.body.pos.toVec3();
++                            vec2 aw = pa.anchor - c3.xy();
++                            float da = length(aw);
++                            float reach = vassets[cv.model].spec.boxHalf.y + 2.5f;
++                            if (da < reach) pa.anchor = c3.xy() + (da > 1e-3f ? aw / da : AI::yawDir(p.yaw + kPi)) * (reach + 1.f);
++                            pa.anchorYaw = yawTo(pa.anchor, c3.xy());
++                            pa.lookAtPt = c3 + vec3(0.f, 0.f, 0.6f);
++                            pa.lookAtT = time + 0.3;
++                        } else if (pa.actTimer > 4.5f) {
++                            pa.actTimer = 1.f + hashToFloat(hash32(p.uid * 313u)) * 3.5f;   // (over: a moment, then off)
++                            if (hash32(p.uid * 317u + (u32)ai.showId) % 3u == 0u && ai.showBarkT <= 0.f && pa.barkCooldown <= 0.f && plDist < 50.f) {
++                                aiSay(id, BK_SHOW_END, 1.f);
++                                if (pa.barkCooldown > 0.f) ai.showBarkT = 1.5f;
++                            }
++                        }
++                    }
++                        if (pa.activity == ACT_WATCH && pa.plShow && pa.clipTimer <= 0.f) {
++                            // (the car show: a cheer or a point at it every few seconds - not with the phone up - and now
++                            //  and then a shout, one voice at a time)
++                            u32 hc = hash32(p.uid * 349u + (u32)(time * 3.0));
++                            pa.clipTimer = 2.5f + hashToFloat(hc) * 4.f;
++                            if (pa.stance != 8 && p.pendingAction < 0) p.pendingAction = (hc >> 5) % 3u ? Anim::CLIP_CHEER : Anim::CLIP_POINT;
++                            if (ai.showOn && ai.showBarkT <= 0.f && pa.barkCooldown <= 0.f && plDist < 60.f && ((hc >> 9) & 1u)) {
++                                aiSay(id, BK_SHOW_CHEER, 1.f);
++                                if (pa.barkCooldown > 0.f) ai.showBarkT = 2.5f + hashToFloat(hash32(hc)) * 3.f;
++                            }
++                        }
++                        if (pa.activity == ACT_WATCH && pa.clipTimer <= 0.f && !pa.plHelper && !pa.plShow) {
++                        if (pa.stance == 8 && !pa.plShow && pa.barkCooldown <= 0.f && plDist < 8.f && fmodf((float)time + (float)(p.uid % 53u) * 0.41f, 5.f) < dt)
++                            // a back seat on the kerb side (the right) if one is free, else any: to its door, and in through it
++                            // (ai_board: the door clip; the fare's ride in ai_board::boarded)
++                            const Vehicles::VehicleModel& ts = vassets[v.model].spec;
++                            int seat = -1;
++                            for (int k = Min((int)ts.seats.size(), 8) - 1; k >= 1 && seat < 0; k--)
++                                if (v.seats[k] < 0 && !ts.seats[k].exitLeft) seat = k;
++                            if (seat < 0) seat = freeSeat(tv, false);
++                            if (seat <= 0 || seat >= (int)ts.seats.size()) {
++                                pa.targetVeh = -1;
++                                break;
++                            }
++                            bool tleft = ts.seats[seat].exitLeft;
++                            vec3 door = v.sim.body.pos.toVec3() + rotate(v.sim.body.rot, vec3(tleft ? -(ts.boxHalf.x + 0.45f) : ts.boxHalf.x + 0.45f, ts.seats[seat].pos.y, 0.f));
++                            if (dd > 0.7f) {
++                                float spd = Min(1.6f, dd * 2.f + 0.4f);
++                                vec2 st = aiWalkRound(*this, id, door.xy(), spd, dt) - pos;   // (round the cab to a far door)
++                                desired = (length(st) > 1e-3f ? normalize(st) : tod / dd) * spd;
++                                if (ai_board::begin(*this, id, tv, seat)) return;
++                                warpPedIntoVehicle(id, tv, seat);
++                                ai_board::boarded(*this, id, tv, seat);
++                                return;
++                                // (to the door of a free seat - round the cars in the way, the vehicle's own too - and in
++                                //  through it: ai_board; no seat free: gone on foot as before)
++                                const Vehicle& ev = vehicles[hv];
++                                const Vehicles::VehicleModel& es = vassets[ev.model].spec;
++                                int seat = freeSeat(hv, false);
++                                vec3 vp = ev.sim.body.pos.toVec3();
++                                vec2 goal = vp.xy();
++                                if (seat > 0 && seat < (int)es.seats.size()) {
++                                    bool eleft = es.seats[seat].exitLeft;
++                                    goal = (vp + rotate(ev.sim.body.rot, vec3(eleft ? -(es.boxHalf.x + 0.45f) : es.boxHalf.x + 0.45f, es.seats[seat].pos.y, 0.f))).xy();
++                                }
++                                vec2 tov = goal - pos;
++                                if (length(tov) > (seat > 0 ? 0.7f : 3.f)) {
++                                    vec2 st = aiWalkRound(*this, id, goal, 2.2f, dt) - pos;   // (round the cars in the way)
++                                    desired = (length(st) > 1e-3f ? normalize(st) : normalize(tov)) * Min(2.2f, length(tov) * 2.f + 0.5f);
++                                    if (seat > 0 && ai_board::begin(*this, id, hv, seat)) return;
++                                    ai_board::boarded(*this, id, hv, seat);
++                        // (up again: a while with them once there, then back to the car - the clock not running while
++                        //  still on the way over, as the one hit waits for them: PedAI::waitDrv, above)
++                        pa.linger = down ? 0.f : (d < 4.f || pa.sorryCalled ? pa.linger + dt : pa.linger);
++                    // (back to the driver's door - round the car to it, ai.cpp aiWalkRound - and in through it: ai_board)
++                    const Vehicle& rv = vehicles[hv];
++                    const Vehicles::VehicleModel& rs = vassets[rv.model].spec;
++                    bool rleft = !rs.seats.empty() ? rs.seats[0].exitLeft : true;
++                    float rsy = !rs.seats.empty() ? rs.seats[0].pos.y : 0.f;
++                    vec2 rdoor = (rv.sim.body.pos.toVec3() + rotate(rv.sim.body.rot, vec3(rleft ? -(rs.boxHalf.x + 0.45f) : rs.boxHalf.x + 0.45f, rsy - 0.2f, 0.f))).xy();
++                    vec2 tod = rdoor - pos;
++                    if (length(tod) > 0.7f) {
++                        float spd = Min(2.2f, length(tod) * 2.f + 0.4f);
++                        vec2 st = aiWalkRound(*this, id, rdoor, spd, dt) - pos;   // (round a car parked in the way - or this one)
++                        desired = (length(st) > 1e-3f ? normalize(st) : normalize(tod)) * spd;
++                        if (ai_board::begin(*this, id, hv, 0)) return;
++                        ai_board::boarded(*this, id, hv, 0);
++                    if (ai_board::begin(*this, id, hv, 0)) return;   // (through the door: ai_board; away in boarded())
++                    ai_board::boarded(*this, id, hv, 0);
++                            // at the door: open it and climb in - through the door (ai_board: the door clip; in and away
++                            // once it is over - ai_board::boarded), else the plain climb-in clip
++                            if (ai_board::begin(*this, id, hv, 0)) return;
++                    ai_board::boarded(*this, id, hv, 0);   // (the engine, the lights, the pull-out)
++                            // at the door: in (the officer's hand on the head) - through the door (ai_board), else the
++                            // plain climb-in clip
++                            if (ai_board::begin(*this, id, car, seat)) return;
++                            ai_board::boarded(*this, id, car, seat);
++                            bool drvIn = ld >= 0 && ld < (int)peds.size() && peds[ld].used && peds[ld].uid == pa.leaderUid &&
++                                         ((peds[ld].vehicle == car && (peds[ld].state == PS_INVEHICLE || peds[ld].state == PS_ENTERING)) ||
++                                          (peds[ld].state == PS_ENTERING && peds[ld].targetVehicle == car));   // (at the wheel's door: ai_board)
++                                if (ai_board::begin(*this, id, car, seat)) return;   // (through the door: ai_board)
++                    ai_board::boarded(*this, id, car, seat);
++                    if (ai_board::begin(*this, id, hv, seat)) return;   // (through the door: ai_board; the rest in boarded())
++                    ai_board::boarded(*this, id, hv, seat);
++    // (the player's car radio: a few seconds' dance where they stand, stood still - perception above)
++    if (time < pa.vibeT && p.state == PS_ONFOOT && length(p.vel.xy()) < 0.35f && (stance == 0 || stance == 7)) stance = 9;

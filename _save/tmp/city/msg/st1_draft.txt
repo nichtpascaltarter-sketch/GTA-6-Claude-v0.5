@@ -1,0 +1,34 @@
+city snapshot-safe: stage 0 step 1, the terrain bake as data. Two files on top of HEAD 4e48029, copied over HEAD's copies, plus 8 new files; the shared tree had none of them. Blobs written with git hash-object -w. MinGW syntax check in the shared tree: {{SYN}}, with the other agents' current edits in place (/tmp/city/syntax_shared_st1.log). The game build and procedural mode are unchanged: nothing in the game calls the new code yet.
+
+FILES
+- src/world/sites.h d64ecce2de923a6be38289faaa13f14dccb42890 (HEAD 96adcf5)
+- src/world/sites.cpp 7385624005f79e530a70bddb8279744a6281bc05 (HEAD cb9614b)
+- src/world/gridcodec.h 48045818585745f3eca9c80d8c9a61f09ff065c2 (new)
+- src/world/gridcodec.cpp d9d0818897ddd92a0a702df2ae7b5d591dc3aa71 (new)
+- tools/terrainbake.cpp 9f1ac4aceb21ba0f5265ced70a39808551a60e7f (new)
+- world/terrain/terrain.ntw c59416c89bd0dfde63c40505872e97ee1b0f035a (new, 31 KB)
+- world/terrain/height.ntg 4e1f10f7730e8f66027b979b1b6037354fee4bce (new, 2.30 MB)
+- world/terrain/water.ntg 157f194e07939656f47f4848de4dfaacbd494492 (new, 38 KB)
+- world/terrain/region.ntg 030f48845d45846e0d9b1a2ac20176a7b031221b (new, 38 KB)
+- world/terrain/coast.ntg b07c108cecaf05b179b6de5ad7f93d8f003a4631 (new, 277 KB)
+world/ is a new top-level directory, and the binary .ntg files total 2.65 MB.
+
+WHAT
+- sites.cpp/.h: gTerrainBakeLandforms, false in the game. When true, SiteSet::layout runs only the two layouts that change land and water outside pads: Port Isle's quay walls, dredged ring and berth, and the Key Coral golf pond. It drops everything they place and skips the airfield, the landmarks, the places and the transit corridor, with their pads and grading. With the flag off, the code path is unchanged.
+- gridcodec.cpp/.h: a lossless grid codec. It predicts each value from its neighbours (JPEG-LS's median predictor), Golomb-Rice codes the residuals with a parameter that adapts per local-activity context, and codes flat stretches as runs. The stream is bit-exact and portable, and each grid carries a 32-byte header with a hash. It packs the heights to 17.6% of raw (2.30 MB), against 3.44 MB for gzip -9 on the same row-delta data in the prototype.
+- tools/terrainbake.cpp: a host tool that runs the generator once with the flag, without roads, and writes world/terrain/:
+  - heights in cm (-44.93..166.85 m);
+  - the water class with its levels (sea 0 m, lake 4 m);
+  - today's region map;
+  - the 640² coast distance at 0.25 m;
+  - terrain.ntw, with the grid, the layers and their hashes, the water levels, the coast, island and lake outlines (88 islands) and the 7 channels.
+  Every grid is decoded from disk and compared before the tool reports success.
+- terrain.ntw is the first NTW file (the format of docs/HANDBUILT_WORLD.md 4.2). The runtime loader, worldc and embedding come in step 2.
+
+TESTS
+- Codec unit tests (44 cases: every size from 1x1 to 5x4, extremes, smooth terrain, class maps, random data, bad arguments): all round-trip. 200 random corruptions per case are rejected or decoded without a crash, and truncated streams are refused. ALL OK.
+- The bake: 8.8 s, and the round trip from disk matches.
+- Procedural world unchanged: worldcheck on HEAD + this step (all cells, colliders, props, overlaps, beacons) gives output identical to before, with timings masked.
+- MSVC-safety scan (clang over the terrainbake unity, which covers sites.cpp and gridcodec.cpp): 0 diagnostics. MinGW syntax of the game: 0/0. MinGW syntax of gridcodec.cpp on its own (-Wall -Wextra): 0/0.
+
+NEXT: step 2 (--world=hand from the embedded world.bin) is in its checks. You approved its edits to app.cpp, main.cpp, build.sh and build.bat. Its sign-off follows with the drive and melee smoke tests and the hand-mode shots.

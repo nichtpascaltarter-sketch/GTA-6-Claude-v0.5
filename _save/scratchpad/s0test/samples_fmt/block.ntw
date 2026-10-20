@@ -1,0 +1,11 @@
+ntw 1 block id=cl.b014 district=cl
+parcel cl.b014.p03 poly=1690.20,350.10;1712.00,350.10;1712.00,372.40;1690.20,372.40 use=residential grade=3.45
+  blend=2.00 ground=lawn front=cl.e0007:right
+  paint kind=paving poly=1690.20,350.10;1694.00,350.10;1694.00,362.00;1690.20,362.00
+  fence kind=lib.fence.picket_white line=1690.20,350.10;1712.00,350.10 gate=6.00:1.00
+end
+path cl.b014.pa1 line=1690.20,358.00;1698.00,358.00 w=1.20 kind=walk
+tree kind=lib.veg.royal_palm at=1693.10,352.40 h=11.50 yaw=40.0
+tree kind=lib.veg.live_oak at=1709.80,369.00 h=9.00 canopy=8.00
+prop kind=lib.prop.trash_bin at=1712.60,350.30 yaw=180.0
+light kind=lib.light.porch_warm at=1701.10,354.90,2.60 sched=evening

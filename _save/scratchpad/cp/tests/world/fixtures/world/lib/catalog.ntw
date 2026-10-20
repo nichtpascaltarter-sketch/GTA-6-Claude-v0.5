@@ -1,0 +1,17 @@
+ntw 1 catalog
+piece lib.kit.sofa_3seat code=FURN_SOFA size=2.10x0.90x0.85 variants=4 collide=box
+piece lib.kit.tv_stand code=FURN_TV_STAND size=1.40x0.45x0.55 collide=box
+piece lib.kit.rug_oval code=FURN_RUG_OVAL size=2.00x1.40x0.01 collide=none
+piece lib.kit.ceiling_bowl code=FIX_CEILING_BOWL size=0.40x0.40x0.15 collide=none
+piece lib.kit.counter_shop code=FURN_COUNTER size=2.40x0.70x1.00 collide=box
+piece lib.kit.roof_tile_terracotta code=MAT_ROOF_TILE_TERRACOTTA
+piece lib.kit.mat_siding code=MAT_SIDING
+piece lib.kit.door_panel_5 code=DOOR_PANEL_5 size=0.95x0.05x2.10 collide=box
+piece lib.kit.mural_wall_02 code=DECAL_MURAL_02 size=3.00x0.02x2.40 collide=none
+piece lib.kit.porch_screened code=PORCH_SCREENED size=6.60x2.40x2.60 collide=box
+piece lib.prop.trash_bin code=PROP_BIN size=0.60x0.60x1.00 collide=cylinder
+piece lib.prop.shelter_a code=PROP_BUS_STOP size=4.00x1.60x2.60 collide=box
+piece lib.veg.royal_palm code=PROP_PALM_TALL size=0.60x0.60x12.00 collide=cylinder
+piece lib.veg.live_oak code=PROP_TREE_OAK size=1.00x1.00x9.00 collide=cylinder
+piece lib.light.porch_warm code=LIGHT_PORCH_WARM
+piece lib.fence.picket_white code=FENCE_PICKET size=2.00x0.05x1.00 collide=box

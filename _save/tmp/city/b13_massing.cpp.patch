@@ -1,0 +1,68 @@
+--- dev15/src/world/massing.cpp	2026-10-06 08:13:33.000000000 +0000
++++ dev16/src/world/massing.cpp	2026-10-06 12:21:23.914805698 +0000
+@@ -484,7 +484,7 @@
+     if (!hole.empty() && !pitched) {
+         // ring roof between the outer outline and the courtyard (each covering rectangle)
+         for (const vec4& r : v.rects) flatRoof(x, toWorld(e, rectUV(r.x, r.y, r.z, r.w)), v.z1 + 0.02f, x.roofCol, x.roofMat);
+-        if (parapetOn && x.detail) {
++        if (parapetOn && (x.detail || x.farRoof)) {
+             parapet(x, fp, v.z1, 1.0f, 0.3f, packRGBA8(0.8f, 0.8f, 0.78f, 1), makeMat(MAT_CONCRETE));
+             parapet(x, hole, v.z1, 1.0f, 0.3f, packRGBA8(0.8f, 0.8f, 0.78f, 1), makeMat(MAT_CONCRETE));
+         }
+@@ -515,7 +515,7 @@
+             }
+             default:
+                 flatRoof(x, fp, v.z1 + 0.02f, x.roofCol, x.roofMat);
+-                if (parapetOn && x.detail) parapet(x, fp, v.z1, rf == RFM_TERRACE ? 0.6f : 1.0f, 0.3f, packRGBA8(0.8f, 0.8f, 0.78f, 1), makeMat(MAT_CONCRETE));
++                if (parapetOn && (x.detail || x.farRoof)) parapet(x, fp, v.z1, rf == RFM_TERRACE ? 0.6f : 1.0f, 0.3f, packRGBA8(0.8f, 0.8f, 0.78f, 1), makeMat(MAT_CONCRETE));
+                 break;
+         }
+         // tile pent roof along the street front (and the cross-street side of a corner lot)
+@@ -1107,10 +1107,25 @@
+     Plan P = planVolumes(b, fac, mr);
+     Rng dr(b.seed ^ 0xD37A11u);
+     for (const Vol& v : P.vols) emitVolume(x, b, e, v, fac, dr);
+-    // rooftop dressing on the open roofs (water tanks on the older fabric; nothing on back-yard garages and sheds)
++    // the condos' balcony slabs on the front and back of their slab volumes (every LOD; the detail pass puts the rails and
++    // the unit dividers on them: facadedetail.cpp)
++    if (b.style == BS_CONDO)
++        for (const Vol& v : P.vols) {
++            if (v.kind == FM_PODIUM || v.kind == FM_WING || v.uv.size() != 4 || !v.hole.empty() || v.rects.empty()) continue;
++            const vec4 r = v.rects[0];
++            balconyBands(x, e.P((r.x + r.y) * 0.5f, (r.z + r.w) * 0.5f), e.ax, (r.y - r.x) * 0.5f, (r.w - r.z) * 0.5f, 0.f, v.z0, v.z1, b.baseZ, fac, 1.6f, 1, false);
++        }
++    // rooftop dressing on the open roofs (water tanks on the older fabric; nothing on back-yard garages and sheds): from 3
++    // floors the roof plant along the back of the roof (every LOD: bulkhead, motor room, HVAC units, cooling tower, the
++    // older walk-ups' water tank), the small equipment on the rest
+     bool old = (b.archFlags & ABF_OLD) != 0;
+     bool rear = b.arch == AR_REAR_COTTAGE || b.arch == AR_REAR_GARAGE || b.arch == AR_REAR_SHED;
++    const bool brick = (int)fac.wallLayer == MAT_BRICK;
++    const float pTank = b.arch == AR_MID_WALKUP ? (brick ? 0.7f : 0.45f) : (b.arch == AR_MID_LOFT ? 0.3f : (old && b.style == BS_MIDRISE ? 0.2f : 0.f));
++    bool tank = hashToFloat(hash32(b.seed ^ 0x7A4Bu)) < pTank, antennas = false;
++    int vi = 0;
+     for (const Vol& v : P.vols) {
++        vi++;
+         if (!v.top || v.kind == FM_WING || rear) continue;
+         u8 rf = v.roof;
+         if (rf == RFM_TILE_HIP || rf == RFM_METAL_GABLE || rf == RFM_SAWTOOTH || rf == RFM_BUTTERFLY) continue;
+@@ -1121,7 +1136,19 @@
+         vec2 rc = e.P((best.x + best.y) * 0.5f, (best.z + best.w) * 0.5f);
+         float zr = v.z1 + (rf == RFM_EAVE ? 0.3f : (rf == RFM_MANSARD ? 1.25f : 0.f));
+         if (rf == RFM_TERRACE) roofTerrace(x, e, best, v.z1, dr);
+-        else rooftopClutter(x, rc, b.ax, (best.y - best.x) * 0.45f, (best.w - best.z) * 0.45f, zr, dr, old ? 0.35f : 0.06f);
++        else {
++            const float hu = (best.y - best.x) * 0.5f, hv = (best.w - best.z) * 0.5f;
++            float band = 0.f;
++            if (b.floors >= 3 && v.z1 - b.baseZ > 8.f) band = roofPlant(x, rc, b.ax, b.front, hu, hv, zr, b.seed + (u32)vi * 977u, b.floors, tank);
++            if (band > 0.f) tank = false;
++            rooftopClutter(x, rc + b.front * (band * 0.5f), b.ax, hu * 0.9f, (hv - band * 0.5f) * 0.9f, zr, dr, band > 0.f ? 0.f : (old ? 0.35f : 0.06f));
++            // antenna masts and dishes on some of the taller roofs (their own stream: the far LOD draws none)
++            if (band > 0.f && b.floors >= 4 && !antennas) {
++                antennas = true;
++                Rng ar(b.seed ^ 0xA27E1u);
++                if (ar.chance(old ? 0.45f : 0.3f)) rooftopAntennas(x, rc + b.front * (band * 0.5f), b.ax, hu * 0.5f, (hv - band * 0.5f) * 0.5f, zr, ar, false);
++            }
++        }
+     }
+     if (P.canopyZ > 0.f) mimoCanopy(x, b, e, P.canopyZ, mr);
+     if (b.style == BS_MOTEL) motelExtras(x, b, e, fac, P, mr);

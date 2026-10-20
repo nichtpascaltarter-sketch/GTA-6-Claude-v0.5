@@ -1,0 +1,9 @@
+In file included from src/game/../game/game_all.cpp:61,
+                 from src/game/app.cpp:14,
+                 from src/main.cpp:75:
+src/game/../game/gameworld.cpp: In member function 'void Game::GameWorld::updateRumble(float)':
+src/game/../game/gameworld.cpp:367: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
+  367 |             if (s.wheels[w].contact) slip = Max(slip, s.wheels[w].slip);
+      | 
+src/game/../game/gameworld.cpp:367: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
+-rwxr-xr-x 1 root root 15876608 Oct 20 11:28 bin/loco_st19h.exe

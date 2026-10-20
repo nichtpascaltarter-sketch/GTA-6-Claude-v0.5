@@ -1,0 +1,55 @@
+city snapshot-safe: batch 4 (block houses, folk Victorians and raised Keys houses; carports and awnings; front-bay ranches and L bungalows; gas stations in four designs; roof blends; yard trees out of houses; forecourts on the ground). It is copied into the shared tree, now on main e28a7db, and MinGW-syntax-checked there (x86_64-w64-mingw32-g++-posix -std=c++17 -fsyntax-only -Ibuild/gen -Isrc src/main.cpp: 0 errors, 0 warnings; log /tmp/city/syntax_shared_b4.log). Main moved from 8ee5699 to e28a7db with anim and peds changes only; src/world is the same in both, so the files copy straight on. It also holds the gas stations, raised houses and roof blends that I had planned as a separate batch; they were tested together with the rest.
+
+FILES (src/world). Five change against main (e28a7db; the same as 8ee5699 in src/world). buildings.cpp and cellgen.cpp are copied but byte-identical to HEAD:
+  buildings.h a2221ad7a06f731f6e6025364f0ac59bbe6a9a80 (HEAD 1cb05fb)
+  buildings.cpp 8eb43d427ec384706ab5a2c0ef46e671fb17f7a1 (HEAD 8eb43d4)
+  buildmesh.cpp ac69f9bfb4e2e23fcab9ccdcc9bcd9258cb7cdc6 (HEAD 31aad38)
+  facadedetail.cpp c08ae643c69430aefb386a50c2e88852e409b3fa (HEAD 3e33935)
+  cellgen.cpp e157f83fedf1dcf308824560e548915ee3d01f85 (HEAD e157f83)
+  blockstyle.cpp c4331f3150fafda35fe254e83d596193fe4be755 (HEAD 72266dd)
+  massing.cpp d60313137fbc25abfe469242eaba0b6fa59e3157 (HEAD 97ecbdb)
+
+CHANGELOG (player-facing)
+- Two new house types. Fifties Florida block houses (CBS) have pastel stucco, a low hip roof in white, tile or white metal, aluminium window awnings (plain or striped) on most, and a carport. They stand among the bungalows of North Porto Sol, Calle Luna, the Flats and Midtown, and in Westbrook, the small towns and the Keys. Folk Victorians are two-storey frame houses with a cross gable, a porch with brackets in the inner corner, a king-post truss and an attic window in the front gable, and a two-strip driveway. They are in Okahatchee, Harlow, Fort Castell and Key Solano, and among the farmhouses.
+- Raised Keys houses in Key Solano, Ten Palms and the Keys. The living floor is a full storey up on concrete piers (the flood code). Parking is open underneath with storage closed in behind. Each has a front deck with a stair, a metal roof and storm shutters.
+- Carports replace the garage wing on block houses and MiMo houses: a flat roof on steel posts with a utility room at the back. Half of the MiMo carports also get a screen of fins.
+- More house shapes:
+  - ranch and block houses with a gable-fronted bay forward of the front (the entry beside it);
+  - L-shaped bungalows with the porch in the corner;
+  - fewer plain villas on Key Coral and the bay islands.
+- Gas stations stop being one design. There are four:
+  - a flat canopy with a lit brand band;
+  - a sixties butterfly canopy on tapered columns over a white kiosk with a coloured frame;
+  - an old service station with a barrel-tile hip roof over a cream stucco kiosk;
+  - a slab carried out from the kiosk.
+  All get pump islands, and most a price sign on a pole at the street corner.
+- Roofs: tile in three blends (terracotta, brown, aged dark red) and white roofs on some ranch houses. Westbrook no longer reads as one orange sheet from the air.
+- Yard trees are placed in the front and back yards measured from the house. They no longer stand inside houses, porches, decks, stairs, pools, garages, carports, driveways or back-yard buildings: a blocked tree moves to the mirrored spot or the other yard. Before, 5,357 of 47,580 yard trees stood inside a building.
+- Strip-mall and gas-station forecourts follow the ground. Before, a slab floated 0.35 m above it, and cars and shoppers sank into it. A 1 m walk with a curb runs along the shopfronts, walkable up to 0.5 m. Canopy supports, gas columns and pumps stand on the asphalt. Where the building is lifted to an embankment road's level, the forecourt is a solid plateau walled down to the ground (9 of 834).
+
+TESTS
+The build under test is /tmp/city/nt_dev4b.exe: an export of 8ee5699 plus exactly these files.
+- Story regression (missiontest story, 27 missions): 27 passed, 0 failed. Identical to batch 3's 27/27, mission by mission (0 changed). Log: /tmp/city/reg_dev4b_log.txt.
+- Story places: resolve to the same positions as before: diner 1350 342, Mari's 1771 358, Rook's 1566 2360, Pulse FM 3344 662, boatyard 1650 239, river 1644 140, sawgrass dock -5016 -74. Building and infill counts are unchanged (35617 lots, 3457 back buildings). worldcheck passed on these files ($S/wc/dev4c.txt).
+- Building triangles (citylab), batch 3 -> batch 4:
+  - near ring (420 m) at tour stops 2/3/4/5: 116k/79k/223k/163k, unchanged;
+  - far ring (2.3 km) at tour stops 2/3/4/5: 124k/120k/132k/50k -> 125k/121k/133k/50k;
+  - whole-map far LOD: 1.01 M -> 1.05 M;
+  - near rings in the districts that changed most: Westbrook 766k -> 782k, Key Solano 444k -> 474k (the raised houses), Ten Palms 177k -> 180k.
+- Tour stops 2-5 in-game (draws, frame cost): the m6 (main 8ee5699) and dev4b tours run after the shots below. I will send the numbers separately; the regression and the syntax check are the gates.
+- Repetition, batch 3 -> batch 4:
+  - debug log metric: 3.9% -> 2.9%;
+  - form twins: 3.2% -> 2.6%;
+  - by district: Westbrook 5.3% -> 3.7%, Okahatchee 5.9% -> 4.9%, Harlow 6.9% -> 4.4%, Key Solano 6.9% -> 5.4%, Key Coral 8.9% -> 5.8%. Two small districts rose a little: Ten Palms 11.1% -> 11.8% and Redland 3.9% -> 4.7%.
+- Yard trees: 47,580 -> 47,247; inside a building footprint: 5,357 -> 0.
+- Forecourts: 834 strip-mall and gas-station forecourts. The walk's curb is 0.29 m at the median; the 9 courts more than 0.5 m above the ground get the plateau.
+
+EVIDENCE ($S = /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad)
+- In-game new types: $S/city/sheets/game_b4_new_types/*.png
+- In-game shots of the gas stations, the raised houses and the roofs are running now on nt_dev4b.exe (/tmp/city/dev4c_shots). Sheets follow with the tour numbers.
+- District views, in-game, batch 3 vs batch 4: $S/city/sheets/game_b4/*.png (11 districts, street and aerial).
+- Clay: $S/city/sheets/clay_b4/{block_houses,victorians,house_shapes,strip_courts,gas_stations,raised_houses}.png
+
+STILL OPEN: the storefront glass stopgap in blockstyle.cpp stays until the renderer's shader fix lands.
+
+NEXT (batch 5, yards, in $S/dev6): on main today, back-yard pools are invisible. The water sits under the lawn and the ground, so from the air they read as squares of grass inside a deck. Batch 5 makes them show (and keeps them in the far LOD), and adds front fences and walls by district (rejas, pickets, coral rock, ranch rails, aluminium), back-yard fences, driveway surfaces, front walks and mailboxes. Clay before/after: $S/city/sheets/clay_b6/{pools_air,front_yards}.png. Its in-game runs come after the batch-4 tours.

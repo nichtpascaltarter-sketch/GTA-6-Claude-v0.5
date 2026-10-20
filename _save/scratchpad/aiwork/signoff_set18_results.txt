@@ -1,0 +1,30 @@
+
+Results (details in aiwork/set18_results.txt):
+
+On nt_ai102b:
+- gotofollow: PASS, both rounds, on a busy downtown sidewalk.
+  - Round 1: the quick walker (1.5 m/s) caught up and kept the slow one's pace a metre back. The gap went 1.37 -> 1.10 -> 1.02 -> 0.99 m, the pace 0.81 -> 0.67 -> 0.62 -> 0.61 m/s against 0.60.
+  - When the slow one was held up in the crowd, it stepped aside 0.9 m and went by.
+  - Round 2: it came up 0.7-0.9 m to the side, which is room to pass, so no easing, and went by.
+  - Min gaps 0.79 and 0.74 m. Never under 0.5 m.
+- turntest: the profile as designed, at 1.5 and 1.0 m/s.
+  - Every corner peaked at the 2.40 rad/s cap over 0.8 m/s.
+  - The right angles were walked through: least speed 1.25-1.44 m/s at 1.5 m/s, faced in 0.5 s.
+  - The 135s slowed to 0.19-0.37 m/s and were faced in 0.8-1.0 s.
+  - The turn-rounds were all but stopped (0.08-0.12 m/s): a 3.9 rad/s pivot, off again 0.4 s in, done in 1.0-1.1 s, with a swing of 0.08-0.24 m.
+  - Crab was 22-30 degrees while walking. Wider only under ~0.3 m/s, where any direction is allowed.
+  - It found one gap: a walker held to a creep behind someone turned at its old 8 rad/s. Creeping and standing turns are now capped at 4 rad/s as well.
+- knock: PASS, both rounds, no warp.
+  - The drivers walk round the car ends to their doors with the new turns.
+  - Round 1 over about 10 s after ST_C (nt_ai101: about 8 s).
+  - Round 2's clips start 11.2 s in, against 6.7 s on nt_ai101. One driver was still on the argument's last word, and the corners are slower turns now.
+
+On nt_ai102c:
+- crossing: PASS, identical to the baseline. The same four step off 0.40 / 0.67 / 0.83 / 0.90 s after the light, and the crosswalk is crossed and empty by the flashing hand.
+- crowded: PASS. The first two crowded people are the same to the frame. By t=75: crowded 5 (left 3), lost 0, cut-offs 0, anchor rewalks 0.
+- copreturn: PASS, both rounds, no overlapping clips.
+  - Both officers in at t=19.8 and 74.7, away at 21.0 and 76.3.
+  - That is within 0.6 s of nt_ai101.
+- walkby: PASS, the baseline's numbers: lost 1, followed 1 (sharp 0), cut-offs 0, anchor rewalks 0, step backs 0.
+
+Not measured by me: the follower flips. The animation agent's locotour tracer could count them on nt_ai102c (bin/nt_ai102c.exe is kept for that), or on a graft of these blobs.

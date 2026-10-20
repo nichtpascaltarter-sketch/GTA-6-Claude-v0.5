@@ -1,0 +1,26 @@
+jobs30 start Mon Oct 19 13:43:19 UTC 2026
+dev25_before_day rc=0: 7 files, 0 segfaults Mon Oct 19 14:40:57 UTC 2026
+dev25_before_night rc=0: 5 files, 0 segfaults Mon Oct 19 15:02:45 UTC 2026
+dev25_after_day rc=0: 7 files, 0 segfaults Mon Oct 19 15:33:56 UTC 2026
+jobs30 done Mon Oct 19 15:33:56 UTC 2026
+jobs31 start Mon Oct 19 15:33:56 UTC 2026
+jobs31 stopped before its first game (replaced by jobs32) Mon Oct 19 16:03:38 UTC 2026
+jobs32 start Mon Oct 19 16:04:08 UTC 2026
+dev25_before_night rc=0: 7 files, 0 segfaults Mon Oct 19 16:24:08 UTC 2026
+dev27_before_day rc=0: 4 files, 0 segfaults Mon Oct 19 16:42:03 UTC 2026
+dev26_after_night rc=0: 4 files, 0 segfaults Mon Oct 19 16:52:59 UTC 2026
+dev26_after_day rc=0: 7 files, 0 segfaults Mon Oct 19 17:05:58 UTC 2026
+jobs32 stopped during the nt_dev27 after shots (replaced by jobs33: memory priority for the AI and faces agents) Mon Oct 19 17:19:02 UTC 2026
+dev27_after_day rc=?: 4 files, 4 saved (log) Mon Oct 19 17:24:37 UTC 2026
+holding: until the AI agent's nightwalk game runs and the faces gate (pid 17353) is gone, or 18:00 UTC Mon Oct 19 17:24:37 UTC 2026
+hold over Mon Oct 19 17:27:37 UTC 2026
+start dev27 regression Mon Oct 19 17:27:37 UTC 2026
+dev27 regression (try 1): 27 passed, 0 killed, 0 segfaults; SUMMARY: 27 passed, 0 failed Mon Oct 19 19:10:23 UTC 2026
+start tour 2-5 (dev27) Mon Oct 19 19:10:23 UTC 2026
+tour dev27: 1 done, 0 segfaults/kills Mon Oct 19 20:21:02 UTC 2026
+start tour 2-5 (dev24) Mon Oct 19 20:21:02 UTC 2026
+tour dev24: 1 done, 0 segfaults/kills Mon Oct 19 21:37:45 UTC 2026
+jobs33 done Mon Oct 19 21:37:45 UTC 2026
+jobs34 + tb4b stopped before any game or build: the lead's memory hold for the autoupdater's gate (PID 14554) until it is gone or 22:30 UTC Mon Oct 19 21:42:23 UTC 2026
+jobs35 holding: until PID 14554 (autoupdater gate) is gone or 22:30 UTC Mon Oct 19 21:42:41 UTC 2026
+jobs35 stopped while holding (the lead: stop-5 games not needed; batch 17 accepted); nothing of mine runs Mon Oct 19 21:44:49 UTC 2026

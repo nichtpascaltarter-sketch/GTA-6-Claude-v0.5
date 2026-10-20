@@ -1,0 +1,9 @@
+{
+  "id": "20",
+  "subject": "Cloth moiré fix (user-approved, renderer agent)",
+  "description": "genFabric periodic weave aliases into stripes on shirts/collars; renderer agent to fade periodic terms below ~4-5 texels/cycle, wander yarn paths, distinct knit/twill/plain styles, and correct tile scale. Verify close-up and crowd shots.",
+  "activeForm": "Fixing cloth moiré",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": []
+}

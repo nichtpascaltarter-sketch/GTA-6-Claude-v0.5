@@ -1,0 +1,223 @@
+PLANT foot 1 swingU 0.99 shift 0.000 corr -0.001 scanned 0 touching 1 plan 0 err 0.000 lead 0.304
+PLANT foot 0 swingU 0.00 shift 0.000 corr -0.001 scanned 0 touching 1 plan 0 err 0.000 lead 0.304
+SCAN foot 1 g: 0.16 0.16 0.16 0.16 0.16 0.16 0.32 0.32 0.32 0.32 0.32 0.32 | stepped 1 shift 0.070 land 0.320 cost 0.070 gFoot 0.320
+PLANT foot 1 swingU 0.00 shift 0.070 corr 0.069 scanned 1 touching 1 plan 1 err 0.001 lead 0.302
+SCAN foot 0 g: 0.32 0.32 0.32 0.32 0.48 0.48 0.48 0.48 0.48 0.48 0.64 0.64 | stepped 1 shift 0.000 land 0.480 cost 0.000 gFoot 0.480
+PLANT foot 0 swingU 0.98 shift 0.000 corr -0.000 scanned 1 touching 1 plan 1 err 0.002 lead 0.301
+SCAN foot 1 g: 0.32 0.48 0.48 0.48 0.48 0.48 0.48 0.64 0.64 0.64 0.64 0.64 | stepped 1 shift 0.120 land 0.640 cost 0.120 gFoot 0.640
+PLANT foot 1 swingU 0.00 shift 0.120 corr 0.119 scanned 1 touching 1 plan 1 err 0.005 lead 0.301
+SCAN foot 0 g: 0.32 0.32 0.32 0.32 0.32 0.48 0.48 0.48 0.48 0.48 0.48 0.64 | stepped 1 shift 0.020 land 0.480 cost 0.020 gFoot 0.480
+PLANT foot 0 swingU 1.00 shift 0.020 corr 0.020 scanned 1 touching 1 plan 1 err 0.005 lead 0.301
+SCAN foot 1 g: 0.32 0.32 0.32 0.48 0.48 0.48 0.48 0.48 0.48 0.64 0.64 0.64 | stepped 1 shift -0.039 land 0.480 cost 0.039 gFoot 0.480
+PLANT foot 1 swingU 0.00 shift -0.039 corr -0.038 scanned 1 touching 1 plan 1 err 0.007 lead 0.297
+SCAN foot 0 g: 0.32 0.32 0.32 0.32 0.32 0.32 0.32 0.32 0.32 0.32 0.32 0.32 | stepped 0 shift 0.000 land -9.000 cost 0.000 gFoot 0.320
+PLANT foot 0 swingU 0.00 shift 0.000 corr 0.000 scanned 1 touching 1 plan 0 err 0.000 lead 0.297
+SCAN foot 1 g: 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 | stepped 0 shift 0.000 land -9.000 cost 0.000 gFoot 0.000
+PLANT foot 1 swingU 0.00 shift 0.000 corr -0.000 scanned 1 touching 1 plan 0 err 0.000 lead 0.296
+PLANT foot 0 swingU 0.99 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.297
+SCAN foot 1 g: -0.16 -0.16 -0.16 -0.16 -0.32 -0.32 -0.32 -0.32 -0.32 -0.32 -0.48 -0.48 | stepped 1 shift 0.067 land -0.320 cost 0.067 gFoot -0.320
+PLANT foot 1 swingU 0.99 shift 0.067 corr 0.066 scanned 1 touching 1 plan 1 err 0.009 lead 0.298
+SCAN foot 0 g: -0.32 -0.32 -0.48 -0.48 -0.48 -0.48 -0.48 -0.48 -0.64 -0.64 -0.64 -0.64 | stepped 1 shift -0.017 land -0.480 cost 0.017 gFoot -0.480
+PLANT foot 0 swingU 1.00 shift -0.017 corr -0.017 scanned 1 touching 1 plan 1 err 0.010 lead 0.299
+SCAN foot 1 g: -0.32 -0.32 -0.32 -0.32 -0.32 -0.32 -0.48 -0.48 -0.48 -0.48 -0.48 -0.48 | stepped 1 shift -0.117 land -0.320 cost 0.117 gFoot -0.480
+PLANT foot 1 swingU 0.00 shift -0.117 corr -0.116 scanned 1 touching 1 plan 1 err 0.010 lead 0.295
+SCAN foot 0 g: -0.32 -0.32 -0.32 -0.32 -0.48 -0.48 -0.48 -0.48 -0.48 -0.48 -0.64 -0.64 | stepped 1 shift 0.067 land -0.480 cost 0.067 gFoot -0.480
+PLANT foot 0 swingU 0.00 shift 0.067 corr 0.066 scanned 1 touching 1 plan 1 err 0.014 lead 0.295
+SCAN foot 1 g: -0.32 -0.48 -0.48 -0.48 -0.48 -0.48 -0.48 -0.64 -0.64 -0.64 -0.64 -0.64 | stepped 1 shift -0.067 land -0.480 cost 0.067 gFoot -0.640
+PLANT foot 1 swingU 0.00 shift -0.067 corr -0.067 scanned 1 touching 1 plan 1 err 0.014 lead 0.295
+SCAN foot 0 g: -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 | stepped 0 shift 0.000 land -9.000 cost 0.000 gFoot -0.160
+PLANT foot 0 swingU 0.99 shift 0.000 corr 0.000 scanned 1 touching 1 plan 0 err 0.000 lead 0.297
+SCAN foot 1 g: 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 | stepped 0 shift 0.000 land -9.000 cost 0.000 gFoot 0.000
+PLANT foot 1 swingU 1.00 shift 0.000 corr -0.000 scanned 1 touching 1 plan 0 err 0.000 lead 0.298
+PLANT foot 0 swingU 0.00 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.295
+PLANT foot 1 swingU 0.00 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.291
+PLANT foot 0 swingU 0.00 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.291
+PLANT foot 1 swingU 0.00 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.291
+PLANT foot 0 swingU 0.99 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.294
+PLANT foot 1 swingU 1.00 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.296
+PLANT foot 1 swingU 0.00 shift 0.000 corr 0.001 scanned 0 touching 1 plan 0 err 0.000 lead 0.295
+PLANT foot 0 swingU 0.00 shift 0.000 corr -0.001 scanned 0 touching 1 plan 0 err 0.000 lead 0.291
+SCAN foot 1 g: 0.16 0.32 0.32 0.32 0.32 0.32 0.32 0.48 0.48 0.48 0.48 0.48 | stepped 1 shift 0.118 land 0.480 cost 0.118 gFoot 0.480
+PLANT foot 1 swingU 0.00 shift 0.118 corr 0.117 scanned 1 touching 1 plan 1 err 0.009 lead 0.291
+SCAN foot 0 g: 0.32 0.32 0.32 0.32 0.48 0.48 0.48 0.48 0.48 0.48 0.64 0.64 | stepped 1 shift 0.000 land 0.480 cost 0.000 gFoot 0.480
+PLANT foot 0 swingU 0.98 shift 0.000 corr -0.000 scanned 1 touching 1 plan 1 err 0.007 lead 0.292
+SCAN foot 1 g: 0.32 0.48 0.48 0.48 0.48 0.48 0.48 0.64 0.64 0.64 0.64 0.64 | stepped 1 shift 0.118 land 0.640 cost 0.118 gFoot 0.640
+PLANT foot 1 swingU 0.00 shift 0.118 corr 0.117 scanned 1 touching 1 plan 1 err 0.010 lead 0.292
+SCAN foot 0 g: 0.32 0.32 0.32 0.32 0.48 0.48 0.48 0.48 0.48 0.48 0.64 0.64 | stepped 1 shift 0.000 land 0.480 cost 0.000 gFoot 0.480
+PLANT foot 0 swingU 0.00 shift 0.000 corr -0.000 scanned 1 touching 1 plan 1 err 0.011 lead 0.289
+SCAN foot 1 g: 0.32 0.48 0.48 0.48 0.48 0.48 0.48 0.48 0.48 0.48 0.48 0.48 | stepped 1 shift 0.000 land 0.480 cost 0.000 gFoot 0.480
+PLANT foot 1 swingU 0.00 shift 0.000 corr 0.000 scanned 1 touching 1 plan 1 err 0.014 lead 0.289
+SCAN foot 0 g: 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 | stepped 0 shift 0.000 land -9.000 cost 0.000 gFoot 0.000
+PLANT foot 0 swingU 0.98 shift 0.000 corr -0.000 scanned 1 touching 1 plan 0 err 0.000 lead 0.290
+SCAN foot 1 g: 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 | stepped 0 shift 0.000 land -9.000 cost 0.000 gFoot 0.000
+PLANT foot 1 swingU 0.00 shift 0.000 corr -0.000 scanned 1 touching 1 plan 0 err 0.000 lead 0.290
+SCAN foot 0 g: 0.00 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.32 -0.32 -0.32 -0.32 -0.32 | stepped 1 shift -0.057 land -0.160 cost 0.057 gFoot -0.320
+PLANT foot 0 swingU 0.00 shift -0.057 corr -0.057 scanned 1 touching 1 plan 1 err 0.014 lead 0.288
+SCAN foot 1 g: -0.32 -0.32 -0.32 -0.32 -0.48 -0.48 -0.48 -0.48 -0.48 -0.48 -0.64 -0.64 | stepped 1 shift 0.057 land -0.480 cost 0.057 gFoot -0.480
+PLANT foot 1 swingU 0.00 shift 0.057 corr 0.057 scanned 1 touching 1 plan 1 err 0.016 lead 0.285
+SCAN foot 0 g: -0.32 -0.48 -0.48 -0.48 -0.48 -0.48 -0.48 -0.64 -0.64 -0.64 -0.64 -0.64 | stepped 1 shift -0.057 land -0.480 cost 0.057 gFoot -0.640
+PLANT foot 0 swingU 0.98 shift -0.057 corr -0.057 scanned 1 touching 1 plan 1 err 0.014 lead 0.288
+SCAN foot 1 g: -0.32 -0.32 -0.32 -0.32 -0.48 -0.48 -0.48 -0.48 -0.48 -0.48 -0.64 -0.64 | stepped 1 shift 0.057 land -0.480 cost 0.057 gFoot -0.480
+PLANT foot 1 swingU 0.00 shift 0.057 corr 0.057 scanned 1 touching 1 plan 1 err 0.016 lead 0.288
+SCAN foot 0 g: -0.32 -0.48 -0.48 -0.48 -0.48 -0.48 -0.48 -0.64 -0.64 -0.64 -0.64 -0.64 | stepped 1 shift -0.057 land -0.480 cost 0.057 gFoot -0.640
+PLANT foot 0 swingU 1.00 shift -0.057 corr -0.058 scanned 1 touching 1 plan 1 err 0.016 lead 0.290
+SCAN foot 1 g: -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 | stepped 0 shift 0.000 land -9.000 cost 0.000 gFoot -0.160
+PLANT foot 1 swingU 0.00 shift 0.000 corr 0.000 scanned 1 touching 1 plan 0 err 0.000 lead 0.287
+SCAN foot 0 g: 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 | stepped 0 shift 0.000 land -9.000 cost 0.000 gFoot 0.000
+PLANT foot 0 swingU 0.00 shift 0.000 corr -0.000 scanned 1 touching 1 plan 0 err 0.000 lead 0.287
+PLANT foot 1 swingU 0.00 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.287
+PLANT foot 0 swingU 1.00 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.289
+PLANT foot 1 swingU 0.00 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.287
+PLANT foot 0 swingU 0.00 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.287
+PLANT foot 1 swingU 0.00 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.287
+PLANT foot 0 swingU 0.99 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.289
+PLANT foot 0 swingU 0.98 shift 0.000 corr 0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.296
+PLANT foot 1 swingU 0.99 shift 0.000 corr -0.001 scanned 0 touching 1 plan 0 err 0.000 lead 0.294
+SCAN foot 0 g: 0.32 0.32 0.32 0.32 0.48 0.48 0.48 0.48 0.48 0.48 0.64 0.64 | stepped 1 shift 0.000 land 0.480 cost 0.000 gFoot 0.480
+PLANT foot 0 swingU 0.00 shift 0.000 corr -0.008 scanned 0 touching 1 plan 1 err -0.007 lead 0.294
+SCAN foot 1 g: 0.32 0.32 0.48 0.48 0.48 0.48 0.48 0.48 0.64 0.64 0.64 0.64 | stepped 1 shift -0.080 land 0.480 cost 0.080 gFoot 0.480
+PLANT foot 1 swingU 0.00 shift -0.080 corr -0.079 scanned 1 touching 1 plan 1 err 0.000 lead 0.294
+SCAN foot 0 g: 0.22 0.38 0.38 0.38 0.38 0.38 0.38 0.54 0.54 0.54 0.54 0.54 | stepped 1 shift 0.119 land 0.536 cost 0.119 gFoot 0.536
+PLANT foot 0 swingU 0.00 shift 0.119 corr 0.117 scanned 1 touching 1 plan 1 err -0.000 lead 0.289
+SCAN foot 1 g: 0.32 0.32 0.32 0.32 0.32 0.48 0.48 0.48 0.48 0.48 0.48 0.64 | stepped 1 shift 0.019 land 0.480 cost 0.019 gFoot 0.480
+PLANT foot 1 swingU 0.00 shift 0.019 corr 0.018 scanned 1 touching 1 plan 1 err 0.006 lead 0.289
+SCAN foot 0 g: 0.32 0.32 0.32 0.48 0.48 0.48 0.48 0.48 0.48 0.48 0.48 0.48 | stepped 1 shift 0.000 land 0.480 cost 0.000 gFoot 0.480
+PLANT foot 0 swingU 1.00 shift 0.000 corr 0.000 scanned 1 touching 1 plan 1 err 0.006 lead 0.289
+SCAN foot 1 g: 0.16 0.16 0.16 0.16 0.16 0.16 0.16 0.16 0.16 0.16 0.16 0.16 | stepped 0 shift 0.000 land -9.000 cost 0.000 gFoot 0.160
+PLANT foot 1 swingU 0.00 shift 0.000 corr -0.000 scanned 1 touching 1 plan 0 err 0.000 lead 0.288
+SCAN foot 0 g: 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 | stepped 0 shift 0.000 land -9.000 cost 0.000 gFoot 0.000
+PLANT foot 0 swingU 0.99 shift 0.000 corr -0.000 scanned 1 touching 1 plan 0 err 0.000 lead 0.288
+PLANT foot 1 swingU 0.00 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.284
+SCAN foot 0 g: -0.16 -0.32 -0.32 -0.32 -0.32 -0.32 -0.32 -0.48 -0.48 -0.48 -0.48 -0.48 | stepped 1 shift -0.061 land -0.320 cost 0.061 gFoot -0.480
+PLANT foot 0 swingU 0.98 shift -0.061 corr -0.061 scanned 1 touching 1 plan 1 err 0.010 lead 0.285
+SCAN foot 1 g: -0.32 -0.32 -0.32 -0.32 -0.32 -0.48 -0.48 -0.48 -0.48 -0.48 -0.48 -0.64 | stepped 1 shift 0.111 land -0.480 cost 0.111 gFoot -0.480
+PLANT foot 1 swingU 1.00 shift 0.111 corr 0.110 scanned 1 touching 1 plan 1 err 0.009 lead 0.286
+SCAN foot 0 g: -0.32 -0.32 -0.32 -0.48 -0.48 -0.48 -0.48 -0.48 -0.48 -0.64 -0.64 -0.64 | stepped 1 shift 0.011 land -0.480 cost 0.011 gFoot -0.480
+PLANT foot 0 swingU 0.98 shift 0.011 corr 0.010 scanned 1 touching 1 plan 1 err 0.004 lead 0.286
+SCAN foot 1 g: -0.32 -0.32 -0.48 -0.48 -0.48 -0.48 -0.48 -0.48 -0.64 -0.64 -0.64 -0.64 | stepped 1 shift -0.011 land -0.480 cost 0.011 gFoot -0.480
+PLANT foot 1 swingU 0.99 shift -0.011 corr -0.011 scanned 1 touching 1 plan 1 err 0.009 lead 0.287
+SCAN foot 0 g: -0.32 -0.32 -0.32 -0.32 -0.32 -0.32 -0.48 -0.48 -0.48 -0.48 -0.48 -0.48 | stepped 1 shift -0.111 land -0.320 cost 0.111 gFoot -0.480
+PLANT foot 0 swingU 0.00 shift -0.111 corr -0.110 scanned 1 touching 1 plan 1 err 0.010 lead 0.287
+SCAN foot 1 g: -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 | stepped 0 shift 0.000 land -9.000 cost 0.000 gFoot -0.160
+PLANT foot 1 swingU 0.99 shift 0.000 corr -0.001 scanned 1 touching 1 plan 0 err 0.000 lead 0.288
+SCAN foot 0 g: 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 | stepped 0 shift 0.000 land -9.000 cost 0.000 gFoot 0.000
+PLANT foot 0 swingU 0.00 shift 0.000 corr -0.001 scanned 1 touching 1 plan 0 err 0.000 lead 0.284
+PLANT foot 1 swingU 0.00 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.284
+PLANT foot 0 swingU 1.00 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.286
+PLANT foot 1 swingU 0.00 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.286
+PLANT foot 0 swingU 0.99 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.287
+PLANT foot 1 swingU 0.00 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.283
+PLANT foot 0 swingU 0.99 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.284
+PLANT foot 1 swingU 0.00 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.282
+PLANT foot 1 swingU 0.97 shift 0.000 corr 0.004 scanned 0 touching 1 plan 0 err 0.000 lead 0.311
+PLANT foot 0 swingU 0.00 shift 0.000 corr -0.015 scanned 0 touching 1 plan 0 err 0.000 lead 0.311
+SCAN foot 1 g: 0.16 0.16 0.16 0.16 0.32 0.32 0.32 0.32 0.32 0.32 0.48 0.48 | stepped 1 shift 0.000 land 0.320 cost 0.000 gFoot 0.320
+PLANT foot 1 swingU 1.00 shift 0.000 corr -0.000 scanned 1 touching 1 plan 1 err 0.032 lead 0.311
+SCAN foot 0 g: 0.32 0.32 0.32 0.48 0.48 0.48 0.48 0.48 0.48 0.64 0.64 0.64 | stepped 1 shift -0.038 land 0.480 cost 0.038 gFoot 0.480
+PLANT foot 0 swingU 0.99 shift -0.038 corr -0.037 scanned 1 touching 1 plan 1 err 0.031 lead 0.311
+SCAN foot 1 g: 0.22 0.22 0.38 0.38 0.38 0.38 0.38 0.38 0.54 0.54 0.54 0.54 | stepped 1 shift -0.088 land 0.376 cost 0.088 gFoot 0.376
+PLANT foot 1 swingU 0.98 shift -0.088 corr -0.085 scanned 1 touching 1 plan 1 err 0.032 lead 0.317
+SCAN foot 0 g: 0.16 0.32 0.32 0.32 0.32 0.32 0.32 0.48 0.48 0.48 0.48 0.48 | stepped 1 shift 0.120 land 0.480 cost 0.120 gFoot 0.480
+PLANT foot 0 swingU 0.98 shift 0.120 corr 0.113 scanned 1 touching 1 plan 1 err 0.012 lead 0.321
+SCAN foot 1 g: 0.32 0.32 0.32 0.32 0.32 0.32 0.48 0.48 0.48 0.48 0.48 0.48 | stepped 1 shift 0.070 land 0.480 cost 0.070 gFoot 0.480
+PLANT foot 1 swingU 0.97 shift 0.070 corr 0.065 scanned 1 touching 1 plan 1 err 0.006 lead 0.324
+SCAN foot 0 g: 0.32 0.32 0.32 0.32 0.32 0.32 0.32 0.32 0.32 0.32 0.32 0.32 | stepped 0 shift 0.000 land -9.000 cost 0.000 gFoot 0.320
+PLANT foot 0 swingU 0.96 shift 0.000 corr 0.002 scanned 1 touching 1 plan 0 err 0.000 lead 0.325
+SCAN foot 1 g: 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 | stepped 0 shift 0.000 land -9.000 cost 0.000 gFoot 0.000
+PLANT foot 1 swingU 0.00 shift 0.000 corr -0.011 scanned 0 touching 1 plan 0 err 0.000 lead 0.325
+SCAN foot 0 g: 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 | stepped 0 shift 0.000 land -9.000 cost 0.000 gFoot 0.000
+PLANT foot 0 swingU 1.00 shift 0.000 corr -0.000 scanned 1 touching 1 plan 0 err 0.000 lead 0.325
+PLANT foot 1 swingU 0.99 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.325
+SCAN foot 0 g: -0.32 -0.32 -0.32 -0.32 -0.48 -0.48 -0.48 -0.48 -0.48 -0.48 -0.64 -0.64 | stepped 1 shift 0.067 land -0.480 cost 0.067 gFoot -0.480
+PLANT foot 0 swingU 0.98 shift 0.067 corr 0.064 scanned 1 touching 1 plan 1 err 0.008 lead 0.327
+SCAN foot 1 g: -0.32 -0.32 -0.32 -0.48 -0.48 -0.48 -0.48 -0.48 -0.48 -0.64 -0.64 -0.64 | stepped 1 shift 0.017 land -0.480 cost 0.017 gFoot -0.480
+PLANT foot 1 swingU 0.98 shift 0.017 corr 0.016 scanned 1 touching 1 plan 1 err 0.005 lead 0.328
+SCAN foot 0 g: -0.32 -0.32 -0.48 -0.48 -0.48 -0.48 -0.48 -0.48 -0.64 -0.64 -0.64 -0.64 | stepped 1 shift -0.017 land -0.480 cost 0.017 gFoot -0.480
+PLANT foot 0 swingU 0.97 shift -0.017 corr -0.014 scanned 1 touching 1 plan 1 err 0.004 lead 0.328
+SCAN foot 1 g: -0.16 -0.32 -0.32 -0.32 -0.32 -0.32 -0.32 -0.48 -0.48 -0.48 -0.48 -0.48 | stepped 1 shift -0.067 land -0.320 cost 0.067 gFoot -0.480
+PLANT foot 1 swingU 0.96 shift -0.067 corr -0.064 scanned 1 touching 1 plan 1 err 0.003 lead 0.328
+SCAN foot 0 g: -0.32 -0.32 -0.32 -0.32 -0.32 -0.32 -0.48 -0.48 -0.48 -0.48 -0.48 -0.48 | stepped 1 shift -0.117 land -0.320 cost 0.117 gFoot -0.480
+PLANT foot 0 swingU 0.96 shift -0.117 corr -0.113 scanned 1 touching 1 plan 1 err 0.001 lead 0.328
+SCAN foot 1 g: -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 | stepped 0 shift 0.000 land -9.000 cost 0.000 gFoot -0.160
+PLANT foot 1 swingU 1.00 shift 0.000 corr -0.001 scanned 1 touching 1 plan 0 err 0.000 lead 0.328
+SCAN foot 0 g: 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 | stepped 0 shift 0.000 land -9.000 cost 0.000 gFoot 0.000
+PLANT foot 0 swingU 0.99 shift 0.000 corr -0.003 scanned 1 touching 1 plan 0 err 0.000 lead 0.328
+SCAN foot 1 g: 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 | stepped 0 shift 0.000 land -9.000 cost 0.000 gFoot 0.000
+PLANT foot 1 swingU 0.99 shift 0.000 corr -0.000 scanned 1 touching 1 plan 0 err 0.000 lead 0.329
+PLANT foot 0 swingU 0.98 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.330
+PLANT foot 1 swingU 0.97 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.330
+PLANT foot 0 swingU 0.97 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.329
+PLANT foot 1 swingU 0.96 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.329
+PLANT foot 0 swingU 0.00 shift 0.000 corr -0.015 scanned 0 touching 1 plan 0 err 0.000 lead 0.329
+PLANT foot 1 swingU 0.99 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.329
+PLANT foot 1 swingU 0.98 shift 0.000 corr 0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.300
+SCAN foot 0 g: 0.00 0.00 0.16 0.16 0.16 0.16 0.16 0.16 0.32 0.32 0.32 0.32 | stepped 1 shift -0.086 land 0.160 cost 0.086 gFoot 0.160
+PLANT foot 0 swingU 0.96 shift -0.086 corr -0.086 scanned 1 touching 1 plan 1 err -0.008 lead 0.297
+SCAN foot 1 g: 0.38 0.38 0.38 0.38 0.38 0.38 0.54 0.54 0.54 0.54 0.54 0.54 | stepped 1 shift 0.069 land 0.536 cost 0.069 gFoot 0.536
+PLANT foot 1 swingU 0.99 shift 0.069 corr 0.068 scanned 1 touching 1 plan 1 err -0.000 lead 0.297
+SCAN foot 0 g: 0.32 0.32 0.32 0.48 0.48 0.48 0.48 0.48 0.48 0.64 0.64 0.64 | stepped 1 shift -0.036 land 0.480 cost 0.036 gFoot 0.480
+PLANT foot 0 swingU 0.97 shift -0.036 corr -0.037 scanned 1 touching 1 plan 1 err -0.003 lead 0.296
+SCAN foot 1 g: 0.32 0.48 0.48 0.48 0.48 0.48 0.48 0.64 0.64 0.64 0.64 0.64 | stepped 1 shift 0.119 land 0.640 cost 0.119 gFoot 0.640
+PLANT foot 1 swingU 0.96 shift 0.119 corr 0.118 scanned 1 touching 1 plan 1 err -0.002 lead 0.295
+SCAN foot 0 g: 0.32 0.32 0.32 0.32 0.32 0.48 0.48 0.48 0.48 0.48 0.48 0.64 | stepped 1 shift 0.019 land 0.480 cost 0.019 gFoot 0.480
+PLANT foot 0 swingU 0.98 shift 0.019 corr 0.019 scanned 1 touching 1 plan 1 err 0.002 lead 0.295
+SCAN foot 1 g: 0.32 0.32 0.32 0.32 0.32 0.32 0.32 0.32 0.32 0.32 0.32 0.32 | stepped 0 shift 0.000 land -9.000 cost 0.000 gFoot 0.320
+PLANT foot 1 swingU 0.97 shift 0.000 corr 0.000 scanned 1 touching 1 plan 0 err 0.000 lead 0.295
+SCAN foot 0 g: 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 | stepped 0 shift 0.000 land -9.000 cost 0.000 gFoot 0.000
+PLANT foot 0 swingU 0.95 shift 0.000 corr -0.000 scanned 1 touching 1 plan 0 err 0.000 lead 0.293
+PLANT foot 1 swingU 0.98 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.293
+SCAN foot 0 g: -0.16 -0.16 -0.16 -0.16 -0.16 -0.32 -0.32 -0.32 -0.32 -0.32 -0.32 -0.48 | stepped 1 shift 0.115 land -0.320 cost 0.115 gFoot -0.320
+PLANT foot 0 swingU 0.97 shift 0.115 corr 0.114 scanned 1 touching 1 plan 1 err -0.001 lead 0.292
+SCAN foot 1 g: -0.32 -0.32 -0.48 -0.48 -0.48 -0.48 -0.48 -0.48 -0.64 -0.64 -0.64 -0.64 | stepped 1 shift -0.015 land -0.480 cost 0.015 gFoot -0.480
+PLANT foot 1 swingU 0.99 shift -0.015 corr -0.016 scanned 1 touching 1 plan 1 err 0.008 lead 0.292
+SCAN foot 0 g: -0.32 -0.32 -0.32 -0.32 -0.32 -0.32 -0.48 -0.48 -0.48 -0.48 -0.48 -0.48 | stepped 1 shift -0.115 land -0.320 cost 0.115 gFoot -0.480
+PLANT foot 0 swingU 0.98 shift -0.115 corr -0.114 scanned 1 touching 1 plan 1 err 0.006 lead 0.292
+SCAN foot 1 g: -0.32 -0.32 -0.32 -0.48 -0.48 -0.48 -0.48 -0.48 -0.48 -0.64 -0.64 -0.64 | stepped 1 shift 0.015 land -0.480 cost 0.015 gFoot -0.480
+PLANT foot 1 swingU 0.96 shift 0.015 corr 0.015 scanned 1 touching 1 plan 1 err 0.005 lead 0.293
+SCAN foot 0 g: -0.32 -0.48 -0.48 -0.48 -0.48 -0.48 -0.48 -0.64 -0.64 -0.64 -0.64 -0.64 | stepped 1 shift -0.065 land -0.480 cost 0.065 gFoot -0.640
+PLANT foot 0 swingU 0.99 shift -0.065 corr -0.066 scanned 1 touching 1 plan 1 err 0.006 lead 0.293
+SCAN foot 1 g: -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 | stepped 0 shift 0.000 land -9.000 cost 0.000 gFoot -0.160
+PLANT foot 1 swingU 0.97 shift 0.000 corr -0.000 scanned 1 touching 1 plan 0 err 0.000 lead 0.293
+SCAN foot 0 g: 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 | stepped 0 shift 0.000 land -9.000 cost 0.000 gFoot 0.000
+PLANT foot 0 swingU 0.96 shift 0.000 corr -0.001 scanned 1 touching 1 plan 0 err 0.000 lead 0.292
+PLANT foot 1 swingU 0.98 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.292
+PLANT foot 0 swingU 0.97 shift 0.000 corr -0.001 scanned 0 touching 1 plan 0 err 0.000 lead 0.292
+PLANT foot 1 swingU 0.95 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.291
+PLANT foot 0 swingU 0.98 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.292
+PLANT foot 1 swingU 0.96 shift 0.000 corr -0.001 scanned 0 touching 1 plan 0 err 0.000 lead 0.292
+PLANT foot 0 swingU 0.95 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.291
+PLANT foot 0 swingU 0.99 shift 0.000 corr 0.002 scanned 0 touching 1 plan 0 err 0.000 lead 0.299
+PLANT foot 1 swingU 0.00 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.299
+SCAN foot 0 g: 0.32 0.32 0.32 0.32 0.32 0.32 0.48 0.48 0.48 0.48 0.48 0.48 | stepped 1 shift 0.069 land 0.480 cost 0.069 gFoot 0.480
+PLANT foot 0 swingU 1.00 shift 0.069 corr 0.068 scanned 1 touching 1 plan 1 err -0.002 lead 0.298
+SCAN foot 1 g: 0.32 0.32 0.32 0.48 0.48 0.48 0.48 0.48 0.48 0.64 0.64 0.64 | stepped 1 shift -0.032 land 0.480 cost 0.032 gFoot 0.480
+PLANT foot 1 swingU 0.00 shift -0.032 corr -0.032 scanned 1 touching 1 plan 1 err 0.002 lead 0.293
+SCAN foot 0 g: 0.48 0.48 0.48 0.48 0.48 0.48 0.64 0.64 0.64 0.64 0.64 0.64 | stepped 1 shift 0.069 land 0.640 cost 0.069 gFoot 0.640
+PLANT foot 0 swingU 0.98 shift 0.069 corr 0.069 scanned 1 touching 1 plan 1 err 0.004 lead 0.293
+SCAN foot 1 g: 0.32 0.32 0.32 0.48 0.48 0.48 0.48 0.48 0.48 0.64 0.64 0.64 | stepped 1 shift -0.032 land 0.480 cost 0.032 gFoot 0.480
+PLANT foot 1 swingU 0.00 shift -0.032 corr -0.032 scanned 1 touching 1 plan 1 err 0.009 lead 0.293
+SCAN foot 0 g: 0.38 0.38 0.38 0.38 0.38 0.38 0.38 0.38 0.38 0.38 0.38 0.38 | stepped 0 shift 0.000 land -9.000 cost 0.000 gFoot 0.376
+PLANT foot 0 swingU 0.00 shift 0.000 corr 0.000 scanned 1 touching 1 plan 0 err 0.000 lead 0.289
+SCAN foot 1 g: 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 | stepped 0 shift 0.000 land -9.000 cost 0.000 gFoot 0.000
+PLANT foot 1 swingU 0.00 shift 0.000 corr -0.000 scanned 1 touching 1 plan 0 err 0.000 lead 0.289
+PLANT foot 0 swingU 0.99 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.291
+SCAN foot 1 g: 0.00 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.32 -0.32 -0.32 -0.32 -0.32 | stepped 1 shift -0.063 land -0.160 cost 0.063 gFoot -0.320
+PLANT foot 1 swingU 1.00 shift -0.063 corr -0.062 scanned 1 touching 1 plan 1 err 0.011 lead 0.292
+SCAN foot 0 g: -0.32 -0.32 -0.32 -0.48 -0.48 -0.48 -0.48 -0.48 -0.48 -0.64 -0.64 -0.64 | stepped 1 shift 0.013 land -0.480 cost 0.013 gFoot -0.480
+PLANT foot 0 swingU 0.00 shift 0.013 corr 0.012 scanned 1 touching 1 plan 1 err 0.010 lead 0.292
+SCAN foot 1 g: -0.48 -0.48 -0.48 -0.48 -0.48 -0.48 -0.64 -0.64 -0.64 -0.64 -0.64 -0.64 | stepped 1 shift -0.113 land -0.480 cost 0.113 gFoot -0.640
+PLANT foot 1 swingU 0.00 shift -0.113 corr -0.112 scanned 1 touching 1 plan 1 err 0.010 lead 0.292
+SCAN foot 0 g: -0.32 -0.32 -0.32 -0.48 -0.48 -0.48 -0.48 -0.48 -0.48 -0.64 -0.64 -0.64 | stepped 1 shift 0.013 land -0.480 cost 0.013 gFoot -0.480
+PLANT foot 0 swingU 0.99 shift 0.013 corr 0.012 scanned 1 touching 1 plan 1 err 0.008 lead 0.293
+SCAN foot 1 g: -0.48 -0.48 -0.48 -0.48 -0.48 -0.48 -0.64 -0.64 -0.64 -0.64 -0.64 -0.64 | stepped 1 shift -0.113 land -0.480 cost 0.113 gFoot -0.640
+PLANT foot 1 swingU 0.00 shift -0.113 corr -0.112 scanned 1 touching 1 plan 1 err 0.010 lead 0.289
+SCAN foot 0 g: -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 -0.16 | stepped 0 shift 0.000 land -9.000 cost 0.000 gFoot -0.160
+PLANT foot 0 swingU 0.00 shift 0.000 corr -0.000 scanned 1 touching 1 plan 0 err 0.000 lead 0.289
+SCAN foot 1 g: 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 | stepped 0 shift 0.000 land -9.000 cost 0.000 gFoot 0.000
+PLANT foot 1 swingU 0.00 shift 0.000 corr -0.001 scanned 1 touching 1 plan 0 err 0.000 lead 0.289
+PLANT foot 0 swingU 0.00 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.287
+PLANT foot 1 swingU 0.00 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.288
+PLANT foot 0 swingU 0.98 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.290
+PLANT foot 1 swingU 0.00 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.290
+PLANT foot 0 swingU 0.00 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.287
+PLANT foot 1 swingU 0.00 shift 0.000 corr -0.000 scanned 0 touching 1 plan 0 err 0.000 lead 0.288

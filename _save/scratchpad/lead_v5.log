@@ -1,0 +1,5 @@
+fpdrive exit 0
+[ 562.266] autoplay t=9.5 pos 1806.7 218.3 3.5 state 2 health 200 veh 1 speed 4.9 | peds 90 vehicles 65 wanted 0 | cpu ms player 0.30 ai 0.69 veh 0.53 peds 1.03 | mem 1850 MB (private 0)
+[ 770.033] autoplay t=17.5 pos 1806.7 224.7 3.5 state 2 health 200 veh 1 speed 0.2 | peds 93 vehicles 67 wanted 0 | cpu ms player 0.06 ai 0.90 veh 0.40 peds 0.93 | mem 1850 MB (private 0)
+[ 990.766] autoplay t=25.5 pos 1806.7 224.8 3.5 state 2 health 200 veh 1 speed 0.0 | peds 92 vehicles 67 wanted 0 | cpu ms player 0.06 ai 0.80 veh 2.51 peds 1.36 | mem 1850 MB (private 0)
+[1221.287] autoplay t=33.5 pos 1806.7 224.8 3.5 state 2 health 200 veh 1 speed 0.0 | peds 92 vehicles 67 wanted 0 | cpu ms player 0.05 ai 1.27 veh 0.81 peds 1.33 | mem 1850 MB (private 0)

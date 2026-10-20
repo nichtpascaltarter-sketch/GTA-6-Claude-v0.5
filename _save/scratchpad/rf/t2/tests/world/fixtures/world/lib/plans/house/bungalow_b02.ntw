@@ -1,0 +1,10 @@
+ntw 1 plan id=lib.plan.house.bungalow_b02
+meta class=house family=bungalow era=1925 floors=1 beds=2 baths=1 size=11.60x9.40 tags=porch,attic
+footprint poly=0.00,0.00;11.60,0.00;11.60,9.40;0.00,9.40
+floor f0 layout=lib.layout.house.bungalow_b02_f0 z=0.00 h=2.85
+floor attic layout=lib.layout.house.bungalow_b02_attic z=2.85 h=1.70 access=hatch:f0.hall
+roof form=hip pitch=24.0 overhang=0.45
+facade style=lib.facade.bungalow_siding
+option porch choices=none,screened,open default=none
+feature porch.screened when=porch:screened mesh=lib.kit.porch_screened span=1.20,0.00;7.80,0.00 depth=2.40
+entrance main door=f0.d1 kind=main

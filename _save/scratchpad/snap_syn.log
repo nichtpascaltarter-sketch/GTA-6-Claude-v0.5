@@ -1,0 +1,9 @@
+In file included from src/game/../game/transit_game.cpp:1449,
+                 from src/game/../game/game_all.cpp:59,
+                 from src/game/app.cpp:14,
+                 from src/main.cpp:77:
+src/game/../game/transit_tram.cpp: In function 'void Game::Transit::tr::boardTram(Game::GameWorld&, int)':
+src/game/../game/transit_tram.cpp:913: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
+  913 |     if (seat < 0) return;
+      | 
+src/game/../game/transit_tram.cpp:913: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory

@@ -1,0 +1,239 @@
+IEV spiral.up_0.7 p1 run 1 t3.450 foot 1 low -20.0 h -0.0 b-20.0 t-20.0 at   0.56,  0.14 fy    6.1 gz  0.20/ 0.40/ 0.40 age 0.33 st -1.00 v 0.70 tr  0.87 yaw   31.0
+IEV spiral.up_0.7 p1 run 1 t3.550 foot 1 low -20.0 h -0.0 b-20.0 t-20.0 at   0.56,  0.14 fy    6.1 gz  0.20/ 0.40/ 0.40 age 0.43 st -1.00 v 0.70 tr  1.20 yaw   37.7
+IEV spiral.up_0.7 p1 run 1 t3.833 foot 0 low -19.1 h -1.5 b-17.9 t-16.6 at  -0.10,  0.33 fy   71.8 gz  0.80/ 1.00/ 1.00 age 0.03 st -1.00 v 0.70 tr  1.02 yaw   60.4
+IEV spiral.up_0.7 p1 run 1 t3.833 foot 1 low -20.0 h  3.6 b-19.9 t-20.0 at   0.61,  0.16 fy   25.5 gz  0.20/ 0.40/ 0.40 age 0.72 st -1.00 v 0.70 tr  1.02 yaw   60.4
+IEV spiral.up_0.7 p1 run 1 t3.900 foot 0 low -18.9 h -0.8 b-17.9 t-16.9 at  -0.10,  0.33 fy   71.8 gz  0.80/ 1.00/ 1.00 age 0.10 st -1.00 v 0.70 tr  1.24 yaw   67.2
+IEV spiral.up_0.7 p1 run 1 t3.900 foot 1 low -20.0 h  3.9 b-19.9 t-20.0 at   0.63,  0.17 fy   32.8 gz  0.20/ 0.40/ 0.40 age 0.78 st -1.00 v 0.70 tr  1.24 yaw   67.2
+IEV spiral.up_0.7 p1 run 1 t3.983 foot 1 low -20.0 h  7.1 b-19.8 t-20.0 at   0.65,  0.19 fy   41.3 gz  0.20/ 0.40/ 0.40 age 0.87 st -1.00 v 0.70 tr  1.50 yaw   75.2
+IEV spiral.up_0.7 p1 run 1 t4.317 foot 1 low   3.0 h 27.0 b  3.5 t  3.0 at   0.04,  0.57 fy  123.1 gz  0.60/ 0.80/ 0.80 age 0.02 st -1.00 v 0.70 tr  2.40 yaw  112.2
+IEV spiral.up_0.7 p1 run 1 t4.467 foot 1 low   9.7 h  9.7 b 13.4 t 14.8 at  -0.43,  0.20 fy  122.8 gz  1.20/ 1.20/ 1.20 age 0.02 st -1.00 v 0.70 tr  2.40 yaw  130.6
+IEV spiral.up_0.7 p1 run 1 t4.483 foot 1 low   3.2 h  3.2 b  6.9 t  8.3 at  -0.43,  0.20 fy  122.8 gz  1.20/ 1.20/ 1.20 age 0.03 st -1.00 v 0.70 tr  1.42 yaw  132.0
+IEV spiral.up_0.7 p1 run 1 t4.500 foot 1 low  -3.6 h -3.6 b  0.0 t  1.3 at  -0.43,  0.20 fy  122.8 gz  1.20/ 1.20/ 1.20 age 0.05 st -1.00 v 0.70 tr  2.40 yaw  134.2
+IEV spiral.up_0.7 p1 run 1 t4.517 foot 1 low  -3.5 h -3.5 b  0.0 t  1.3 at  -0.43,  0.20 fy  122.8 gz  1.20/ 1.20/ 1.20 age 0.07 st -1.00 v 0.70 tr  2.40 yaw  136.5
+IEV spiral.up_0.7 p1 run 1 t4.533 foot 1 low  -3.3 h -3.3 b  0.0 t  1.2 at  -0.43,  0.20 fy  122.8 gz  1.20/ 1.20/ 1.20 age 0.08 st -1.00 v 0.70 tr  2.40 yaw  138.8
+IEV spiral.up_0.7 p1 run 1 t4.550 foot 1 low  -3.2 h -3.2 b -0.0 t  1.2 at  -0.43,  0.20 fy  122.8 gz  1.20/ 1.20/ 1.20 age 0.10 st -1.00 v 0.70 tr  1.54 yaw  140.3
+IEV spiral.up_0.7 p2 run 2 t3.583 foot 0 low  -5.8 h 11.6 b -4.6 t -3.1 at   0.08,  0.36 fy   44.9 gz  0.60/ 0.80/ 0.80 age 0.02 st -1.00 v 0.70 tr  0.90 yaw   39.4
+IEV spiral.up_0.7 p2 run 2 t3.600 foot 0 low -11.1 h  6.5 b -9.8 t -8.5 at   0.08,  0.36 fy   44.9 gz  0.60/ 0.80/ 0.80 age 0.03 st -1.00 v 0.70 tr  0.90 yaw   40.3
+IEV spiral.up_0.7 p2 run 2 t3.617 foot 0 low -11.0 h  6.7 b -9.8 t -8.6 at   0.08,  0.36 fy   44.9 gz  0.60/ 0.80/ 0.80 age 0.05 st -1.00 v 0.70 tr  2.40 yaw   42.6
+IEV spiral.up_0.7 p2 run 2 t3.633 foot 0 low -10.9 h  6.9 b -9.8 t -8.6 at   0.08,  0.36 fy   44.9 gz  0.60/ 0.80/ 0.80 age 0.07 st -1.00 v 0.70 tr  1.62 yaw   44.2
+IEV spiral.up_0.7 p2 run 2 t3.650 foot 0 low -10.8 h  7.2 b -9.8 t -8.7 at   0.08,  0.35 fy   44.9 gz  0.60/ 0.80/ 0.80 age 0.08 st -1.00 v 0.70 tr  0.96 yaw   45.1
+IEV spiral.up_0.7 p2 run 2 t3.667 foot 0 low -10.7 h  7.7 b -9.8 t -8.9 at   0.08,  0.35 fy   44.9 gz  0.60/ 0.80/ 0.80 age 0.10 st -1.00 v 0.70 tr  0.95 yaw   46.0
+IEV spiral.up_0.7 p2 run 2 t4.783 foot 0 low  -6.2 h 10.0 b -6.2 t -4.8 at  -0.23, -0.25 fy  176.8 gz  1.60/ 1.80/ 1.80 age 0.03 st -1.00 v 0.70 tr  2.40 yaw  171.6
+IEV spiral.up_0.7 p2 run 2 t4.800 foot 0 low  -6.2 h 10.2 b -6.2 t -4.9 at  -0.23, -0.24 fy  176.8 gz  1.60/ 1.80/ 1.80 age 0.05 st -1.00 v 0.70 tr  1.85 yaw  173.3
+IEV spiral.up_0.7 p2 run 2 t4.817 foot 0 low  -6.2 h 10.4 b -6.2 t -4.9 at  -0.23, -0.24 fy  176.8 gz  1.60/ 1.80/ 1.80 age 0.07 st -1.00 v 0.70 tr  2.40 yaw  175.6
+IEV spiral.up_0.7 p2 run 2 t4.833 foot 0 low  -6.2 h 10.6 b -6.2 t -5.0 at  -0.23, -0.24 fy  176.8 gz  1.60/ 1.80/ 1.80 age 0.08 st -1.00 v 0.70 tr  2.40 yaw  177.9
+IEV spiral.up_0.7 p2 run 2 t4.850 foot 0 low  -6.2 h 10.9 b -6.2 t -5.1 at  -0.23, -0.24 fy  176.8 gz  1.60/ 1.80/ 1.80 age 0.10 st -1.00 v 0.70 tr  2.40 yaw -179.8
+IEV spiral.up_0.7 p2 run 2 t4.867 foot 0 low  -6.2 h 11.4 b -6.2 t -5.3 at  -0.23, -0.24 fy  176.8 gz  1.60/ 1.80/ 1.80 age 0.12 st -1.00 v 0.70 tr  1.97 yaw -177.9
+IEV spiral.up_0.7 p2 run 2 t5.433 foot 0 low -20.0 h  4.7 b-19.9 t-20.0 at  -0.40, -0.34 fy -118.8 gz  1.60/ 1.80/ 1.80 age 0.68 st -1.00 v 0.70 tr -0.36 yaw -102.6
+IEV spiral.up_0.7 p2 run 2 t5.467 foot 0 low -20.0 h  6.3 b-19.8 t-20.0 at  -0.39, -0.34 fy -118.8 gz  1.60/ 1.80/ 1.80 age 0.72 st -1.00 v 0.70 tr -2.40 yaw -105.5
+IEV spiral.up_0.7 p2 run 2 t5.533 foot 0 low -20.0 h  9.0 b-19.6 t-20.0 at  -0.38, -0.35 fy -118.8 gz  1.60/ 1.80/ 1.80 age 0.78 st -1.00 v 0.70 tr -2.03 yaw -109.1
+IEV spiral.up_0.7 p3 run 3 t3.333 foot 1 low -20.0 h -0.0 b -0.0 t-20.0 at   0.65, -0.25 fy   -4.5 gz  0.00/ 0.00/ 0.20 age 0.55 st -1.00 v 0.70 tr  1.30 yaw   24.2
+IEV spiral.up_0.7 p3 run 3 t3.350 foot 1 low -20.0 h -0.0 b -0.0 t-20.0 at   0.65, -0.25 fy   -4.5 gz  0.00/ 0.00/ 0.20 age 0.57 st -1.00 v 0.70 tr  0.80 yaw   24.9
+IEV spiral.up_0.7 p3 run 3 t3.367 foot 1 low -20.0 h -0.0 b -0.0 t-20.0 at   0.65, -0.25 fy   -4.5 gz  0.00/ 0.00/ 0.20 age 0.58 st -1.00 v 0.70 tr  0.79 yaw   25.7
+IEV spiral.up_0.7 p3 run 3 t3.383 foot 1 low -20.0 h -0.0 b  0.0 t-20.0 at   0.65, -0.25 fy   -4.5 gz  0.00/ 0.00/ 0.20 age 0.60 st -1.00 v 0.70 tr  0.78 yaw   26.4
+IEV spiral.up_0.7 p3 run 3 t3.400 foot 1 low -20.0 h  0.0 b -0.0 t-20.0 at   0.65, -0.25 fy   -4.5 gz  0.00/ 0.00/ 0.20 age 0.62 st -1.00 v 0.70 tr  0.77 yaw   27.2
+IEV spiral.up_0.7 p3 run 3 t3.417 foot 1 low -20.0 h  0.1 b -0.0 t-20.0 at   0.65, -0.25 fy   -4.5 gz  0.00/ 0.00/ 0.20 age 0.63 st -1.00 v 0.70 tr  0.85 yaw   28.0
+IEV spiral.up_0.7 p3 run 3 t3.433 foot 1 low -20.0 h  0.3 b  0.0 t-20.0 at   0.65, -0.25 fy   -4.2 gz  0.00/ 0.00/ 0.20 age 0.65 st -1.00 v 0.70 tr  2.26 yaw   30.1
+IEV spiral.up_0.7 p3 run 3 t3.450 foot 1 low -20.0 h  0.6 b  0.0 t-20.0 at   0.66, -0.25 fy   -3.3 gz  0.00/ 0.00/ 0.20 age 0.67 st -1.00 v 0.70 tr  0.87 yaw   31.0
+IEV spiral.up_0.7 p3 run 3 t3.467 foot 1 low -20.0 h  1.3 b  0.0 t-20.0 at   0.66, -0.25 fy   -2.4 gz  0.00/ 0.00/ 0.20 age 0.68 st -1.00 v 0.70 tr  0.86 yaw   31.8
+IEV spiral.up_0.7 p3 run 3 t3.483 foot 1 low -20.0 h  2.0 b  0.0 t-20.0 at   0.66, -0.25 fy   -1.6 gz  0.00/ 0.00/ 0.20 age 0.70 st -1.00 v 0.70 tr  0.85 yaw   32.6
+IEV spiral.up_0.7 p3 run 3 t3.500 foot 1 low -20.0 h  2.6 b  0.0 t-20.0 at   0.67, -0.25 fy   -0.7 gz  0.00/ 0.00/ 0.20 age 0.72 st -1.00 v 0.70 tr  0.83 yaw   33.4
+IEV spiral.up_0.7 p3 run 3 t3.517 foot 1 low -20.0 h  3.3 b  0.1 t-20.0 at   0.67, -0.25 fy    0.2 gz  0.00/ 0.00/ 0.20 age 0.73 st -1.00 v 0.70 tr  0.92 yaw   34.3
+IEV spiral.up_0.7 p3 run 3 t3.533 foot 1 low -20.0 h  3.9 b  0.1 t-20.0 at   0.68, -0.25 fy    2.5 gz  0.00/ 0.00/ 0.20 age 0.75 st -1.00 v 0.70 tr  2.40 yaw   36.6
+IEV spiral.up_0.7 p3 run 3 t3.550 foot 1 low -20.0 h  3.9 b  0.1 t-20.0 at   0.68, -0.25 fy    3.7 gz  0.00/ 0.00/ 0.20 age 0.77 st -1.00 v 0.70 tr  1.20 yaw   37.7
+IEV spiral.up_0.7 p3 run 3 t3.567 foot 1 low -20.0 h  3.9 b  0.1 t-20.0 at   0.68, -0.25 fy    4.6 gz  0.00/ 0.00/ 0.20 age 0.78 st -1.00 v 0.70 tr  0.91 yaw   38.6
+IEV spiral.up_0.7 p3 run 3 t3.583 foot 1 low -20.0 h  3.9 b  0.1 t-20.0 at   0.69, -0.25 fy    5.4 gz  0.00/ 0.00/ 0.20 age 0.80 st -1.00 v 0.70 tr  0.90 yaw   39.4
+IEV spiral.up_0.7 p3 run 3 t3.600 foot 1 low -20.0 h  3.9 b  0.1 t-20.0 at   0.69, -0.25 fy    6.3 gz  0.00/ 0.00/ 0.20 age 0.82 st -1.00 v 0.70 tr  0.90 yaw   40.3
+IEV spiral.up_0.7 p3 run 3 t3.617 foot 1 low -19.3 h  4.8 b  0.8 t-19.3 at   0.69, -0.24 fy    8.5 gz  0.00/ 0.00/ 0.20 age 0.83 st -1.00 v 0.70 tr  2.40 yaw   42.6
+IEV spiral.up_0.7 p3 run 3 t3.633 foot 1 low -18.6 h  5.7 b  1.5 t-18.6 at   0.69, -0.24 fy   10.0 gz  0.00/ 0.00/ 0.20 age 0.85 st -1.00 v 0.70 tr  1.62 yaw   44.2
+IEV spiral.up_0.7 p3 run 3 t3.650 foot 1 low -18.0 h  6.5 b  2.1 t-18.0 at   0.69, -0.23 fy   10.7 gz  0.00/ 0.00/ 0.20 age 0.87 st -1.00 v 0.70 tr  0.96 yaw   45.1
+IEV spiral.up_0.7 p3 run 3 t3.667 foot 1 low -17.4 h  7.3 b  2.7 t-17.4 at   0.69, -0.23 fy   11.3 gz  0.00/ 0.00/ 0.20 age 0.88 st -1.00 v 0.70 tr  0.95 yaw   46.0
+IEV spiral.up_0.7 p3 run 3 t3.683 foot 1 low -16.6 h  8.1 b  3.5 t-16.6 at   0.69, -0.22 fy   12.1 gz  0.00/ 0.00/ 0.20 age 0.90 st -1.00 v 0.70 tr  0.94 yaw   46.9
+IEV spiral.up_0.7 p3 run 3 t3.700 foot 1 low -15.8 h  8.8 b  4.3 t-15.8 at   0.69, -0.21 fy   13.1 gz  0.00/ 0.00/ 0.20 age 0.92 st -1.00 v 0.70 tr  1.04 yaw   47.9
+IEV spiral.up_0.7 p3 run 3 t3.717 foot 1 low -14.9 h  9.7 b  5.3 t-14.9 at   0.69, -0.21 fy   15.6 gz  0.00/ 0.00/ 0.20 age 0.93 st -1.00 v 0.70 tr  2.40 yaw   50.2
+IEV spiral.up_0.7 p3 run 3 t4.550 foot 0 low  -6.9 h 10.7 b 12.6 t -6.7 at  -0.24, -0.01 fy  147.2 gz  1.40/ 1.40/ 1.60 age 0.02 st -1.00 v 0.70 tr  1.54 yaw  140.3
+IEV spiral.up_0.7 p3 run 3 t4.567 foot 0 low -12.6 h  5.0 b  6.9 t-12.4 at  -0.24, -0.01 fy  147.2 gz  1.40/ 1.40/ 1.60 age 0.03 st -1.00 v 0.70 tr  2.40 yaw  142.6
+IEV spiral.up_0.7 p3 run 3 t4.583 foot 0 low -19.5 h -1.7 b  0.0 t-19.4 at  -0.24, -0.01 fy  147.2 gz  1.40/ 1.40/ 1.60 age 0.05 st -1.00 v 0.70 tr  2.40 yaw  144.9
+IEV spiral.up_0.7 p3 run 3 t4.600 foot 0 low -19.6 h -1.5 b  0.0 t-19.4 at  -0.24, -0.01 fy  147.2 gz  1.40/ 1.40/ 1.60 age 0.07 st -1.00 v 0.70 tr  2.40 yaw  147.2
+IEV spiral.up_0.7 p3 run 3 t4.617 foot 0 low -19.6 h -0.3 b  0.0 t-19.5 at  -0.24, -0.01 fy  147.2 gz  1.40/ 1.40/ 1.60 age 0.08 st -1.00 v 0.70 tr  1.67 yaw  148.8
+IEV spiral.up_0.7 p3 run 3 t4.633 foot 0 low -19.7 h -0.5 b  0.0 t-19.6 at  -0.24, -0.01 fy  147.2 gz  1.40/ 1.40/ 1.60 age 0.10 st -1.00 v 0.70 tr  2.40 yaw  151.1
+IEV spiral.up_0.7 p3 run 3 t4.650 foot 0 low -19.7 h -0.7 b  0.0 t-19.6 at  -0.24, -0.01 fy  147.2 gz  1.40/ 1.40/ 1.60 age 0.12 st -1.00 v 0.70 tr  2.40 yaw  153.4
+IEV spiral.up_0.7 p3 run 3 t4.667 foot 0 low -19.8 h -0.8 b  0.0 t-19.7 at  -0.24, -0.01 fy  147.2 gz  1.40/ 1.40/ 1.60 age 0.13 st -1.00 v 0.70 tr  2.40 yaw  155.6
+IEV spiral.up_0.7 p3 run 3 t4.683 foot 0 low -19.8 h -0.6 b  0.0 t-19.8 at  -0.24, -0.01 fy  147.2 gz  1.40/ 1.40/ 1.60 age 0.15 st -1.00 v 0.70 tr  2.40 yaw  157.9
+IEV spiral.up_0.7 p3 run 3 t4.700 foot 0 low -19.9 h -0.4 b  0.0 t-19.9 at  -0.24, -0.01 fy  147.2 gz  1.40/ 1.40/ 1.60 age 0.17 st -1.00 v 0.70 tr  2.40 yaw  160.2
+IEV spiral.up_0.7 p3 run 3 t4.717 foot 0 low -20.0 h  0.5 b  0.0 t-20.0 at  -0.25, -0.00 fy  149.5 gz  1.40/ 1.40/ 1.60 age 0.18 st -1.00 v 0.70 tr  2.40 yaw  162.5
+IEV spiral.up_0.7 p3 run 3 t4.733 foot 0 low -20.0 h  1.3 b -0.0 t-20.0 at  -0.25, -0.00 fy  151.7 gz  1.40/ 1.40/ 1.60 age 0.20 st -1.00 v 0.70 tr  2.29 yaw  164.7
+IEV spiral.up_0.7 p3 run 3 t4.750 foot 0 low -20.0 h 22.0 b  0.0 t-20.0 at  -0.26,  0.00 fy  153.9 gz  1.20/ 1.40/ 1.60 age 0.22 st -1.00 v 0.70 tr  2.40 yaw  167.0
+IEV spiral.up_0.7 p3 run 3 t4.767 foot 0 low -20.0 h 22.6 b  0.1 t-20.0 at  -0.27,  0.00 fy  156.2 gz  1.20/ 1.40/ 1.60 age 0.23 st -1.00 v 0.70 tr  2.40 yaw  169.3
+IEV spiral.up_0.7 p3 run 3 t4.783 foot 0 low -20.0 h 23.3 b  0.1 t-20.0 at  -0.27,  0.01 fy  158.4 gz  1.20/ 1.40/ 1.60 age 0.25 st -1.00 v 0.70 tr  2.40 yaw  171.6
+IEV spiral.up_0.7 p3 run 3 t4.800 foot 0 low -20.0 h 23.9 b  0.1 t-20.0 at  -0.28,  0.01 fy  160.1 gz  1.20/ 1.40/ 1.60 age 0.27 st -1.00 v 0.70 tr  1.85 yaw  173.3
+IEV spiral.up_0.7 p3 run 3 t4.817 foot 0 low -20.0 h 23.9 b  0.1 t-20.0 at  -0.29,  0.01 fy  162.4 gz  1.20/ 1.40/ 1.60 age 0.28 st -1.00 v 0.70 tr  2.40 yaw  175.6
+IEV spiral.up_0.7 p3 run 3 t4.833 foot 0 low -20.0 h 23.9 b  0.1 t-20.0 at  -0.29,  0.01 fy  164.7 gz  1.20/ 1.40/ 1.60 age 0.30 st -1.00 v 0.70 tr  2.40 yaw  177.9
+IEV spiral.up_0.7 p3 run 3 t4.850 foot 0 low -20.0 h 23.9 b  0.1 t-20.0 at  -0.30,  0.01 fy  167.0 gz  1.20/ 1.40/ 1.60 age 0.32 st -1.00 v 0.70 tr  2.40 yaw -179.8
+IEV spiral.up_0.7 p3 run 3 t4.867 foot 0 low -20.0 h 23.9 b  0.1 t-20.0 at  -0.31,  0.01 fy  168.9 gz  1.20/ 1.40/ 1.60 age 0.33 st -1.00 v 0.70 tr  1.97 yaw -177.9
+IEV spiral.up_0.7 p3 run 3 t4.883 foot 0 low -20.0 h 23.9 b  0.1 t-20.0 at  -0.32,  0.02 fy  171.1 gz  1.20/ 1.40/ 1.60 age 0.35 st -1.00 v 0.70 tr  2.40 yaw -175.6
+IEV spiral.up_0.7 p3 run 3 t4.900 foot 0 low -20.0 h 23.9 b  0.1 t-20.0 at  -0.32,  0.02 fy  173.4 gz  1.20/ 1.40/ 1.60 age 0.37 st -1.00 v 0.70 tr  2.40 yaw -173.3
+IEV spiral.up_0.7 p3 run 3 t4.917 foot 0 low -20.0 h 23.9 b  0.1 t-20.0 at  -0.33,  0.02 fy  175.7 gz  1.20/ 1.40/ 1.60 age 0.38 st -1.00 v 0.70 tr  2.40 yaw -171.0
+IEV spiral.up_0.7 p3 run 3 t4.933 foot 0 low -20.0 h 23.9 b  0.1 t-20.0 at  -0.34,  0.02 fy  177.9 gz  1.20/ 1.40/ 1.60 age 0.40 st -1.00 v 0.70 tr  2.40 yaw -168.7
+IEV spiral.up_0.7 p3 run 3 t4.950 foot 0 low -20.0 h 23.9 b  0.1 t-20.0 at  -0.35,  0.02 fy -179.8 gz  1.20/ 1.40/ 1.60 age 0.42 st -1.00 v 0.70 tr  2.40 yaw -166.5
+IEV spiral.up_0.7 p3 run 3 t4.967 foot 0 low -20.0 h 23.9 b  0.1 t-20.0 at  -0.35,  0.02 fy -177.5 gz  1.20/ 1.40/ 1.60 age 0.43 st -1.00 v 0.70 tr  2.40 yaw -164.2
+IEV spiral.up_0.7 p3 run 3 t4.983 foot 0 low -20.0 h 23.9 b  0.1 t-20.0 at  -0.36,  0.02 fy -175.2 gz  1.20/ 1.40/ 1.60 age 0.45 st -1.00 v 0.70 tr  2.40 yaw -161.9
+IEV spiral.up_0.7 p3 run 3 t5.000 foot 0 low -20.0 h 23.9 b  0.1 t-20.0 at  -0.37,  0.02 fy -172.9 gz  1.20/ 1.40/ 1.60 age 0.47 st -1.00 v 0.70 tr  2.40 yaw -159.6
+IEV spiral.up_0.7 p3 run 3 t5.017 foot 0 low -20.0 h 23.9 b  0.1 t-20.0 at  -0.38,  0.02 fy -170.5 gz  1.20/ 1.40/ 1.60 age 0.48 st -1.00 v 0.70 tr  2.40 yaw -157.3
+IEV spiral.up_0.7 p3 run 3 t5.033 foot 0 low -20.0 h 23.9 b  0.1 t-20.0 at  -0.38,  0.01 fy -168.2 gz  1.20/ 1.40/ 1.60 age 0.50 st -1.00 v 0.70 tr  2.40 yaw -155.0
+IEV spiral.up_0.7 p3 run 3 t5.050 foot 0 low -20.0 h 23.9 b  0.1 t-20.0 at  -0.39,  0.01 fy -165.9 gz  1.20/ 1.40/ 1.60 age 0.52 st -1.00 v 0.70 tr  2.40 yaw -152.7
+IEV spiral.up_0.7 p3 run 3 t5.067 foot 0 low -20.0 h 23.9 b  0.1 t-20.0 at  -0.40,  0.01 fy -163.5 gz  1.20/ 1.40/ 1.60 age 0.53 st -1.00 v 0.70 tr  2.40 yaw -150.4
+IEV spiral.up_0.7 p3 run 3 t5.083 foot 0 low -20.0 h 23.9 b  0.1 t-20.0 at  -0.41,  0.01 fy -161.1 gz  1.20/ 1.40/ 1.60 age 0.55 st -1.00 v 0.70 tr  2.40 yaw -148.1
+IEV spiral.up_0.7 p3 run 3 t5.100 foot 0 low -20.0 h 23.9 b  0.1 t-20.0 at  -0.41,  0.01 fy -158.7 gz  1.20/ 1.40/ 1.60 age 0.57 st -1.00 v 0.70 tr  2.40 yaw -145.8
+IEV spiral.up_0.7 p3 run 3 t5.117 foot 0 low -20.0 h 23.9 b  0.1 t-20.0 at  -0.42,  0.00 fy -156.4 gz  1.20/ 1.40/ 1.60 age 0.58 st -1.00 v 0.70 tr  2.40 yaw -143.5
+IEV spiral.up_0.7 p3 run 3 t5.117 foot 1 low  -6.3 h 11.7 b -6.3 t -5.5 at  -0.36, -0.30 fy -148.9 gz  1.60/ 1.80/ 1.80 age 0.03 st -1.00 v 0.70 tr  2.40 yaw -143.5
+IEV spiral.up_0.7 p3 run 3 t5.133 foot 0 low -20.0 h  3.9 b  0.1 t-20.0 at  -0.43, -0.00 fy -154.1 gz  1.40/ 1.40/ 1.60 age 0.60 st -1.00 v 0.70 tr  2.40 yaw -141.2
+IEV spiral.up_0.7 p3 run 3 t5.133 foot 1 low -18.0 h  0.0 b-18.0 t-17.3 at  -0.36, -0.30 fy -148.9 gz  1.60/ 1.80/ 1.80 age 0.05 st -1.00 v 0.70 tr  2.40 yaw -141.2
+IEV spiral.up_0.7 p3 run 3 t5.150 foot 0 low -20.0 h  3.9 b  0.1 t-20.0 at  -0.44, -0.00 fy -151.7 gz  1.40/ 1.40/ 1.60 age 0.62 st -1.00 v 0.70 tr  2.40 yaw -139.0
+IEV spiral.up_0.7 p3 run 3 t5.150 foot 1 low -18.1 h  0.0 b-18.1 t-17.4 at  -0.36, -0.30 fy -148.9 gz  1.60/ 1.80/ 1.80 age 0.07 st -1.00 v 0.70 tr  2.40 yaw -139.0
+IEV spiral.up_0.7 p3 run 3 t5.167 foot 0 low -20.0 h  3.9 b  0.1 t-20.0 at  -0.44, -0.01 fy -149.4 gz  1.40/ 1.40/ 1.60 age 0.63 st -1.00 v 0.70 tr  2.40 yaw -136.7
+IEV spiral.up_0.7 p3 run 3 t5.167 foot 1 low -18.3 h  0.0 b-18.3 t-17.6 at  -0.36, -0.30 fy -148.9 gz  1.60/ 1.80/ 1.80 age 0.08 st -1.00 v 0.70 tr  2.40 yaw -136.7
+IEV spiral.up_0.7 p3 run 3 t5.183 foot 0 low -20.0 h  3.9 b  0.1 t-20.0 at  -0.45, -0.01 fy -147.1 gz  1.40/ 1.40/ 1.60 age 0.65 st -1.00 v 0.70 tr  2.40 yaw -134.4
+IEV spiral.up_0.7 p3 run 3 t5.183 foot 1 low -18.5 h  0.0 b-18.5 t-17.9 at  -0.36, -0.30 fy -148.9 gz  1.60/ 1.80/ 1.80 age 0.10 st -1.00 v 0.70 tr  2.40 yaw -134.4
+IEV spiral.up_0.7 p3 run 3 t5.200 foot 0 low -20.0 h  3.9 b  0.1 t-20.0 at  -0.45, -0.02 fy -144.8 gz  1.40/ 1.40/ 1.60 age 0.67 st -1.00 v 0.70 tr  2.40 yaw -132.1
+IEV spiral.up_0.7 p3 run 3 t5.200 foot 1 low -19.3 h  0.0 b-19.3 t-18.8 at  -0.36, -0.30 fy -148.9 gz  1.60/ 1.80/ 1.80 age 0.12 st -1.00 v 0.70 tr  2.40 yaw -132.1
+IEV spiral.up_0.7 p3 run 3 t5.217 foot 0 low -20.0 h  3.9 b  0.1 t-20.0 at  -0.46, -0.02 fy -142.5 gz  1.40/ 1.40/ 1.60 age 0.68 st -1.00 v 0.70 tr  2.40 yaw -129.8
+IEV spiral.up_0.7 p3 run 3 t5.217 foot 1 low -19.1 h  0.0 b-19.1 t-18.7 at  -0.36, -0.30 fy -148.9 gz  1.60/ 1.80/ 1.80 age 0.13 st -1.00 v 0.70 tr  2.40 yaw -129.8
+IEV spiral.up_0.7 p3 run 3 t5.233 foot 0 low -20.0 h  3.9 b  0.1 t-20.0 at  -0.47, -0.03 fy -140.3 gz  1.40/ 1.40/ 1.60 age 0.70 st -1.00 v 0.70 tr  2.40 yaw -127.5
+IEV spiral.up_0.7 p3 run 3 t5.233 foot 1 low -19.0 h  0.0 b-19.0 t-18.6 at  -0.36, -0.30 fy -148.9 gz  1.60/ 1.80/ 1.80 age 0.15 st -1.00 v 0.70 tr  2.40 yaw -127.5
+IEV spiral.up_0.7 p3 run 3 t5.250 foot 0 low -20.0 h  3.9 b  0.1 t-20.0 at  -0.47, -0.03 fy -137.9 gz  1.40/ 1.40/ 1.60 age 0.72 st -1.00 v 0.70 tr  2.40 yaw -125.2
+IEV spiral.up_0.7 p3 run 3 t5.250 foot 1 low -19.2 h  0.0 b-19.2 t-18.9 at  -0.36, -0.30 fy -148.9 gz  1.60/ 1.80/ 1.80 age 0.17 st -1.00 v 0.70 tr  2.40 yaw -125.2
+IEV spiral.up_0.7 p3 run 3 t5.267 foot 0 low -20.0 h  4.0 b  0.1 t-20.0 at  -0.48, -0.04 fy -135.6 gz  1.40/ 1.40/ 1.60 age 0.73 st -1.00 v 0.70 tr  2.40 yaw -122.9
+IEV spiral.up_0.7 p3 run 3 t5.267 foot 1 low -19.4 h  0.0 b-19.4 t-19.2 at  -0.36, -0.30 fy -148.9 gz  1.60/ 1.80/ 1.80 age 0.18 st -1.00 v 0.70 tr  2.40 yaw -122.9
+IEV spiral.up_0.7 p3 run 3 t5.283 foot 0 low -20.0 h  4.0 b  0.1 t-20.0 at  -0.48, -0.04 fy -133.3 gz  1.40/ 1.40/ 1.60 age 0.75 st -1.00 v 0.70 tr  2.40 yaw -120.6
+IEV spiral.up_0.7 p3 run 3 t5.283 foot 1 low -19.7 h -0.0 b-19.7 t-19.5 at  -0.36, -0.30 fy -148.9 gz  1.60/ 1.80/ 1.80 age 0.20 st -1.00 v 0.70 tr  2.40 yaw -120.6
+IEV spiral.up_0.7 p3 run 3 t5.300 foot 0 low -20.0 h  4.0 b  0.1 t-20.0 at  -0.49, -0.05 fy -131.0 gz  1.40/ 1.40/ 1.60 age 0.77 st -1.00 v 0.70 tr  2.40 yaw -118.3
+IEV spiral.up_0.7 p3 run 3 t5.300 foot 1 low -19.8 h  0.0 b-19.8 t-19.8 at  -0.36, -0.30 fy -148.9 gz  1.60/ 1.80/ 1.80 age 0.22 st -1.00 v 0.70 tr  2.40 yaw -118.3
+IEV spiral.up_0.7 p3 run 3 t5.317 foot 0 low -20.0 h  4.0 b  0.1 t-20.0 at  -0.49, -0.05 fy -128.6 gz  1.40/ 1.40/ 1.60 age 0.78 st -1.00 v 0.70 tr  2.40 yaw -116.0
+IEV spiral.up_0.7 p3 run 3 t5.317 foot 1 low -19.9 h  0.0 b-19.9 t-19.9 at  -0.36, -0.30 fy -148.1 gz  1.60/ 1.80/ 1.80 age 0.23 st -1.00 v 0.70 tr  2.40 yaw -116.0
+IEV spiral.up_0.7 p3 run 3 t5.333 foot 0 low -20.0 h  4.1 b  0.1 t-20.0 at  -0.50, -0.06 fy -126.3 gz  1.40/ 1.40/ 1.60 age 0.80 st -1.00 v 0.70 tr  2.40 yaw -113.7
+IEV spiral.up_0.7 p3 run 3 t5.333 foot 1 low -20.0 h  0.6 b-20.0 t-20.0 at  -0.36, -0.31 fy -145.9 gz  1.60/ 1.80/ 1.80 age 0.25 st -1.00 v 0.70 tr  2.40 yaw -113.7
+IEV spiral.up_0.7 p3 run 3 t5.350 foot 0 low -20.0 h  4.4 b  0.1 t-20.0 at  -0.50, -0.07 fy -123.9 gz  1.40/ 1.40/ 1.60 age 0.82 st -1.00 v 0.70 tr  2.40 yaw -111.4
+IEV spiral.up_0.7 p3 run 3 t5.350 foot 1 low -20.0 h  1.2 b-20.0 t-20.0 at  -0.37, -0.31 fy -143.5 gz  1.60/ 1.80/ 1.80 age 0.27 st -1.00 v 0.70 tr  2.40 yaw -111.4
+IEV spiral.up_0.7 p3 run 3 t5.367 foot 0 low -20.0 h  4.6 b  0.1 t-20.0 at  -0.51, -0.07 fy -121.5 gz  1.40/ 1.40/ 1.60 age 0.83 st -1.00 v 0.70 tr  2.40 yaw -109.2
+IEV spiral.up_0.7 p3 run 3 t5.383 foot 0 low -20.0 h  4.8 b  0.1 t-20.0 at  -0.51, -0.08 fy -119.0 gz  1.40/ 1.40/ 1.60 age 0.85 st -1.00 v 0.70 tr  2.40 yaw -106.9
+IEV spiral.up_0.7 p3 run 3 t5.400 foot 0 low -20.0 h  4.9 b  0.1 t-20.0 at  -0.51, -0.09 fy -116.6 gz  1.40/ 1.40/ 1.60 age 0.87 st -1.00 v 0.70 tr  2.40 yaw -104.6
+IEV spiral.up_0.7 p3 run 3 t5.417 foot 0 low -20.0 h  4.8 b  0.2 t-20.0 at  -0.52, -0.09 fy -114.2 gz  1.40/ 1.40/ 1.60 age 0.88 st -1.00 v 0.70 tr  2.40 yaw -102.3
+IEV spiral.up_0.7 p3 run 3 t5.433 foot 0 low -20.0 h  4.6 b  0.2 t-20.0 at  -0.52, -0.09 fy -114.2 gz  1.40/ 1.40/ 1.60 age 0.90 st -1.00 v 0.70 tr -0.36 yaw -102.6
+IEV spiral.up_0.7 p3 run 3 t5.450 foot 0 low -20.0 h  4.4 b  0.3 t-20.0 at  -0.52, -0.09 fy -114.2 gz  1.40/ 1.40/ 1.60 age 0.92 st -1.00 v 0.70 tr -0.64 yaw -103.2
+IEV spiral.up_0.7 p3 run 3 t5.467 foot 0 low -19.5 h  4.7 b  0.9 t-19.5 at  -0.52, -0.09 fy -114.2 gz  1.40/ 1.40/ 1.60 age 0.93 st -1.00 v 0.70 tr -2.40 yaw -105.5
+IEV spiral.up_0.7 p3 run 3 t5.483 foot 0 low -18.5 h  5.4 b  2.0 t-18.5 at  -0.51, -0.10 fy -114.2 gz  1.40/ 1.40/ 1.60 age 0.95 st -1.00 v 0.70 tr -0.74 yaw -106.2
+IEV spiral.up_0.7 p3 run 3 t5.700 foot 0 low  -5.4 h -5.4 b -3.5 t -2.7 at   0.28, -0.28 fy -104.0 gz  2.00/ 2.00/ 2.00 age 0.02 st -1.00 v 0.70 tr -1.08 yaw -114.1
+IEV spiral.up_0.7 p3 run 3 t5.717 foot 0 low  -3.2 h -3.2 b -1.3 t -0.7 at   0.28, -0.28 fy -104.0 gz  2.00/ 2.00/ 2.00 age 0.03 st -1.00 v 0.70 tr -0.20 yaw -114.3
+IEV spiral.up_0.7 p4 run 4 t3.750 foot 1 low -20.0 h -3.4 b-20.0 t-18.7 at   0.12,  0.52 fy   40.0 gz  0.60/ 0.80/ 0.80 age 0.05 st -1.00 v 0.70 tr  0.99 yaw   53.0
+IEV spiral.up_0.7 p4 run 4 t3.833 foot 1 low -20.0 h -1.7 b-20.0 t-19.4 at   0.12,  0.52 fy   40.0 gz  0.60/ 0.80/ 0.80 age 0.13 st -1.00 v 0.70 tr  1.02 yaw   60.4
+IEV spiral.up_0.7 p4 run 4 t3.900 foot 1 low -20.0 h -0.1 b-20.0 t-20.0 at   0.12,  0.52 fy   40.0 gz  0.60/ 0.80/ 0.80 age 0.20 st -1.00 v 0.70 tr  1.24 yaw   67.2
+IEV spiral.up_0.7 p4 run 4 t3.983 foot 1 low -20.0 h  0.6 b-20.0 t-20.0 at   0.13,  0.53 fy   42.1 gz  0.60/ 0.80/ 0.80 age 0.28 st -1.00 v 0.70 tr  1.50 yaw   75.2
+IEV spiral.up_0.7 p4 run 4 t4.050 foot 1 low -20.0 h  3.2 b-20.0 t-20.0 at   0.14,  0.55 fy   49.4 gz  0.60/ 0.80/ 0.80 age 0.35 st -1.00 v 0.70 tr  1.72 yaw   82.5
+IEV spiral.up_0.7 p4 run 4 t4.067 foot 1 low -20.0 h  3.9 b-19.9 t-20.0 at   0.14,  0.55 fy   50.5 gz  0.60/ 0.80/ 0.80 age 0.37 st -1.00 v 0.70 tr  1.09 yaw   83.5
+IEV spiral.up_0.7 p4 run 4 t4.150 foot 1 low -20.0 h  3.9 b-19.9 t-20.0 at   0.16,  0.57 fy   59.2 gz  0.60/ 0.80/ 0.80 age 0.45 st -1.00 v 0.70 tr  1.12 yaw   92.1
+IEV spiral.up_0.7 p4 run 4 t4.217 foot 1 low -20.0 h  3.9 b-19.9 t-20.0 at   0.17,  0.60 fy   67.0 gz  0.60/ 0.80/ 0.80 age 0.52 st -1.00 v 0.70 tr  1.12 yaw   99.8
+IEV spiral.up_0.7 p4 run 4 t4.283 foot 1 low -20.0 h  3.9 b-19.9 t-20.0 at   0.18,  0.62 fy   74.9 gz  0.60/ 0.80/ 0.80 age 0.58 st -1.00 v 0.70 tr  1.13 yaw  107.6
+IEV spiral.up_0.7 p4 run 4 t4.317 foot 0 low  18.1 h 18.1 b 21.6 t 23.0 at  -0.25,  0.13 fy  116.7 gz  1.20/ 1.20/ 1.20 age 0.02 st -1.00 v 0.70 tr  2.40 yaw  112.2
+IEV spiral.up_0.7 p4 run 4 t4.333 foot 0 low   8.0 h  8.0 b 11.7 t 13.1 at  -0.25,  0.13 fy  116.7 gz  1.20/ 1.20/ 1.20 age 0.03 st -1.00 v 0.70 tr  2.40 yaw  114.5
+IEV spiral.up_0.7 p4 run 4 t4.350 foot 0 low  -3.7 h -3.7 b  0.0 t  1.4 at  -0.25,  0.13 fy  116.7 gz  1.20/ 1.20/ 1.20 age 0.05 st -1.00 v 0.70 tr  1.16 yaw  115.6
+IEV spiral.up_0.7 p4 run 4 t4.350 foot 1 low -20.0 h  3.9 b-19.9 t-20.0 at   0.18,  0.65 fy   82.9 gz  0.60/ 0.80/ 0.80 age 0.65 st -1.00 v 0.70 tr  1.16 yaw  115.6
+IEV spiral.up_0.7 p4 run 4 t4.367 foot 0 low  -3.5 h -3.5 b  0.0 t  1.3 at  -0.25,  0.13 fy  116.7 gz  1.20/ 1.20/ 1.20 age 0.07 st -1.00 v 0.70 tr  2.40 yaw  117.9
+IEV spiral.up_0.7 p4 run 4 t4.383 foot 0 low  -3.4 h -3.4 b  0.0 t  1.2 at  -0.25,  0.13 fy  116.7 gz  1.20/ 1.20/ 1.20 age 0.08 st -1.00 v 0.70 tr  2.40 yaw  120.2
+IEV spiral.up_0.7 p4 run 4 t4.400 foot 0 low  -3.2 h -3.2 b  0.0 t  1.2 at  -0.25,  0.13 fy  116.7 gz  1.20/ 1.20/ 1.20 age 0.10 st -1.00 v 0.70 tr  2.40 yaw  122.5
+IEV spiral.up_0.7 p4 run 4 t4.417 foot 1 low -20.0 h  4.1 b-19.9 t-20.0 at   0.18,  0.67 fy   91.1 gz  0.60/ 0.80/ 0.80 age 0.72 st -1.00 v 0.70 tr  1.29 yaw  123.7
+IEV spiral.up_0.7 p4 run 4 t4.483 foot 1 low -18.4 h  8.7 b-18.1 t-18.4 at   0.17,  0.69 fy   99.3 gz  0.60/ 0.80/ 0.80 age 0.78 st -1.00 v 0.70 tr  1.42 yaw  132.0
+IEV spiral.up_0.7 p4 run 4 t4.533 foot 1 low   3.5 h 32.3 b  4.0 t  3.5 at   0.14,  0.70 fy  106.1 gz  0.60/ 0.80/ 0.80 age 0.83 st -1.00 v 0.70 tr  2.40 yaw  138.8
+IEV spiral.up_0.7 p4 run 4 t4.550 foot 1 low -15.8 h 13.3 b-15.4 t-15.8 at   0.13,  0.70 fy  107.6 gz  0.60/ 0.80/ 0.80 age 0.85 st -1.00 v 0.70 tr  1.54 yaw  140.3
+IEV spiral.up_0.7 p4 run 4 t4.567 foot 1 low   4.9 h 34.3 b  5.4 t  4.9 at   0.13,  0.70 fy  109.8 gz  0.60/ 0.80/ 0.80 age 0.87 st -1.00 v 0.70 tr  2.40 yaw  142.6
+IEV spiral.up_0.7 p4 run 4 t4.583 foot 1 low   5.8 h 35.2 b  6.3 t  5.8 at   0.12,  0.70 fy  112.1 gz  0.60/ 0.80/ 0.80 age 0.88 st -1.00 v 0.70 tr  2.40 yaw  144.9
+IEV spiral.up_0.7 p4 run 4 t4.600 foot 0 low -20.0 h 22.6 b  0.1 t-20.0 at  -0.26,  0.16 fy  127.1 gz  1.00/ 1.20/ 1.40 age 0.30 st -1.00 v 0.70 tr  2.40 yaw  147.2
+IEV spiral.up_0.7 p4 run 4 t4.600 foot 1 low   6.7 h 36.1 b  7.2 t  6.7 at   0.11,  0.70 fy  114.4 gz  0.60/ 0.80/ 0.80 age 0.90 st -1.00 v 0.70 tr  2.40 yaw  147.2
+IEV spiral.up_0.7 p4 run 4 t4.617 foot 0 low -20.0 h 23.3 b  0.1 t-20.0 at  -0.27,  0.16 fy  128.7 gz  1.00/ 1.20/ 1.40 age 0.32 st -1.00 v 0.70 tr  1.67 yaw  148.8
+IEV spiral.up_0.7 p4 run 4 t4.633 foot 0 low -20.0 h 23.9 b  0.1 t-20.0 at  -0.27,  0.17 fy  131.0 gz  1.00/ 1.20/ 1.40 age 0.33 st -1.00 v 0.70 tr  2.40 yaw  151.1
+IEV spiral.up_0.7 p4 run 4 t4.650 foot 0 low -20.0 h 23.9 b  0.1 t-20.0 at  -0.28,  0.17 fy  133.3 gz  1.00/ 1.20/ 1.40 age 0.35 st -1.00 v 0.70 tr  2.40 yaw  153.4
+IEV spiral.up_0.7 p4 run 4 t4.667 foot 0 low -20.0 h 23.9 b  0.1 t-20.0 at  -0.28,  0.18 fy  135.6 gz  1.00/ 1.20/ 1.40 age 0.37 st -1.00 v 0.70 tr  2.40 yaw  155.6
+IEV spiral.up_0.7 p4 run 4 t4.683 foot 0 low -20.0 h 23.9 b  0.1 t-20.0 at  -0.29,  0.18 fy  137.9 gz  1.00/ 1.20/ 1.40 age 0.38 st -1.00 v 0.70 tr  2.40 yaw  157.9
+IEV spiral.up_0.7 p4 run 4 t4.700 foot 0 low -20.0 h 23.9 b  0.1 t-20.0 at  -0.30,  0.19 fy  140.3 gz  1.00/ 1.20/ 1.40 age 0.40 st -1.00 v 0.70 tr  2.40 yaw  160.2
+IEV spiral.up_0.7 p4 run 4 t4.717 foot 0 low -20.0 h 23.9 b  0.1 t-20.0 at  -0.30,  0.19 fy  142.6 gz  1.00/ 1.20/ 1.40 age 0.42 st -1.00 v 0.70 tr  2.40 yaw  162.5
+IEV spiral.up_0.7 p4 run 4 t4.733 foot 0 low -20.0 h 23.9 b  0.1 t-20.0 at  -0.31,  0.20 fy  144.8 gz  1.00/ 1.20/ 1.40 age 0.43 st -1.00 v 0.70 tr  2.29 yaw  164.7
+IEV spiral.up_0.7 p4 run 4 t4.750 foot 0 low -20.0 h 23.9 b  0.1 t-20.0 at  -0.31,  0.20 fy  147.1 gz  1.00/ 1.20/ 1.40 age 0.45 st -1.00 v 0.70 tr  2.40 yaw  167.0
+IEV spiral.up_0.7 p4 run 4 t4.767 foot 0 low -20.0 h 23.9 b  0.1 t-20.0 at  -0.32,  0.21 fy  149.4 gz  1.00/ 1.20/ 1.40 age 0.47 st -1.00 v 0.70 tr  2.40 yaw  169.3
+IEV spiral.up_0.7 p4 run 4 t4.783 foot 0 low -20.0 h 23.9 b  0.1 t-20.0 at  -0.33,  0.21 fy  151.7 gz  1.00/ 1.20/ 1.40 age 0.48 st -1.00 v 0.70 tr  2.40 yaw  171.6
+IEV spiral.up_0.7 p4 run 4 t4.800 foot 0 low -20.0 h 23.9 b  0.1 t-20.0 at  -0.33,  0.21 fy  153.5 gz  1.00/ 1.20/ 1.40 age 0.50 st -1.00 v 0.70 tr  1.85 yaw  173.3
+IEV spiral.up_0.7 p4 run 4 t4.817 foot 0 low -20.0 h 23.9 b  0.1 t-20.0 at  -0.34,  0.22 fy  155.8 gz  1.00/ 1.20/ 1.40 age 0.52 st -1.00 v 0.70 tr  2.40 yaw  175.6
+IEV spiral.up_0.7 p4 run 4 t4.833 foot 0 low -20.0 h 23.9 b  0.1 t-20.0 at  -0.35,  0.22 fy  158.1 gz  1.00/ 1.20/ 1.40 age 0.53 st -1.00 v 0.70 tr  2.40 yaw  177.9
+IEV spiral.up_0.7 p4 run 4 t4.850 foot 0 low -20.0 h 23.9 b  0.1 t-20.0 at  -0.35,  0.22 fy  160.4 gz  1.00/ 1.20/ 1.40 age 0.55 st -1.00 v 0.70 tr  2.40 yaw -179.8
+IEV spiral.up_0.7 p4 run 4 t4.867 foot 0 low -20.0 h 23.9 b  0.1 t-20.0 at  -0.36,  0.22 fy  162.3 gz  1.00/ 1.20/ 1.40 age 0.57 st -1.00 v 0.70 tr  1.97 yaw -177.9
+IEV spiral.up_0.7 p4 run 4 t4.883 foot 0 low -20.0 h 23.9 b  0.1 t-20.0 at  -0.37,  0.23 fy  164.6 gz  1.00/ 1.20/ 1.40 age 0.58 st -1.00 v 0.70 tr  2.40 yaw -175.6
+IEV spiral.up_0.7 p4 run 4 t4.900 foot 0 low -20.0 h 23.9 b  0.1 t-20.0 at  -0.37,  0.23 fy  166.9 gz  1.00/ 1.20/ 1.40 age 0.60 st -1.00 v 0.70 tr  2.40 yaw -173.3
+IEV spiral.up_0.7 p4 run 4 t4.917 foot 0 low -20.0 h 23.9 b  0.1 t-20.0 at  -0.38,  0.23 fy  169.2 gz  1.00/ 1.20/ 1.40 age 0.62 st -1.00 v 0.70 tr  2.40 yaw -171.0
+IEV spiral.up_0.7 p4 run 4 t4.933 foot 0 low -20.0 h 23.9 b  0.1 t-20.0 at  -0.39,  0.23 fy  171.4 gz  1.00/ 1.20/ 1.40 age 0.63 st -1.00 v 0.70 tr  2.40 yaw -168.7
+IEV spiral.up_0.7 p4 run 4 t4.950 foot 0 low -20.0 h 23.9 b  0.1 t-20.0 at  -0.40,  0.23 fy  173.8 gz  1.00/ 1.20/ 1.40 age 0.65 st -1.00 v 0.70 tr  2.40 yaw -166.5
+IEV spiral.up_0.7 p4 run 4 t4.967 foot 0 low -20.0 h 23.9 b  0.1 t-20.0 at  -0.40,  0.23 fy  176.0 gz  1.00/ 1.20/ 1.40 age 0.67 st -1.00 v 0.70 tr  2.40 yaw -164.2
+IEV spiral.up_0.7 p4 run 4 t4.983 foot 0 low -20.0 h  3.9 b  0.1 t-20.0 at  -0.41,  0.23 fy  178.3 gz  1.20/ 1.20/ 1.40 age 0.68 st -1.00 v 0.70 tr  2.40 yaw -161.9
+IEV spiral.up_0.7 p4 run 4 t5.000 foot 0 low -20.0 h  3.9 b  0.1 t-20.0 at  -0.42,  0.23 fy -179.5 gz  1.20/ 1.20/ 1.40 age 0.70 st -1.00 v 0.70 tr  2.40 yaw -159.6
+IEV spiral.up_0.7 p4 run 4 t5.017 foot 0 low -20.0 h  3.9 b  0.1 t-20.0 at  -0.42,  0.23 fy -177.2 gz  1.20/ 1.20/ 1.40 age 0.72 st -1.00 v 0.70 tr  2.40 yaw -157.3
+IEV spiral.up_0.7 p4 run 4 t5.033 foot 0 low -20.0 h  3.9 b  0.1 t-20.0 at  -0.43,  0.23 fy -174.9 gz  1.20/ 1.20/ 1.40 age 0.73 st -1.00 v 0.70 tr  2.40 yaw -155.0
+IEV spiral.up_0.7 p4 run 4 t5.050 foot 0 low -20.0 h  4.2 b  0.1 t-20.0 at  -0.44,  0.23 fy -172.7 gz  1.20/ 1.20/ 1.40 age 0.75 st -1.00 v 0.70 tr  2.40 yaw -152.7
+IEV spiral.up_0.7 p4 run 4 t5.067 foot 0 low -20.0 h  5.0 b  0.2 t-20.0 at  -0.45,  0.23 fy -170.4 gz  1.20/ 1.20/ 1.40 age 0.77 st -1.00 v 0.70 tr  2.40 yaw -150.4
+IEV spiral.up_0.7 p4 run 4 t5.083 foot 0 low -20.0 h  5.8 b  0.2 t-20.0 at  -0.45,  0.23 fy -168.2 gz  1.20/ 1.20/ 1.40 age 0.78 st -1.00 v 0.70 tr  2.40 yaw -148.1
+IEV spiral.up_0.7 p4 run 4 t5.100 foot 0 low -20.0 h  6.5 b  0.3 t-20.0 at  -0.46,  0.22 fy -165.9 gz  1.20/ 1.20/ 1.40 age 0.80 st -1.00 v 0.70 tr  2.40 yaw -145.8
+IEV spiral.up_0.7 p4 run 4 t5.117 foot 0 low -20.0 h  7.2 b  0.3 t-20.0 at  -0.47,  0.22 fy -163.7 gz  1.20/ 1.20/ 1.40 age 0.82 st -1.00 v 0.70 tr  2.40 yaw -143.5
+IEV spiral.up_0.7 p4 run 4 t5.133 foot 0 low -20.0 h  7.8 b  0.4 t-20.0 at  -0.48,  0.21 fy -161.5 gz  1.20/ 1.20/ 1.40 age 0.83 st -1.00 v 0.70 tr  2.40 yaw -141.2
+IEV spiral.up_0.7 p4 run 4 t5.150 foot 0 low -20.0 h  8.4 b  0.4 t-20.0 at  -0.49,  0.21 fy -159.2 gz  1.20/ 1.20/ 1.40 age 0.85 st -1.00 v 0.70 tr  2.40 yaw -139.0
+IEV spiral.up_0.7 p4 run 4 t5.167 foot 0 low -20.0 h  8.9 b  0.5 t-20.0 at  -0.49,  0.20 fy -156.9 gz  1.20/ 1.20/ 1.40 age 0.87 st -1.00 v 0.70 tr  2.40 yaw -136.7
+IEV spiral.up_0.7 p4 run 4 t5.183 foot 0 low -20.0 h  9.3 b  0.5 t-20.0 at  -0.50,  0.20 fy -154.7 gz  1.20/ 1.20/ 1.40 age 0.88 st -1.00 v 0.70 tr  2.40 yaw -134.4
+IEV spiral.up_0.7 p4 run 4 t5.200 foot 0 low -20.0 h  9.4 b  0.5 t-20.0 at  -0.51,  0.19 fy -152.3 gz  1.20/ 1.20/ 1.40 age 0.90 st -1.00 v 0.70 tr  2.40 yaw -132.1
+IEV spiral.up_0.7 p4 run 4 t5.217 foot 0 low -20.0 h  9.6 b  0.6 t-20.0 at  -0.52,  0.18 fy -150.0 gz  1.20/ 1.20/ 1.40 age 0.92 st -1.00 v 0.70 tr  2.40 yaw -129.8
+IEV spiral.up_0.7 p4 run 4 t5.233 foot 0 low -20.0 h  9.5 b  0.6 t-20.0 at  -0.53,  0.18 fy -147.7 gz  1.20/ 1.20/ 1.40 age 0.93 st -1.00 v 0.70 tr  2.40 yaw -127.5
+IEV spiral.up_0.7 p4 run 4 t5.250 foot 0 low -20.0 h  9.4 b  0.7 t-20.0 at  -0.54,  0.18 fy -145.5 gz  1.20/ 1.20/ 1.40 age 0.95 st -1.00 v 0.70 tr  2.40 yaw -125.2
+IEV spiral.up_0.7 p4 run 4 t5.267 foot 0 low -20.0 h  9.4 b  0.9 t-20.0 at  -0.54,  0.17 fy -143.2 gz  1.20/ 1.20/ 1.40 age 0.97 st -1.00 v 0.70 tr  2.40 yaw -122.9
+IEV spiral.up_0.7 p4 run 4 t5.583 foot 0 low  -4.8 h -4.8 b -1.3 t  0.1 at   0.26, -0.26 fy -105.8 gz  2.00/ 2.00/ 2.00 age 0.02 st -1.00 v 0.70 tr -0.37 yaw -110.2
+IEV spiral.up_0.7 p5 run 5 t3.833 foot 0 low  -7.4 h 10.1 b -6.2 t -4.8 at  -0.10,  0.33 fy   71.5 gz  0.80/ 1.00/ 1.00 age 0.03 st -1.00 v 0.70 tr  1.02 yaw   60.4
+IEV spiral.up_0.7 p5 run 5 t3.850 foot 0 low  -7.4 h 10.3 b -6.2 t -4.9 at  -0.10,  0.33 fy   71.5 gz  0.80/ 1.00/ 1.00 age 0.05 st -1.00 v 0.70 tr  1.01 yaw   61.4
+IEV spiral.up_0.7 p5 run 5 t3.867 foot 0 low  -7.3 h 10.4 b -6.2 t -5.0 at  -0.10,  0.33 fy   71.5 gz  0.80/ 1.00/ 1.00 age 0.07 st -1.00 v 0.70 tr  2.40 yaw   63.7
+IEV spiral.up_0.7 p5 run 5 t3.883 foot 0 low  -7.3 h 10.6 b -6.2 t -5.0 at  -0.10,  0.33 fy   71.5 gz  0.80/ 1.00/ 1.00 age 0.08 st -1.00 v 0.70 tr  2.40 yaw   66.0
+IEV spiral.up_0.7 p5 run 5 t3.900 foot 0 low  -7.2 h 10.9 b -6.2 t -5.1 at  -0.10,  0.33 fy   71.5 gz  0.80/ 1.00/ 1.00 age 0.10 st -1.00 v 0.70 tr  1.24 yaw   67.2
+IEV spiral.up_0.7 p5 run 5 t3.917 foot 0 low  -7.1 h 11.2 b -6.2 t -5.2 at  -0.10,  0.33 fy   71.5 gz  0.80/ 1.00/ 1.00 age 0.12 st -1.00 v 0.70 tr  1.05 yaw   68.2
+IEV spiral.up_0.7 p5 run 5 t3.933 foot 0 low  -6.9 h 11.7 b -6.2 t -5.4 at  -0.10,  0.33 fy   71.5 gz  0.80/ 1.00/ 1.00 age 0.13 st -1.00 v 0.70 tr  1.08 yaw   69.2
+IEV spiral.up_0.7 p5 run 5 t3.950 foot 0 low  -6.7 h 12.3 b -6.2 t -5.6 at  -0.10,  0.33 fy   71.5 gz  0.80/ 1.00/ 1.00 age 0.15 st -1.00 v 0.70 tr  2.40 yaw   71.5
+IEV spiral.up_0.7 p5 run 5 t4.117 foot 1 low   3.7 h 33.0 b  4.6 t  3.7 at   0.64,  0.30 fy   55.5 gz  0.20/ 0.40/ 0.40 age 1.00 st -1.00 v 0.70 tr  2.40 yaw   89.2
+IEV spiral.up_0.7 p5 run 5 t4.483 foot 1 low  -7.2 h  7.9 b 11.7 t -6.8 at  -0.48,  0.12 fy  122.1 gz  1.20/ 1.20/ 1.40 age 0.03 st -1.00 v 0.70 tr  1.42 yaw  132.0
+IEV spiral.up_0.7 p5 run 5 t4.500 foot 1 low -18.9 h -3.7 b  0.0 t-18.6 at  -0.48,  0.12 fy  122.1 gz  1.20/ 1.20/ 1.40 age 0.05 st -1.00 v 0.70 tr  2.40 yaw  134.2
+IEV spiral.up_0.7 p5 run 5 t4.517 foot 1 low -19.0 h -3.6 b  0.0 t-18.7 at  -0.48,  0.12 fy  122.1 gz  1.20/ 1.20/ 1.40 age 0.07 st -1.00 v 0.70 tr  2.40 yaw  136.5
+IEV spiral.up_0.7 p5 run 5 t4.533 foot 1 low -19.0 h -3.4 b -0.0 t-18.7 at  -0.48,  0.12 fy  122.1 gz  1.20/ 1.20/ 1.40 age 0.08 st -1.00 v 0.70 tr  2.40 yaw  138.8
+IEV spiral.up_0.7 p5 run 5 t4.550 foot 1 low -19.1 h -3.3 b  0.0 t-18.8 at  -0.48,  0.12 fy  122.1 gz  1.20/ 1.20/ 1.40 age 0.10 st -1.00 v 0.70 tr  1.54 yaw  140.3
+IEV spiral.up_0.7 p5 run 5 t4.567 foot 1 low -19.2 h -2.9 b  0.0 t-18.9 at  -0.48,  0.12 fy  122.1 gz  1.20/ 1.20/ 1.40 age 0.12 st -1.00 v 0.70 tr  2.40 yaw  142.6
+IEV spiral.up_0.7 p5 run 5 t4.583 foot 1 low -19.3 h -2.5 b  0.0 t-19.1 at  -0.48,  0.13 fy  122.1 gz  1.20/ 1.20/ 1.40 age 0.13 st -1.00 v 0.70 tr  2.40 yaw  144.9
+IEV spiral.up_0.7 p5 run 5 t4.600 foot 1 low -19.4 h -1.9 b  0.0 t-19.3 at  -0.48,  0.13 fy  122.1 gz  1.20/ 1.20/ 1.40 age 0.15 st -1.00 v 0.70 tr  2.40 yaw  147.2
+IEV spiral.up_0.7 p5 run 5 t4.617 foot 1 low -19.6 h -1.4 b  0.0 t-19.5 at  -0.48,  0.13 fy  122.1 gz  1.20/ 1.20/ 1.40 age 0.17 st -1.00 v 0.70 tr  1.67 yaw  148.8
+IEV spiral.up_0.7 p5 run 5 t4.633 foot 1 low -19.8 h -0.8 b  0.0 t-19.7 at  -0.48,  0.13 fy  122.1 gz  1.20/ 1.20/ 1.40 age 0.18 st -1.00 v 0.70 tr  2.40 yaw  151.1
+IEV spiral.up_0.7 p5 run 5 t4.650 foot 1 low -19.9 h -0.4 b  0.0 t-19.9 at  -0.48,  0.13 fy  122.1 gz  1.20/ 1.20/ 1.40 age 0.20 st -1.00 v 0.70 tr  2.40 yaw  153.4
+IEV spiral.up_0.7 p5 run 5 t4.667 foot 1 low -19.9 h -0.2 b  0.0 t-19.9 at  -0.48,  0.13 fy  122.1 gz  1.20/ 1.20/ 1.40 age 0.22 st -1.00 v 0.70 tr  2.40 yaw  155.6
+IEV spiral.up_0.7 p5 run 5 t4.683 foot 1 low -20.0 h -0.1 b -0.0 t-20.0 at  -0.48,  0.13 fy  123.6 gz  1.20/ 1.20/ 1.40 age 0.23 st -1.00 v 0.70 tr  2.40 yaw  157.9
+IEV spiral.up_0.7 p5 run 5 t4.700 foot 1 low -20.0 h  0.6 b  0.0 t-20.0 at  -0.49,  0.14 fy  125.9 gz  1.20/ 1.20/ 1.40 age 0.25 st -1.00 v 0.70 tr  2.40 yaw  160.2
+IEV spiral.up_0.7 p5 run 5 t4.717 foot 1 low -20.0 h  1.2 b  0.0 t-20.0 at  -0.49,  0.14 fy  128.1 gz  1.20/ 1.20/ 1.40 age 0.27 st -1.00 v 0.70 tr  2.40 yaw  162.5
+IEV spiral.up_0.7 p5 run 5 t4.733 foot 1 low -20.0 h  1.8 b  0.0 t-20.0 at  -0.50,  0.15 fy  130.2 gz  1.20/ 1.20/ 1.40 age 0.28 st -1.00 v 0.70 tr  2.29 yaw  164.7
+IEV spiral.up_0.7 p5 run 5 t4.750 foot 1 low -20.0 h  2.5 b  0.0 t-20.0 at  -0.50,  0.15 fy  132.5 gz  1.20/ 1.20/ 1.40 age 0.30 st -1.00 v 0.70 tr  2.40 yaw  167.0
+IEV spiral.up_0.7 p5 run 5 t4.767 foot 1 low -20.0 h  3.1 b  0.0 t-20.0 at  -0.51,  0.16 fy  134.8 gz  1.20/ 1.20/ 1.40 age 0.32 st -1.00 v 0.70 tr  2.40 yaw  169.3
+IEV spiral.up_0.7 p5 run 5 t4.783 foot 1 low -20.0 h  3.8 b  0.1 t-20.0 at  -0.51,  0.16 fy  137.0 gz  1.20/ 1.20/ 1.40 age 0.33 st -1.00 v 0.70 tr  2.40 yaw  171.6
+IEV spiral.up_0.7 p5 run 5 t4.800 foot 1 low -20.0 h  3.8 b  0.1 t-20.0 at  -0.52,  0.16 fy  138.8 gz  1.20/ 1.20/ 1.40 age 0.35 st -1.00 v 0.70 tr  1.85 yaw  173.3
+IEV spiral.up_0.7 p5 run 5 t4.817 foot 1 low -20.0 h  3.8 b  0.1 t-20.0 at  -0.52,  0.17 fy  141.1 gz  1.20/ 1.20/ 1.40 age 0.37 st -1.00 v 0.70 tr  2.40 yaw  175.6
+IEV spiral.up_0.7 p5 run 5 t4.833 foot 1 low -20.0 h  3.8 b  0.1 t-20.0 at  -0.53,  0.17 fy  143.5 gz  1.20/ 1.20/ 1.40 age 0.38 st -1.00 v 0.70 tr  2.40 yaw  177.9
+IEV spiral.up_0.7 p5 run 5 t4.850 foot 1 low -20.0 h  3.8 b  0.1 t-20.0 at  -0.53,  0.18 fy  145.8 gz  1.20/ 1.20/ 1.40 age 0.40 st -1.00 v 0.70 tr  2.40 yaw -179.8
+IEV spiral.up_0.7 p5 run 5 t4.867 foot 1 low -20.0 h  3.8 b  0.1 t-20.0 at  -0.54,  0.18 fy  147.6 gz  1.20/ 1.20/ 1.40 age 0.42 st -1.00 v 0.70 tr  1.97 yaw -177.9
+IEV spiral.up_0.7 p5 run 5 t4.883 foot 1 low -20.0 h  3.8 b  0.1 t-20.0 at  -0.55,  0.19 fy  150.0 gz  1.20/ 1.20/ 1.40 age 0.43 st -1.00 v 0.70 tr  2.40 yaw -175.6
+IEV spiral.up_0.7 p5 run 5 t4.900 foot 1 low -20.0 h  3.8 b  0.1 t-20.0 at  -0.55,  0.19 fy  152.3 gz  1.20/ 1.20/ 1.40 age 0.45 st -1.00 v 0.70 tr  2.40 yaw -173.3
+IEV spiral.up_0.7 p5 run 5 t4.917 foot 1 low -20.0 h  3.8 b  0.1 t-20.0 at  -0.56,  0.19 fy  154.6 gz  1.20/ 1.20/ 1.40 age 0.47 st -1.00 v 0.70 tr  2.40 yaw -171.0
+IEV spiral.up_0.7 p5 run 5 t4.933 foot 1 low -20.0 h  3.8 b  0.1 t-20.0 at  -0.57,  0.20 fy  157.0 gz  1.20/ 1.20/ 1.40 age 0.48 st -1.00 v 0.70 tr  2.40 yaw -168.7
+IEV spiral.up_0.7 p5 run 5 t4.950 foot 1 low -20.0 h  3.8 b  0.1 t-20.0 at  -0.57,  0.20 fy  159.3 gz  1.20/ 1.20/ 1.40 age 0.50 st -1.00 v 0.70 tr  2.40 yaw -166.5
+IEV spiral.up_0.7 p5 run 5 t4.967 foot 1 low -20.0 h  3.8 b  0.1 t-20.0 at  -0.58,  0.20 fy  161.7 gz  1.20/ 1.20/ 1.40 age 0.52 st -1.00 v 0.70 tr  2.40 yaw -164.2
+IEV spiral.up_0.7 p5 run 5 t4.983 foot 1 low -20.0 h  3.8 b  0.1 t-20.0 at  -0.59,  0.20 fy  163.9 gz  1.20/ 1.20/ 1.40 age 0.53 st -1.00 v 0.70 tr  2.40 yaw -161.9
+IEV spiral.up_0.7 p5 run 5 t5.000 foot 1 low -20.0 h  3.8 b  0.1 t-20.0 at  -0.59,  0.20 fy  166.3 gz  1.20/ 1.20/ 1.40 age 0.55 st -1.00 v 0.70 tr  2.40 yaw -159.6
+IEV spiral.up_0.7 p5 run 5 t5.017 foot 1 low -20.0 h  3.8 b  0.1 t-20.0 at  -0.60,  0.21 fy  168.7 gz  1.20/ 1.20/ 1.40 age 0.57 st -1.00 v 0.70 tr  2.40 yaw -157.3
+IEV spiral.up_0.7 p5 run 5 t5.033 foot 1 low -19.7 h  4.1 b  0.4 t-19.7 at  -0.61,  0.21 fy  171.0 gz  1.20/ 1.20/ 1.40 age 0.58 st -1.00 v 0.70 tr  2.40 yaw -155.0
+IEV spiral.up_0.7 p5 run 5 t5.050 foot 1 low -19.2 h  4.6 b  0.9 t-19.2 at  -0.61,  0.20 fy  173.4 gz  1.20/ 1.20/ 1.40 age 0.60 st -1.00 v 0.70 tr  2.40 yaw -152.7
+IEV spiral.up_0.7 p5 run 5 t5.067 foot 1 low -18.6 h  5.2 b  1.5 t-18.6 at  -0.62,  0.20 fy  175.8 gz  1.20/ 1.20/ 1.40 age 0.62 st -1.00 v 0.70 tr  2.40 yaw -150.4
+IEV spiral.up_0.7 p5 run 5 t5.083 foot 1 low -18.1 h  5.7 b  2.0 t-18.1 at  -0.62,  0.20 fy  178.2 gz  1.20/ 1.20/ 1.40 age 0.63 st -1.00 v 0.70 tr  2.40 yaw -148.1
+IEV spiral.up_0.7 p5 run 5 t5.100 foot 1 low -17.6 h  6.2 b  2.5 t-17.6 at  -0.63,  0.20 fy -179.4 gz  1.20/ 1.20/ 1.40 age 0.65 st -1.00 v 0.70 tr  2.40 yaw -145.8

@@ -1,0 +1,135 @@
+IEV switchback.up_1.0 p0 run 0 t7.167 foot 0 low   4.2 h 12.4 b  6.2 t  4.2 at   0.14,  5.37 fy -146.7 gz  1.57/ 1.57/ 1.57 age 0.03 st -1.00 v 1.00 tr -6.00 yaw -139.6
+IEV switchback.up_1.0 p1 run 1 t7.233 foot 1 low -17.7 h -1.6 b-17.5 t-16.9 at   0.49,  4.63 fy -140.7 gz  1.57/ 1.75/ 1.75 age 0.10 st -1.00 v 1.00 tr -0.91 yaw -149.9
+IEV switchback.up_1.0 p1 run 1 t7.267 foot 0 low  11.0 h 21.2 b 11.4 t 11.0 at   0.25,  5.28 fy -142.9 gz  1.57/ 1.57/ 1.57 age 0.07 st -1.00 v 1.00 tr -0.88 yaw -151.6
+IEV switchback.up_1.0 p1 run 1 t9.133 foot 0 low  -3.0 h 13.0 b  0.0 t  1.7 at   0.68,  2.61 fy -167.5 gz  2.80/ 2.97/ 2.97 age 0.03 st -1.00 v 1.00 tr -0.03 yaw -179.0
+IEV switchback.up_1.0 p2 run 2 t3.633 foot 1 low -17.5 h  8.9 b  0.4 t-17.5 at  -0.46,  1.80 fy   -3.4 gz  0.00/ 0.00/ 0.17 age 0.67 st -1.00 v 1.00 tr -0.00 yaw    0.0
+IEV switchback.up_1.0 p2 run 2 t3.667 foot 1 low -17.5 h 11.0 b  0.5 t-17.5 at  -0.46,  1.81 fy   -3.4 gz  0.00/ 0.00/ 0.17 age 0.70 st -1.00 v 1.00 tr -0.00 yaw    0.0
+IEV switchback.up_1.0 p2 run 2 t3.700 foot 1 low -17.5 h 12.6 b  0.7 t-17.5 at  -0.46,  1.82 fy   -3.4 gz  0.00/ 0.00/ 0.17 age 0.73 st -1.00 v 1.00 tr -0.00 yaw    0.0
+IEV switchback.up_1.0 p2 run 2 t3.733 foot 1 low -17.5 h 13.5 b  0.9 t-17.5 at  -0.46,  1.83 fy   -3.4 gz  0.00/ 0.00/ 0.17 age 0.77 st -1.00 v 1.00 tr -0.00 yaw    0.0
+IEV switchback.up_1.0 p2 run 2 t3.767 foot 1 low -17.5 h 13.7 b  1.0 t-17.5 at  -0.46,  1.83 fy   -3.4 gz  0.00/ 0.00/ 0.17 age 0.80 st -1.00 v 1.00 tr -0.00 yaw    0.0
+IEV switchback.up_1.0 p2 run 2 t4.200 foot 1 low  -3.1 h 12.8 b  0.0 t  1.7 at  -0.46,  3.07 fy   -3.4 gz  0.70/ 0.88/ 0.88 age 0.03 st -1.00 v 1.00 tr -0.00 yaw    0.0
+IEV switchback.up_1.0 p2 run 2 t7.767 foot 0 low -17.5 h  3.9 b  0.1 t-17.5 at   0.51,  4.73 fy -148.0 gz  1.57/ 1.57/ 1.75 age 0.57 st -1.00 v 1.00 tr -0.32 yaw -169.2
+IEV switchback.up_1.0 p2 run 2 t7.800 foot 0 low -17.5 h  6.3 b  0.2 t-17.5 at   0.51,  4.73 fy -148.0 gz  1.57/ 1.57/ 1.75 age 0.60 st -1.00 v 1.00 tr -0.30 yaw -169.8
+IEV switchback.up_1.0 p2 run 2 t7.833 foot 0 low -17.5 h  8.7 b  0.3 t-17.5 at   0.51,  4.72 fy -148.0 gz  1.57/ 1.57/ 1.75 age 0.63 st -1.00 v 1.00 tr -0.29 yaw -170.3
+IEV switchback.up_1.0 p2 run 2 t7.867 foot 0 low -17.5 h 10.8 b  0.5 t-17.5 at   0.52,  4.71 fy -148.0 gz  1.57/ 1.57/ 1.75 age 0.67 st -1.00 v 1.00 tr -0.27 yaw -170.8
+IEV switchback.up_1.0 p2 run 2 t7.900 foot 0 low -17.5 h 12.5 b  0.7 t-17.5 at   0.53,  4.70 fy -148.0 gz  1.57/ 1.57/ 1.75 age 0.70 st -1.00 v 1.00 tr -0.26 yaw -171.3
+IEV switchback.up_1.0 p2 run 2 t7.933 foot 0 low -17.5 h 13.5 b  0.8 t-17.5 at   0.53,  4.70 fy -148.0 gz  1.57/ 1.57/ 1.75 age 0.73 st -1.00 v 1.00 tr -0.25 yaw -171.8
+IEV switchback.up_1.0 p2 run 2 t7.967 foot 0 low -17.5 h 13.7 b  1.0 t-17.5 at   0.53,  4.69 fy -148.0 gz  1.57/ 1.57/ 1.75 age 0.77 st -1.00 v 1.00 tr -0.23 yaw -172.2
+IEV switchback.up_1.0 p3 run 3 t4.600 foot 0 low  -3.4 h 12.9 b -2.8 t -2.1 at  -0.70,  3.57 fy   10.3 gz  1.05/ 1.23/ 1.23 age 0.03 st -1.00 v 1.00 tr -0.00 yaw    0.0
+IEV switchback.up_1.0 p4 run 4 t5.000 foot 1 low  -3.1 h 12.8 b  0.0 t  1.7 at  -0.45,  3.90 fy   -4.6 gz  1.23/ 1.40/ 1.40 age 0.03 st -1.00 v 1.00 tr -0.00 yaw    0.0
+IEV switchback.up_1.0 p4 run 4 t8.200 foot 0 low  -4.1 h 10.7 b -2.8 t -1.3 at   0.65,  3.51 fy -169.9 gz  2.27/ 2.45/ 2.45 age 0.07 st -1.00 v 1.00 tr -0.16 yaw -174.8
+IEV switchback.up_1.0 p4 run 4 t8.233 foot 0 low  -3.7 h 12.0 b -2.8 t -1.8 at   0.65,  3.51 fy -169.9 gz  2.27/ 2.45/ 2.45 age 0.10 st -1.00 v 1.00 tr -0.15 yaw -175.1
+IEV switchback.up_1.0 p5 run 5 t5.167 foot 0 low  -3.1 h 12.8 b  0.0 t  1.7 at  -0.64,  3.91 fy   11.5 gz  1.23/ 1.40/ 1.40 age 0.03 st -1.00 v 1.00 tr -0.00 yaw    0.0
+IEV switchback.up_1.0 p5 run 5 t7.133 foot 1 low -11.0 h  0.1 b  4.8 t-11.0 at   0.44,  4.71 fy -140.6 gz  1.57/ 1.57/ 1.75 age 0.03 st -1.00 v 1.00 tr -1.80 yaw -128.1
+IEV switchback.up_1.0 p5 run 5 t7.167 foot 1 low -11.9 h  0.0 b  4.1 t-11.9 at   0.44,  4.71 fy -140.6 gz  1.57/ 1.57/ 1.75 age 0.07 st -1.00 v 1.00 tr -6.00 yaw -139.6
+IEV switchback.up_1.0 p5 run 5 t7.200 foot 1 low -13.7 h  0.0 b  2.8 t-13.6 at   0.44,  4.71 fy -140.6 gz  1.57/ 1.57/ 1.75 age 0.10 st -1.00 v 1.00 tr -4.50 yaw -148.2
+IEV switchback.up_1.0 p5 run 5 t7.233 foot 1 low -15.8 h -0.0 b  1.3 t-15.8 at   0.44,  4.71 fy -140.6 gz  1.57/ 1.57/ 1.75 age 0.13 st -1.00 v 1.00 tr -0.91 yaw -149.9
+IEV switchback.up_1.0 p5 run 5 t7.267 foot 1 low -17.3 h  0.0 b  0.1 t-17.3 at   0.44,  4.71 fy -140.6 gz  1.57/ 1.57/ 1.75 age 0.17 st -1.00 v 1.00 tr -0.88 yaw -151.6
+IEV switchback.up_1.0 p5 run 5 t7.300 foot 1 low -17.5 h  0.2 b  0.1 t-17.5 at   0.44,  4.71 fy -140.6 gz  1.57/ 1.57/ 1.75 age 0.20 st -1.00 v 1.00 tr -0.84 yaw -153.2
+IEV switchback.up_1.0 p5 run 5 t7.333 foot 1 low -17.5 h  0.2 b  0.0 t-17.5 at   0.44,  4.71 fy -141.1 gz  1.57/ 1.57/ 1.75 age 0.23 st -1.00 v 1.00 tr -0.80 yaw -154.7
+IEV switchback.up_1.0 p5 run 5 t7.367 foot 1 low -17.5 h  1.3 b  0.1 t-17.5 at   0.44,  4.71 fy -142.4 gz  1.57/ 1.57/ 1.75 age 0.27 st -1.00 v 1.00 tr -0.77 yaw -156.2
+IEV switchback.up_1.0 p5 run 5 t7.400 foot 1 low -17.5 h  2.6 b  0.1 t-17.5 at   0.45,  4.71 fy -143.6 gz  1.57/ 1.57/ 1.75 age 0.30 st -1.00 v 1.00 tr -0.73 yaw -157.6
+IEV switchback.up_1.0 p5 run 5 t7.433 foot 1 low -17.5 h  3.9 b  0.1 t-17.5 at   0.46,  4.72 fy -147.5 gz  1.57/ 1.57/ 1.75 age 0.33 st -1.00 v 1.00 tr -2.13 yaw -161.6
+IEV switchback.up_1.0 p5 run 5 t7.467 foot 1 low -17.5 h  3.9 b  0.1 t-17.5 at   0.46,  4.72 fy -148.3 gz  1.57/ 1.57/ 1.75 age 0.37 st -1.00 v 1.00 tr -0.48 yaw -162.6
+IEV switchback.up_1.0 p5 run 5 t7.500 foot 1 low -17.5 h  3.8 b  0.1 t-17.5 at   0.46,  4.72 fy -149.2 gz  1.57/ 1.57/ 1.75 age 0.40 st -1.00 v 1.00 tr -0.46 yaw -163.4
+IEV switchback.up_1.0 p5 run 5 t7.533 foot 1 low -17.5 h  3.8 b  0.1 t-17.5 at   0.46,  4.72 fy -150.0 gz  1.57/ 1.57/ 1.75 age 0.43 st -1.00 v 1.00 tr -0.44 yaw -164.3
+IEV switchback.up_1.0 p5 run 5 t7.567 foot 1 low -17.5 h  3.8 b  0.1 t-17.5 at   0.47,  4.72 fy -150.8 gz  1.57/ 1.57/ 1.75 age 0.47 st -1.00 v 1.00 tr -0.42 yaw -165.1
+IEV switchback.up_1.0 p5 run 5 t7.600 foot 1 low -17.5 h  3.8 b  0.1 t-17.5 at   0.47,  4.73 fy -151.5 gz  1.57/ 1.57/ 1.75 age 0.50 st -1.00 v 1.00 tr -0.40 yaw -165.8
+IEV switchback.up_1.0 p5 run 5 t7.633 foot 1 low -17.5 h  3.8 b  0.1 t-17.5 at   0.47,  4.73 fy -152.2 gz  1.57/ 1.57/ 1.75 age 0.53 st -1.00 v 1.00 tr -0.38 yaw -166.6
+IEV switchback.up_1.0 p5 run 5 t7.667 foot 1 low -17.5 h  3.8 b  0.1 t-17.5 at   0.47,  4.73 fy -152.9 gz  1.57/ 1.57/ 1.75 age 0.57 st -1.00 v 1.00 tr -0.37 yaw -167.3
+IEV switchback.up_1.0 p5 run 5 t7.700 foot 1 low -17.5 h  3.8 b  0.1 t-17.5 at   0.47,  4.73 fy -153.6 gz  1.57/ 1.57/ 1.75 age 0.60 st -1.00 v 1.00 tr -0.35 yaw -167.9
+IEV switchback.up_1.0 p5 run 5 t7.733 foot 1 low -17.5 h  3.8 b  0.1 t-17.5 at   0.48,  4.73 fy -154.2 gz  1.57/ 1.57/ 1.75 age 0.63 st -1.00 v 1.00 tr -0.33 yaw -168.6
+IEV switchback.up_1.0 p5 run 5 t7.767 foot 1 low -17.5 h  3.8 b  0.1 t-17.5 at   0.48,  4.73 fy -154.8 gz  1.57/ 1.57/ 1.75 age 0.67 st -1.00 v 1.00 tr -0.32 yaw -169.2
+IEV switchback.down_1.0 p1 run 7 t6.733 foot 1 low   3.2 h 15.1 b  4.3 t  3.2 at  -0.21,  5.38 fy  142.0 gz  1.57/ 1.57/ 1.57 age 0.03 st -1.00 v 1.00 tr  0.91 yaw  149.9
+IEV switchback.down_1.0 p1 run 7 t7.400 foot 0 low   3.4 h 15.5 b  4.6 t  3.4 at  -0.29,  4.73 fy -174.3 gz  1.57/ 1.57/ 1.57 age 0.03 st -1.00 v 1.00 tr  0.26 yaw  171.3
+IEV switchback.down_1.0 p5 run 11 t6.733 foot 1 low   3.5 h 16.4 b  5.2 t  3.5 at  -0.20,  5.39 fy  142.0 gz  1.57/ 1.57/ 1.57 age 0.03 st -1.00 v 1.00 tr  0.91 yaw  149.9
+IEV switchback.down_1.0 p5 run 11 t7.400 foot 0 low   3.3 h 16.3 b  5.1 t  3.3 at  -0.29,  4.74 fy -174.3 gz  1.57/ 1.57/ 1.57 age 0.03 st -1.00 v 1.00 tr  0.26 yaw  171.3
+IEV switchback_tight.up_1.0 p2 run 14 t3.633 foot 1 low -18.0 h  8.9 b  0.4 t-18.0 at  -0.36,  1.80 fy   -3.4 gz  0.00/ 0.00/ 0.18 age 0.67 st -1.00 v 1.00 tr -0.00 yaw    0.0
+IEV switchback_tight.up_1.0 p2 run 14 t3.667 foot 1 low -18.0 h 11.0 b  0.5 t-18.0 at  -0.36,  1.81 fy   -3.4 gz  0.00/ 0.00/ 0.18 age 0.70 st -1.00 v 1.00 tr -0.00 yaw    0.0
+IEV switchback_tight.up_1.0 p2 run 14 t3.700 foot 1 low -18.0 h 12.6 b  0.7 t-18.0 at  -0.36,  1.82 fy   -3.4 gz  0.00/ 0.00/ 0.18 age 0.73 st -1.00 v 1.00 tr -0.00 yaw    0.0
+IEV switchback_tight.up_1.0 p2 run 14 t3.733 foot 1 low -18.0 h 13.5 b  0.9 t-18.0 at  -0.36,  1.83 fy   -3.4 gz  0.00/ 0.00/ 0.18 age 0.77 st -1.00 v 1.00 tr -0.00 yaw    0.0
+IEV switchback_tight.up_1.0 p2 run 14 t3.767 foot 1 low -18.0 h 13.7 b  1.0 t-18.0 at  -0.36,  1.83 fy   -3.4 gz  0.00/ 0.00/ 0.18 age 0.80 st -1.00 v 1.00 tr -0.00 yaw    0.0
+IEV switchback_tight.up_1.0 p2 run 14 t6.867 foot 0 low   3.2 h 15.3 b  5.6 t  3.2 at   0.27,  5.12 fy -170.9 gz  1.62/ 1.62/ 1.62 age 0.03 st -1.00 v 1.00 tr -0.88 yaw -151.5
+IEV switchback_tight.up_1.0 p4 run 16 t3.767 foot 1 low  -5.5 h 10.9 b -3.4 t -2.0 at  -0.34,  2.73 fy   -4.6 gz  0.54/ 0.72/ 0.72 age 0.07 st -1.00 v 1.00 tr -0.00 yaw    0.0
+IEV switchback_tight.up_1.0 p4 run 16 t3.800 foot 1 low  -4.6 h 12.3 b -3.4 t -2.5 at  -0.34,  2.73 fy   -4.6 gz  0.54/ 0.72/ 0.72 age 0.10 st -1.00 v 1.00 tr -0.00 yaw    0.0
+IEV switchback_tight.up_1.0 p4 run 16 t6.900 foot 0 low -18.0 h -4.5 b-18.0 t-16.3 at   0.48,  4.31 fy -151.5 gz  1.80/ 1.98/ 1.98 age 0.03 st -1.00 v 1.00 tr -0.84 yaw -153.1
+IEV switchback_tight.up_1.0 p4 run 16 t6.933 foot 0 low -11.3 h  2.9 b-11.3 t -9.9 at   0.48,  4.31 fy -151.5 gz  1.80/ 1.98/ 1.98 age 0.07 st -1.00 v 1.00 tr -0.81 yaw -154.6
+IEV switchback_tight.up_1.0 p4 run 16 t7.033 foot 0 low -18.0 h -0.0 b-18.0 t-18.0 at   0.48,  4.31 fy -151.5 gz  1.80/ 1.98/ 1.98 age 0.17 st -1.00 v 1.00 tr -0.50 yaw -161.5
+IEV switchback_tight.up_1.0 p4 run 16 t8.200 foot 0 low  -4.6 h 10.8 b -3.4 t -1.9 at   0.56,  2.91 fy -172.6 gz  2.70/ 2.88/ 2.88 age 0.07 st -1.00 v 1.00 tr -0.08 yaw -177.3
+IEV switchback_tight.up_1.0 p4 run 16 t8.233 foot 0 low  -4.1 h 12.4 b -3.4 t -2.5 at   0.56,  2.92 fy -172.6 gz  2.70/ 2.88/ 2.88 age 0.10 st -1.00 v 1.00 tr -0.08 yaw -177.5
+IEV switchback_tight.down_1.0 p0 run 18 t6.433 foot 1 low   3.7 h 17.8 b  5.7 t  3.7 at  -0.23,  5.09 fy  161.0 gz  1.62/ 1.62/ 1.62 age 0.03 st -1.00 v 1.00 tr  0.80 yaw  154.7
+IEV switchback_tight.down_1.0 p0 run 18 t7.067 foot 0 low   3.6 h 17.8 b  5.9 t  3.6 at  -0.24,  4.47 fy  178.3 gz  1.62/ 1.62/ 1.62 age 0.03 st -1.00 v 1.00 tr  0.23 yaw  172.2
+IEV switchback_tight.down_1.0 p2 run 20 t6.333 foot 1 low   4.0 h 11.4 b  5.8 t  4.0 at  -0.23,  5.10 fy  164.9 gz  1.62/ 1.62/ 1.62 age 0.03 st -1.00 v 1.00 tr  0.91 yaw  149.9
+IEV lstair.up_1.0 p0 run 0 t6.833 foot 1 low  -3.2 h 12.7 b  0.0 t  1.8 at   1.28,  4.63 fy  -87.0 gz  1.92/ 2.10/ 2.10 age 0.03 st -1.00 v 1.00 tr -0.20 yaw  -83.5
+IEV lstair.up_1.0 p0 run 0 t7.467 foot 0 low  -4.3 h 10.1 b -2.8 t -1.1 at   2.07,  4.84 fy  -84.3 gz  2.45/ 2.62/ 2.62 age 0.03 st -1.00 v 1.00 tr -0.07 yaw  -87.8
+IEV lstair.up_1.0 p2 run 2 t3.633 foot 1 low -17.5 h  8.9 b  0.4 t-17.5 at   0.09,  1.80 fy   -3.4 gz  0.00/ 0.00/ 0.17 age 0.67 st -1.00 v 1.00 tr -0.00 yaw    0.0
+IEV lstair.up_1.0 p2 run 2 t3.667 foot 1 low -17.5 h 11.0 b  0.5 t-17.5 at   0.09,  1.81 fy   -3.4 gz  0.00/ 0.00/ 0.17 age 0.70 st -1.00 v 1.00 tr -0.00 yaw    0.0
+IEV lstair.up_1.0 p2 run 2 t3.700 foot 1 low -17.5 h 12.6 b  0.7 t-17.5 at   0.09,  1.82 fy   -3.4 gz  0.00/ 0.00/ 0.17 age 0.73 st -1.00 v 1.00 tr -0.00 yaw    0.0
+IEV lstair.up_1.0 p2 run 2 t3.733 foot 1 low -17.5 h 13.5 b  0.9 t-17.5 at   0.09,  1.83 fy   -3.4 gz  0.00/ 0.00/ 0.17 age 0.77 st -1.00 v 1.00 tr -0.00 yaw    0.0
+IEV lstair.up_1.0 p2 run 2 t3.767 foot 1 low -17.5 h 13.7 b  1.0 t-17.5 at   0.09,  1.83 fy   -3.4 gz  0.00/ 0.00/ 0.17 age 0.80 st -1.00 v 1.00 tr -0.00 yaw    0.0
+IEV lstair.up_1.0 p2 run 2 t4.200 foot 1 low  -3.1 h 12.8 b  0.0 t  1.7 at   0.09,  3.07 fy   -3.4 gz  0.70/ 0.88/ 0.88 age 0.03 st -1.00 v 1.00 tr -0.00 yaw    0.0
+IEV lstair.up_1.0 p2 run 2 t6.633 foot 0 low -17.5 h  8.3 b  0.3 t-17.5 at   0.31,  4.71 fy  -51.5 gz  1.40/ 1.40/ 1.57 age 0.63 st -1.00 v 1.00 tr -0.27 yaw  -81.0
+IEV lstair.up_1.0 p2 run 2 t6.667 foot 0 low -17.5 h 10.5 b  0.5 t-17.5 at   0.31,  4.72 fy  -52.0 gz  1.40/ 1.40/ 1.57 age 0.67 st -1.00 v 1.00 tr -0.26 yaw  -81.5
+IEV lstair.up_1.0 p2 run 2 t6.700 foot 0 low -17.5 h 12.3 b  0.7 t-17.5 at   0.32,  4.73 fy  -52.4 gz  1.40/ 1.40/ 1.57 age 0.70 st -1.00 v 1.00 tr -0.24 yaw  -81.9
+IEV lstair.up_1.0 p2 run 2 t6.733 foot 0 low -17.5 h 13.4 b  0.8 t-17.5 at   0.33,  4.74 fy  -52.8 gz  1.40/ 1.40/ 1.57 age 0.73 st -1.00 v 1.00 tr -0.23 yaw  -82.4
+IEV lstair.up_1.0 p2 run 2 t6.767 foot 0 low -17.5 h 13.7 b  0.9 t-17.5 at   0.33,  4.74 fy  -53.2 gz  1.40/ 1.40/ 1.57 age 0.77 st -1.00 v 1.00 tr -0.22 yaw  -82.8
+IEV lstair.up_1.0 p3 run 3 t4.600 foot 0 low  -3.4 h 12.9 b -2.8 t -2.1 at  -0.15,  3.57 fy   10.3 gz  1.05/ 1.23/ 1.23 age 0.03 st -1.00 v 1.00 tr -0.00 yaw    0.0
+IEV lstair.up_1.0 p3 run 3 t6.300 foot 1 low  16.4 h 32.9 b 17.5 t 18.3 at   0.70,  4.57 fy  -84.8 gz  1.57/ 1.75/ 1.75 age 0.03 st -1.00 v 1.00 tr -0.43 yaw  -74.5
+IEV lstair.up_1.0 p3 run 3 t6.333 foot 1 low  10.1 h 26.9 b 11.0 t 11.6 at   0.70,  4.57 fy  -84.8 gz  1.57/ 1.75/ 1.75 age 0.07 st -1.00 v 1.00 tr -0.42 yaw  -75.3
+IEV lstair.up_1.0 p4 run 4 t5.000 foot 1 low  -3.1 h 12.8 b  0.0 t  1.7 at   0.10,  3.90 fy   -4.6 gz  1.23/ 1.40/ 1.40 age 0.03 st -1.00 v 1.00 tr -0.00 yaw    0.0
+IEV lstair.up_1.0 p5 run 5 t6.500 foot 0 low  -3.0 h 13.0 b  0.0 t  1.7 at   1.01,  4.84 fy  -67.4 gz  1.75/ 1.92/ 1.92 age 0.03 st -1.00 v 1.00 tr -0.33 yaw  -78.7
+IEV lstair.up_1.0 p5 run 5 t6.600 foot 1 low -17.5 h 11.2 b  0.9 t-17.5 at   0.27,  4.61 fy  -65.8 gz  1.40/ 1.40/ 1.57 age 0.77 st -1.00 v 1.00 tr -0.28 yaw  -80.4
+IEV lstair.up_1.0 p5 run 5 t6.633 foot 1 low -17.5 h 12.5 b  1.1 t-17.5 at   0.28,  4.62 fy  -66.3 gz  1.40/ 1.40/ 1.57 age 0.80 st -1.00 v 1.00 tr -0.27 yaw  -81.0
+IEV lstair.up_1.0 p5 run 5 t6.667 foot 1 low -17.5 h 13.1 b  1.2 t-17.5 at   0.28,  4.62 fy  -66.8 gz  1.40/ 1.40/ 1.57 age 0.83 st -1.00 v 1.00 tr -0.26 yaw  -81.5
+IEV lstair.up_1.0 p5 run 5 t7.200 foot 1 low  -4.3 h 11.4 b -2.8 t -1.6 at   1.81,  4.58 fy  -97.8 gz  2.28/ 2.45/ 2.45 age 0.07 st -1.00 v 1.00 tr -0.11 yaw  -86.5
+IEV lstair.up_1.0 p5 run 5 t7.233 foot 1 low  -3.5 h 13.0 b -2.8 t -2.2 at   1.81,  4.59 fy  -97.8 gz  2.28/ 2.45/ 2.45 age 0.10 st -1.00 v 1.00 tr -0.10 yaw  -86.7
+IEV lstair.down_1.0 p3 run 9 t5.200 foot 1 low   3.6 h  3.6 b  5.1 t  5.6 at   0.24,  4.76 fy   94.7 gz  1.40/ 1.40/ 1.40 age 0.03 st -1.00 v 1.00 tr  1.34 yaw  104.9
+IEV lstair.down_1.0 p3 run 9 t5.900 foot 1 low   4.2 h 10.4 b  4.4 t  4.2 at   0.18,  4.83 fy  130.7 gz  1.40/ 1.40/ 1.40 age 0.73 st -1.00 v 1.00 tr  0.38 yaw  166.9
+IEV lstair.down_1.0 p3 run 9 t5.933 foot 1 low   5.9 h 12.6 b  6.1 t  5.9 at   0.18,  4.81 fy  131.3 gz  1.40/ 1.40/ 1.40 age 0.77 st -1.00 v 1.00 tr  0.36 yaw  167.5
+IEV lstair.down_1.0 p4 run 10 t5.833 foot 1 low   4.1 h 17.3 b  5.1 t  4.1 at   0.31,  4.90 fy  134.4 gz  1.40/ 1.40/ 1.40 age 0.87 st -1.00 v 1.00 tr  0.41 yaw  165.4
+IEV winder.up_0.9 p0 run 0 t6.800 foot 1 low  -3.3 h 13.1 b  0.0 t  1.8 at   1.01,  4.32 fy  -81.5 gz  2.16/ 2.34/ 2.34 age 0.03 st -1.00 v 0.90 tr -0.32 yaw  -77.8
+IEV winder.up_0.9 p0 run 0 t6.867 foot 0 low -18.0 h  8.6 b  0.4 t-18.0 at   0.30,  4.41 fy  -48.4 gz  1.80/ 1.80/ 1.98 age 0.67 st -1.00 v 0.90 tr -0.29 yaw  -79.0
+IEV winder.up_0.9 p0 run 0 t6.900 foot 0 low -18.0 h 10.5 b  0.5 t-18.0 at   0.31,  4.42 fy  -48.9 gz  1.80/ 1.80/ 1.98 age 0.70 st -1.00 v 0.90 tr -0.28 yaw  -79.5
+IEV winder.up_0.9 p0 run 0 t6.933 foot 0 low -18.0 h 12.1 b  0.7 t-18.0 at   0.32,  4.43 fy  -49.4 gz  1.80/ 1.80/ 1.98 age 0.73 st -1.00 v 0.90 tr -0.27 yaw  -80.0
+IEV winder.up_0.9 p0 run 0 t6.967 foot 0 low -18.0 h 13.0 b  0.8 t-18.0 at   0.32,  4.43 fy  -49.9 gz  1.80/ 1.80/ 1.98 age 0.77 st -1.00 v 0.90 tr -0.25 yaw  -80.5
+IEV winder.up_0.9 p0 run 0 t7.000 foot 0 low -18.0 h 13.2 b  0.9 t-18.0 at   0.32,  4.43 fy  -50.3 gz  1.80/ 1.80/ 1.98 age 0.80 st -1.00 v 0.90 tr -0.24 yaw  -80.9
+IEV winder.up_0.9 p0 run 0 t8.067 foot 1 low  -3.1 h 13.3 b  0.0 t  1.7 at   2.13,  4.36 fy  -91.8 gz  2.88/ 3.06/ 3.06 age 0.03 st -1.00 v 0.90 tr -0.05 yaw  -88.2
+IEV winder.up_0.9 p1 run 1 t3.933 foot 1 low -18.0 h  8.3 b  0.3 t-18.0 at   0.12,  1.78 fy  -10.7 gz  0.00/ 0.00/ 0.18 age 0.80 st -1.00 v 0.90 tr -0.00 yaw    0.0
+IEV winder.up_0.9 p1 run 1 t3.967 foot 1 low -18.0 h  9.7 b  0.5 t-18.0 at   0.12,  1.79 fy  -10.7 gz  0.00/ 0.00/ 0.18 age 0.83 st -1.00 v 0.90 tr -0.00 yaw    0.0
+IEV winder.up_0.9 p1 run 1 t4.000 foot 1 low -18.0 h 10.6 b  0.6 t-18.0 at   0.12,  1.80 fy  -10.7 gz  0.00/ 0.00/ 0.18 age 0.87 st -1.00 v 0.90 tr -0.00 yaw    0.0
+IEV winder.up_0.9 p1 run 1 t4.033 foot 1 low -18.0 h 11.1 b  0.6 t-18.0 at   0.12,  1.80 fy  -10.7 gz  0.00/ 0.00/ 0.18 age 0.90 st -1.00 v 0.90 tr -0.00 yaw    0.0
+IEV winder.up_0.9 p1 run 1 t4.067 foot 1 low -18.0 h 11.1 b  0.7 t-18.0 at   0.12,  1.80 fy  -10.7 gz  0.00/ 0.00/ 0.18 age 0.93 st -1.00 v 0.90 tr -0.00 yaw    0.0
+IEV winder.up_0.9 p1 run 1 t5.167 foot 0 low  -3.2 h 13.9 b  0.0 t  1.5 at  -0.13,  3.65 fy   11.6 gz  1.08/ 1.26/ 1.26 age 0.03 st -1.00 v 0.90 tr -0.00 yaw    0.0
+IEV winder.up_0.9 p1 run 1 t7.800 foot 0 low  -3.4 h 13.7 b  0.0 t  1.6 at   1.88,  4.56 fy  -75.7 gz  2.70/ 2.88/ 2.88 age 0.03 st -1.00 v 0.90 tr -0.07 yaw  -87.3
+IEV winder.up_0.9 p1 run 1 t7.833 foot 0 low  -3.0 h 14.1 b  0.0 t  1.4 at   1.88,  4.56 fy  -75.7 gz  2.70/ 2.88/ 2.88 age 0.07 st -1.00 v 0.90 tr -0.07 yaw  -87.5
+IEV winder.up_0.9 p2 run 2 t6.033 foot 0 low  -3.1 h 14.5 b  0.0 t  1.3 at   0.10,  4.18 fy  -22.5 gz  1.44/ 1.62/ 1.62 age 0.03 st -1.00 v 0.90 tr -1.18 yaw  -29.0
+IEV winder.up_0.9 p2 run 2 t6.767 foot 0 low -16.1 h 14.4 b  2.7 t-16.1 at   0.08,  4.25 fy  -46.4 gz  1.62/ 1.62/ 1.80 age 0.77 st -1.00 v 0.90 tr -0.33 yaw  -77.2
+IEV winder.up_0.9 p3 run 3 t6.467 foot 0 low -15.5 h  7.8 b  2.6 t-15.5 at  -0.14,  4.03 fy  -31.6 gz  1.44/ 1.44/ 1.62 age 0.80 st -1.00 v 0.90 tr -1.25 yaw  -68.3
+IEV winder.up_0.9 p3 run 3 t6.500 foot 0 low -14.0 h  9.9 b  4.1 t-14.0 at  -0.13,  4.04 fy  -32.7 gz  1.44/ 1.44/ 1.62 age 0.83 st -1.00 v 0.90 tr -0.57 yaw  -69.4
+IEV winder.up_0.9 p4 run 4 t5.600 foot 0 low  -3.1 h 13.3 b  0.0 t  1.7 at  -0.07,  3.91 fy   -1.1 gz  1.26/ 1.44/ 1.44 age 0.03 st -1.00 v 0.90 tr -0.66 yaw   -5.6
+IEV winder.up_0.9 p5 run 5 t3.933 foot 1 low -18.0 h  9.2 b  0.6 t-18.0 at   0.12,  1.78 fy  -10.8 gz  0.00/ 0.00/ 0.18 age 0.80 st -1.00 v 0.90 tr -0.00 yaw    0.0
+IEV winder.up_0.9 p5 run 5 t3.967 foot 1 low -18.0 h 10.6 b  0.8 t-18.0 at   0.12,  1.79 fy  -10.8 gz  0.00/ 0.00/ 0.18 age 0.83 st -1.00 v 0.90 tr -0.00 yaw    0.0
+IEV winder.up_0.9 p5 run 5 t4.000 foot 1 low -18.0 h 11.6 b  0.9 t-18.0 at   0.12,  1.79 fy  -10.8 gz  0.00/ 0.00/ 0.18 age 0.87 st -1.00 v 0.90 tr -0.00 yaw    0.0
+IEV winder.up_0.9 p5 run 5 t4.033 foot 1 low -18.0 h 12.0 b  1.0 t-18.0 at   0.12,  1.80 fy  -10.8 gz  0.00/ 0.00/ 0.18 age 0.90 st -1.00 v 0.90 tr -0.00 yaw    0.0
+IEV winder.up_0.9 p5 run 5 t5.833 foot 1 low  -5.7 h 10.5 b -3.4 t -1.8 at   0.28,  4.22 fy  -25.4 gz  1.62/ 1.80/ 1.80 age 0.07 st -1.00 v 0.90 tr -0.93 yaw  -16.3
+IEV winder.up_0.9 p5 run 5 t5.867 foot 1 low  -5.2 h 11.3 b -3.4 t -2.1 at   0.28,  4.22 fy  -25.4 gz  1.62/ 1.80/ 1.80 age 0.10 st -1.00 v 0.90 tr -1.00 yaw  -18.2
+IEV winder.up_0.9 p5 run 5 t5.900 foot 1 low  -4.5 h 12.7 b -3.4 t -2.6 at   0.28,  4.21 fy  -25.4 gz  1.62/ 1.80/ 1.80 age 0.13 st -1.00 v 0.90 tr -0.96 yaw  -20.1
+IEV winder.up_0.9 p5 run 5 t5.933 foot 1 low  -3.7 h 14.0 b -3.4 t -3.1 at   0.28,  4.21 fy  -25.4 gz  1.62/ 1.80/ 1.80 age 0.17 st -1.00 v 0.90 tr -1.08 yaw  -22.1
+IEV winder.up_0.9 p5 run 5 t5.967 foot 1 low  -3.4 h 14.6 b -3.4 t -3.3 at   0.28,  4.21 fy  -25.4 gz  1.62/ 1.80/ 1.80 age 0.20 st -1.00 v 0.90 tr -1.07 yaw  -24.2
+IEV winder.down_0.9 p0 run 6 t5.700 foot 0 low   3.5 h 12.7 b 18.8 t 18.0 at   0.62,  4.42 fy  118.9 gz  1.98/ 1.80/ 1.80 age 0.80 st -1.00 v 0.90 tr  2.23 yaw  141.1
+IEV winder.down_0.9 p0 run 6 t5.733 foot 0 low   3.7 h 13.3 b 18.9 t 18.0 at   0.61,  4.43 fy  122.8 gz  1.98/ 1.80/ 1.80 age 0.83 st -1.00 v 0.90 tr  2.05 yaw  145.0
+IEV winder.down_0.9 p0 run 6 t5.767 foot 0 low   3.7 h 13.2 b 19.0 t 18.0 at   0.61,  4.44 fy  124.7 gz  1.98/ 1.80/ 1.80 age 0.87 st -1.00 v 0.90 tr  1.00 yaw  146.9
+IEV winder.down_0.9 p1 run 7 t5.900 foot 0 low   3.5 h  7.4 b 18.3 t 18.0 at   0.39,  4.34 fy  142.5 gz  1.80/ 1.62/ 1.62 age 0.77 st -1.00 v 0.90 tr  1.34 yaw  157.3
+IEV winder.down_0.9 p1 run 7 t5.933 foot 0 low   4.2 h  8.9 b 18.4 t 18.0 at   0.38,  4.34 fy  144.6 gz  1.80/ 1.62/ 1.62 age 0.80 st -1.00 v 0.90 tr  1.15 yaw  159.5
+IEV winder.down_0.9 p1 run 7 t5.967 foot 0 low   4.8 h 10.1 b 18.5 t 18.0 at   0.37,  4.34 fy  145.5 gz  1.80/ 1.62/ 1.62 age 0.83 st -1.00 v 0.90 tr  0.53 yaw  160.6
+IEV winder.down_0.9 p1 run 7 t6.000 foot 0 low   6.3 h 10.9 b 18.6 t 18.0 at   0.36,  4.34 fy  147.3 gz  1.80/ 1.62/ 1.62 age 0.87 st -1.00 v 0.90 tr  0.94 yaw  162.3
+IEV winder.down_0.9 p1 run 7 t6.033 foot 0 low   6.4 h 11.1 b 18.6 t 18.0 at   0.36,  4.34 fy  148.2 gz  1.80/ 1.62/ 1.62 age 0.90 st -1.00 v 0.90 tr  0.43 yaw  163.2
+IEV winder.down_0.9 p4 run 10 t5.633 foot 0 low   5.9 h  5.9 b 10.1 t 11.7 at   0.12,  3.94 fy  134.8 gz  1.26/ 1.26/ 1.26 age 0.07 st -1.00 v 0.90 tr  2.31 yaw  134.4
+IEV winder.down_0.9 p4 run 10 t5.667 foot 0 low   5.9 h  5.9 b  9.5 t 10.8 at   0.12,  3.94 fy  134.8 gz  1.26/ 1.26/ 1.26 age 0.10 st -1.00 v 0.90 tr  1.25 yaw  136.8
+IEV winder.down_0.9 p4 run 10 t5.700 foot 0 low   3.7 h  3.7 b  6.1 t  6.9 at   0.12,  3.94 fy  134.8 gz  1.26/ 1.26/ 1.26 age 0.13 st -1.00 v 0.90 tr  2.23 yaw  141.1
+IEV winder.down_0.9 p5 run 11 t5.867 foot 0 low   3.1 h  6.6 b 18.3 t 18.0 at   0.40,  4.35 fy  140.1 gz  1.80/ 1.62/ 1.62 age 0.73 st -1.00 v 0.90 tr  0.74 yaw  154.8
+IEV winder.down_0.9 p5 run 11 t5.900 foot 0 low   4.0 h  8.4 b 18.5 t 18.0 at   0.39,  4.35 fy  142.4 gz  1.80/ 1.62/ 1.62 age 0.77 st -1.00 v 0.90 tr  1.34 yaw  157.3
+IEV winder.down_0.9 p5 run 11 t5.933 foot 0 low   4.8 h 10.0 b 18.7 t 18.0 at   0.38,  4.35 fy  144.5 gz  1.80/ 1.62/ 1.62 age 0.80 st -1.00 v 0.90 tr  1.15 yaw  159.5
+IEV winder.down_0.9 p5 run 11 t5.967 foot 0 low   5.5 h 11.2 b 18.9 t 18.0 at   0.37,  4.34 fy  145.4 gz  1.80/ 1.62/ 1.62 age 0.83 st -1.00 v 0.90 tr  0.53 yaw  160.6
+IEV winder.down_0.9 p5 run 11 t6.000 foot 0 low   7.1 h 11.9 b 19.0 t 18.0 at   0.36,  4.34 fy  147.2 gz  1.80/ 1.62/ 1.62 age 0.87 st -1.00 v 0.90 tr  0.94 yaw  162.3
+IEV winder.down_0.9 p5 run 11 t6.033 foot 0 low   7.1 h 11.9 b 19.0 t 18.0 at   0.36,  4.35 fy  148.1 gz  1.80/ 1.62/ 1.62 age 0.90 st -1.00 v 0.90 tr  0.43 yaw  163.2

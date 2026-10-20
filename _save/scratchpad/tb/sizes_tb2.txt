@@ -1,0 +1,7 @@
+tb_height_final.f32 raw 26214400 gzip9 22570227
+tb_height_natural.f32 raw 26214400 gzip9 23671167
+tb_height_sites.f32 raw 26214400 gzip9 23350639
+tb_height_sites_cm.i16 raw 13107200 gzip9 6869452
+tb_height_sites_cm_delta.i16 raw 13107200 gzip9 3440451
+tb_water_sites.f32 raw 26214400 gzip9 72683
+tb_water_sites_class.u8 raw 6553600 gzip9 38572

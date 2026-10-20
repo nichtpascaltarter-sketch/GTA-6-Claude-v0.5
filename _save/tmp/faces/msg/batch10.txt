@@ -1,0 +1,95 @@
+faces snapshot-safe — batch 10 (lips: rose, not salmon; paler and softer-edged with age). Two files, a delta on HEAD
+1a83e24 (my files there are unchanged since 0d67933, where the game-side proof ran; 731a731 -> 1a83e24 touched only
+src/game, which neither file nor anim_test uses).
+
+FILES (blobs written with git hash-object -w; copies in the shared tree and in /tmp/faces/batch10/)
+  src/anim/face.cpp          29ae976772de446f2c6430a419f588eb52c27a8c
+  tests/anim/anim_test.cpp   3067a353c8124475f7fac409708c7bae28496848
+At HEAD these files are dd935b1a (batch 9) / 248cbf6a (batch 9). No other files change: no character.h, no shaders.
+No getenv knobs. MSVC-safe: plain C++17.
+
+CHANGELOG (player-facing)
+- Lips look like lips, not a coral lozenge. They were the skin's colour made redder, so they kept its yellow and read
+  salmon or coral at conversation distance. Now they are a rose that suits each skin tone: rose-pink on fair skin,
+  muted rose-brown on medium and deep skin. They are darker and redder than the skin round them, and less yellow.
+- Older people's lips are paler and closer to their skin, with a softer edge, as real lips get with age.
+- The corners of the mouth are a little darker, so they read as the corners of a mouth, not the ends of a painted
+  shape.
+- Everyone's lips change, the protagonists' included: Mari's and Dex's lips are rose now instead of coral. Shapes,
+  lip sync and expressions are unchanged.
+
+HOW (face.cpp: the vermilion's vertex colour)
+- Measured as CIELAB of the vertex albedo (my host tool lipstat.cpp): the middle of the lower lip against the chin.
+  Skin-colour measurements of real lips put the lower lip about 8-13 L* darker than the chin on light and medium
+  skin, 8-10 a* redder and 5-7 b* less yellow (a lip hue angle of about 25-30 degrees). Main had the lightness and
+  the redness about right, but its b* was -1.6 to +1.7 against the chin: as yellow as the chin.
+- Changes:
+  - the vermilion's colour x (0.96, 1, 1.22) in linear RGB. It is now 5.3-7.3 b* less yellow than the chin, with
+    lightness and redness nearly unchanged;
+  - with age the lips fade towards the skin round them (35% at age 1.0, the oldest);
+  - with age the vermilion border softens: its transition widens from 0.6 to up to 1.4 degrees of the head grid. A
+    softened border's skin-side row takes a little of the lip colour but stays skin (its region, gloss and shading as
+    before);
+  - the corners' darkening goes from 18% to 25%.
+- Tuning: three variants in game (main, x(0.96,1,1.22), x(0.93,1,1.32)) after host previews. The first rose won;
+  the stronger one drifts towards mauve on fair men.
+
+TESTS
+- anim_test ALL PASSED on 731a731 + these files (/tmp/faces/anim_test_b10h.log) and on 0d67933 + these files
+  (/tmp/faces/anim_test_b10.log).
+- New test, LipColour: twelve clean-shaven faces (age capped at 0.3), each also built 40 years older.
+  - Lower lip against the chin: at least 3 a* redder and at least 3 b* less yellow. On light and medium skin
+    (chin L* > 35) also at least 3 L* darker; on deep skin the inner lower lip is often lighter and pinker than the
+    skin.
+  - The older build's redness (a* over the chin) must be at least 10% lower.
+  - Batch 10: da* >= +3.4, db* <= -3.4, dL* <= -4.6; the older lips are 13-47% less red.
+  - Main fails it: 20 failures (db* up to +1.5, and no change with age).
+- preview and carview compile and run (on 731a731 + these files, and on 0d67933 + these files).
+- Triangles: unchanged (only vertex colours; identical counts for 8 people).
+- O2 builds: /tmp/faces/nt_b10_o2.exe (0d67933 + these files) and /tmp/faces/nt_m0d_o2.exe (main 0d67933, the
+  before).
+- Wine D3D12, 40 shots each, 0 FATAL / vkd3d lines (/tmp/faces/log_fb10_m0d.txt, log_fb10_b10.txt):
+  - the 30 standard portraits (Mari, Dex, 7, 17, 27, 38 at 0.5, 1 and 4 m by day, 1 and 4 m at night under the lamp);
+  - people 10, 11, 4 and 20 at 0.5 m by day and 1 m at night;
+  - Mari and 17 at 0.5 m by day, turned 35 degrees.
+- Lip colour, middle of the lower lip (CIELAB L* a* b*) and its difference from the chin, main -> batch 10
+  (/tmp/faces/msg/lipstat_b10.txt has the upper lip, corners and philtrum too):
+
+  | Person | age | lower lip main | lower lip b10 | lip - chin main | lip - chin b10 |
+  |---|---|---|---|---|---|
+  | Mari | 0.15 | 53.7 21.3 16.0 | 54.1 20.5 9.6 | -13.1 +12.4 +0.6 | -12.8 +11.6 -5.7 |
+  | Dex | 0.25 | 60.3 17.6 14.8 | 60.9 16.8 7.6 | -6.2 +10.1 +1.7 | -5.5 +9.3 -5.5 |
+  | 7 | 0.87 | 45.7 26.0 26.3 | 47.9 21.5 21.5 | -10.4 +9.5 -1.4 | -8.2 +4.9 -6.2 |
+  | 17 | 0.62 | 60.5 24.3 22.7 | 62.9 20.2 16.0 | -15.7 +13.8 -0.5 | -13.3 +9.7 -7.3 |
+  | 10 | 0.12 | 53.5 29.6 25.7 | 53.6 28.5 20.0 | -13.0 +11.5 -0.4 | -12.9 +10.4 -6.1 |
+  | 11 | 0.69 | 45.0 28.4 27.1 | 46.7 24.7 22.5 | -9.7 +8.9 -1.6 | -8.1 +5.2 -6.2 |
+  | 20 | 0.20 | 44.1 26.9 26.2 | 44.3 25.4 21.7 | -10.6 +8.7 -1.3 | -10.4 +7.2 -5.8 |
+  | 4 | 0.17 | 47.0 27.3 29.2 | 47.1 25.8 24.6 | -10.2 +12.0 -0.8 | -10.1 +10.5 -5.3 |
+  | 2 | 0.25 | 50.9 24.2 27.2 | 51.2 22.7 21.9 | -9.7 +8.7 -0.2 | -9.4 +7.2 -5.4 |
+  | 9 | 0.01 | 47.1 25.1 27.7 | 46.8 24.5 23.2 | -9.7 +10.3 -1.1 | -10.0 +9.7 -5.7 |
+
+  b* against the chin is now -5.3 to -7.3 for everyone, as in real lips. Lightness and redness are nearly as before
+  on the young; on the older people (7, 11, 17) the lips are paler and less red, by design.
+- Perf, tour stop 7 (cpu ms peds), main and batch 10 run alternately, twice (/tmp/faces/perf_*.out; logs with 0 FATAL /
+  vkd3d lines). Other agents' games were running alongside, so the machine was loaded:
+
+  | Run | ai | veh | peds | Assets built |
+  |---|---|---|---|---|
+  | main 0d67933, run 1 | 0.93 | 0.62 | 2.97 | 40.6 s |
+  | batch 10, run 1 | 0.99 | 0.71 | 4.01 | 43.3 s |
+  | main 0d67933, run 2 | 0.90 | 0.56 | 4.17 | 54.4 s |
+  | batch 10, run 2 | 0.99 | 0.73 | 4.10 | 65.9 s |
+
+  Run 2 is level (4.17 against 4.10). Main's run 1 is the low outlier of the four (2.97); the other three agree within
+  0.16. The batch adds no per-frame work: it changes vertex colours only, computed once when a character is built (a
+  few multiplies per lip vertex), and the triangle counts are identical. The asset build times say the machine was
+  busier during both batch 10 runs. If you want a third pair, I'll queue one.
+
+MONTAGES (scratchpad/faces)
+- b10_mouths_0p5m_day_a.png, b10_mouths_0p5m_day_b.png: the mouths of the six standard people and of 10, 11, 4, 20 at
+  0.5 m by day, main | batch 10.
+- b10_mouths_1m.png: the six standard people at 1 m, by day and at night.
+- b10_mouths_night_more.png: people 10, 11, 4, 20 at 1 m at night.
+- b10_mouths_threequarter.png: Mari and 17 at 0.5 m, turned 35 degrees.
+- b10_c0, b10_c1, b10_c7, b10_c17, b10_c27, b10_c38: the standard per-person montages (0.5 / 1 / 4 m by day, 1 / 4 m
+  at night).

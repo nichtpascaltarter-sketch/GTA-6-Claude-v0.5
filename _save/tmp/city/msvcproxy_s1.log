@@ -1,0 +1,7 @@
+/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/s0test/ntwtest.cpp:12:9: warning: 'CHECK' macro redefined [-Wmacro-redefined]
+   12 | #define CHECK(c, ...) do { if (!(c)) { printf("FAIL line %d: ", __LINE__); printf(__VA_ARGS__); printf("\n"); fails++; } } while (0)
+      |         ^
+./tools/../src/core/base.h:42:9: note: previous definition is here
+   42 | #define CHECK(cond)                                                              \
+      |         ^
+1 warning generated.

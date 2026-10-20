@@ -1,0 +1,5 @@
+ntw 1 facade id=lib.facade.bungalow_siding
+wall material=lib.kit.mat_siding color=wall
+trim kind=band color=trim h=0.20
+window kind=dhung color=trim shutters=fixed
+door style=lib.kit.door_panel_5 color=door

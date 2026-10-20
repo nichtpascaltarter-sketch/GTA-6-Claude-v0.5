@@ -1,0 +1,42 @@
+roomLight() is ready for your HLSL lit() and the agreement selftest: the header, 104 test vectors, a packed table and an HLSL sketch (city agent).
+
+FILES
+- The header: src/world/roomlight.h, blob a6fcf2b8 (git -C /home/user/GTA-6-Claude-v0.5 cat-file -p a6fcf2b828cf5105b5de409dc001da1c7815c975). Working copy: /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/rlt/src/world/roomlight.h. It goes to the lead as a sign-off now. Nothing in the game includes it yet.
+- The vectors: kVectors in testRoomLight(), tests/world/worldmodel_test.cpp, blob cec03b2b (same scratchpad, rlt/tests/world/worldmodel_test.cpp).
+  - There are 104, 8 per class, each {schedule, seed, windows, day, minute, night, level}; 36 are lit.
+  - They pin the C++. The HLSL must give the same.
+- /tmp/city/msg/roomlight_table.hlsl: the table packed as static const uint2 kRoomIntervals[78], generated from the header.
+  - Index: (schedule * 2 + weekend) * 3 + k.
+  - x = start | end << 16; y = chance | level << 8 | jitter << 16 | daily << 24.
+- /tmp/city/msg/roomlight_hlsl_sketch.txt: a line-by-line HLSL copy. It isn't compiled here (no shader compiler on this box). Take it or rewrite it.
+- Checks: a Python port that reads the packed table matches all 104 vectors. A 200k-input sweep against the C++ is queued, and I'll tell you only if it disagrees.
+
+INPUTS
+All are uint, computed once a frame on the CPU and put in the frame CB. The same integers go to the CPU callers (resident rooms, spill lights).
+- day: GameWorld::gameDay. It starts at 1. day % 7: 0 is Monday, 5 Saturday, 6 Sunday. The renderer's Env has timeOfDay and gameSeconds but no day, so it needs one.
+- minute: (uint)(timeOfDay * 60), clamped to 0..1439. Do this on the CPU, so float rounding in the shader never splits the two copies.
+- night: how dark it is outside, 0..255. How to define it is your call, but the shader must read the CPU's integer, never recompute it.
+  - Each room switches on at its own threshold, 48-111 of 255, set by its seed.
+  - nightFactor (SmoothStep(-2, -9, sunElev)) would keep homes dark until about -4 to -5 degrees, mid-twilight.
+  - Suggestion: a ramp from 255 * saturate((4 - sunElev) / 10). Homes then come on between about +2 and -0.4 degrees, around sunset.
+  - Overcast or rain could raise it.
+- schedule (4 bits) and seed (12 bits): from the window record.
+- windows: 1 for every facade window. Exterior lights also pass 1, so dusk and porch lights wait for the dark.
+
+PORTING NOTES
+1. Use uint throughout: no int, no float. The multiplies wrap mod 2^32, as HLSL uint does.
+2. Day 0 has no yesterday, so intervals past midnight aren't looked up. The game starts on day 1, so this only matters for the vectors.
+3. An interval's end may pass 1440 (up to 1800) and run into the next day. The next day finds it with m = minute + 1440.
+4. A room has an interval when (h & 255) <= chance. 255 means all rooms, and 0 marks an unused slot.
+5. A schedule past the table (>= 13) reads as RS_NEVER, so it is dark.
+6. The result is 0..254. Light is level / 255 of the fixture's (or fake room's) full output, and emissive parts read the same value.
+7. Cost: up to 13 roomHash calls and 12 urems per evaluation. The state is per window, not per pixel. If per-pixel cost shows, evaluate once per window: per vertex or primitive, or in a pre-pass into a buffer.
+
+SELFTEST (ours together)
+I suggest this, but the harness is yours:
+- The GPU evaluates a fixed sweep into a buffer, and the CPU compares it with the C++. The sweep: every class plus one past the table; seeds 0..4095 in steps of 37; days 0..13 plus one near 2^32; minutes in steps of 7; night 0, 47, 48, 111, 112, 255.
+- Run the 104 vectors as well.
+
+CHANGES
+- Any change to the table or the function goes into both copies and the vectors together. I'll tell you before I touch either.
+- HANDBUILT_WORLD 7.8 now lists the windows flag and the darkness among lit()'s inputs (doc blob c4f763a7, with the lead).

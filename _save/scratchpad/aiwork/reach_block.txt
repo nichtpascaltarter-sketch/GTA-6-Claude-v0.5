@@ -1,0 +1,11 @@
+    // an AI hand out to a point (pedai.cpp / police.cpp: PedAI::reachAt while reachT is ahead - a beat officer's parking
+    // ticket going under the wiper); the animator picks the hand on that side
+    if (in.grabWeight <= 0.f && p.state == PS_ONFOOT && !p.ragdoll) {
+        int self = (int)(&p - peds.data());
+        const PedAI* q = self >= 0 && self < (int)ai.ped.size() && ai.ped[self].uid == p.uid ? &ai.ped[self] : nullptr;
+        if (q && time < q->reachT) {
+            vec3 j = q->reachAt - p.pos.toVec3();
+            in.grabTarget = vec3(dot(vec2(j.x, j.y), rightV), dot(vec2(j.x, j.y), fwd), j.z);
+            in.grabWeight = 1.f;
+        }
+    }

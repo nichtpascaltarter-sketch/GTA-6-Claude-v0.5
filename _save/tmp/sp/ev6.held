@@ -1,0 +1,373 @@
+[OK ] parakeet  male       REF: the boy was there when the sun rose
+                           HYP: the boy was there when the sun rose
+[OK ] parakeet  female     REF: the boy was there when the sun rose
+                           HYP: the boy was there when the sun rose
+[OK ] parakeet  oldgruff   REF: the boy was there when the sun rose
+                           HYP: the boy was there when the sun rose
+[OK ] parakeet  presetM    REF: the boy was there when the sun rose
+                           HYP: the boy was there when the sun rose
+[OK ] parakeet  presetF    REF: the boy was there when the sun rose
+                           HYP: the boy was there when the sun rose
+[OK ] parakeet  male       REF: a rod is used to catch pink salmon
+                           HYP: a rod is used to catch pink salmon
+[OK ] parakeet  female     REF: a rod is used to catch pink salmon
+                           HYP: a rod is used to catch pink salmon
+[OK ] parakeet  oldgruff   REF: a rod is used to catch pink salmon
+                           HYP: a rod is used to catch pink salmon
+[OK ] parakeet  presetM    REF: a rod is used to catch pink salmon
+                           HYP: a rod is used to catch pink salmon
+[OK ] parakeet  presetF    REF: a rod is used to catch pink salmon
+                           HYP: a rod is used to catch pink salmon
+[OK ] parakeet  male       REF: the source of the huge river is the clear spring
+                           HYP: the source of the huge river is the clear spring
+[OK ] parakeet  female     REF: the source of the huge river is the clear spring
+                           HYP: the source of the huge river is the clear spring
+[OK ] parakeet  oldgruff   REF: the source of the huge river is the clear spring
+                           HYP: the source of the huge river is the clear spring
+[OK ] parakeet  presetM    REF: the source of the huge river is the clear spring
+                           HYP: the source of the huge river is the clear spring
+[OK ] parakeet  presetF    REF: the source of the huge river is the clear spring
+                           HYP: the source of the huge river is the clear spring
+[OK ] parakeet  male       REF: kick the ball straight and follow through
+                           HYP: kick the ball straight and follow through
+[OK ] parakeet  female     REF: kick the ball straight and follow through
+                           HYP: kick the ball straight and follow through
+[OK ] parakeet  oldgruff   REF: kick the ball straight and follow through
+                           HYP: kick the ball straight and follow through
+[OK ] parakeet  presetM    REF: kick the ball straight and follow through
+                           HYP: kick the ball straight and follow through
+[OK ] parakeet  presetF    REF: kick the ball straight and follow through
+                           HYP: kick the ball straight and follow through
+[OK ] parakeet  male       REF: help the woman get back to her feet
+                           HYP: help the woman get back to her feet
+[OK ] parakeet  female     REF: help the woman get back to her feet
+                           HYP: help the woman get back to her feet
+[OK ] parakeet  oldgruff   REF: help the woman get back to her feet
+                           HYP: help the woman get back to her feet
+[OK ] parakeet  presetM    REF: help the woman get back to her feet
+                           HYP: help the woman get back to her feet
+[OK ] parakeet  presetF    REF: help the woman get back to her feet
+                           HYP: help the woman get back to her feet
+[OK ] parakeet  male       REF: a pot of tea helps to pass the evening
+                           HYP: a pot of tea helps to pass the evening
+[OK ] parakeet  female     REF: a pot of tea helps to pass the evening
+                           HYP: a pot of tea helps to pass the evening
+[OK ] parakeet  oldgruff   REF: a pot of tea helps to pass the evening
+                           HYP: a pot of tea helps to pass the evening
+[OK ] parakeet  presetM    REF: a pot of tea helps to pass the evening
+                           HYP: a pot of tea helps to pass the evening
+[OK ] parakeet  presetF    REF: a pot of tea helps to pass the evening
+                           HYP: a pot of tea helps to pass the evening
+[OK ] parakeet  male       REF: smoky fires lack flame and heat
+                           HYP: smoky fires lack flame and heat
+[OK ] parakeet  female     REF: smoky fires lack flame and heat
+                           HYP: smoky fires lack flame and heat
+[OK ] parakeet  oldgruff   REF: smoky fires lack flame and heat
+                           HYP: smoky fires lack flame and heat
+[OK ] parakeet  presetM    REF: smoky fires lack flame and heat
+                           HYP: smoky fires lack flame and heat
+[OK ] parakeet  presetF    REF: smoky fires lack flame and heat
+                           HYP: smoky fires lack flame and heat
+[OK ] parakeet  male       REF: the soft cushion broke the man is fall
+                           HYP: the soft cushion broke the man is fall
+[OK ] parakeet  female     REF: the soft cushion broke the man is fall
+                           HYP: the soft cushion broke the man is fall
+[OK ] parakeet  oldgruff   REF: the soft cushion broke the man is fall
+                           HYP: the soft cushion broke the man is fall
+[OK ] parakeet  presetM    REF: the soft cushion broke the man is fall
+                           HYP: the soft cushion broke the man is fall
+[OK ] parakeet  presetF    REF: the soft cushion broke the man is fall
+                           HYP: the soft cushion broke the man is fall
+[OK ] parakeet  male       REF: the salt breeze came across from the sea
+                           HYP: the salt breeze came across from the sea
+[OK ] parakeet  female     REF: the salt breeze came across from the sea
+                           HYP: the salt breeze came across from the sea
+[ERR] parakeet  oldgruff   REF: the salt breeze came across from the sea
+                           HYP: the south breeze came across from the sea
+[ERR] parakeet  presetM    REF: the salt breeze came across from the sea
+                           HYP: the south breeze came across from the sea
+[ERR] parakeet  presetF    REF: the salt breeze came across from the sea
+                           HYP: the south breeze came across from the sea
+[OK ] parakeet  male       REF: the girl at the booth sold 50 bonds
+                           HYP: the girl at the booth sold 50 bonds
+[OK ] parakeet  female     REF: the girl at the booth sold 50 bonds
+                           HYP: the girl at the booth sold 50 bonds
+[OK ] parakeet  oldgruff   REF: the girl at the booth sold 50 bonds
+                           HYP: the girl at the booth sold 50 bonds
+[OK ] parakeet  presetM    REF: the girl at the booth sold 50 bonds
+                           HYP: the girl at the booth sold 50 bonds
+[OK ] parakeet  presetF    REF: the girl at the booth sold 50 bonds
+                           HYP: the girl at the booth sold 50 bonds
+[OK ] parakeet  male       REF: keep your eyes on the road and your hands on the wheel
+                           HYP: keep your eyes on the road and your hands on the wheel
+[OK ] parakeet  female     REF: keep your eyes on the road and your hands on the wheel
+                           HYP: keep your eyes on the road and your hands on the wheel
+[OK ] parakeet  oldgruff   REF: keep your eyes on the road and your hands on the wheel
+                           HYP: keep your eyes on the road and your hands on the wheel
+[OK ] parakeet  presetM    REF: keep your eyes on the road and your hands on the wheel
+                           HYP: keep your eyes on the road and your hands on the wheel
+[OK ] parakeet  presetF    REF: keep your eyes on the road and your hands on the wheel
+                           HYP: keep your eyes on the road and your hands on the wheel
+[OK ] parakeet  male       REF: we lost them near the old bridge turn left at the gas station
+                           HYP: we lost them near the old bridge turn left at the gas station
+[OK ] parakeet  female     REF: we lost them near the old bridge turn left at the gas station
+                           HYP: we lost them near the old bridge turn left at the gas station
+[OK ] parakeet  oldgruff   REF: we lost them near the old bridge turn left at the gas station
+                           HYP: we lost them near the old bridge turn left at the gas station
+[OK ] parakeet  presetM    REF: we lost them near the old bridge turn left at the gas station
+                           HYP: we lost them near the old bridge turn left at the gas station
+[OK ] parakeet  presetF    REF: we lost them near the old bridge turn left at the gas station
+                           HYP: we lost them near the old bridge turn left at the gas station
+[OK ] parakeet  male       REF: nobody moves nobody gets hurt
+                           HYP: nobody moves nobody gets hurt
+[OK ] parakeet  female     REF: nobody moves nobody gets hurt
+                           HYP: nobody moves nobody gets hurt
+[OK ] parakeet  oldgruff   REF: nobody moves nobody gets hurt
+                           HYP: nobody moves nobody gets hurt
+[OK ] parakeet  presetM    REF: nobody moves nobody gets hurt
+                           HYP: nobody moves nobody gets hurt
+[OK ] parakeet  presetF    REF: nobody moves nobody gets hurt
+                           HYP: nobody moves nobody gets hurt
+[OK ] parakeet  male       REF: you will never make it out of this town alive
+                           HYP: you will never make it out of this town alive
+[OK ] parakeet  female     REF: you will never make it out of this town alive
+                           HYP: you will never make it out of this town alive
+[OK ] parakeet  oldgruff   REF: you will never make it out of this town alive
+                           HYP: you will never make it out of this town alive
+[OK ] parakeet  presetM    REF: you will never make it out of this town alive
+                           HYP: you will never make it out of this town alive
+[OK ] parakeet  presetF    REF: you will never make it out of this town alive
+                           HYP: you will never make it out of this town alive
+[OK ] parakeet  male       REF: all units shots fired at the bank on ocean drive
+                           HYP: all units shots fired at the bank on ocean drive
+[OK ] parakeet  female     REF: all units shots fired at the bank on ocean drive
+                           HYP: all units shots fired at the bank on ocean drive
+[OK ] parakeet  oldgruff   REF: all units shots fired at the bank on ocean drive
+                           HYP: all units shots fired at the bank on ocean drive
+[OK ] parakeet  presetM    REF: all units shots fired at the bank on ocean drive
+                           HYP: all units shots fired at the bank on ocean drive
+[OK ] parakeet  presetF    REF: all units shots fired at the bank on ocean drive
+                           HYP: all units shots fired at the bank on ocean drive
+[OK ] parakeet  male       REF: tonight is weather clear skies and a light breeze off the water
+                           HYP: tonight is weather clear skies and a light breeze off the water
+[OK ] parakeet  female     REF: tonight is weather clear skies and a light breeze off the water
+                           HYP: tonight is weather clear skies and a light breeze off the water
+[OK ] parakeet  oldgruff   REF: tonight is weather clear skies and a light breeze off the water
+                           HYP: tonight is weather clear skies and a light breeze off the water
+[OK ] parakeet  presetM    REF: tonight is weather clear skies and a light breeze off the water
+                           HYP: tonight is weather clear skies and a light breeze off the water
+[OK ] parakeet  presetF    REF: tonight is weather clear skies and a light breeze off the water
+                           HYP: tonight is weather clear skies and a light breeze off the water
+[OK ] parakeet  male       REF: i told you the package has to be there by midnight
+                           HYP: i told you the package has to be there by midnight
+[OK ] parakeet  female     REF: i told you the package has to be there by midnight
+                           HYP: i told you the package has to be there by midnight
+[OK ] parakeet  oldgruff   REF: i told you the package has to be there by midnight
+                           HYP: i told you the package has to be there by midnight
+[OK ] parakeet  presetM    REF: i told you the package has to be there by midnight
+                           HYP: i told you the package has to be there by midnight
+[OK ] parakeet  presetF    REF: i told you the package has to be there by midnight
+                           HYP: i told you the package has to be there by midnight
+[OK ] parakeet  male       REF: why would anyone steal a garbage truck
+                           HYP: why would anyone steal a garbage truck
+[OK ] parakeet  female     REF: why would anyone steal a garbage truck
+                           HYP: why would anyone steal a garbage truck
+[OK ] parakeet  oldgruff   REF: why would anyone steal a garbage truck
+                           HYP: why would anyone steal a garbage truck
+[OK ] parakeet  presetM    REF: why would anyone steal a garbage truck
+                           HYP: why would anyone steal a garbage truck
+[ERR] parakeet  presetF    REF: why would anyone steal a garbage truck
+                           HYP: why would anyone steal a garbie truck
+== parakeet: overall WER 0.5% (4/800)
+   female       WER   0.0%  (0/160)
+   male         WER   0.0%  (0/160)
+   oldgruff     WER   0.6%  (1/160)
+   presetF      WER   1.2%  (2/160)
+   presetM      WER   0.6%  (1/160)
+[OK ] whisper-base male       REF: the boy was there when the sun rose
+                           HYP: the boy was there when the sun rose
+[OK ] whisper-base female     REF: the boy was there when the sun rose
+                           HYP: the boy was there when the sun rose
+[OK ] whisper-base oldgruff   REF: the boy was there when the sun rose
+                           HYP: the boy was there when the sun rose
+[OK ] whisper-base presetM    REF: the boy was there when the sun rose
+                           HYP: the boy was there when the sun rose
+[OK ] whisper-base presetF    REF: the boy was there when the sun rose
+                           HYP: the boy was there when the sun rose
+[OK ] whisper-base male       REF: a rod is used to catch pink salmon
+                           HYP: a rod is used to catch pink salmon
+[OK ] whisper-base female     REF: a rod is used to catch pink salmon
+                           HYP: a rod is used to catch pink salmon
+[OK ] whisper-base oldgruff   REF: a rod is used to catch pink salmon
+                           HYP: a rod is used to catch pink salmon
+[OK ] whisper-base presetM    REF: a rod is used to catch pink salmon
+                           HYP: a rod is used to catch pink salmon
+[OK ] whisper-base presetF    REF: a rod is used to catch pink salmon
+                           HYP: a rod is used to catch pink salmon
+[OK ] whisper-base male       REF: the source of the huge river is the clear spring
+                           HYP: the source of the huge river is the clear spring
+[OK ] whisper-base female     REF: the source of the huge river is the clear spring
+                           HYP: the source of the huge river is the clear spring
+[OK ] whisper-base oldgruff   REF: the source of the huge river is the clear spring
+                           HYP: the source of the huge river is the clear spring
+[OK ] whisper-base presetM    REF: the source of the huge river is the clear spring
+                           HYP: the source of the huge river is the clear spring
+[OK ] whisper-base presetF    REF: the source of the huge river is the clear spring
+                           HYP: the source of the huge river is the clear spring
+[OK ] whisper-base male       REF: kick the ball straight and follow through
+                           HYP: kick the ball straight and follow through
+[OK ] whisper-base female     REF: kick the ball straight and follow through
+                           HYP: kick the ball straight and follow through
+[OK ] whisper-base oldgruff   REF: kick the ball straight and follow through
+                           HYP: kick the ball straight and follow through
+[OK ] whisper-base presetM    REF: kick the ball straight and follow through
+                           HYP: kick the ball straight and follow through
+[OK ] whisper-base presetF    REF: kick the ball straight and follow through
+                           HYP: kick the ball straight and follow through
+[OK ] whisper-base male       REF: help the woman get back to her feet
+                           HYP: help the woman get back to her feet
+[OK ] whisper-base female     REF: help the woman get back to her feet
+                           HYP: help the woman get back to her feet
+[OK ] whisper-base oldgruff   REF: help the woman get back to her feet
+                           HYP: help the woman get back to her feet
+[OK ] whisper-base presetM    REF: help the woman get back to her feet
+                           HYP: help the woman get back to her feet
+[OK ] whisper-base presetF    REF: help the woman get back to her feet
+                           HYP: help the woman get back to her feet
+[ERR] whisper-base male       REF: a pot of tea helps to pass the evening
+                           HYP: a part of details to pass the evening
+[ERR] whisper-base female     REF: a pot of tea helps to pass the evening
+                           HYP: a part of details to past the evening
+[ERR] whisper-base oldgruff   REF: a pot of tea helps to pass the evening
+                           HYP: a part of details to pass the evening
+[ERR] whisper-base presetM    REF: a pot of tea helps to pass the evening
+                           HYP: a part of details to pass the evening
+[ERR] whisper-base presetF    REF: a pot of tea helps to pass the evening
+                           HYP: a part of details to past the evening
+[OK ] whisper-base male       REF: smokey fires lack flame and heat
+                           HYP: smokey fires lack flame and heat
+[OK ] whisper-base female     REF: smokey fires lack flame and heat
+                           HYP: smokey fires lack flame and heat
+[OK ] whisper-base oldgruff   REF: smokey fires lack flame and heat
+                           HYP: smokey fires lack flame and heat
+[OK ] whisper-base presetM    REF: smokey fires lack flame and heat
+                           HYP: smokey fires lack flame and heat
+[OK ] whisper-base presetF    REF: smokey fires lack flame and heat
+                           HYP: smokey fires lack flame and heat
+[OK ] whisper-base male       REF: the soft cushion broke the man is fall
+                           HYP: the soft cushion broke the man is fall
+[OK ] whisper-base female     REF: the soft cushion broke the man is fall
+                           HYP: the soft cushion broke the man is fall
+[OK ] whisper-base oldgruff   REF: the soft cushion broke the man is fall
+                           HYP: the soft cushion broke the man is fall
+[OK ] whisper-base presetM    REF: the soft cushion broke the man is fall
+                           HYP: the soft cushion broke the man is fall
+[ERR] whisper-base presetF    REF: the soft cushion broke the man is fall
+                           HYP: the soft cushion broke the man fall
+[OK ] whisper-base male       REF: the salt breeze came across from the sea
+                           HYP: the salt breeze came across from the sea
+[OK ] whisper-base female     REF: the salt breeze came across from the sea
+                           HYP: the salt breeze came across from the sea
+[OK ] whisper-base oldgruff   REF: the salt breeze came across from the sea
+                           HYP: the salt breeze came across from the sea
+[OK ] whisper-base presetM    REF: the salt breeze came across from the sea
+                           HYP: the salt breeze came across from the sea
+[OK ] whisper-base presetF    REF: the salt breeze came across from the sea
+                           HYP: the salt breeze came across from the sea
+[ERR] whisper-base male       REF: the girl at the booth sold 50 bonds
+                           HYP: the girl at the booth sold 50 buns
+[ERR] whisper-base female     REF: the girl at the booth sold 50 bonds
+                           HYP: the girl at the booth sold 50 bahd
+[OK ] whisper-base oldgruff   REF: the girl at the booth sold 50 bonds
+                           HYP: the girl at the booth sold 50 bonds
+[ERR] whisper-base presetM    REF: the girl at the booth sold 50 bonds
+                           HYP: the girl at the booth sold £50
+[ERR] whisper-base presetF    REF: the girl at the booth sold 50 bonds
+                           HYP: the girl at the booth sold 50 bahd
+[OK ] whisper-base male       REF: keep your eyes on the road and your hands on the wheel
+                           HYP: keep your eyes on the road and your hands on the wheel
+[OK ] whisper-base female     REF: keep your eyes on the road and your hands on the wheel
+                           HYP: keep your eyes on the road and your hands on the wheel
+[OK ] whisper-base oldgruff   REF: keep your eyes on the road and your hands on the wheel
+                           HYP: keep your eyes on the road and your hands on the wheel
+[OK ] whisper-base presetM    REF: keep your eyes on the road and your hands on the wheel
+                           HYP: keep your eyes on the road and your hands on the wheel
+[OK ] whisper-base presetF    REF: keep your eyes on the road and your hands on the wheel
+                           HYP: keep your eyes on the road and your hands on the wheel
+[ERR] whisper-base male       REF: we lost them near the old bridge turn left at the gas station
+                           HYP: we lost the near the old bridge turn left at the gas station
+[ERR] whisper-base female     REF: we lost them near the old bridge turn left at the gas station
+                           HYP: we lost the nervio bridge turn left at the gas station
+[ERR] whisper-base oldgruff   REF: we lost them near the old bridge turn left at the gas station
+                           HYP: we lost the mirriold bridge turn left at the gas station
+[ERR] whisper-base presetM    REF: we lost them near the old bridge turn left at the gas station
+                           HYP: we lost the near the old bridge turn left at the gas station
+[ERR] whisper-base presetF    REF: we lost them near the old bridge turn left at the gas station
+                           HYP: we lost the navy old bridge turn left at the gas station
+[ERR] whisper-base male       REF: nobody moves nobody gets hurt
+                           HYP: nobody moves nobody that hurt
+[OK ] whisper-base female     REF: nobody moves nobody gets hurt
+                           HYP: nobody moves nobody gets hurt
+[OK ] whisper-base oldgruff   REF: nobody moves nobody gets hurt
+                           HYP: nobody moves nobody gets hurt
+[OK ] whisper-base presetM    REF: nobody moves nobody gets hurt
+                           HYP: nobody moves nobody gets hurt
+[OK ] whisper-base presetF    REF: nobody moves nobody gets hurt
+                           HYP: nobody moves nobody gets hurt
+[OK ] whisper-base male       REF: you will never make it out of this town alive
+                           HYP: you will never make it out of this town alive
+[OK ] whisper-base female     REF: you will never make it out of this town alive
+                           HYP: you will never make it out of this town alive
+[OK ] whisper-base oldgruff   REF: you will never make it out of this town alive
+                           HYP: you will never make it out of this town alive
+[OK ] whisper-base presetM    REF: you will never make it out of this town alive
+                           HYP: you will never make it out of this town alive
+[OK ] whisper-base presetF    REF: you will never make it out of this town alive
+                           HYP: you will never make it out of this town alive
+[ERR] whisper-base male       REF: all units shots fired at the bank on ocean drive
+                           HYP: all units shots fired at the bank on motion drive
+[OK ] whisper-base female     REF: all units shots fired at the bank on ocean drive
+                           HYP: all units shots fired at the bank on ocean drive
+[OK ] whisper-base oldgruff   REF: all units shots fired at the bank on ocean drive
+                           HYP: all units shots fired at the bank on ocean drive
+[OK ] whisper-base presetM    REF: all units shots fired at the bank on ocean drive
+                           HYP: all units shots fired at the bank on ocean drive
+[ERR] whisper-base presetF    REF: all units shots fired at the bank on ocean drive
+                           HYP: all units shots fired at the bank on motion drive
+[OK ] whisper-base male       REF: tonight is weather clear skies and a light breeze off the water
+                           HYP: tonight is weather clear skies and a light breeze off the water
+[OK ] whisper-base female     REF: tonight is weather clear skies and a light breeze off the water
+                           HYP: tonight is weather clear skies and a light breeze off the water
+[OK ] whisper-base oldgruff   REF: tonight is weather clear skies and a light breeze off the water
+                           HYP: tonight is weather clear skies and a light breeze off the water
+[OK ] whisper-base presetM    REF: tonight is weather clear skies and a light breeze off the water
+                           HYP: tonight is weather clear skies and a light breeze off the water
+[OK ] whisper-base presetF    REF: tonight is weather clear skies and a light breeze off the water
+                           HYP: tonight is weather clear skies and a light breeze off the water
+[OK ] whisper-base male       REF: i told you the package has to be there by midnight
+                           HYP: i told you the package has to be there by midnight
+[ERR] whisper-base female     REF: i told you the package has to be there by midnight
+                           HYP: i told you the package had to be there by midnight
+[OK ] whisper-base oldgruff   REF: i told you the package has to be there by midnight
+                           HYP: i told you the package has to be there by midnight
+[OK ] whisper-base presetM    REF: i told you the package has to be there by midnight
+                           HYP: i told you the package has to be there by midnight
+[ERR] whisper-base presetF    REF: i told you the package has to be there by midnight
+                           HYP: i told you the package had to be there by midnight
+[OK ] whisper-base male       REF: why would anyone steal a garbage truck
+                           HYP: why would anyone steal a garbage truck
+[OK ] whisper-base female     REF: why would anyone steal a garbage truck
+                           HYP: why would anyone steal a garbage truck
+[OK ] whisper-base oldgruff   REF: why would anyone steal a garbage truck
+                           HYP: why would anyone steal a garbage truck
+[OK ] whisper-base presetM    REF: why would anyone steal a garbage truck
+                           HYP: why would anyone steal a garbage truck
+[OK ] whisper-base presetF    REF: why would anyone steal a garbage truck
+                           HYP: why would anyone steal a garbage truck
+== whisper-base: overall WER 4.9% (39/800)
+   female       WER   5.6%  (9/160)
+   male         WER   4.4%  (7/160)
+   oldgruff     WER   3.8%  (6/160)
+   presetF      WER   6.9%  (11/160)
+   presetM      WER   3.8%  (6/160)
+SUMMARY parakeet=0.5% whisper-base=4.9%

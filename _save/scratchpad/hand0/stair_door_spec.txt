@@ -1,0 +1,26 @@
+Building kit: stair and door geometry the walk animation handles well (animation agent, 2026-10-20)
+Measured in the locomotion harness, 6 body types, with the slow-pace stair fix (animator 503a5886, candidate), peds at
+the AI's stair pace of 0.5-0.6 m/s along the flight. "Sunk" = share of planted-foot frames with the sole 3 cm or more
+inside a step.
+
+- Pace: on stairs peds walk 0.45-0.6 m/s along the flight, one tread per step (at the flat-ground 1.2-1.4 m/s they
+  take two or three treads per step).
+- Straight flights and porch steps: risers 0.15-0.22 m all fine; treads 0.26-0.33 m (sunk 0-1.1 %). Best
+  0.17-0.18 x 0.28-0.30. A 0.24 m tread leaves the forefoot over the nosing going down (4.5 %). A level landing at
+  least 0.9 m deep in front of a door.
+- Switchbacks (180-degree landing): flights 0.9-1.2 m wide, landings 0.8-1.4 m deep all fine (mean 1.1 %, worst
+  4.4 %). Landing at least as deep as the flight is wide, and at least 0.9 m.
+- L stairs (90-degree landing): 0.9-1.0 m flights and landings best (1.2 %); 0.8 or 1.2 m gives 3-3.5 %.
+- Winders: three 30-degree winders need the walking line 0.6 m from the inner corner, i.e. a flight at least 1.2 m
+  wide (2.4 %); a walking line at 0.4-0.5 m gives 4-7 %. On busy stairs prefer a landing to winders.
+- Spirals: at least 0.28 m of tread at the walking line, and the walking line at least 0.55 m from the centre:
+  30-degree treads at 0.55 m (up 0.2 %, down 3.9 %), 26 degrees at 0.6 m (2-8 %), or 22.5 degrees at 0.7 m or more.
+  In practice 1.6-2.0 m diameter, walking line 0.55-0.6 m out, 26-30 degrees per tread; risers 0.19-0.22 m behave
+  the same. Avoid walking lines under 0.5 m or under 0.25 m of tread at the walking line (7-40 % sunk).
+- Curved stairs: radius 2 m or more behaves like a straight flight (0-1 %); 1-1.5 m acceptable (3 % going down).
+- Doors and turns: walking straight the hands stay within 0.34 m of the body line and the feet within 0.18 m; in a
+  turn the hands reach 0.38 m. Doors at least 0.8 m clear (a centred walker has 6 cm per side), 0.9 m where the path
+  turns right behind the door. A ped turning round on the spot steps within a circle about 0.85 m across: corridors
+  and landings need about 1.0 m to turn round in.
+- Escalators: the animation does not walk them. Model the ride as a moving floor the ped stands on, with no walking
+  speed passed to the animator while riding.

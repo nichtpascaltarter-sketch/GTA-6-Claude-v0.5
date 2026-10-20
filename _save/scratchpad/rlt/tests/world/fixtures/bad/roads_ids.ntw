@@ -1,0 +1,19 @@
+ntw 1 roads district=cl
+node cl.n12 at=0.00,0.00 z=0.00 # expect id.form
+node cl.n0013 at=10.00,0.00 z=0.00
+node cl.n12345 at=20.00,0.00 z=0.00
+node tr.n00001 at=30.00,0.00 z=0.00 # expect id.form
+edge cl.x0001 from=cl.n0013 to=cl.n12345 class=street lanes=1/1 shape=10.00,0.00;20.00,0.00 # expect id.form
+  busstop cl.bus.8 at=5.00 side=right # expect id.form
+  busstop cl.bus.09 at=8.00 side=right
+end
+edge cl.e0002 from=cl.n12345 to=cl.n0013 class=street lanes=1/1 shape=20.00,0.00;10.00,0.00
+end
+junction cl.n0013 turns=all
+end
+junction cl.n0013 turns=all # expect id.unique
+end
+junction cl.n12345 kind=plain
+  connect from=cl.e0002 to=cl.x0001:0 turn=left # expect ref.form
+end
+node cl.n0013 at=40.00,0.00 z=0.00 # expect id.unique

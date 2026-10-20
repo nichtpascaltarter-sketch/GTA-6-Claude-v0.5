@@ -1,0 +1,2 @@
+100644 e521a68e115dbb2a88cc4a33fcbb55097ebf0136	src/world/propmesh.cpp
+100644 4ea1dde200dee12367d0926df638c683b6779a78	src/anim/animator.cpp

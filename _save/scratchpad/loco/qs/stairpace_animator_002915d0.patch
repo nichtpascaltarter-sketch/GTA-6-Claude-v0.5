@@ -1,0 +1,304 @@
+--- a/src/anim/animator.cpp	2026-10-20 01:21:14.625288646 +0000
++++ b/src/anim/animator.cpp	2026-10-20 01:21:14.629104794 +0000
+@@ -337,6 +337,37 @@
+             ph -= floorf(ph);
+             swingU[s] = ph > duty ? (ph - duty) / Max(1.f - duty, 0.05f) : 0.f;
+         }
++    // the clearance a swing keeps while the walk is blended with the stand below the slow walk (the walk's own, which the
++    // blend would take away; the lift further down shows it): the tests on the pose's foot height below count it, so a
++    // slow walk's swing lets go of the ground, fades its correction and touches down as a walk's does - where its landing
++    // was predicted and fitted to a tread - not as the blend's low swing would. At a steady pace only: setting off and
++    // coming to a stop keep their timing. Its landing (touching down, grazing the ground) is the pose's own from late in
++    // the swing
++    float blendLift[2] = {0.f, 0.f}, blendLand[2] = {0.f, 0.f};
++    {
++        // (the pace asked for is the pace walked - and has been for a moment: a follower stopping and going keeps the
++        // blend's timing)
++        const float steadyNow = 1.f - sstep(0.05f, 0.2f, fabsf(Max(in.speed, 0.f) - A.speedS));
++        A.blendSteady += (steadyNow - A.blendSteady) * (1.f - expf(-dt * (steadyNow < A.blendSteady ? 12.f : 10.f)));
++        const float steady = Min(steadyNow, A.blendSteady);
++        if (walking && A.moveW < 0.999f && steady > 0.f)
++            for (int s = 0; s < 2; s++)
++                if (swingU[s] > 0.f) {
++                    blendLift[s] = steady * (1.f - A.moveW) * 0.07f * (A.footHeel + A.footBall) / 0.197f * sinf(kPi * swingU[s]);
++                    blendLand[s] = blendLift[s] * (1.f - sstep(0.7f, 0.85f, swingU[s]));
++                }
++    }
++    // up a flight, a foot about to lift (its stance nearly done, or done and the pose still has it down; the root or the
++    // other foot already a step above it) probes where it will land as well: its swing knows that ground from the start,
++    // clearing the next nose
++    bool lateSt[2] = {false, false};
++    for (int s = 0; s < 2; s++) {
++        float phL = A.phase - (s ? 0.5f : 0.f);
++        phL -= floorf(phL);
++        const float fs = s ? A.footR : A.footL, fo = s ? A.footL : A.footR;
++        lateSt[s] = walking && cycle > 0.f && A.stepT[s] < 0.f && (A.planted[s] || A.footHold[s]) && A.stairSeen < 1.5f &&
++                    (fs < -0.05f || (A.planted[1 - s] && fo > fs + 0.05f)) && (swingU[s] > 0.f || phL > duty - 0.08f);
++    }
+     const Bone ends[2] = {B_FOOT_L, B_FOOT_R};
+     const Bone ups[2] = {B_THIGH_L, B_THIGH_R}, lows[2] = {B_CALF_L, B_CALF_R};
+     // ground under the feet and the slope plane. The heights are kept with the world: the root's vertical motion this
+@@ -352,7 +383,7 @@
+         int n = 0;
+         if (terrain && in.footProbes) {
+             for (int s = 0; s < 2; s++)
+-                if (A.planted[s] && A.plantedPrev[s] && A.stepT[s] < 0.f) {
++                if (A.planted[s] && A.plantedPrev[s] && A.stepT[s] < 0.f && !A.probeAhead[s]) {
+                     // (a probe at the game's clamp, 0.45 m off the root - a foot two risers or more from the root's tread -
+                     // measures nothing: that foot is kept with the world, as the rest is)
+                     if (fabsf(gIn[s]) > 0.44f || fabsf(A.groundRaw[s]) > 0.44f) {
+@@ -381,6 +412,7 @@
+         for (int s = 0; s < 2; s++) {
+             A.groundAhead[s] -= dzRoot;
+             if (A.stairLand[s] > -8.f) A.stairLand[s] -= dzRoot;
++            if (A.liftGround[s] > -8.f) A.liftGround[s] -= dzRoot;
+             if (A.stepScanHave[s])
+                 for (int k = 0; k < kGroundScan; k++) A.stepG[s][k] -= dzRoot;
+             if (A.stepFitLand[s] > -8.f) A.stepFitLand[s] -= dzRoot;
+@@ -397,10 +429,10 @@
+                 const float gl = qs && A.stepFitLand[s] > -8.f ? A.stepFitLand[s] : gIn[s];
+                 const float gi = qs && A.stepT[s] < 0.85f ? Max(gl, *fz[s] - dzRoot) : gl;
+                 *fz[s] += (gi - (*fz[s] - dzRoot)) * (held[s] ? 1.f : (swingU[s] > 0.f || qs ? ks : kg)) - dzRoot;
+-                if (swingU[s] <= 0.f) A.groundAhead[s] = *fz[s];
++                if (swingU[s] <= 0.f && !lateSt[s]) A.groundAhead[s] = *fz[s];
+             }
+             A.groundRaw[s] = gIn[s];
+-            A.plantedPrev[s] = A.planted[s] && A.stepT[s] < 0.f;
++            A.plantedPrev[s] = A.planted[s] && A.stepT[s] < 0.f && !A.probeAhead[s];   // (probed under it both updates)
+         }
+     }
+     vec3 gn = in.groundNormal;
+@@ -424,6 +456,7 @@
+             A.pinZ[s] = A.plantAge[s] = 0.f;
+             A.footHold[s] = A.ballProbe[s] = false;
+             A.pivotW[s] = 0.f;
++            A.liftGround[s] = -9.f;
+         }
+     }
+     // root motion of this update, in the new model space: world-fixed points move back by it and turn against it
+@@ -448,6 +481,7 @@
+         A.stepFrom[s] = rotate(qBack, A.stepFrom[s]) - d;
+         A.stepFromYaw[s] = wrapAngle(A.stepFromYaw[s] - dpsi);
+         A.scanLand[s] = rotate(qBack, A.scanLand[s]) - d;
++        A.stairDir[s] = rotate(qBack, A.stairDir[s]);
+         A.stepScanFrom[s] = rotate(qBack, A.stepScanFrom[s]) - d;
+         A.stepScanDir[s] = rotate(qBack, A.stepScanDir[s]);
+     }
+@@ -512,11 +546,35 @@
+     auto pivotA = [&](int s) { return lerp(heel[s], ball[s], wBall[s]); };
+     // planted pivot: the same point of the sole on a footprint (heel point h, yaw y)
+     auto pivotP = [&](int s, vec3 h, float y) { return h + rotate(qz(y), vec3(0.f, wBall[s] * L, 0.f)); };
++    // the body's turn over the next sT metres of its way at its turn rate now (at most 1.2 rad), and where a point carried
++    // with it - across, where p is now; along, `lead` ahead of the body then - will be once the body has gone that far along
++    // its turning way: a swing's landing on a curving way (a spiral stair, a turn onto a flight) is where the turn takes it
++    auto turnOver = [&](float sT) { return Clamp(in.turnRate * sT / Max(spd, 0.3f), -1.2f, 1.2f); };
++    auto landAhead = [&](vec3 p, float sT, float lead) {
++        const vec3 f(md.x, md.y, 0.f), lt(-md.y, md.x, 0.f);
++        const float psi = turnOver(sT);
++        vec3 D = f * sT;
++        if (fabsf(psi) > 1e-3f) {
++            const float rho = sT / psi;
++            D = f * (rho * sinf(psi)) + lt * (rho * (1.f - cosf(psi)));
++        }
++        vec3 r = D + rotate(qz(psi), lt * dot(vec2(p.x, p.y), vec2(lt.x, lt.y)) + f * lead);
++        r.z = p.z;
++        return r;
++    };
+     // displayed heel / yaw of a foot (animation + current correction)
+     auto shownHeel = [&](int s) {
+         vec3 pa = pivotA(s);
+         return pa + A.plantCorr[s] + rotate(qz(A.corrYaw[s]), heel[s] - pa);
+     };
++    // a swing's tread fit holds where it comes down near the landing it was fitted for (along the line scanned) - not for
++    // one that comes down far short of it, held back or stopping on the flight: that lands on the ground under it
++    auto atFit = [&](int s) {
++        const vec3 dir = A.stairDir[s];
++        const vec3 hf = A.scanLand[s] + dir * (A.stairShift[s] - 0.5f * (A.footHeel + A.footBall));
++        const vec3 h = shownHeel(s);
++        return fabsf(dot(vec2(h.x - hf.x, h.y - hf.y), vec2(dir.x, dir.y))) < 0.3f * (A.footHeel + A.footBall) / 0.197f;
++    };
+     // the ground scan asked for last update (the way ahead of a foot about to land where the ground steps): the treads
+     // along it, and where the landing heel goes so that the foot stands on the one under its ball - the toes short of a
+     // riser up ahead, the heel clear of a riser behind (overhanging a nose or an edge is fine), the ball on the tread
+@@ -557,8 +615,10 @@
+             else if (frontEdge) hi = f - mg - L;
+             if (upBehind) lo = r + mg + 0.04f * scale;
+             else if (rearEdge) lo = r + mg - 0.7f * L;   // (on the forefoot: the ground under it is probed under the ball)
+-            // (a tread shorter than the foot: no toes in a riser, and only if nothing else will do)
+-            const float uh = lo <= hi ? Clamp(uHeel, lo, hi) : (upAhead ? hi : lo), cost = fabsf(uh - uHeel) + (lo <= hi ? 0.f : 0.1f);
++            // (a tread shorter than the foot: no toes in a riser, and only if nothing else will do; down a flight, the
++            // heel's and the ball's margins share what is missing)
++            const float uh = lo <= hi ? Clamp(uHeel, lo, hi) : (upAhead ? hi : (upBehind && frontEdge ? 0.5f * (lo + hi) : lo)),
++                        cost = fabsf(uh - uHeel) + (lo <= hi ? 0.f : 0.1f);
+             const float gl = g[Clamp((int)floorf((uh + L) / kGroundScanStep + 0.5f), k0, k1)];
+             if (cost < bestCost && fabsf(uh - uHeel) <= 0.2f * scale && fabsf(gl - gFoot) < 0.4f) {
+                 bestCost = cost;
+@@ -602,7 +662,8 @@
+             else if (frontEdge) hi = f - mg - L;
+             if (upBehind) lo = r + mg + 0.04f * scale;
+             else if (rearEdge) lo = r + mg - 0.7f * L;
+-            const float uh = lo <= hi ? Clamp(uHeel, lo, hi) : (upAhead ? hi : lo), cost = fabsf(uh - uHeel) + (lo <= hi ? 0.f : 0.1f);
++            const float uh = lo <= hi ? Clamp(uHeel, lo, hi) : (upAhead ? hi : (upBehind && frontEdge ? 0.5f * (lo + hi) : lo)),
++                        cost = fabsf(uh - uHeel) + (lo <= hi ? 0.f : 0.1f);
+             const float gl = g[Clamp((int)floorf((uh + L) / kGroundScanStep + 0.5f), k0, k1)];
+             if (cost < bestCost && fabsf(uh - uHeel) <= 0.2f * scale && fabsf(gl - gFoot) < 0.4f) {
+                 bestCost = cost;
+@@ -646,11 +707,12 @@
+                 // release at toe-off
+                 float ph = A.phase - (s ? 0.5f : 0.f);
+                 ph -= floorf(ph);
+-                bool touching = Min(Min(heel[s].z, ball[s].z), toeZ[s]) < 0.004f * scale;
++                const float lowZ = Min(Min(heel[s].z, ball[s].z), toeZ[s]);
+                 // (a foot still on the ground just after the gait's toe-off stays planted until it actually lifts:
+                 // blended gaits, e.g. a diagonal walk, lift a little later than their mixed duty)
+                 bool contact = (ph > 0.004f && ph < duty - 0.01f && nearGround) || (A.planted[s] && ph <= 0.004f) ||
+-                               (swingU[s] > 0.7f && touching) || (A.planted[s] && touching && swingU[s] < 0.25f);
++                               (swingU[s] > 0.7f && lowZ + blendLand[s] < 0.004f * scale) ||
++                               (A.planted[s] && lowZ + blendLift[s] < 0.004f * scale && swingU[s] < 0.25f);
+                 if (contact && !A.planted[s]) {
+                     // (where the pose lands its heel strikes ahead of the body, in strides: the swing still to go taken off,
+                     // or - planted an update or two after the strike, the pose's foot gone back by the body's travel since -
+@@ -660,7 +722,7 @@
+                         const float obs = dot(vec2(mp.x, mp.y), md) / cycle - (swingU[s] > 0.f ? (1.f - swingU[s]) * (1.f - duty) : -ph);
+                         A.strikeLead += (Clamp(obs, 0.1f, 0.5f) - A.strikeLead) * 0.3f;
+                     }
+-                    if (!A.footHold[s] && A.stairLand[s] > -8.f) {
++                    if (!A.footHold[s] && A.stairLand[s] > -8.f && atFit(s)) {
+                         // (down on the tread its swing was fitted to: at that tread's height from the start, not the
+                         // lagging probe's)
+                         (s ? A.footR : A.footL) = A.stairLand[s];
+@@ -670,8 +732,9 @@
+                         A.ballProbe[s] = false;
+                         A.plantSlack[s] = 0.f;
+                         // (on stairs without a tread fitted: at the higher of the near probe's ground - which runs ahead down
+-                        // a step, or lags behind up one - and the landing probe's under the forefoot)
+-                        if (A.stairSeen < 1.5f) (s ? A.footR : A.footL) = Max(s ? A.footR : A.footL, A.groundAhead[s]);
++                        // a step, or lags behind up one - and the landing probe's under the forefoot; far short of a fitted
++                        // landing, the near probe's)
++                        if (A.stairSeen < 1.5f && A.stairLand[s] < -8.f) (s ? A.footR : A.footL) = Max(s ? A.footR : A.footL, A.groundAhead[s]);
+                     }
+                     // (a foot held since its toe-off stays on its footprint: the shown heel is this update's pose with the
+                     // last update's correction, off by the pose's own move since)
+@@ -860,7 +923,7 @@
+             vec3 pp = pivotP(s, A.plantP[s], A.plantYaw[s]);
+             A.plantCorr[s] = vec3(pp.x - pa.x, pp.y - pa.y, 0.f);
+             A.corrYaw[s] = wrapAngle(A.plantYaw[s] - fyaw[s]);
+-            if (A.footHold[s] && Min(Min(heel[s].z, ball[s].z), toeZ[s]) + A.pinZ[s] > 0.012f * scale) {
++            if (A.footHold[s] && Min(Min(heel[s].z, ball[s].z), toeZ[s]) + A.pinZ[s] + blendLift[s] > 0.012f * scale) {
+                 A.footHold[s] = false;   // a held foot goes once the pose has lifted it clear
+             } else {
+                 // too far from the pose for the leg (a quick turn, a shove): walking, it steps over at once if the other foot
+@@ -886,19 +949,20 @@
+             // down onto the ground again before the gait plants it (a late swing grazing it, the walk blending out to a
+             // stand) is held where it is shown
+             const bool late = swingU[s] > 0.5f || A.moveW < 0.95f;
+-            if (walking && late && Min(Min(heel[s].z, ball[s].z), toeZ[s]) + A.pinZ[s] < 0.006f * scale) {
+-                A.ballProbe[s] = A.stairLand[s] > -8.f && A.stairBall[s];
+-                if (A.stairLand[s] > -8.f) (s ? A.footR : A.footL) = A.stairLand[s];
+-                A.plantSlack[s] = A.stairLand[s] > -8.f ? fabsf(A.stairShift[s]) : 0.f;
++            if (walking && late && Min(Min(heel[s].z, ball[s].z), toeZ[s]) + A.pinZ[s] + blendLand[s] < 0.006f * scale) {
++                const bool fit = A.stairLand[s] > -8.f && atFit(s);
++                A.ballProbe[s] = fit && A.stairBall[s];
++                if (fit) (s ? A.footR : A.footL) = A.stairLand[s];
++                A.plantSlack[s] = fit ? fabsf(A.stairShift[s]) : 0.f;
+                 const vec3 h = shownHeel(s);
+                 A.plantP[s] = vec3(h.x, h.y, 0.f);
+                 A.plantYaw[s] = wrapAngle(fyaw[s] + A.corrYaw[s]);
+                 A.footHold[s] = true;
+-            } else if (Min(heel[s].z, ball[s].z) > 0.012f * scale || A.moveW < 0.3f) {
++            } else if (Min(heel[s].z, ball[s].z) + blendLift[s] > 0.012f * scale || A.moveW < 0.3f) {
+                 // (onto the tread its landing was fitted to by the time it lands: quicker for a fit made late in the swing)
+                 const float tLand = A.stairLand[s] > -8.f && swingU[s] > 0.f && cycle > 0.f ? (1.f - swingU[s]) * (1.f - duty) * cycle / Max(spd, 0.3f) : 1.f;
+                 float k = expf(-dt / Clamp(0.35f * tLand, 0.025f, 0.07f));
+-                const vec3 to = vec3(md.x, md.y, 0.f) * A.stairShift[s];
++                const vec3 to = A.stairDir[s] * A.stairShift[s];
+                 A.plantCorr[s] = to + (A.plantCorr[s] - to) * k;
+                 A.corrYaw[s] *= k;
+             }
+@@ -915,9 +979,15 @@
+     // terrain heights under the feet (probed there, or extrapolated along the slope from probes below the hips); a
+     // swinging foot over the higher of the ground near it and where it lands
+     float offs[2] = {A.footL, A.footR};
+-    for (int s = 0; s < 2; s++)
+-        if (swingU[s] > 0.f && !A.planted[s] && !A.footHold[s] && A.stepT[s] < 0.f)
++    for (int s = 0; s < 2; s++) {
++        if (A.planted[s] || A.footHold[s] || A.stepT[s] >= 0.f) A.liftGround[s] = offs[s];
++        if (swingU[s] > 0.f && !A.planted[s] && !A.footHold[s] && A.stepT[s] < 0.f) {
+             offs[s] = Max(Max(offs[s], A.groundAhead[s]), A.stairLand[s] - 0.3f * (1.f - sstep(0.45f, 0.75f, swingU[s])));
++            // (on stairs, through the first part of its swing no lower than the ground it left: its toes clear the tread
++            // ahead on the way up - the top step onto a landing - and its heel the nose behind on the way down)
++            if (A.stairSeen < 1.5f && A.liftGround[s] > -8.f) offs[s] = Max(offs[s], A.liftGround[s] - 0.3f * sstep(0.35f, 0.6f, swingU[s]));
++        }
++    }
+     if (!in.footProbes)
+         for (int s = 0; s < 2; s++) offs[s] += Clamp(fp[s].y * slopeY, -0.3f, 0.3f);
+     float drop = Min(0.f, Min(offs[0], offs[1]));
+@@ -953,14 +1023,17 @@
+         vec3 pa = pivotA(s), mid = A.ballProbe[s] && (A.planted[s] || A.footHold[s]) ? ball[s] : (heel[s] + ball[s]) * 0.5f;
+         vec3 m = pa + A.plantCorr[s] * w + rotate(qz(A.corrYaw[s] * w), mid - pa);
+         const bool swinging = swingU[s] > 0.f && cycle > 0.f && !A.planted[s] && !A.footHold[s] && A.stepT[s] < 0.f;
+-        A.probeAhead[s] = swinging && !A.probeAhead[s];
++        float phP = A.phase - (s ? 0.5f : 0.f);
++        phP -= floorf(phP);
++        A.probeAhead[s] = (swinging || lateSt[s]) && !A.probeAhead[s];
+         // (where it lands: across, where it is now; along, where the body will be at the heel strike plus the strike's
+         // lead over the body - as the last steps had it, about 0.3 of a stride - and any move onto a stair's tread; under
+-        // the forefoot rather than the middle, so a landing that would straddle an edge shows)
+-        if (A.probeAhead[s])
+-            m = m + vec3(md.x, md.y, 0.f) * (Clamp(cycle * ((1.f - swingU[s]) * (1.f - duty) * A.rootRatio + A.strikeLead), 0.05f, 1.5f) + A.stairShift[s] +
+-                                             0.4f * L - dot(vec2(m.x, m.y), vec2(md.x, md.y)));
+-        else if (swinging && A.stairLand[s] > -8.f && A.stairLand[s] < (s ? A.footR : A.footL) - 0.04f)
++        // the toes rather than the middle, so a landing that would straddle an edge or put its toes into a riser shows; along
++        // the turning way)
++        if (A.probeAhead[s]) {
++            const float sT = Clamp(cycle * (swinging ? (1.f - swingU[s]) * (1.f - duty) : 1.f - phP) * A.rootRatio, 0.f, 1.2f);
++            m = landAhead(m, sT, cycle * A.strikeLead + A.stairShift[s] + 0.65f * L);
++        } else if (swinging && A.stairLand[s] > -8.f && A.stairLand[s] < (s ? A.footR : A.footL) - 0.04f)
+             m = pa + A.plantCorr[s] * w + rotate(qz(A.corrYaw[s] * w), heel[s] - pa);   // (down a step: under the heel, till it clears the nose)
+         else if (A.stepT[s] >= 0.f && A.stairSeen < 1.5f)
+             m = A.stepTo[s] + rotate(qz(A.stepToYaw[s]), vec3(0.f, 0.5f * L, 0.f));   // (a quick step on stairs: where it lands)
+@@ -977,6 +1050,10 @@
+             const vec3 sd0 = A.stepScanDir[s];
+             const float uH = dot(vec2(A.stepTo[s].x - A.stepScanFrom[s].x, A.stepTo[s].y - A.stepScanFrom[s].y), vec2(sd0.x, sd0.y));
+             offScan = uH < -0.05f || uH + L > (kGroundScan - 0.5f) * kGroundScanStep - 0.05f;
++            // (a turning step: its landing gone off the scanned line, or turned from it - the scan no longer runs along the foot)
++            const float vH = dot(vec2(A.stepTo[s].x - A.stepScanFrom[s].x, A.stepTo[s].y - A.stepScanFrom[s].y), vec2(-sd0.y, sd0.x));
++            const vec3 sdNow = rotate(qz(A.stepToYaw[s]), vec3(0.f, 1.f, 0.f));
++            offScan = offScan || fabsf(vH) > 0.08f * scale || dot(vec2(sdNow.x, sdNow.y), vec2(sd0.x, sd0.y)) < 0.94f;
+         }
+         if (A.stepT[s] >= 0.f && (A.stepT[s] < 0.6f || offScan) && A.stairSeen < 1.5f && (!A.stepScanAsked[s] || offScan) && !A.scanWant && terrain &&
+             in.footProbes) {
+@@ -998,19 +1075,29 @@
+             // where it lands: across, where it is now; along, where the body will be at the heel strike plus the strike's
+             // lead over the body (as the last steps had it: the swing starts slow, a share of the remaining stride falls short)
+             vec3 lm = pa + A.plantCorr[s] * w + rotate(qz(A.corrYaw[s] * w), mid - pa);
+-            const vec2 mdv(md.x, md.y);
+-            lm = lm + vec3(mdv.x, mdv.y, 0.f) * (cycle * ((1.f - swingU[s]) * (1.f - duty) * A.rootRatio + A.strikeLead) - dot(vec2(lm.x, lm.y), mdv));
++            const float sT = Clamp(cycle * (1.f - swingU[s]) * (1.f - duty) * A.rootRatio, 0.f, 1.2f);
++            lm = landAhead(lm, sT, cycle * A.strikeLead);
++            // (scanned along the foot as it will land - the pose's yaw now, turned with the body till then - so that its
++            // heel, ball and toe tip lie on the line scanned even where it lands turned from the way, onto a flight from a
++            // landing)
++            const vec3 sdw = rotate(qz(turnOver(sT) + fyaw[s]), vec3(0.f, 1.f, 0.f));
++            const vec2 mdv(sdw.x, sdw.y);
+             const bool first = !A.scanDone[s] && swingU[s] < 0.6f &&
+                                (A.stairSeen < 1.5f || fabsf(A.groundAhead[s] - (s ? A.footR : A.footL)) > 0.04f ||
+                                 (A.planted[1 - s] && fabsf(A.groundAhead[s] - (s ? A.footL : A.footR)) > 0.1f));
+-            const bool again = A.scanDone[s] && A.stairSeen < 1.5f && fabsf(dot(vec2(lm.x, lm.y) - vec2(A.scanLand[s].x, A.scanLand[s].y), mdv)) > 0.03f;
++            // (again: the landing gone 3 cm along the scanned line or 5 cm across it, or the foot at it turned 15 degrees from it)
++            const vec2 dl(lm.x - A.scanLand[s].x, lm.y - A.scanLand[s].y);
++            const bool again = A.scanDone[s] && A.stairSeen < 1.5f &&
++                               (fabsf(dot(dl, mdv)) > 0.03f || fabsf(dot(dl, vec2(-mdv.y, mdv.x))) > 0.05f * scale ||
++                                dot(mdv, vec2(A.stairDir[s].x, A.stairDir[s].y)) < 0.966f);
+             if (first || again) {
+                 A.scanLand[s] = lm;
+                 lm = rotate(qBack, lm) - d;
+                 A.scanWant = true;
+                 A.scanFoot = (u8)s;
+-                A.scanDir = rotate(qBack, vec3(md.x, md.y, 0.f));
++                A.scanDir = rotate(qBack, sdw);
+                 A.scanFrom = vec3(lm.x, lm.y, 0.f) - A.scanDir * kScanBack;
++                A.stairDir[s] = sdw;
+             }
+         }
+     }

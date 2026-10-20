@@ -1,0 +1,10 @@
+start 05:20:25
+built st19a 05:20:25
+  waiting (build_st19) 05:29:55 memfree 7611
+  waiting (build_st19) 05:39:55 memfree 8973
+build st19 05:46:56
+build st19 rc 0
+      | 
+src/game/../game/gameworld.cpp:367: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
+-rwxr-xr-x 1 root root 15853568 Oct 20 05:57 bin/loco_st19.exe
+built st19 05:57:59

@@ -1,0 +1,67 @@
+// A tied plastic refuse bag: a soft sack bulging out over a flattened bottom and drawn in to a neck, lumpy where the
+// rubbish presses out, with the knot and its two ears on top. c: the centre of the bottom; X, Y: the bag's horizontal
+// axes, Z its up axis (tilted for a bag lying over on the others); R: half widths along X and Y, the height along Z.
+// Smooth normals (the old bags were boxes: they read as hard black blocks).
+void trashBag(MeshData& m, vec3 c, vec3 X, vec3 Y, vec3 Z, vec3 R, u32 col, u32 mat, u32 seed) {
+    const int NU = 9, NV = 6;
+    // the sack's profile, bottom to neck: height fraction and radius fraction
+    const float pz[NV + 1] = {0.f, 0.1f, 0.3f, 0.52f, 0.74f, 0.9f, 1.f};
+    const float pr[NV + 1] = {0.62f, 0.93f, 1.f, 0.92f, 0.66f, 0.3f, 0.09f};
+    Rng q(seed);
+    float ph[4];
+    for (float& p : ph) p = q.f() * kTwoPi;
+    const float lean = q.range(-0.12f, 0.12f), bump = q.range(0.07f, 0.13f);
+    auto at = [&](float a, int j, float dv) {
+        float v = Clamp((float)j + dv, 0.f, (float)NV);
+        int j0 = Min((int)v, NV - 1);
+        float t = v - (float)j0;
+        float zf = Lerp(pz[j0], pz[j0 + 1], t), rf = Lerp(pr[j0], pr[j0 + 1], t);
+        // rubbish pressing out: a few lobes round the bag, more in the belly than at the bottom and the neck
+        float w = sinf(kPi * Clamp(zf * 1.1f, 0.f, 1.f));
+        float lump = 1.f + bump * w * (sinf(a * 2.f + ph[0] + zf * 3.f) * 0.6f + sinf(a * 3.f + ph[1] - zf * 5.f) * 0.5f + sinf(a * 5.f + ph[2]) * 0.3f);
+        // the belly sags a little over the bottom; the top leans
+        float sag = 1.f + 0.06f * sinf(kPi * Clamp(zf * 2.f, 0.f, 1.f));
+        vec3 p = X * (cosf(a) * R.x * rf * lump * sag) + Y * (sinf(a) * R.y * rf * lump * sag) + Z * (zf * R.z) + X * (lean * zf * zf * R.z);
+        return c + p;
+    };
+    u32 base = (u32)m.verts.size();
+    for (int j = 0; j <= NV; j++)
+        for (int i = 0; i <= NU; i++) {
+            float a = kTwoPi * (float)i / NU;
+            vec3 p = at(a, j, 0.f);
+            vec3 du = at(a + 0.05f, j, 0.f) - at(a - 0.05f, j, 0.f);
+            vec3 dv = at(a, j, 0.15f) - at(a, j, -0.15f);
+            if (j == 0) dv = at(a, j, 0.15f) - p;
+            if (j == NV) dv = p - at(a, j, -0.15f);
+            vec3 n = normalize(cross(du, dv));
+            if (dot(n, p - (c + Z * (R.z * 0.45f))) < 0.f) n = -n;
+            m.addVertex(p, n, normalize(du), vec2((float)i / NU * 1.6f, pz[j] * 1.2f), col, mat);
+        }
+    for (int j = 0; j < NV; j++)
+        for (int i = 0; i < NU; i++) {
+            u32 a0 = base + (u32)(j * (NU + 1) + i), a1 = a0 + 1, b0 = a0 + (u32)(NU + 1), b1 = b0 + 1;
+            vec3 nf = cross(m.verts[a1].pos - m.verts[a0].pos, m.verts[b0].pos - m.verts[a0].pos);
+            vec3 out = m.verts[a0].pos - (c + Z * (R.z * pz[j]));
+            if (dot(nf, out) >= 0.f) { m.tri(a0, a1, b1); m.tri(a0, b1, b0); }
+            else { m.tri(a0, b1, a1); m.tri(a0, b0, b1); }
+        }
+    // the bottom, pressed flat
+    {
+        u32 cb = m.addVertex(c + Z * 0.01f, -Z, X, vec2(0.5f, 0.f), col, mat);
+        for (int i = 0; i < NU; i++) {
+            u32 a0 = base + (u32)i, a1 = a0 + 1;
+            vec3 nf = cross(m.verts[a0].pos - m.verts[cb].pos, m.verts[a1].pos - m.verts[cb].pos);
+            if (dot(nf, Z) <= 0.f) m.tri(cb, a0, a1);
+            else m.tri(cb, a1, a0);
+        }
+    }
+    // the knot and its two ears
+    vec3 top = at(0.f, NV, 0.f) - X * (cosf(0.f) * R.x * pr[NV]) ;
+    vec3 kc = top + Z * 0.035f;
+    m.box(kc, X, Y, Z, vec3(0.035f, 0.03f, 0.03f), col, mat);
+    for (int s = -1; s <= 1; s += 2) {
+        vec3 ed = normalize(X * (float)s * 0.8f + Z * 0.6f + Y * q.range(-0.3f, 0.3f));
+        vec3 ew = normalize(cross(ed, Y));
+        m.box(kc + ed * 0.07f, ed, Y, ew, vec3(0.06f, 0.035f, 0.006f), col, mat);
+    }
+}

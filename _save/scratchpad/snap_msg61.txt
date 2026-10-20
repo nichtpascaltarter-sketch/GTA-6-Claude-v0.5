@@ -1,0 +1,78 @@
+Feet stay on the stairs at every pace, traffic gets round parked vans, night car lights, and the world model
+
+Stairs (animation agent; src/anim/animator.cpp, character.h):
+- At the AI's coming stair pace (about 0.5 m/s, one tread a step), people keep their feet on the treads on straight
+  flights, switchbacks, L stairs with landings and curved stairs, and on the step that turns onto a flight. Before,
+  a sixth of the planted feet stood inside a step. In game at 0.5 m/s, feet 3 cm or more inside a step: up
+  15.9% -> 1.2%, down 17.9% -> 2.7%.
+- Jogging, running and sprinting on stairs use the run's own heel-strike lead (about 0.3 m) for their landings,
+  instead of the walk's 0.3 of a stride. The player's planted frames inside a step, all paces and stairs together:
+  5.8% -> 1.1%. Running up the metro stairs: 32.5% -> 0.0%.
+- Walking up a switchback, the first foot after the landing goes on the next flight's first tread, not into its riser.
+  A late re-scan keeps the tread already fitted unless another needs a much smaller move.
+- anim_test passes. The locomotion harness, the building-kit sweeps and the in-game stair tours are in the agent's
+  sign-offs (c12-c14).
+
+Traffic (AI agent; src/game/traffic_core.cpp, ai_core.h, ai.cpp, tools/traffic_sim.cpp):
+- Close pairs of junctions: a car sees the next junction's light from the lane before the first and from inside its
+  box. Where the short link can't hold it at a red, it waits at the first line, for 30 s at most. At an all-way stop
+  whose line is at the box's exit, it stops there and goes in the stop's order.
+- A permissive left turner on green stops at its hold point until the gap check lets it go, instead of rolling into
+  oncoming traffic. Two cars stopped nose to nose inside a junction box count as blocking each other up to 6 m, so
+  one backs off.
+- Getting round a parked van, a breakdown or an abandoned car replaces the old overtake. The car takes the smaller
+  side step that clears the blocker by 0.3 m, within the room the road gives, and creeps by at 3 m/s at most. If it
+  stopped too close, it backs up first. It never pulls into a lane that isn't there.
+- The traffic health log names the head of a stuck queue, and the player's own car when autoplay drives it.
+- Harness, 15 runs, before -> after: red runs 73 -> 2; waits over 60 s away from the overlapping roads 75 -> 3; waits
+  over 30 s behind a parked car 7 -> 0. In game: soak 300 s, hwysoak, life and chase all pass.
+
+Night (renderer agent; src/shaders/post.hlsl, lights.hlsli, dynamic.hlsl, src/game/gameworld.cpp):
+- Neon tubes and lamp heads keep their glow at night. The bloom's firefly guard only damps true outliers; daytime bloom
+  is bit-identical.
+- Low beams light the road evenly to a cut-off about 35 m ahead, with no hot patch at the bumper.
+- Headlamps are LED or halogen by model, lens and beam alike. Cruising tails are faint; brake lamps flare red;
+  reversing lamps light the ground behind.
+- With Reduce Flashing, the siren bar pulses slowly instead of strobing.
+- Up to 24 cars cast light (was 14). Beyond about 40 m each lamp pair is one light, cross-faded so nothing pops.
+- Checks: --gfxselftest gives 0 failures and 0 debug-layer errors. Night before/after RMSE is 0.09-0.19%; day
+  before/after is within 0.03%. Frame time is unchanged.
+
+Roads (city agent; src/world/roads.cpp):
+- Where a lower road's carriageway lay on a bigger road's, the lower road gives way. The overlapping run is cut out,
+  and the cut ends are joined back at a new junction. Junctions left inside the bigger road merge into the one they
+  were stub-linked to.
+- Edge order and seeds are kept outside the 87 touched slots, so the city is not re-rolled. Buildings 39,075 -> 39,049,
+  all within 16 listed spots.
+- traffic_sim --overlaps: 31 -> 0. Dead ends and all 52 story places are unchanged. Bus 12 keeps its 20 stops.
+- Waits over 60 s, three seeds summed: Midtown 68 -> 1, Sol Beach 92 -> 27, Downtown 105 -> 19, Old Cutler
+  154 -> 34.
+
+The hand-built world (city agent and tools engineer; host tools only, the game is unchanged):
+- Step 4.1: the two layout samples are complete. world_format_test and worldv_test expect them clean.
+- World model v0:
+  - src/world/worldmodel.h/.cpp: a typed model of the world files with file and line on every record.
+  - References resolve through ntwschema's table (parseRefPattern, matchRefs, refRules moved there from worldv).
+  - compileRoads() (worldmodel_roads.cpp) turns the model into today's RoadNetwork, plus an index back to ids and
+    lines.
+  - roads.cpp's network core moves, as is, into src/world/roadnet.cpp, which roads.cpp includes. The procedural
+    world's census (55,085 record lines) is identical.
+  - NTW_FORMAT 9.4: what the roads compiler requires.
+  - tests/world/worldmodel_test.cpp with a two-district fixture world.
+- worldv slice 5, the plan pass across a building's floors:
+  - stairs and lifts join the floors they claim, at the floors' heights;
+  - a hatch lands in a room;
+  - doors and windows fit their floor's height.
+  - New check ids: stair.floors, lift.stops, floor.access, door.height, window.height.
+- CI: one more GCC step, "Test the world model (loader, references, roads compile)".
+
+The PC worker (lead; docs/PC_WORKER.md, tools/pc/next_package.sh):
+- The user's own Windows PC takes work packages from the cloud session when it is on: builds, MSVC, real-GPU shots,
+  game tests and whole agent tasks. Otherwise the cloud runs them.
+- Packages come on the claude/pc-queue branch and results go on pc/results. The rules keep the user's checkout,
+  saves and personal details out of it.
+
+Checks (lead, on this tree): CI's six GCC steps pass with its flags (-Wall -Wextra -Werror, UBSan). Those are the bit
+scans, the updater logic, the world formats, the world validator test, the world model test, and worldv on world/.
+worldv_test.cpp is worldv slice 5's with 4.1's one hunk merged in. Then the snapshot smoke: the -O2 build, the 150
+shaders, and the drive and melee autoplays.

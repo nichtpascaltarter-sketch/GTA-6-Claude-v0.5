@@ -1,0 +1,11 @@
+QS run 1 dn t11.900 foot 0 u 0.00 h   7.7 b   0.3 t  -0.0 g 0.34 0.34 0.34 fz 0.340 gIn 0.340 yh 12.484 yt 12.697 yFrom 12.469 yTo 13.338 lift 0.054 pz 0.340 | n 1 dz 0.000 o pl1 hold0 st-1.00 seen 0.27 mw 1.00
+QS run 1 dn t11.933 foot 0 u 0.14 h  12.3 b   2.8 t  19.3 g 0.34 0.34 0.17 fz 0.340 gIn -0.170 yh 12.514 yt 12.722 yFrom 12.469 yTo 12.844 lift 0.054 pz 0.340 | n 0 dz 0.000 o pl1 hold0 st-1.00 seen 0.30 mw 1.00
+QS run 1 dn t11.967 foot 0 u 0.28 h  16.0 b  21.9 t  21.2 g 0.51 0.34 0.34 fz 0.510 gIn 0.340 yh 12.579 yt 12.785 yFrom 12.469 yTo 12.860 lift 0.054 pz 0.170 | n 1 dz -0.170 o pl1 hold0 st-1.00 seen 0.33 mw 1.00
+QS run 1 dn t12.000 foot 0 u 0.42 h  18.2 b  23.1 t  22.3 g 0.51 0.34 0.34 fz 0.510 gIn 0.340 yh 12.667 yt 12.872 yFrom 12.469 yTo 12.873 lift 0.054 pz 0.170 | n 1 dz 0.000 o pl1 hold0 st-1.00 seen 0.37 mw 1.00
+QS run 1 dn t12.033 foot 0 u 0.56 h  35.6 b  23.2 t  22.3 g 0.34 0.34 0.34 fz 0.510 gIn 0.340 yh 12.761 yt 12.969 yFrom 12.469 yTo 12.883 lift 0.054 pz 0.170 | n 1 dz 0.000 o pl1 hold0 st-1.00 seen 0.40 mw 1.00
+QS run 1 dn t12.067 foot 0 u 0.70 h  38.8 b  43.7 t  42.5 g 0.34 0.17 0.17 fz 0.510 gIn 0.340 yh 12.863 yt 13.076 yFrom 12.469 yTo 12.913 lift 0.054 pz 0.170 | n 1 dz 0.000 o pl1 hold0 st-1.00 seen 0.43 mw 1.00
+QS run 1 dn t12.100 foot 0 u 0.84 h  39.6 b  45.2 t  43.4 g 0.34 0.17 0.17 fz 0.510 gIn 0.170 yh 12.923 yt 13.138 yFrom 12.469 yTo 12.913 lift 0.054 pz 0.170 | n 1 dz 0.000 o pl1 hold0 st-1.00 seen 0.47 mw 1.00
+QS run 1 dn t12.133 foot 0 u 0.98 h  36.6 b  43.4 t  41.1 g 0.34 0.17 0.17 fz 0.510 gIn 0.170 yh 12.944 yt 13.162 yFrom 12.469 yTo 12.913 lift 0.054 pz 0.170 | n 1 dz 0.000 o pl1 hold0 st-1.00 seen 0.50 mw 1.00
+QS run 3 dn t11.200 foot 0 u 0.00 h   7.5 b   0.3 t  17.1 g 0.51 0.51 0.34 fz 0.510 gIn 0.450 yh 12.763 yt 12.992 yFrom 12.751 yTo 13.600 lift 0.059 pz 0.000 | n 1 dz -0.170 o pl1 hold0 st-1.00 seen 0.80 mw 1.00
+QS run 3 dn t11.233 foot 0 u 0.14 h  12.8 b   5.3 t  22.0 g 0.51 0.51 0.34 fz 0.510 gIn 0.000 yh 12.786 yt 13.017 yFrom 12.751 yTo 13.132 lift 0.059 pz 0.000 | n 1 dz 0.000 o pl1 hold0 st-1.00 seen 0.83 mw 1.00
+QS run 3 dn t11.267 foot 0 u 0.29 h  16.8 b  26.9 t  26.4 g 0.51 0.34 0.34 fz 0.510 gIn 0.340 yh 12.847 yt 13.086 yFrom 12.751 yTo 13.165 lift 0.059 pz 0.000 | n 1 dz 0.000 o pl1 hold0 st-1.00 seen 0.87 mw 1.00

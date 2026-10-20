@@ -1,0 +1,7 @@
+d_arcade front 1191 24 2.2 -10 60 17
+d_bodega front 28817 18 1.8 -14 60 10
+d_streamline front 19762 22 2 -12 60 17.5
+d_mimo_apts front 31815 30 9 -6 60 11
+d_mimo_shop front 31213 20 1.8 -10 60 11
+d_med_hotel front 20085 26 3 -14 60 17.5
+d_sawtooth front 33679 30 4 -16 60 16

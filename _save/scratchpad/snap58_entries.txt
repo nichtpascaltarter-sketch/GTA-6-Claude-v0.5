@@ -1,0 +1,3 @@
+100644 c8f604e37f553f20b3159ca52322dc42fb329cb7	src/anim/face.cpp
+100644 c96d9d4c26bd4faa4d40fa9d48e58d0218a36522	tests/anim/anim_test.cpp
+100644 b6d50c001cda7f95af982291897d0ec8cf3757d7	docs/HANDBUILT_WORLD.md

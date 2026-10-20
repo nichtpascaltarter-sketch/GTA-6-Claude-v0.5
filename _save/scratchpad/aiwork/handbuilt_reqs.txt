@@ -1,0 +1,197 @@
+ROAD GRAPH AND NAVIGATION REQUIREMENTS (AI agent) - for docs/HANDBUILT_WORLD.md sections 12 and 4.4
+
+The proposal's plan suits the AI. An authored RoadNetwork goes into LaneGraph::build unchanged; authored extras override the derived ones; the walk graph is derived from sidewalks plus authored paths; there is a navmesh per layout with off-mesh links; and abstract occupancy covers the buildings nobody is in. Below: what the AI reads today (so nothing is lost in the switch), then what the records must carry beyond the baseline already in section 12, with record shapes in the NTW style of 4.4.
+
+12.1 WHAT THE AI READS TODAY, AND WHAT REPLACES IT
+
+- LaneGraph::build (lanes.cpp) reads RoadNetwork:
+  - Nodes: position with z, the incident edges, control (0 none, 1 stop, 2 signal), a highway flag, the clearing radius.
+  - Edges: centreline with z, class (which looks up roadInfo: lane width, lanes, median, shoulder/parking, sidewalk, speed, grade separation), flags (bridge, one-way, elevated, no sidewalk, unpaved), lanes per direction, half width, sidewalk width, junction cut-backs, name.
+  - Also dead-end bulbs; buildings and site colliders (turn curves and sidewalk corners are kept clear of them); and SiteSet::walks (plaza paths, zebras on site roads).
+  - It derives: lanes, turn connectors with conflict zones and yield priority, signal plans, stop lines, crosswalks with ped signals, bus stops and benches (copying roadmesh.cpp's furniture placement), the walk graph, and zebras.
+  - Replaced by: the authored roads (4.4) and paths (4.5). The derivations stay as defaults that the authored extras override.
+- traffic_core.cpp: lanes, connectors, conflicts, signals; A* over directed road edges for routes. Unchanged.
+- traffic.cpp:
+  - Kerbside parking is implicit: any rightmost lane of a street, avenue or lane with a parking strip of 1.8 m or more, except road-works zones and 22 m round a bus stop. Replaced by parkbay / nostop records.
+  - Roof heights for the helicopter: needs the building heights (footprint + top z).
+  - Water and terrain for boats and helicopters: from the terrain bake.
+- pednav.cpp: the walk graph (link kinds sidewalk / crosswalk / corner / path / zebra, walkable half width) and the walk signal per junction approach. Unchanged if the walk graph is built as today.
+- pedai.cpp and ai.cpp:
+  - districts (map->regionAt) for roles, behaviours, nightlife, gang turf and local lines;
+  - shop windows, derived from the building style and the street facade;
+  - street doors at the facade middle, used to walk people into and out of buildings;
+  - jaywalking: narrow streets (half width under 7.5 m, not highway, ramp or boulevard), at least 12 m from a junction;
+  - benches and bus stops (the only scenario points outdoors);
+  - obstacle avoidance against the physics world's primitive colliders (aiStaticDetour: boxes and cylinders).
+  - Replaced by: zones (12.4), frontage and door records (12.3), spot records (12.4), and colliders for props.
+- police.cpp: lanes (dispatch, roadblocks, pull-overs), edge lengths, building corners (the search plan), water, the walk graph (beats, foot chases). Replaced by: the same graphs, plus police anchors (12.4).
+- events.cpp: all 15 kinds find their own places from the lane and walk graphs, out of the player's sight.
+  - Kerb lanes with parking for two cars nose to tail: crash, breakdown, traffic stop.
+  - A fast road (12 m/s, or two lanes or more): racers.
+  - Sidewalks: mugging, purse snatch, drunk, tourists, brawl, proposal, busker.
+  - A sidewalk run of 30 m or more: shootout.
+  - The building side of a sidewalk: panhandler.
+  - A 4-way crossing of two streets or avenues with lights or all-way stops: street takeover.
+  - These keep working on the new graphs. Authored event anchors (7.7) can come on top.
+- barks.cpp: districts. Replaced by zones.
+- Not mine, for completeness:
+  - population.cpp: districts, site elements and place anchors (the venues), how lived-in a street is (stores, gas stations, motels), the coast, lanes (traffic and parked cars), the walk graph (spawns).
+  - transit.cpp: registers its stops with the AI (64 bus stops, 240 waiting spots, 16 streetcar stops with kerb lanes kept clear).
+  - interiors_game.cpp: NPCs pinned at InteriorScenario points. Nobody walks indoors today.
+
+12.2 ROADS: WHAT THE RECORDS MUST CARRY BEYOND THE BASELINE
+
+1. Lanes that change along an edge:
+   - turn pockets and added lanes;
+   - lane drops and merges, with their taper positions;
+   - bus, streetcar and bike lanes (no general traffic);
+   - solid lines (no lane change), on approaches and bridges.
+   ```
+   lanes from=62.00 to=end dir=fwd count=2 add=left taper=12.00 # a left-turn pocket at the n1 end
+   lanes from=0.00 to=40.00 dir=bwd count=1 drop=right taper=15.00
+   lane dir=fwd index=right use=bus from=10.00 to=90.00
+   noswitch dir=fwd from=70.00 to=end
+   ```
+2. The movements each lane may make at each junction: left / straight / right / U, per lane from the left.
+   ```
+   moves at=n1 dir=fwd lanes=L,S,SR
+   ```
+   With this, the connectors can still be generated (Bezier from lane end to lane end, as today). connect records override, for odd geometry.
+3. Priority at uncontrolled junctions: today the rank comes from the road class.
+   - Authored: which approaches yield (`control=yield yield=cl.e0007,cl.e0011`).
+   - control=stop should say which approaches stop: `stops=all` or a list (two-way stops).
+   - Roundabouts: `junction ... kind=roundabout`. Yield at entry; the ring lanes go to the junction as circulating connectors.
+4. The junction box: either stop lines per approach (`stopline edge=cl.e0007 at=6.50`), or the box polygon, from which the compiler derives today's cut-backs (cut0/cut1). Lanes start and end at the box. The conflict test and the "don't block the box" logic both need it.
+5. Signal plans: the library plans name their phases by movement and by crossing.
+   - Movements are approach + turn. Protected and permissive lefts are marked.
+   - Crossings get walk and flash per phase.
+   - Timings: green / amber / all-red.
+   - `plan=auto` keeps today's planner: a phase per axis, a protected left on wide approaches, greens by class, amber by speed. Authored plans must not leave any movement or crossing without a green; the validator checks this.
+   - Signal head positions (`head at=... faces=edge:dir`), for the lamps.
+6. Highways:
+   - ramps as edges, with diverge / merge points and acceleration / deceleration lanes (lane add / drop as in 1);
+   - shoulders with width (breakdowns, police stops: `shoulder=both:3.00`);
+   - medians with a barrier flag (`median=4.00:barrier`): no U-turn, no crossing on foot;
+   - grade separation (the baseline has it).
+7. Kerbside, replacing the implicit strip. parkbay is in the baseline. Also needed:
+   ```
+   nostop from=0.00 to=12.00 side=right why=junction # also: crossing, hydrant, busstop, driveway, bridge
+   loading from=30.00 to=42.00 side=right hours=6-11
+   taxirank from=50.00 to=70.00 side=left cap=3
+   parkbay ... kind=parallel|angle|perp meter=1 disabled=1
+   ```
+   - Hydrants as props imply 5 m of nostop. curbcut records imply nostop across them.
+   - Police and cabs pull over anywhere on a kerb lane outside nostop. That is derivable, so no record is needed.
+8. Bus and streetcar stops (busstop is in the baseline). They must also give:
+   - the waiting area on the sidewalk (`wait=poly` or a point and a radius), which feeds today's waiting spots;
+   - the routes that stop there;
+   - for streetcars, the kerb lane kept clear.
+9. Off-street parking (lots and garages): entry and exit points joined to an edge (as curbcut does), bay rows with their aisles, ramps between garage levels, and a level id (12.5).
+   ```
+   lot cl.lot03 entry=cl.e0007:72.00:right exit=same levels=1 bays=row:1690,352;1712,352;bays=8;w=2.5;len=5.0;yaw=90
+   ```
+10. Dead ends: whether there is a turning circle (bulb radius) or not. Long vehicles avoid ones they can't turn in.
+11. Every lane, connector and stop carries z. The baseline's profile and decks cover it. Lanes on decks over lanes must not conflict.
+
+12.3 SIDEWALKS, CROSSINGS, JAYWALKING, FRONTAGE
+
+1. The walk graph is derived from edge sidewalks plus path records (as 7.5 plans).
+   - Add plaza areas as polygons (`plaza poly=... ground=paving`). People mill about in them, beyond the paths that cross them. Event anchors (buskers, crowds) and the population use them.
+   - Through-block passages and alleys as paths (`path ... kind=alley`). Alleys are where several events want to be (12.4).
+2. Each sidewalk link keeps a kerb side and a building side.
+   - The panhandler sits against the building side.
+   - Shop windows face the building side.
+   - People step back from a car toward the building side.
+   - The derived graph has this today (lat, outward), and it must survive.
+3. Crossings: the baseline has `signal` and `zebra`. Also needed:
+   - `kind=unmarked` (junction legs with no paint: people still cross there, gap-accepting);
+   - footbridges and underpasses (path records that cross an edge on a deck or below grade);
+   - for signal crossings, which junction phase gives the walk. It is derivable from the approach, as today.
+4. Jaywalking: today's rule (narrow, slow, away from junctions) works on the authored widths and classes.
+   - Exceptions by record: `nojaywalk from to` (fences, median barriers, guard rails).
+   - A median barrier implies no jaywalking anywhere along it.
+5. Obstacles: bins, lamps, planters, hydrants, newspaper boxes, signal poles, benches.
+   - Walkers steer round the physics world's primitive colliders. Props need simple colliders (box, cylinder): the lib.prop entries in 4.5 should carry them.
+   - If the outside becomes navmesh too, they carve it instead.
+   - The sidewalk's clear width (walkable half width) should subtract the furniture strip.
+6. Frontage (the street side of a building's ground floor), per placement:
+   - windows with the unit's kind (from its fitout: bakery, bar, clothes...), for window-shopping;
+   - entrances (12.5 doors) with public hours;
+   - café terraces with their seats (spots);
+   - kiosks, ATMs, vending machines, phone booths (spots).
+   - Today the AI derives windows from the building style alone. The fitouts in 4.7 already know the shop kind, so the compiler can emit these.
+
+12.4 SPOTS, ZONES AND ANCHORS
+
+1. Outdoor scenario points (block files), each with: kind, position and yaw, capacity, hours, shelter (used in rain), who may use it (role, age, wardrobe), the prop, and the pose or clip.
+   ```
+   spot kind=bench at=... yaw=... cap=2 cover=0
+   spot kind=talk_ring at=... cap=4
+   spot kind=queue line=...;... cap=8 for=cl.b014.u1 # a queue in order, toward a door or a counter
+   ```
+   - Kinds: bench, wall_sit, steps_sit, lean, smoke, phone, busstop_wait, queue, window, atm, vending, cafe_seat, bar_stool, busk, vendor, guard, door_staff, watch_view, fish, exercise, sunbathe, sleep_rough, talk_ring.
+   - The population's venues (today 3956 laid out from site elements) become authored spots and venues per block, as 7.7 says.
+2. Zones (polygons with tags), replacing World::Region for the AI:
+   - the district id, which drives roles, density tables, local lines, the event mix and patrol density;
+   - gang turf (Cuervos / Saints);
+   - nightlife, beach, business, industrial, residential;
+   - pedestrian and traffic density per hour (and weekday).
+   - The ambience zones of 7.7 can carry these tags. One zone set serves both.
+3. Police anchors:
+   - stations with parking bays, the garage exit, the booking door (arrests are walked in), the release / respawn point, and the K9 / SWAT bases;
+   - patrol zones with densities, or loops;
+   - foot-beat stretches;
+   - break spots (a coffee shop kerb);
+   - roadblock sites at chokepoints (bridges, tunnels, key junctions). Derivable, but authored ones read better;
+   - helicopter pads and boat launch points.
+4. Event anchors per kind (7.7 plans them). Their requirements:
+   - crash / breakdown / traffic stop: a kerb stretch with 12 m of parking or shoulder;
+   - racers: two lanes side by side (or a 12 m/s road), with about a kilometre of route ahead. Today they are given a destination 1.1 km on;
+   - takeover: a 4-way crossing of two ordinary streets (lights or all-way stop);
+   - mugging / purse / drunk / tourists / brawl / proposal: a sidewalk or plaza point;
+   - shootout: a 30 m sidewalk run (cover points along it would be new and welcome);
+   - busker: a pitch;
+   - panhandler: a wall on the building side;
+   - wanted: alleys and yards (deals, gang hangouts, sleeping rough), and car park corners.
+5. Emergency services: hospitals (ambulance bay, ER door), fire stations, tow yards.
+
+12.5 INTERIORS (beyond 4.8, 7.5 and 7.6)
+
+1. Levels.
+   - Every walkable surface (sidewalk, plaza, deck, garage level, building floor) needs a level id: building + floor, or outside.
+   - Most AI proximity queries are 2D today (pedsNear, vehiclesNear, walk-graph lookups within an xy radius). With every building occupied, they need a level filter, or a guest on floor 9 steps aside for someone on floor 2. The filter is my work; the data must make a ped's level knowable without ray casts.
+   - Height queries must answer per level (groundHeight / surfaceHeight today).
+2. Stairs: stair flights as off-mesh links (4.8 has them), carrying the rise, the run and the tread count.
+   - Walkers then climb one tread per step: about 0.5 m/s up and 0.55 m/s down, the animation agent's numbers. Today they keep their 1.2-1.4 m/s flat pace on stairs.
+   - That stair pace cap is queued for me, held until the animator's slow-pace fix lands. It needs the AI to know "on a flight", which this link gives.
+   - Outdoor steps (plazas, porches) need the same tag.
+3. Doors:
+   - lock rules (4.8 has them) with public / private / staff and hours;
+   - a runtime state query: locked, open, broken;
+   - the door kind, for the clip (hinged, sliding, revolving, roll-up);
+   - exterior doors joined to the walk graph (7.5 plans this). Today's street-door logic then uses the real doors.
+4. Lifts: off-mesh links with a car capacity, the call point and wait, and the stops. NPCs call, wait, ride and get out on their floor.
+5. Rooms: type and capacity per room. Spots indoors (4.8 has them) with the same kinds as outdoors plus desk, counter_serve, counter_queue, browse, bed, sofa, kitchen, washroom, bar, dance.
+6. Police and crime indoors:
+   - entry points and a room-clearing order;
+   - cover points;
+   - exits and roof routes for a suspect running through;
+   - each shop's counter and back room, for hold-ups (today holdups.cpp uses the clerks of the few enterable shops).
+7. Occupancy: 7.6's pure function suits the AI. Two asks:
+   - Expose the next transitions (who leaves for work at 8, who comes home at 6), so the street gets people coming out of and going into doors at the right times.
+   - Make "in" and "out" counts per building queryable, for crowd density near entrances.
+
+12.6 VALIDATION (worldv) FOR THE AI'S DATA
+
+- Lanes that lead nowhere, and approaches with no movement out.
+- Moves that don't match the lane count.
+- Signal plans that never give a movement or a crossing its green.
+- Crossings with no walk phase.
+- A bus stop on a lane with no kerb.
+- parkbays overlapping a nostop or a curbcut.
+- Walk links ending in walls, and sidewalks with no crossing for over 250 m.
+- Spots inside geometry or on a lane.
+- Doors that join one room only.
+- Stairs and lifts that miss a floor.
+- Levels without an id.
+- A summary line like today's load log: "Lane graph: 25496 lanes, 56760 connectors, 40687 walk nodes, 56441 walk links", plus counts of authored overrides, so a district's coverage is visible at a glance.

@@ -1,0 +1,1 @@
+docs/HANDBUILT_WORLD.md be73a5fbf0baddd63a1ba0d57f651235b2aa4359 on 6578a8ca (supersedes 415f44c9: the window record's seed is 12 bits, roomlight.h named)

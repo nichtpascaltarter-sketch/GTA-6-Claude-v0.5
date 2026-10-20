@@ -1,0 +1,8 @@
+In file included from src/anim/anim_all.cpp:14,
+                 from src/main.cpp:49:
+src/anim/clips.cpp: In function 'void Anim::detail::clipCar(const AuthorCtx&, Anim::Clip, float, Rig&)':
+src/anim/clips.cpp:1919: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
+ 1919 |         else drivePose(A, seat, 0.f);
+      | 
+src/anim/clips.cpp:1919: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
+-rwxr-xr-x 1 root root 11734528 Oct  1 03:32 bin/char6.exe

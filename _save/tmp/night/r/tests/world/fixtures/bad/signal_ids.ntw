@@ -1,0 +1,4 @@
+ntw 1 signal id=lib.signals.x # expect id.form
+plan cycle=30.0
+phase p1 green=10.0 amber=3.0 allred=2.0
+phase p1 green=10.0 amber=3.0 allred=2.0 # expect id.unique

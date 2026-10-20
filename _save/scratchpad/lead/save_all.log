@@ -1,0 +1,29 @@
+files: 81945 total, keep 74589 (3327 MB), skip 7356 (6990 MB), private-content files left out: 1
+  big kept: 12 MB /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/pilot/grids/region.i16
+  big kept: 12 MB /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/pilot/grids/height.i16
+  big kept: 12 MB /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/pilot/grids/water.i16
+  big kept: 21 MB /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/mb_drive.txt
+bundle /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/attrtest/src
+bundle /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/attrtest/win
+bundle /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/pcq_test/seed
+bundle /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/pcq_test/work
+bundle /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/pcq_test/w2
+bundle FAILED /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/loco/vchk13h (working files still saved)
+bundle FAILED /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/loco/vchk14 (working files still saved)
+bundle FAILED /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/loco/vchk15h (working files still saved)
+bundle FAILED /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/loco/vchk13 (working files still saved)
+bundle FAILED /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/loco/vchk15 (working files still saved)
+bundle FAILED /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/loco/vchk14h (working files still saved)
+bundle /tmp/fx/cs2
+bundle /tmp/fx/bl
+bundle /tmp/fx/cs
+bundle /tmp/fx/gd2
+bundle /tmp/fx/gd3
+bundle /tmp/fx/gd
+bundle /tmp/fx/gd4
+warning: in the working copy of '/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/crlftest/crlf/terrain/terrain.ntw', CRLF will be replaced by LF the next time Git touches it
+warning: in the working copy of '/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/crlftest/bomcrlf/terrain/terrain.ntw', CRLF will be replaced by LF the next time Git touches it
+warning: in the working copy of '/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/crlftest/s1c/crlf/terrain/terrain.ntw', CRLF will be replaced by LF the next time Git touches it
+warning: in the working copy of '/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/crlftest/s1c/bomcrlf/terrain/terrain.ntw', CRLF will be replaced by LF the next time Git touches it
+warning: in the working copy of '/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/crlftest/s2c/crlf/terrain/terrain.ntw', CRLF will be replaced by LF the next time Git touches it
+warning: in the working copy of '/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/crlftest/s2c/bomcrlf/terrain/terrain.ntw', CRLF will be replaced by LF the next time Git touches it

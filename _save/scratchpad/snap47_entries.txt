@@ -1,0 +1,8 @@
+100644 5464ab3ac1a1145f7b7165c25138ae92b8f11ce4	src/anim/animator.cpp
+100644 ae083442abef4e57321af3e394cb6d9549036fa5	src/game/peds.cpp
+100644 f6747fbdf47249cb4f6bc3384540ec5aaa55d32a	src/world/buildmesh.cpp
+100644 7da1951e4af7ec1fc65ff2fa42005b81737772bd	src/world/blockstyle.cpp
+100644 ccf1712cf46b9ab392e071242a7ded1affec56c4	src/world/massing.cpp
+100644 1c903d097a67ccd81abc265c02a9395bae768e6d	src/world/facadedetail.cpp
+100644 ef101801a90ebff2f7d38ff49801302901023ad7	src/game/traffic.cpp
+100644 ff4a3f8da30ccf49e626943f0a76581ecb7aa4ac	src/game/events.cpp

@@ -1,0 +1,38 @@
+Road works show their colours (cones and barriers rendered black), and a planted foot no longer hangs in fast turns
+
+City batch 16 (src/world/propmesh.cpp):
+- Traffic cones and the water-filled road-work barriers rendered black. Both used MAT_PLASTIC, the vehicles' fixed
+  black trim, whose albedo is 0.03 whatever the vertex colour. That was 623 cones and 1,078 barriers across 79
+  road-work zones and the port.
+- They now use the painted material, which takes the vertex colour, with colours scaled for its 0.6 albedo:
+  - cones orange with a white band, on their black rubber base;
+  - barriers orange or white, each with a white band.
+- Dumpster lids stay black, as meant.
+- No placement, collision or draw change: one material and a few colours in two prop meshes, same triangle counts.
+
+Animation (src/anim/animator.cpp), fast turns:
+- Walking, a planted foot that the pose had left beyond the leg's reach stepped over only once the other foot was
+  down. In a fast turn the other foot is often still in its step, so the planted foot waited with the leg stretched
+  and hung 4-16 cm in the air.
+- Now, once its footprint is 0.4 m (times the foot scale) from the pose's, it steps over anyway. Both feet are off the
+  ground for a moment, which reads better than a hanging foot.
+
+Checks (city agent):
+- Before/after at 960x540, 5 views (two road-work zones by day, one at night, two dumpsters in back lots): the
+  barriers read orange and white and the cones orange, by day and under the street lights; the dumpsters are
+  unchanged.
+- MinGW: 0 errors, 0 warnings, on the private tree and on the shared tree with the other agents' edits in place.
+  clang MSVC-safety scan over src/world: 0 diagnostics.
+- worldcheck passed on a build carrying this file.
+
+Checks (animation agent):
+- Turn harness (turnwalk 90 / 135 / 180 degrees at 1.4 m/s):
+  - at 60 Hz, planted-foot float frames 35/71/62 -> 22/14/31, and the worst float 106/155/158 -> 75/69/48 mm;
+  - at 30 Hz, float frames 26/37/37 -> 13/11/16, and the worst float 109/139/151 -> 70/57/40 mm.
+- Cost: the 180-degree turn's mean slide rises 1.23 -> 1.40 cm at 60 Hz and 0.81 -> 0.88 cm at 30 Hz. Other slides are
+  unchanged.
+- Full suite: the stairs' blocked and stop runs are slightly better (blocked going up, sunk 1.63 -> 1.39%), with 3-5
+  more scuffs. Floats drop on stop.jog (3 -> 1) and pass.headon (10 -> 8). Stairs at 8 seeds: neutral.
+- In game, locotour: turning steps' mean slide 4.65 -> 4.50 cm (p90 8.80 -> 8.32). Straight walking and standing are
+  the same within 0.05 cm, and the big slides are unchanged (19).
+- anim_test: ALL PASSED.

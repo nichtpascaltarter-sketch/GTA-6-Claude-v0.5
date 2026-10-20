@@ -1,0 +1,8 @@
+start 01:58:03
+build st17 rc 0
+      | 
+src/game/app.cpp:5866: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
+-rwxr-xr-x 1 root root 13009920 Oct 20 02:08 bin/loco_st17.exe
+built st17 02:08:55
+st16p run over 02:10:35
+run st17p 02:10:35

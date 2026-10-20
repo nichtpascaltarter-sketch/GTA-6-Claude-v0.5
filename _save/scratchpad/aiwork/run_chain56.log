@@ -1,0 +1,4 @@
+12:42:32 nt_ai52f ready; building nt_ai56
+12:42:32 arrest on nt_ai52f
+arrest rc=0 wall=3306s shots=50 crash=0 gpu=0 log=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/log_arrest_nt_ai52f.txt
+13:42:40 the nt_ai56 set

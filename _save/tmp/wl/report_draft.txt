@@ -1,0 +1,19 @@
+world-life snapshot-safe
+
+FILES (my set; full build OUT=/tmp/wl/nt3.exe sh build.sh passes):
+- src/game/assets.cpp          the wardrobe: roster classification, 29 dedicated looks (night out 12, door staff 3, sportswear 8, beach cover-ups 6) built after the protagonists and kept out of the generic civilian pools; wardrobeChar / wardrobeRoleChar / wardrobeActorChar / wardrobeBeachLook / wardrobeOutOfPlace
+- src/game/population.cpp      every ambient, venue, queue, group, bench, beach and door spawn through the wardrobe; new venue looks (sport, tourist, outdoor, night, staff); town venues (stores, gas stations, strip malls, motels, porches, yards, driveways, workshops, docks, the lake landing) checked lazily on first visit; Sawgrass dawn crew; local "lived-in" quotas outside the city; parked-car venue props; out-of-place recycling; hands-free at night in nightlife districts; --popdebug census
+- src/game/interiors_game.cpp  club dancers / patrons (LK_CLUB), VIPs (LK_NIGHT), bouncers (LK_DOOR)
+- src/game/transit_game.cpp    stop waiters via wardrobeRoleChar
+- src/game/airboat_tours.cpp   tour riders are sightseers, not swimwear
+- src/game/story_act2.cpp      Velvet Rope dancers (LK_CLUB), Fireworks pier crowd (LK_CIVIL)
+- src/game/weather.cpp         setImmediate settles the ground (root cause of the "flooded" verge)
+- src/game/fishing.cpp         Key Coral fishing spot on the marina pier, its bait shop at the landing
+- src/game/mission_util.cpp    keyCoralMarina resolved at the marina's landing (self-contained hunk)
+- src/game/events.cpp          your one line: spawnActor -> wardrobeActorChar (signature kept)
+
+CHANGELOG (player-facing):
+...
+
+TESTS:
+...

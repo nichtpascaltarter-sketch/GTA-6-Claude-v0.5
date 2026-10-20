@@ -1,0 +1,20 @@
+Locomotion: planted feet follow the body's actual move, so pushes and nudges no longer drag them
+
+- The animator now keeps planted feet in place by the root's actual displacement since its last update (Ped::animPos,
+  AnimInput::rootMove), instead of speed x dt along the move direction.
+- So whatever moves the body without showing in its velocity no longer drags the planted feet:
+  - the ped-ped separation push;
+  - a collider's push-out;
+  - a snap.
+  A metre or more at once counts as a warp, and the velocity is used then. The gait speed still comes from the
+  velocity.
+- Step harness, slide per step:
+  - a standing person pushed 1.08 m sideways: one 106 cm drag becomes small steps (0.9 cm mean, 8.6 max);
+  - walking while jostled: 25.8 -> 1.3 cm mean.
+  Every other scenario is unchanged to the digit.
+- In game (tour stop 2 downtown, deterministic):
+  - slide per step: mean 7.42 -> 6.76 cm, p90 14.3 -> 11.6 cm, max 504 -> 385 cm;
+  - standing people: mean 6.4 -> 3.5 cm, max 143 -> 33 cm.
+  Close passes are unchanged. Group followers' remaining slides come from their steering, which the AI's next set
+  fixes.
+- Tests: anim_test ALL PASSED and the MinGW syntax check is clean. Peds CPU is unchanged, within noise.

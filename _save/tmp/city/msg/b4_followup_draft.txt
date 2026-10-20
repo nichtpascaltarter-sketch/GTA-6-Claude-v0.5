@@ -1,0 +1,13 @@
+city batch 4 follow-up (no new files): tour numbers and in-game shots for snapshot 30 / PR #30. Also two batch-4 bugs I found on main; both are fixed in batch 5.
+
+TOUR STOPS 2-5 (--gfxstats, 960x540; main 8ee5699 vs 8ee5699 + batch 4, both from /tmp/city; draws mean/max, AI/vehicle/ped CPU ms):
+@TOUR@
+Load: @LOAD@
+
+IN-GAME SHOTS (nt_dev4b.exe): $S/city/sheets/game_b4_new_types/gas_stations_raised_ingame.png. It shows the four gas station designs and the raised Keys houses in Key Solano and Ten Palms.
+
+BUGS ON MAIN FROM BATCH 4 (fixed in batch 5):
+- A third of the block houses (34%, about 1,110 of 3,244) have no garden at all: no lawn, hedges or mailbox. Their window awnings use up the house's facade-detail vertex budget, and the garden was skipped when the budget ran out. Batch 5 gives the garden a budget of its own. citylab: lawn present on 65.8% -> 100% of block houses.
+- A palm grows up through the tile canopy of a gas station (shot gas_tile). The scattered vegetation in cellgen.cpp was never kept off strip-mall and gas-station forecourts. Batch 5 keeps it off every paved rectangle (BuildingSet::pavedGrid: forecourts, driveways, pool decks, paved front yards).
+
+$S = /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad

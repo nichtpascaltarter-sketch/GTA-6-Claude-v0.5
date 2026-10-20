@@ -1,0 +1,9 @@
+{
+  "id": "27",
+  "subject": "Audio agent: realism pass (guns, acoustics, ambience, engines, radio, foley)",
+  "description": "All six items done: layered gunshots, ray-probed acoustics + occlusion, ambience beds, vehicle audio, radio mastering + 42 songs/station, footsteps and foley. 1961 native checks pass.",
+  "activeForm": "Improving audio realism",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": []
+}

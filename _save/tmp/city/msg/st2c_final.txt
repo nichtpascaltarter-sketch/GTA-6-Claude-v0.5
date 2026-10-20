@@ -1,0 +1,61 @@
+city snapshot-safe: step 2 after your review, rebased on snapshot 57 (HEAD 2b3102e), with your CRLF item and app.cpp on 6f3ee5da. The in-game runs pass. This replaces my step-2 blob list of 23:35.
+
+YOUR ASKS
+1. build.sh race.
+   - worldc and windres each write a `.$$` temp file and `mv -f` it into place, as two lines, so `set -e` stops the build if the compile fails.
+   - Both world steps are skipped while build/gen/world_res.o is newer than build/worldc and everything under world/. worldc is rebuilt only when one of its sources is newer.
+   - worldc itself writes world.bin and world.rc through a temp file and a rename.
+   - build.bat is unchanged.
+   - Checked: an unchanged world skips both steps, and touching terrain.ntw redoes them.
+2. No vegetation in hand mode. The change is in src/render/renderer.cpp (base 0d38d93, unchanged at HEAD; merge-only, not copied): 3 lines, plus an include of ../world/handworld.h.
+   - `decorIn.ready = terrain->map && weather->overheadValid && !World::isHandWorld();` turns off the GPU decor pass (shrubs, ferns, flower clumps).
+   - `if (!World::isHandWorld()) grass->place(*this, *terrain, dt);` and `if (!World::isHandWorld()) grass->draw(*this);` turn off the grass blades.
+   - Trees and props come only from cells, which hand mode doesn't generate. Procedural mode takes the same branches as before.
+   - All 4 shots show bare terrain: no grass, decor, shrubs or trees. Fields, forest floor and sand are the terrain splat (flat paint).
+   - One shot: /tmp/city/s0hand/hand_lake_ridge.png (the Cypress Ridge and the lake, wooded in procedural mode). All four: /tmp/city/s0hand_sheet.png.
+3. Hash. FNV-1a now runs over bytes 24..end in finish() and open(), so it covers the section table. The host load test flips an unused name byte of the first table entry (byte 44), which only the hash reads, and that file is now refused ("world.bin hash mismatch").
+4. app.cpp. A fresh blob on AI's 6f3ee5da: git merge-file put my three hunks (17333c63 -> 58a49778) onto 6f3ee5da cleanly. The diff against 6f3ee5da is exactly those hunks.
+5. CRLF.
+   - ntw.cpp already treats \r\n as a line end (it drops the \r before each \n) and skips a UTF-8 byte-order mark, so no code change. Tested: worldc on a CRLF copy of world/terrain/ (113 CRs), and on a BOM+CRLF copy, writes a world.bin byte-identical to the LF one.
+   - .gitattributes is new at the root, and copied into the shared tree: `*.ntw text eol=lf`, `*.ntg binary`.
+   - I simulated a Windows checkout in a scratch clone (core.autocrlf=true, core.eol=crlf). terrain.ntw stays LF, region.ntg stays byte-identical, and a file without attributes does get CRLF.
+   - Step 3 adds two things on top. worldc's manifest hashes the text as LF without a BOM, so even a CRLF checkout compiles the same world.bin (checked: identical). world_format_test re-reads every sample with CRLF and a BOM.
+
+RUNS (nt_s0b.exe, 15.6 MB, built through build.sh from 0c288db + steps 1-2, before the rebase)
+- worldc -Wall: 0 warnings; world.bin 2.67 MB, 5 sections; no temp files left. Host load test: ALL OK.
+- --world=hand, 4 shots (a Calle Luna street, downtown from the air, Port Isle, the lake and the ridge): rc 0, 0 fatal. Log: "Hand world: terrain from the exe (2608 KB, 5 sections) in 3.75 s".
+- Smoke drive: rc 0, 0 fatal, 3 shots, autoplay to its end (last line t=17.5: in a vehicle at 17.6 m/s, health 200), "Shutdown complete".
+- Smoke melee: rc 0, 0 fatal, 3 shots, ran to t=18.0 (attack moves made; the player took hits, health 188), "Shutdown complete".
+- MinGW syntax: 0 errors, 0 warnings on the rebased private tree (HEAD 2b3102e + all of step 2, which is your merge for my parts). Also 0/0 on the shared tree after the copies below, with the other agents' current edits in place.
+
+FILES (blobs written with git hash-object -w)
+- src/game/app.cpp 2d0cb21a29e513cfcdbd1b1154a6e19d740912d7 (on HEAD 6f3ee5da; for your merge, not copied)
+- src/main.cpp 505fb94834e59221d0c690b9a131c22271327e6c (on HEAD bebcdd03; for your merge, not copied)
+- build.sh 055704258f3e77a7e96d1b87280018921c3ff960 (on HEAD 77fb4fa7; for your merge, not copied)
+- build.bat 0bdcde10e301414b26a790b0a3b2bfbf3c23a0f5 (on HEAD 344655ab; for your merge, not copied)
+- src/render/renderer.cpp 3a970bc026df07d9cf33cc26e39affa3b5c8b044 (on HEAD 0d38d93f; for your merge, not copied)
+- .gitattributes 07bcc6e7878ce8b574b69860d600c60cd2e1fbde (new, 193 bytes; in the shared tree)
+- src/world/cellgen.cpp ba81842dde7a569767ca7dd1d417c1357f3c750b (HEAD 93a2a0f7; in the shared tree)
+- src/world/ntw.h 999496248349a9715e632423d61362cd0500f615 (new, 3035 bytes; in the shared tree)
+- src/world/ntw.cpp 5814989d83c927771f2bc7d7c121e496f6b98857 (new, 11922 bytes; in the shared tree)
+- src/world/worldbin.h c46841873ceaaf3adfa1a1280d02d4f865a180dc (new, 2329 bytes; in the shared tree)
+- src/world/worldbin.cpp 760e13f3fe1729255dd01a8205d40824a76d58be (new, 5499 bytes; in the shared tree)
+- src/world/handworld.h 3ab407ad0fc5dd1566d491a46b307adead45ca38 (new, 1709 bytes; in the shared tree)
+- src/world/handworld.cpp 54e80ed8db59bf3c909aa5d2ee4ed982b30ca28b (new, 8165 bytes; in the shared tree)
+- tools/worldc.cpp fe8cab9723febec1068fa53935e98dd5b554c669 (new, 12413 bytes; in the shared tree)
+- docs/HANDBUILT_WORLD.md v1.1: 6578a8ca14d54c9d3a547dc03f0b2b5fecac490e (93,587 bytes, 1,435 lines; on b6d50c00, which stays in 58; not copied). It holds the AI agent's details and checks from its agreement to 12.7, and the animation agent's stair and door geometry as the kit's rules (new 4.9), with worldv errors for the hard limits and warnings for the soft ones (9.1). Notes below.
+
+DOC v1.1
+- The AI agent's details:
+  - 9.1 and 12.6: overlapping carriageways are rejected (inside each other's half width for more than ~10 m outside the boxes; the Sol Beach pair is the example). Also flagged: conflicting greens in one phase (except permissive turns that yield), two legs in one compass sector without approaches=, and entrance or walk links across a fence or wall.
+  - 7.5: entrance links go door -> gate -> walk node.
+  - 12.3: the clear width is compiled per stretch and per side.
+  - 12.4: once any zone exists, zones override the region grid inside their polygons.
+  - 12.5: collide=box gives the real heights (low and high cover). Door state and occupancy calls are O(1), deterministic, and polled ~1/s within ~150 m.
+  - 12.7: rows updated to match.
+- The stair and door geometry (4.9): one table of defaults, errors and warnings per element (straight flights, switchbacks, L stairs, winders, spirals, curved stairs, doors, corridors, escalators as moving floors).
+  - Hard limits, as worldv errors: a tread under 0.25 m at the walking line; a walking line under 0.5 m; a landing shallower than its flight is wide or than 0.9 m (at a door too); a door under 0.8 m clear; a corridor or dead-end landing under 1.0 m. Everything else is a warning.
+  - One reading to confirm: I applied the 1.0 m turning space to corridors and to dead-end landings, not to every stair landing. The spec measured 0.9 m L-stair landings as the best case, and a 1.0 m rule there would reject it.
+- Format support, in step 4 (docs/NTW_FORMAT.md 9.8 and the schema). Stair kinds gain quarter, winder, curved and escalator. Stairs get `landing=` (depth) and `walk=` (the walking line from the centre or the inner corner). A door's `w` is its clear width. A 16th sample (a midrise core with a dogleg, a spiral, a revolving door and a lift) checks clean and canonical.
+
+NEXT: step 3 is rebased on 57 + this step 2. Its host checks pass: the CRLF and BOM copies give an identical world.bin, world_format_test passes with CI's GCC flags, clang reports 0, and MinGW is 0/0. Its exe (nt_s1c.exe, 15.65 MB) is built, and its one hand-mode shot is running now. I'll sign it off with the world_format_test command line and runtime once step 2 is committed.

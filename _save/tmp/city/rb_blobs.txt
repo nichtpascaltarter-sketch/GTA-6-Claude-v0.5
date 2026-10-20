@@ -1,0 +1,11 @@
+src/world/roadsbin.h b349f1d7be0402d2d7fd8ebd41b4f335fb32caf9 new
+src/world/roadsbin.cpp 250220cc931c81431cefc2ac84522a58c10bd8ff new
+src/world/handworld.cpp 6b769ce83937663fd46e427edd9cd59e547a0d29 on 07589e1b
+src/world/handworld.h 76052426421d8d2990a2bcab1beee8aa219ddc15 on 3ab407ad
+src/main.cpp 392933be4a8fff4b7a0302cef07c71ecb5c1d243 on 96b7c6cd
+tools/worldc.cpp 4ef1bdf8d4daf88c2406ac243c126032eec9cb32 on 46563ddf
+build.sh 597126f8f1962794e3f417d1970bcadb90c3a9ed on 23675c45
+docs/NTW_FORMAT.md c155906154bfedfcc21eb5dafbf8957d9def44f2 on 1763c8dc
+docs/HANDBUILT_WORLD.md 2803a92140a552117aebc48c40d6896021bfadd3 on c4f763a7
+tests/world/worldmodel_test.cpp c9a772207ba0a376b638caf7ef10d278d52183f6 on cec03b2b
+src/world/roomlight.h 92d3b91c43e08b8679bbb57a978eb87b5de6f0b6 on a6fcf2b8

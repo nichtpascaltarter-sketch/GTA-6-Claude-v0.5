@@ -1,0 +1,16 @@
+SIL  t0 0.000 dur 0.040 vot 0.000 stress 0 flags 00000
+S    t0 0.040 dur 0.105 vot 0.000 stress 1 flags 10835
+EY   t0 0.145 dur 0.158 vot 0.000 stress 1 flags 04832
+DH   t0 0.303 dur 0.044 vot 0.000 stress 0 flags 00885
+AX   t0 0.347 dur 0.065 vot 0.000 stress 0 flags 00882
+W    t0 0.411 dur 0.080 vot 0.000 stress 1 flags 00835
+ER   t0 0.491 dur 0.149 vot 0.000 stress 1 flags 04830
+D    t0 0.640 dur 0.047 vot 0.000 stress 1 flags 00c3a
+JH   t0 0.687 dur 0.082 vot 0.000 stress 1 flags 00835
+AE   t0 0.769 dur 0.211 vot 0.000 stress 1 flags 04830
+Z    t0 0.980 dur 0.070 vot 0.000 stress 1 flags 0083a
+AX   t0 1.049 dur 0.060 vot 0.000 stress 0 flags 01001
+G    t0 1.109 dur 0.077 vot 0.000 stress 1 flags 01874
+EH   t0 1.186 dur 0.146 vot 0.000 stress 1 flags 05870
+N    t0 1.332 dur 0.066 vot 0.000 stress 1 flags 2187a
+SIL  t0 1.398 dur 0.090 vot 0.000 stress 0 flags 00000

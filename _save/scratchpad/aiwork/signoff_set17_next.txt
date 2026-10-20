@@ -1,0 +1,13 @@
+
+Next, set 18. It builds as nt_ai102b = b71d339 + set 17 + the following (AW/graft102b.txt), and its runs are queued as soon as it is built:
+- Change 2: a BRAIN_GOTO walker behind someone slower on its line keeps their pace, a little way back (ai.cpp ai_pace::behind). Behind someone standing still it stops, and aiWalkRound's held-up step aside takes it round. Test mode: gotofollow.
+- Change 3: your turn item, with the profile the animation agent ran.
+  - Walkers turn at a rate set by their actual speed: 4 rad/s stood, 2.4 rad/s from 0.4 m/s up.
+  - The way they go follows the body, an arc rather than a crab, and the pace eases off for sharp turns.
+  - It is in ai_game.h ai_turn, used by pedai's walkers, ai.cpp's BRAIN_FOLLOW/GOTO and police.cpp's nine on-foot steps.
+  - Test mode turntest; regression runs knock, crossing, crowded, copreturn and walkby.
+- The animation agent's follower request: a hysteresis on the companion's "stopped with the leader / walking along" choice.
+  - PedAI::followMode/followModeT. It enters "stopped" under 0.25 m/s within 1.1 m and leaves over 0.45 m/s or past 1.5 m.
+  - "Walking along" starts above 0.25 m/s asked and ends below 0.12.
+  - Each state is held for at least 0.8 s.
+  - It could use the animation agent's locotour numbers (flips per minute) once nt_ai102b exists.

@@ -1,0 +1,9 @@
+In file included from src/audio/audio_all.cpp:6,
+                 from src/main.cpp:53:
+src/audio/emitters.cpp: In member function 'virtual void Audio::detail::emit::PropSynth::render(float*, int)':
+src/audio/emitters.cpp:1201: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
+ 1201 |             if (bladePhase >= 1.f) bladePhase -= 1.f;
+      | 
+src/audio/emitters.cpp:1201: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
+-rwxr-xr-x 1 root root 10786816 Sep 30 21:20 bin/missions2.exe
+exit 0

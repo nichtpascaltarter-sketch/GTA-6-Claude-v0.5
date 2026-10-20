@@ -1,0 +1,5 @@
+[ 714.166] autoplay t=9.5 pos 1806.7 218.3 3.5 state 2 health 200 veh 1 speed 4.9 | peds 90 vehicles 64 wanted 0 | cpu ms player 0.07 ai 0.54 veh 0.48 peds 1.21
+[1028.406] autoplay t=17.5 pos 1806.7 224.7 3.5 state 2 health 200 veh 1 speed 0.2 | peds 93 vehicles 67 wanted 0 | cpu ms player 0.05 ai 0.45 veh 0.36 peds 1.4
+dd402cf Carried props, zebra crossings, planted feet, layered clothing, street encounters, Act 4
+branch 'claude/neon-tide' set up to track 'origin/claude/neon-tide'.
+COMMITTED 970af15df150e447ed35191478cf48d24541d784

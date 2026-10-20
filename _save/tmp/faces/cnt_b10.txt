@@ -1,0 +1,8 @@
+c0 hair 2 fh -1: total 34969 | shell 1083 scalp 1089 lash 312 brow 860 beard 0 | eye 2792 skin 15078
+c7 hair 2 fh -1: total 34859 | shell 2486 scalp 2614 lash 312 brow 816 beard 0 | eye 2792 skin 14641
+c17 hair 3 fh -1: total 36000 | shell 8821 scalp 2940 lash 312 brow 844 beard 0 | eye 2792 skin 14513
+c27 hair 1 fh 3: total 35999 | shell 5049 scalp 2426 lash 312 brow 860 beard 3136 | eye 2792 skin 12593
+c38 hair 10 fh 3: total 36000 | shell 4970 scalp 3684 lash 312 brow 788 beard 2916 | eye 2792 skin 10975
+c10 hair 5 fh -1: total 33190 | shell 3467 scalp 3848 lash 312 brow 768 beard 0 | eye 2792 skin 15418
+c11 hair 4 fh -1: total 32556 | shell 887 scalp 1340 lash 312 brow 796 beard 0 | eye 2792 skin 19749
+c20 hair 2 fh -1: total 35224 | shell 2532 scalp 2716 lash 312 brow 764 beard 0 | eye 2792 skin 14247

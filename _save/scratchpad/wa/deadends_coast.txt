@@ -1,0 +1,317 @@
+deadend 129 at (4015.0, 4000.0, z 0.95) coast 23.5 sand 0.73 region 4 edge 139 Boulevard 'Bayshore Boulevard' len 47.1 bulb 0.0
+deadend 137 at (3575.0, -1950.0, z 1.19) coast 9.0 sand 0.71 region 2 edge 145 Boulevard 'Key Lime Boulevard' len 36.6 bulb 0.0
+deadend 138 at (3535.0, -2000.0, z 1.57) coast 49.0 sand 0.00 region 2 edge 146 Boulevard 'Bayshore Boulevard' len 50.1 bulb 0.0
+deadend 152 at (3675.0, -1350.0, z 1.04) coast 5.0 sand 0.99 region 2 edge 162 Street 'S 14th Street' len 43.4 bulb 10.1
+deadend 177 at (3725.0, -550.0, z 1.01) coast 19.0 sand 0.00 region 1 edge 187 Street 'S 6th Street' len 27.1 bulb 10.1
+deadend 180 at (3750.0, -450.0, z 1.46) coast 26.0 sand 0.00 region 1 edge 189 Street 'S 4th Street' len 35.7 bulb 10.1
+deadend 183 at (3750.0, -350.0, z 1.40) coast 26.0 sand 0.00 region 1 edge 193 Street 'S 4th Street' len 35.0 bulb 10.1
+deadend 186 at (3750.0, -250.0, z 1.40) coast 26.0 sand 0.00 region 1 edge 196 Street 'S 2nd Street' len 35.0 bulb 10.1
+deadend 192 at (3775.0, -50.0, z 0.60) coast 1.0 sand 1.00 region 1 edge 203 Boulevard 'Heron Boulevard' len 39.1 bulb 0.0
+deadend 198 at (3775.0, 250.0, z 0.96) coast 1.0 sand 1.00 region 1 edge 209 Avenue 'N 2nd Street' len 37.1 bulb 0.0
+deadend 201 at (3775.0, 350.0, z 1.25) coast 1.0 sand 1.00 region 1 edge 212 Street 'N 4th Street' len 38.6 bulb 10.1
+deadend 204 at (3775.0, 450.0, z 1.44) coast 1.0 sand 1.00 region 1 edge 215 Street 'N 4th Street' len 30.4 bulb 10.1
+deadend 207 at (3775.0, 550.0, z 1.40) coast 1.0 sand 1.00 region 1 edge 218 Street 'N 6th Street' len 30.0 bulb 10.1
+deadend 210 at (3775.0, 650.0, z 1.49) coast 1.0 sand 1.00 region 1 edge 221 Street 'N 6th Street' len 30.0 bulb 10.1
+deadend 214 at (3775.0, 750.0, z 1.45) coast 1.0 sand 1.00 region 1 edge 224 Street 'N 8th Street' len 31.4 bulb 10.1
+deadend 217 at (3775.0, 850.0, z 1.35) coast 1.0 sand 1.00 region 1 edge 228 Street 'N 8th Street' len 39.6 bulb 10.1
+deadend 222 at (3775.0, 950.0, z 1.22) coast 1.0 sand 1.00 region 3 edge 233 Boulevard 'Flamingo Boulevard' len 40.0 bulb 0.0
+deadend 227 at (3775.0, 1050.0, z 0.93) coast 1.0 sand 1.00 region 3 edge 238 Boulevard 'Flamingo Boulevard' len 33.5 bulb 0.0
+deadend 262 at (3875.0, 2550.0, z 1.14) coast 1.6 sand 1.00 region 3 edge 272 Street 'N 26th Street' len 36.4 bulb 10.1
+deadend 296 at (3975.0, 3550.0, z 0.16) coast -7.0 sand 1.00 region 4 edge 305 Street 'N 36th Street' len 50.4 bulb 10.1
+deadend 299 at (3975.0, 3650.0, z 0.57) coast -7.0 sand 1.00 region 4 edge 308 Street 'N 36th Street' len 40.4 bulb 10.1
+deadend 310 at (4675.0, 5050.0, z 0.44) coast 32.4 sand 0.22 region 4 edge 322 Boulevard 'Gulfstream Boulevard' len 46.5 bulb 0.0
+deadend 727 at (2517.5, -4626.3, z 0.33) coast 49.3 sand 0.00 region 10 edge 965 Lane 'Cedar Lane' len 131.0 bulb 8.5
+deadend 812 at (2871.4, -4076.4, z 0.55) coast 51.8 sand 0.00 region 10 edge 1103 Avenue 'Caribe Drive' len 32.4 bulb 0.0
+deadend 814 at (2900.5, -4046.4, z 0.64) coast 52.8 sand 0.00 region 10 edge 1105 Lane 'Mango Rafa' len 29.1 bulb 8.5
+deadend 853 at (3042.5, -3773.1, z 0.78) coast 51.4 sand 0.00 region 10 edge 1168 Lane 'Mango Road' len 30.2 bulb 8.5
+deadend 877 at (3285.7, -3286.5, z 0.34) coast 10.3 sand 1.00 region 10 edge 1209 Lane 'Banyan Gus' len 68.9 bulb 8.5
+deadend 886 at (3308.0, -3181.8, z 1.16) coast 20.0 sand 0.90 region 10 edge 1222 Lane 'Sunrise Place' len 51.6 bulb 8.5
+deadend 887 at (3351.5, -3130.4, z 0.63) coast -0.5 sand 1.00 region 10 edge 1224 Lane 'Citrus Nico' len 42.0 bulb 8.5
+deadend 894 at (3460.4, -2845.6, z 0.35) coast -29.5 sand 1.00 region 10 edge 1234 Lane 'Oceanic Benny' len 53.8 bulb 8.5
+deadend 898 at (3558.1, -2398.5, z 0.23) coast -38.1 sand 1.00 region 10 edge 1242 Lane 'Del Mar Sonia' len 167.0 bulb 8.5
+deadend 907 at (3479.1, -2422.4, z 1.50) coast 40.9 sand 0.00 region 10 edge 1252 Lane 'Guava Boulevard' len 137.1 bulb 8.5
+deadend 908 at (3563.9, -2558.7, z 0.50) coast -47.7 sand 0.00 region 10 edge 1254 Lane 'Marlin Rafa' len 82.0 bulb 8.5
+deadend 909 at (3569.3, -2333.9, z 0.39) coast -23.0 sand 1.00 region 10 edge 1255 Avenue 'Majestic Street' len 93.6 bulb 0.0
+deadend 910 at (3576.6, -2210.4, z 0.82) coast -24.6 sand 1.00 region 10 edge 1256 Avenue 'Majestic Street' len 30.2 bulb 0.0
+deadend 913 at (2487.2, -4659.9, z 0.54) coast 46.8 sand 0.00 region 10 edge 1263 Lane 'Egret Nico' len 142.5 bulb 8.5
+deadend 924 at (-1600.0, -5525.0, z 0.50) coast -3.5 sand 1.00 region 14 edge 1313 Boulevard '87th Boulevard' len 309.6 bulb 0.0
+deadend 1079 at (-2233.0, -5188.6, z 0.46) coast 25.5 sand 0.62 region 14 edge 1481 Lane 'Aragon Street' len 245.5 bulb 8.5
+deadend 1081 at (-1986.8, -5255.5, z 0.83) coast 44.0 sand 0.00 region 14 edge 1483 Street 'Coral Drive' len 49.5 bulb 10.1
+deadend 1084 at (-2739.2, -5081.5, z 0.63) coast -26.6 sand 1.00 region 14 edge 1485 Lane 'Almeria Avenue' len 333.9 bulb 8.5
+deadend 1085 at (-2409.2, -5159.2, z 0.40) coast -7.2 sand 1.00 region 14 edge 1487 Street 'Coral Drive' len 87.5 bulb 10.1
+deadend 1088 at (-2971.9, -4962.4, z 1.54) coast -2.4 sand 1.00 region 14 edge 1491 Lane 'Biscaya Drive' len 21.9 bulb 8.5
+deadend 1090 at (-2950.0, -5200.0, z 6.50) coast -56.3 sand 0.00 region 0 edge 1493 Road 'Levee Road' len 237.6 bulb 8.8
+deadend 1091 at (-2809.2, -5051.2, z 0.61) coast -27.2 sand 1.00 region 14 edge 1496 Street 'Coral Drive' len 85.0 bulb 10.1
+deadend 1535 at (-1353.1, -5630.4, z 0.74) coast 25.5 sand 0.62 region 14 edge 2079 Lane 'Osprey Boulevard' len 46.8 bulb 8.5
+deadend 1539 at (-1231.3, -5762.9, z 0.55) coast -23.4 sand 1.00 region 14 edge 2085 Lane 'Papaya Street' len 180.9 bulb 8.5
+deadend 1542 at (-1101.7, -5852.5, z 0.28) coast -28.0 sand 1.00 region 14 edge 2088 Lane 'Laurel Avenue' len 266.0 bulb 8.5
+deadend 1547 at (-978.8, -5922.2, z 0.80) coast -24.5 sand 1.00 region 14 edge 2094 Lane 'Majestic Drive' len 334.4 bulb 8.5
+deadend 1552 at (-861.5, -6029.0, z 0.63) coast -48.4 sand 0.00 region 14 edge 2099 Lane 'Alhambra Way' len 32.6 bulb 8.5
+deadend 1553 at (-887.9, -5997.9, z 0.66) coast -34.7 sand 1.00 region 14 edge 2101 Street 'Hibiscus Drive' len 29.4 bulb 10.1
+deadend 1566 at (-494.7, -6220.6, z 0.92) coast -12.6 sand 1.00 region 14 edge 2117 Lane 'Toledo Court' len 220.4 bulb 8.5
+deadend 1571 at (-375.1, -6244.4, z 0.87) coast -4.4 sand 1.00 region 14 edge 2125 Lane 'Esmeralda Place' len 236.6 bulb 8.5
+deadend 1576 at (-244.4, -6297.5, z 0.92) coast -25.5 sand 1.00 region 14 edge 2132 Lane 'Oceanic Lane' len 289.1 bulb 8.5
+deadend 1578 at (-114.6, -6348.2, z 0.58) coast -29.0 sand 1.00 region 14 edge 2137 Lane 'Bayshore Boulevard' len 345.9 bulb 8.5
+deadend 1924 at (29.7, -6305.0, z 1.83) coast 35.5 sand 0.08 region 14 edge 2569 Lane 'Orchid Place' len 344.8 bulb 8.5
+deadend 1925 at (490.0, -6271.4, z 0.89) coast -18.0 sand 1.00 region 14 edge 2570 Lane 'Orchid Place' len 120.0 bulb 8.5
+deadend 1926 at (377.4, -6351.2, z 0.26) coast -34.3 sand 1.00 region 14 edge 2571 Street 'Coral Drive' len 89.7 bulb 10.1
+deadend 1929 at (673.7, -6182.1, z 0.13) coast -16.7 sand 1.00 region 14 edge 2574 Lane 'Cypress Lane' len 302.2 bulb 8.5
+deadend 1934 at (922.1, -6059.1, z 0.55) coast -16.2 sand 1.00 region 14 edge 2579 Lane 'Lighthouse Boulevard' len 102.0 bulb 8.5
+deadend 1935 at (820.2, -6116.8, z 0.43) coast -26.2 sand 1.00 region 14 edge 2580 Street 'Coral Drive' len 45.1 bulb 10.1
+deadend 1939 at (1118.8, -5912.7, z 0.88) coast 7.3 sand 1.00 region 14 edge 2585 Lane 'Seabreeze Street' len 304.4 bulb 8.5
+deadend 1945 at (1258.9, -5796.7, z 0.98) coast 29.1 sand 0.41 region 14 edge 2592 Lane 'Dolphin Avenue' len 79.3 bulb 8.5
+deadend 1946 at (1187.9, -5852.1, z 1.06) coast 11.6 sand 1.00 region 14 edge 2593 Street 'Coral Drive' len 64.4 bulb 10.1
+deadend 1951 at (1425.3, -5685.6, z 0.65) coast 41.8 sand 0.00 region 14 edge 2600 Lane 'Citrus Drive' len 255.7 bulb 8.5
+deadend 2188 at (5260.0, -2360.0, z 0.50) coast 52.0 sand 0.98 region 6 edge 2895 Street '5th Street' len 82.2 bulb 10.1
+deadend 2191 at (5270.0, -2265.0, z 0.52) coast 42.0 sand 1.00 region 6 edge 2898 Street '6th Street' len 69.8 bulb 10.1
+deadend 2194 at (5320.0, -2170.0, z 0.51) coast 24.0 sand 1.00 region 6 edge 2901 Street '7th Street' len 75.0 bulb 10.1
+deadend 2198 at (5350.0, -1980.0, z 0.42) coast -6.0 sand 1.00 region 6 edge 2905 Street '9th Street' len 81.0 bulb 10.1
+deadend 2201 at (5350.0, -1885.0, z 0.62) coast 23.6 sand 1.00 region 6 edge 2908 Street '10th Street' len 68.2 bulb 10.1
+deadend 2204 at (5350.0, -1790.0, z 0.52) coast 26.0 sand 1.00 region 6 edge 2911 Street '11th Street' len 73.0 bulb 10.1
+deadend 2207 at (5350.0, -1695.0, z 0.54) coast 26.0 sand 1.00 region 6 edge 2914 Street '12th Street' len 66.6 bulb 10.1
+deadend 2211 at (5390.0, -1505.0, z 0.30) coast 18.0 sand 1.00 region 6 edge 2918 Street '14th Street' len 84.2 bulb 10.1
+deadend 2214 at (5390.0, -1410.0, z 0.35) coast 18.0 sand 1.00 region 6 edge 2921 Street '15th Street' len 81.1 bulb 10.1
+deadend 2217 at (5380.0, -1315.0, z 0.51) coast 28.0 sand 1.00 region 6 edge 2924 Street '16th Street' len 79.0 bulb 10.1
+deadend 2220 at (5380.0, -1220.0, z 0.51) coast 28.0 sand 1.00 region 6 edge 2927 Street '17th Street' len 77.4 bulb 10.1
+deadend 2224 at (5400.0, -1030.0, z 0.54) coast 8.0 sand 1.00 region 6 edge 2931 Street '19th Street' len 75.0 bulb 10.1
+deadend 2227 at (5410.0, -935.0, z 0.67) coast -2.0 sand 1.00 region 6 edge 2934 Street '20th Street' len 77.0 bulb 10.1
+deadend 2230 at (5420.0, -840.0, z 0.98) coast -12.0 sand 1.00 region 6 edge 2937 Street '21st Street' len 79.0 bulb 10.1
+deadend 2233 at (5420.0, -745.0, z 2.42) coast 18.2 sand 1.00 region 6 edge 2940 Street '22nd Street' len 79.0 bulb 10.1
+deadend 2237 at (5430.0, -555.0, z 2.39) coast 10.0 sand 1.00 region 6 edge 2944 Street '24th Street' len 81.0 bulb 10.1
+deadend 2240 at (5430.0, -460.0, z 2.66) coast 10.0 sand 1.00 region 6 edge 2947 Street '25th Street' len 81.0 bulb 10.1
+deadend 2243 at (5430.0, -365.0, z 2.51) coast 10.0 sand 1.00 region 6 edge 2950 Street '26th Street' len 73.0 bulb 10.1
+deadend 2246 at (5430.0, -270.0, z 1.65) coast 10.0 sand 1.00 region 6 edge 2953 Street '27th Street' len 73.0 bulb 10.1
+deadend 2250 at (5440.0, -80.0, z 0.59) coast 0.0 sand 1.00 region 6 edge 2957 Street '29th Street' len 75.0 bulb 10.1
+deadend 2253 at (5430.0, 15.0, z 0.25) coast 10.0 sand 1.00 region 6 edge 2960 Street '30th Street' len 77.9 bulb 10.1
+deadend 2256 at (5430.0, 110.0, z 0.25) coast 10.0 sand 1.00 region 6 edge 2963 Street '31st Street' len 81.0 bulb 10.1
+deadend 2259 at (5420.0, 205.0, z 0.50) coast 20.0 sand 1.00 region 6 edge 2966 Street '32nd Street' len 79.0 bulb 10.1
+deadend 2263 at (5420.0, 395.0, z 0.50) coast 20.0 sand 1.00 region 6 edge 2970 Street '34th Street' len 80.6 bulb 10.1
+deadend 2266 at (5420.0, 490.0, z 0.36) coast 20.0 sand 1.00 region 6 edge 2973 Street '35th Street' len 82.2 bulb 10.1
+deadend 2269 at (5430.0, 585.0, z 0.31) coast 10.0 sand 1.00 region 6 edge 2976 Street '36th Street' len 81.1 bulb 10.1
+deadend 2272 at (5440.0, 680.0, z 0.52) coast 0.0 sand 1.00 region 6 edge 2979 Street '37th Street' len 75.0 bulb 10.1
+deadend 2276 at (5440.0, 870.0, z 0.73) coast 0.0 sand 1.00 region 6 edge 2983 Street '39th Street' len 75.0 bulb 10.1
+deadend 2279 at (5440.0, 965.0, z 0.65) coast 0.0 sand 1.00 region 6 edge 2986 Street '40th Street' len 75.0 bulb 10.1
+deadend 2282 at (5440.0, 1060.0, z 0.52) coast 0.0 sand 1.00 region 6 edge 2989 Street '41st Street' len 75.0 bulb 10.1
+deadend 2285 at (5430.0, 1155.0, z 0.52) coast 10.0 sand 1.00 region 6 edge 2992 Street '42nd Street' len 73.0 bulb 10.1
+deadend 2289 at (5420.0, 1345.0, z 0.51) coast 20.0 sand 1.00 region 6 edge 2996 Street '44th Street' len 79.0 bulb 10.1
+deadend 2292 at (5400.0, 1440.0, z 0.53) coast 40.0 sand 1.00 region 6 edge 2999 Street '45th Street' len 75.0 bulb 10.1
+deadend 2295 at (5390.0, 1535.0, z 0.27) coast 50.0 sand 0.99 region 6 edge 3002 Street '46th Street' len 81.1 bulb 10.1
+deadend 2298 at (5380.0, 1630.0, z 0.50) coast 60.0 sand 0.88 region 6 edge 3005 Street '47th Street' len 80.7 bulb 10.1
+deadend 2302 at (5390.0, 1820.0, z 0.32) coast 50.0 sand 0.99 region 6 edge 3009 Street '49th Street' len 74.7 bulb 10.1
+deadend 2305 at (5390.0, 1915.0, z 0.52) coast 50.0 sand 0.99 region 6 edge 3012 Street '50th Street' len 73.0 bulb 10.1
+deadend 2308 at (5410.0, 2010.0, z 0.39) coast 30.0 sand 1.00 region 6 edge 3015 Street '51st Street' len 78.6 bulb 10.1
+deadend 2311 at (5430.0, 2105.0, z 0.24) coast 10.0 sand 1.00 region 6 edge 3018 Street '52nd Street' len 81.1 bulb 10.1
+deadend 2315 at (5410.0, 2295.0, z 0.51) coast -2.0 sand 1.00 region 6 edge 3022 Street '54th Street' len 77.0 bulb 10.1
+deadend 2318 at (5420.0, 2390.0, z 0.51) coast -12.0 sand 1.00 region 6 edge 3025 Street '55th Street' len 83.8 bulb 10.1
+deadend 2321 at (5410.0, 2485.0, z 0.60) coast -2.0 sand 1.00 region 6 edge 3028 Street '56th Street' len 77.0 bulb 10.1
+deadend 2324 at (5410.0, 2580.0, z 0.53) coast -2.0 sand 1.00 region 6 edge 3031 Street '57th Street' len 77.0 bulb 10.1
+deadend 2328 at (5400.0, 2770.0, z 0.51) coast 8.0 sand 1.00 region 6 edge 3035 Street '59th Street' len 75.0 bulb 10.1
+deadend 2331 at (5390.0, 2865.0, z 0.52) coast 18.0 sand 1.00 region 6 edge 3038 Street '60th Street' len 73.0 bulb 10.1
+deadend 2334 at (5390.0, 2960.0, z 0.56) coast 18.0 sand 1.00 region 6 edge 3041 Street '61st Street' len 73.0 bulb 10.1
+deadend 2337 at (5390.0, 3055.0, z 0.55) coast 18.0 sand 1.00 region 6 edge 3044 Street '62nd Street' len 81.0 bulb 10.1
+deadend 2341 at (5370.0, 3245.0, z 0.52) coast 6.0 sand 1.00 region 6 edge 3048 Street '64th Street' len 77.0 bulb 10.1
+deadend 2344 at (5360.0, 3340.0, z 0.63) coast 16.0 sand 1.00 region 6 edge 3051 Street '65th Street' len 71.8 bulb 10.1
+deadend 2347 at (5350.0, 3435.0, z 1.13) coast 26.0 sand 1.00 region 6 edge 3054 Street '66th Street' len 68.2 bulb 10.1
+deadend 2350 at (5350.0, 3530.0, z 0.58) coast -6.0 sand 1.00 region 6 edge 3057 Street '67th Street' len 74.7 bulb 10.1
+deadend 2354 at (5330.0, 3720.0, z 0.64) coast 14.0 sand 1.00 region 6 edge 3061 Street '69th Street' len 75.4 bulb 10.1
+deadend 2357 at (5310.0, 3815.0, z 0.52) coast 34.0 sand 1.00 region 6 edge 3064 Street '70th Street' len 69.8 bulb 10.1
+deadend 2360 at (5310.0, 3910.0, z 0.28) coast 2.0 sand 1.00 region 6 edge 3067 Street '71st Street' len 76.2 bulb 10.1
+deadend 2363 at (5290.0, 4005.0, z 0.53) coast 22.0 sand 1.00 region 6 edge 3070 Street '72nd Street' len 78.6 bulb 10.1
+deadend 2367 at (5250.0, 4195.0, z 0.54) coast 34.4 sand 1.00 region 6 edge 3074 Street '74th Street' len 70.6 bulb 10.1
+deadend 2370 at (5190.0, 4290.0, z 0.27) coast 31.0 sand 1.00 region 6 edge 3077 Street '75th Street' len 81.0 bulb 10.1
+deadend 2443 at (4960.0, 4195.0, z 0.58) coast 0.0 sand 1.00 region 6 edge 3210 Street '74th Street' len 104.5 bulb 10.1
+deadend 2444 at (4994.0, 4325.0, z 0.74) coast 9.4 sand 1.00 region 6 edge 3211 Avenue 'Collins-Solano Avenue' len 35.0 bulb 0.0
+deadend 2445 at (4960.0, 4290.0, z 0.75) coast 0.0 sand 1.00 region 6 edge 3212 Street '75th Street' len 34.0 bulb 10.1
+deadend 2446 at (4912.0, -2525.0, z 2.22) coast 3.0 sand 1.00 region 6 edge 3213 Street 'Washington Palms Avenue' len 71.3 bulb 10.1
+deadend 2447 at (4900.0, -2455.0, z 2.98) coast 4.0 sand 1.00 region 6 edge 3215 Street '4th Street' len 20.0 bulb 10.1
+deadend 2448 at (4870.0, -2360.0, z 1.80) coast 6.0 sand 1.00 region 6 edge 3217 Street '5th Street' len 62.8 bulb 10.1
+deadend 2449 at (4850.0, -2265.0, z 2.29) coast 8.2 sand 1.00 region 6 edge 3219 Street '6th Street' len 105.2 bulb 10.1
+deadend 2507 at (4920.0, 3245.0, z 0.46) coast 19.8 sand 1.00 region 6 edge 3323 Street '64th Street' len 128.0 bulb 10.1
+deadend 2508 at (4960.0, 3340.0, z 0.18) coast 32.0 sand 1.00 region 6 edge 3325 Street '65th Street' len 83.3 bulb 10.1
+deadend 2509 at (4960.0, 3435.0, z 0.31) coast 32.0 sand 1.00 region 6 edge 3327 Street '66th Street' len 76.8 bulb 10.1
+deadend 2511 at (4960.0, 3530.0, z 0.27) coast 32.0 sand 1.00 region 6 edge 3329 Street '67th Street' len 70.4 bulb 10.1
+deadend 2512 at (4960.0, 3720.0, z -0.10) coast 32.0 sand 1.00 region 6 edge 3332 Street '69th Street' len 49.6 bulb 10.1
+deadend 2513 at (4960.0, 3815.0, z 0.20) coast 32.0 sand 1.00 region 6 edge 3334 Street '70th Street' len 35.2 bulb 10.1
+deadend 2514 at (4960.0, 3910.0, z 0.26) coast 32.0 sand 1.00 region 6 edge 3336 Street '71st Street' len 28.8 bulb 10.1
+deadend 2516 at (4854.0, -2225.0, z 2.40) coast 21.9 sand 1.00 region 6 edge 3338 Street 'Bay Road' len 59.7 bulb 10.1
+deadend 2518 at (4840.0, -2170.0, z 1.77) coast 8.0 sand 1.00 region 6 edge 3340 Street '7th Street' len 30.0 bulb 10.1
+deadend 2519 at (4840.0, -1980.0, z 0.73) coast 8.0 sand 1.00 region 6 edge 3343 Street '9th Street' len 54.0 bulb 10.1
+deadend 2520 at (4840.0, -1885.0, z 0.52) coast 8.0 sand 1.00 region 6 edge 3345 Street '10th Street' len 66.9 bulb 10.1
+deadend 2521 at (4830.0, -1790.0, z 0.33) coast -2.0 sand 1.00 region 6 edge 3347 Street '11th Street' len 72.0 bulb 10.1
+deadend 2523 at (4820.0, -1695.0, z 0.50) coast 20.0 sand 1.00 region 6 edge 3349 Street '12th Street' len 88.4 bulb 10.1
+deadend 2524 at (4840.0, -1505.0, z 0.51) coast 40.0 sand 1.00 region 6 edge 3352 Street '14th Street' len 90.9 bulb 10.1
+deadend 2525 at (4840.0, -1410.0, z 0.52) coast 40.0 sand 1.00 region 6 edge 3354 Street '15th Street' len 94.1 bulb 10.1
+deadend 2526 at (4840.0, -1315.0, z 0.15) coast 40.0 sand 1.00 region 6 edge 3356 Street '16th Street' len 86.1 bulb 10.1
+deadend 2528 at (4830.0, -1220.0, z 0.50) coast 30.0 sand 1.00 region 6 edge 3358 Street '17th Street' len 97.6 bulb 10.1
+deadend 2529 at (4840.0, -1030.0, z 0.51) coast 40.0 sand 1.00 region 6 edge 3361 Street '19th Street' len 110.0 bulb 10.1
+deadend 2530 at (4840.0, -935.0, z 0.52) coast 40.0 sand 1.00 region 6 edge 3363 Street '20th Street' len 118.1 bulb 10.1
+deadend 2531 at (4810.0, -840.0, z 0.27) coast 10.0 sand 1.00 region 6 edge 3365 Street '21st Street' len 156.0 bulb 10.1
+deadend 2533 at (4800.0, -745.0, z -0.02) coast 0.0 sand 1.00 region 6 edge 3367 Street '22nd Street' len 166.1 bulb 10.1
+deadend 2534 at (4800.0, -555.0, z 0.71) coast 0.0 sand 1.00 region 6 edge 3370 Street '24th Street' len 174.0 bulb 10.1
+deadend 2535 at (4800.0, -460.0, z 1.08) coast 0.0 sand 1.00 region 6 edge 3372 Street '25th Street' len 174.0 bulb 10.1
+deadend 2536 at (4800.0, -365.0, z 0.68) coast 0.0 sand 1.00 region 6 edge 3374 Street '26th Street' len 182.1 bulb 10.1
+deadend 2538 at (4800.0, -270.0, z 0.67) coast 0.0 sand 1.00 region 6 edge 3376 Street '27th Street' len 182.1 bulb 10.1
+deadend 2539 at (4800.0, -80.0, z 0.01) coast 0.0 sand 1.00 region 6 edge 3379 Street '29th Street' len 190.1 bulb 10.1
+deadend 2540 at (4800.0, 15.0, z 0.52) coast 0.0 sand 1.00 region 6 edge 3381 Street '30th Street' len 177.3 bulb 10.1
+deadend 2541 at (4800.0, 110.0, z 0.20) coast 0.0 sand 1.00 region 6 edge 3383 Street '31st Street' len 174.1 bulb 10.1
+deadend 2543 at (4820.0, 205.0, z 0.50) coast 20.0 sand 1.00 region 6 edge 3385 Street '32nd Street' len 146.1 bulb 10.1
+deadend 2545 at (4820.0, 395.0, z 0.53) coast 20.0 sand 1.00 region 6 edge 3388 Street '34th Street' len 144.4 bulb 10.1
+deadend 2547 at (4850.0, 490.0, z 0.31) coast 20.4 sand 1.00 region 6 edge 3390 Street '35th Street' len 112.9 bulb 10.1
+deadend 2548 at (4840.0, 585.0, z 0.12) coast 8.0 sand 1.00 region 6 edge 3396 Street '36th Street' len 134.1 bulb 10.1
+deadend 2550 at (4840.0, 680.0, z 0.51) coast 8.0 sand 1.00 region 6 edge 3398 Street '37th Street' len 150.0 bulb 10.1
+deadend 2551 at (4840.0, 870.0, z 0.54) coast 8.0 sand 1.00 region 6 edge 3401 Street '39th Street' len 150.1 bulb 10.1
+deadend 2552 at (4840.0, 965.0, z 0.53) coast 8.0 sand 1.00 region 6 edge 3403 Street '40th Street' len 150.1 bulb 10.1
+deadend 2553 at (4840.0, 1060.0, z 0.62) coast 8.0 sand 1.00 region 6 edge 3405 Street '41st Street' len 150.0 bulb 10.1
+deadend 2555 at (4840.0, 1155.0, z 0.93) coast 8.0 sand 1.00 region 6 edge 3407 Street '42nd Street' len 142.0 bulb 10.1
+deadend 2556 at (4850.0, 1345.0, z 1.22) coast 18.0 sand 1.00 region 6 edge 3410 Street '44th Street' len 116.0 bulb 10.1
+deadend 2557 at (4850.0, 1440.0, z 0.56) coast 1.4 sand 1.00 region 6 edge 3412 Street '45th Street' len 100.0 bulb 10.1
+deadend 2558 at (4860.0, 1535.0, z 0.51) coast -4.0 sand 1.00 region 6 edge 3414 Street '46th Street' len 74.0 bulb 10.1
+deadend 2560 at (4870.0, 1630.0, z 0.54) coast 6.0 sand 1.00 region 6 edge 3416 Street '47th Street' len 54.4 bulb 10.1
+deadend 2564 at (4880.0, 1820.0, z 0.06) coast 16.0 sand 1.00 region 6 edge 3422 Street '49th Street' len 60.4 bulb 10.1
+deadend 2565 at (4880.0, 1915.0, z 0.52) coast 16.0 sand 1.00 region 6 edge 3424 Street '50th Street' len 62.0 bulb 10.1
+deadend 2566 at (4880.0, 2010.0, z 0.46) coast 16.0 sand 1.00 region 6 edge 3426 Street '51st Street' len 76.4 bulb 10.1
+deadend 2568 at (4880.0, 2105.0, z 0.52) coast 16.0 sand 1.00 region 6 edge 3428 Street '52nd Street' len 94.1 bulb 10.1
+deadend 2569 at (4880.0, 2295.0, z 0.52) coast 16.0 sand 1.00 region 6 edge 3431 Street '54th Street' len 78.0 bulb 10.1
+deadend 2570 at (4880.0, 2390.0, z -0.12) coast 10.0 sand 1.00 region 6 edge 3433 Street '55th Street' len 81.2 bulb 10.1
+deadend 2571 at (4880.0, 2485.0, z 0.07) coast -16.0 sand 1.00 region 6 edge 3435 Street '56th Street' len 78.0 bulb 10.1
+deadend 2573 at (4890.0, 2580.0, z 0.73) coast -6.0 sand 1.00 region 6 edge 3437 Street '57th Street' len 68.0 bulb 10.1
+deadend 2574 at (4900.0, 2770.0, z 0.59) coast 4.0 sand 1.00 region 6 edge 3440 Street '59th Street' len 50.0 bulb 10.1
+deadend 2575 at (4900.0, 2865.0, z 0.58) coast 4.0 sand 1.00 region 6 edge 3442 Street '60th Street' len 42.0 bulb 10.1
+deadend 2576 at (4900.0, 2960.0, z 0.68) coast 4.0 sand 1.00 region 6 edge 3444 Street '61st Street' len 42.0 bulb 10.1
+deadend 2578 at (4910.0, 3055.0, z 0.58) coast 14.0 sand 1.00 region 6 edge 3446 Street '62nd Street' len 24.0 bulb 10.1
+deadend 2579 at (4954.0, -2575.0, z 1.74) coast 26.0 sand 1.00 region 6 edge 3447 Avenue 'Collins-Solano Avenue' len 76.3 bulb 0.0
+deadend 2580 at (4920.0, -2550.0, z 2.44) coast -8.0 sand 1.00 region 6 edge 3448 Street '3rd Street' len 106.0 bulb 10.1
+deadend 2581 at (5069.0, -2575.0, z 0.59) coast 31.8 sand 1.00 region 6 edge 3450 Street 'Ocean Promenade' len 76.3 bulb 10.1
+deadend 2582 at (5220.0, -2550.0, z 0.42) coast 16.3 sand 1.00 region 6 edge 3451 Street '3rd Street' len 79.0 bulb 10.1
+deadend 2583 at (4840.0, -2075.0, z 1.09) coast 8.0 sand 1.00 region 6 edge 3452 Street '8th Street' len 38.0 bulb 10.1
+deadend 2584 at (5330.0, -2075.0, z 0.51) coast 14.0 sand 1.00 region 6 edge 3456 Street '8th Street' len 77.0 bulb 10.1
+deadend 2585 at (4830.0, -1600.0, z 0.51) coast 30.0 sand 1.00 region 6 edge 3457 Street '13th Street' len 72.0 bulb 10.1
+deadend 2586 at (5350.0, -1600.0, z 0.53) coast 26.0 sand 1.00 region 6 edge 3461 Street '13th Street' len 73.0 bulb 10.1
+deadend 2587 at (4830.0, -1125.0, z 0.52) coast 30.0 sand 1.00 region 6 edge 3462 Street '18th Street' len 112.1 bulb 10.1
+deadend 2588 at (5390.0, -1125.0, z 0.54) coast 18.0 sand 1.00 region 6 edge 3466 Street '18th Street' len 73.1 bulb 10.1
+deadend 2589 at (4800.0, -650.0, z 0.17) coast 0.0 sand 1.00 region 6 edge 3467 Street '23rd Street' len 174.1 bulb 10.1
+deadend 2590 at (5430.0, -650.0, z 2.01) coast 10.0 sand 1.00 region 6 edge 3471 Street '23rd Street' len 81.0 bulb 10.1
+deadend 2591 at (5440.0, -175.0, z 0.95) coast 0.0 sand 1.00 region 6 edge 3473 Street '28th Street' len 75.0 bulb 10.1
+deadend 2592 at (4820.0, 300.0, z 0.51) coast 20.0 sand 1.00 region 6 edge 3474 Street '33rd Street' len 138.1 bulb 10.1
+deadend 2593 at (5410.0, 300.0, z 0.51) coast 30.0 sand 1.00 region 6 edge 3478 Street '33rd Street' len 77.0 bulb 10.1
+deadend 2594 at (5440.0, 775.0, z 0.68) coast 0.0 sand 1.00 region 6 edge 3480 Street '38th Street' len 75.1 bulb 10.1
+deadend 2595 at (4840.0, 1250.0, z 1.06) coast 8.0 sand 1.00 region 6 edge 3481 Street '43rd Street' len 142.0 bulb 10.1
+deadend 2597 at (4880.0, 2200.0, z 0.55) coast 16.0 sand 1.00 region 6 edge 3491 Street '53rd Street' len 86.0 bulb 10.1
+deadend 2598 at (5420.0, 2200.0, z 0.55) coast 20.0 sand 1.00 region 6 edge 3495 Street '53rd Street' len 79.1 bulb 10.1
+deadend 2599 at (5400.0, 2675.0, z 0.55) coast 8.0 sand 1.00 region 6 edge 3497 Street '58th Street' len 75.0 bulb 10.1
+deadend 2600 at (5370.0, 3150.0, z 0.51) coast 6.0 sand 1.00 region 6 edge 3501 Street '63rd Street' len 77.0 bulb 10.1
+deadend 2601 at (4970.0, 3625.0, z 0.34) coast 42.0 sand 1.00 region 6 edge 3502 Street '68th Street' len 46.0 bulb 10.1
+deadend 2602 at (5340.0, 3625.0, z 0.62) coast 4.0 sand 1.00 region 6 edge 3505 Street '68th Street' len 79.1 bulb 10.1
+deadend 2603 at (5270.0, 4100.0, z 0.54) coast 42.0 sand 1.00 region 6 edge 3508 Street '73rd Street' len 73.0 bulb 10.1
+deadend 3246 at (5775.0, 8800.0, z 4.51) coast 39.5 sand 0.00 region 21 edge 4659 Road 'County Road 755' len 495.0 bulb 8.8
+deadend 3251 at (4800.0, 9575.0, z 4.66) coast 25.0 sand 0.65 region 21 edge 4668 Road 'County Road 830' len 361.7 bulb 8.8
+deadend 3255 at (-8839.3, -9327.3, z 0.76) coast 36.9 sand 1.00 region 23 edge 4673 Street '17th Avenue' len 28.0 bulb 10.1
+deadend 3266 at (-8603.3, -9545.2, z 0.51) coast 47.0 sand 1.00 region 23 edge 4684 Street 'Key Lime Street' len 50.4 bulb 10.1
+deadend 3268 at (-8679.5, -9509.2, z -0.02) coast 29.8 sand 1.00 region 23 edge 4686 Street '14th Avenue' len 67.5 bulb 10.1
+deadend 3280 at (-8515.9, -9573.5, z 0.24) coast 44.9 sand 1.00 region 23 edge 4700 Street 'Papaya Street' len 25.6 bulb 10.1
+deadend 3281 at (-8547.6, -9553.8, z 0.54) coast 49.2 sand 1.00 region 23 edge 4702 Street '13th Avenue' len 27.1 bulb 10.1
+deadend 3294 at (-8650.5, -8909.6, z 0.52) coast 31.2 sand 1.00 region 23 edge 4720 Street 'Papaya Street' len 21.8 bulb 10.1
+deadend 3295 at (-8702.2, -8942.4, z 0.59) coast 38.5 sand 1.00 region 23 edge 4721 Street '22nd Avenue' len 57.2 bulb 10.1
+deadend 3309 at (-8578.1, -8864.2, z 0.57) coast 10.0 sand 1.00 region 23 edge 4742 Street 'Guava Street' len 51.9 bulb 10.1
+deadend 3311 at (-8344.2, -9615.5, z 0.19) coast 48.5 sand 1.00 region 23 edge 4744 Street 'Cedar Street' len 30.9 bulb 10.1
+deadend 3327 at (-7846.8, -9652.9, z 0.53) coast 43.1 sand 1.00 region 23 edge 4768 Street 'San Tomas Street' len 26.3 bulb 10.1
+deadend 3330 at (-7765.4, -9651.8, z 0.53) coast 44.2 sand 1.00 region 23 edge 4771 Street 'Alhambra Street' len 41.4 bulb 10.1
+deadend 3333 at (-7690.0, -9621.2, z 0.51) coast 42.8 sand 1.00 region 23 edge 4774 Street 'Granada Street' len 26.3 bulb 10.1
+deadend 3336 at (-7611.6, -9605.3, z 0.42) coast 57.6 sand 0.92 region 23 edge 4777 Street 'Valencia Street' len 26.3 bulb 10.1
+deadend 3341 at (-8253.8, -9658.6, z 0.37) coast 16.4 sand 1.00 region 23 edge 4781 Street 'Laurel Street' len 21.1 bulb 10.1
+deadend 3355 at (-8362.1, -8802.0, z 0.51) coast 25.4 sand 1.00 region 23 edge 4806 Street '23rd Avenue' len 64.8 bulb 10.1
+deadend 3357 at (-8175.4, -9642.8, z 0.53) coast 53.2 sand 0.97 region 23 edge 4808 Street 'Jasmine Street' len 21.1 bulb 10.1
+deadend 3359 at (-8094.0, -9641.6, z 0.54) coast 54.4 sand 0.96 region 23 edge 4811 Street 'Bougainvillea Street' len 36.1 bulb 10.1
+deadend 3362 at (-8012.6, -9640.5, z 0.52) coast 55.5 sand 0.95 region 23 edge 4814 Street 'Majestic Street' len 51.2 bulb 10.1
+deadend 3373 at (-7385.4, -9513.3, z 0.43) coast 42.0 sand 1.00 region 23 edge 4831 Street 'Aragon Street' len 51.2 bulb 10.1
+deadend 3375 at (-7280.5, -9439.8, z 2.08) coast 39.1 sand 1.00 region 23 edge 4833 Street '11th Avenue' len 37.5 bulb 10.1
+deadend 3376 at (-7312.9, -9467.9, z 0.25) coast 46.3 sand 1.00 region 23 edge 4834 Street 'Castile Street' len 21.1 bulb 10.1
+deadend 3387 at (-8345.9, -8801.8, z 0.44) coast 30.6 sand 1.00 region 23 edge 4855 Street 'Jasmine Street' len 67.0 bulb 10.1
+deadend 3447 at (-8696.7, -9487.3, z 0.14) coast 43.4 sand 1.00 region 23 edge 4967 Street 'Citrus Street' len 45.2 bulb 10.1
+deadend 3448 at (-8767.2, -9455.5, z -0.21) coast 1.1 sand 1.00 region 23 edge 4968 Avenue '15th Avenue' len 62.8 bulb 0.0
+deadend 3471 at (-7246.7, -9075.9, z 0.84) coast 56.8 sand 0.93 region 23 edge 5021 Street '16th Avenue' len 62.8 bulb 10.1
+deadend 3483 at (-7290.1, -9013.3, z 0.62) coast 25.2 sand 1.00 region 23 edge 5047 Street '17th Avenue' len 32.7 bulb 10.1
+deadend 3484 at (-7330.2, -8979.9, z 0.50) coast 26.1 sand 1.00 region 23 edge 5048 Street 'Ponce Street' len 40.6 bulb 10.1
+deadend 3488 at (-7866.5, -8750.7, z 0.54) coast 14.7 sand 1.00 region 23 edge 5057 Street 'Granada Street' len 21.8 bulb 10.1
+deadend 3493 at (-7348.3, -8953.6, z 0.34) coast 20.7 sand 1.00 region 23 edge 5067 Street '18th Avenue' len 67.5 bulb 10.1
+deadend 3498 at (-7517.0, -8864.2, z 0.52) coast 9.3 sand 1.00 region 23 edge 5080 Street 'Aragon Street' len 51.2 bulb 10.1
+deadend 3499 at (-7697.7, -8777.9, z 0.14) coast 9.9 sand 1.00 region 23 edge 5083 Street 'Sevilla Street' len 31.6 bulb 10.1
+deadend 3500 at (-7655.6, -8801.6, z 0.32) coast 17.6 sand 1.00 region 23 edge 5084 Street '21st Avenue' len 36.6 bulb 10.1
+deadend 3501 at (-7538.4, -8849.3, z 0.11) coast 17.6 sand 1.00 region 23 edge 5085 Street '20th Avenue' len 61.9 bulb 10.1
+deadend 3502 at (-7607.3, -8821.0, z 0.57) coast 21.0 sand 1.00 region 23 edge 5086 Street 'Cordova Street' len 41.4 bulb 10.1
+deadend 3503 at (-8524.4, -8834.9, z 0.47) coast 2.9 sand 1.00 region 23 edge 5087 Street '23rd Avenue' len 21.5 bulb 10.1
+deadend 3798 at (-8794.4, -2781.1, z 0.51) coast -66.9 sand 0.00 region 16 edge 5536 Street '10th Avenue' len 85.0 bulb 10.1
+deadend 3799 at (-8659.9, -2822.7, z 0.60) coast -25.3 sand 1.00 region 16 edge 5537 Street '10th Avenue' len 55.8 bulb 10.1
+deadend 3800 at (-8707.7, -2788.5, z 0.60) coast -59.5 sand 0.00 region 16 edge 5538 Street 'Harbor Street' len 18.6 bulb 10.1
+deadend 3810 at (-8703.4, -2097.5, z 0.17) coast 21.8 sand 0.82 region 16 edge 5546 Street '18th Avenue' len 30.1 bulb 10.1
+deadend 3824 at (-8509.2, -2335.5, z 0.51) coast 54.5 sand 0.00 region 16 edge 5561 Street '16th Avenue' len 29.2 bulb 10.1
+deadend 3831 at (-8547.6, -2270.8, z 0.57) coast 52.1 sand 0.00 region 16 edge 5568 Street 'Harbor Street' len 34.5 bulb 10.1
+deadend 3843 at (-8811.4, -1886.1, z 0.85) coast 27.6 sand 0.50 region 16 edge 5594 Street '20th Avenue' len 25.7 bulb 10.1
+deadend 3845 at (4300.0, 1350.0, z 1.38) coast 58.0 sand 0.00 region 7 edge 5597 Lane 'Isla Estrella Drive' len 567.8 bulb 8.5
+deadend 3860 at (4400.0, 2850.0, z 0.79) coast -2.0 sand 1.00 region 3 edge 5611 Street 'N 28th Street' len 50.8 bulb 10.1
+deadend 3861 at (4420.0, 3300.0, z 6.50) coast -452.0 sand 0.00 region 0 edge 5612 Lane 'Tarpon Isle Drive' len 452.1 bulb 8.5
+deadend 3862 at (4450.0, 2800.0, z 1.40) coast 48.0 sand 0.00 region 7 edge 5613 Lane 'Tarpon Isle Drive' len 50.0 bulb 8.5
+deadend 3919 at (-8750.0, -2350.0, z 6.50) coast -141.4 sand 0.00 region 0 edge 5702 Road 'Gulf Coast Road' len 298.2 bulb 8.8
+deadend 5905 at (3700.0, -1200.0, z 1.38) coast 12.0 sand 0.39 region 2 edge 9325 Street '11th Avenue' len 50.0 bulb 10.1
+deadend 5906 at (3725.0, -850.0, z 1.40) coast 15.4 sand 0.09 region 2 edge 9330 Street 'S 8th Street' len 25.0 bulb 10.1
+deadend 5907 at (3725.0, -750.0, z 1.55) coast 19.0 sand 0.00 region 2 edge 9332 Street 'S 8th Street' len 25.0 bulb 10.1
+deadend 5908 at (3725.0, -650.0, z 1.51) coast 19.0 sand 0.00 region 2 edge 9333 Street 'S 6th Street' len 25.0 bulb 10.1
+deadend 5914 at (3800.0, 0.0, z 1.05) coast 8.0 sand 0.80 region 1 edge 9378 Street '10th Avenue' len 50.0 bulb 10.1
+deadend 5915 at (3800.0, 1100.0, z 1.40) coast 4.6 sand 0.99 region 3 edge 9379 Street '10th Avenue' len 50.0 bulb 10.1
+deadend 5916 at (3825.0, 1550.0, z 1.28) coast 13.0 sand 0.29 region 3 edge 9385 Street 'N 16th Street' len 25.0 bulb 10.1
+deadend 5917 at (3825.0, 1650.0, z 1.46) coast 15.0 sand 0.12 region 3 edge 9387 Street 'N 16th Street' len 25.0 bulb 10.1
+deadend 5918 at (3825.0, 1850.0, z 1.47) coast 15.0 sand 0.12 region 3 edge 9389 Street 'N 18th Street' len 25.0 bulb 10.1
+deadend 5937 at (3900.0, 2575.0, z 0.63) coast 3.2 sand 1.00 region 3 edge 9447 Avenue '9th Avenue' len 75.0 bulb 0.0
+deadend 5938 at (3925.0, 3150.0, z 0.73) coast 11.0 sand 1.00 region 4 edge 9454 Avenue 'N 32nd Street' len 25.0 bulb 0.0
+deadend 5940 at (3925.0, 3250.0, z 0.83) coast 11.0 sand 1.00 region 4 edge 9456 Avenue 'N 32nd Street' len 25.0 bulb 0.0
+deadend 5942 at (3925.0, 3350.0, z 0.97) coast 11.0 sand 1.00 region 4 edge 9460 Street 'N 34th Street' len 25.0 bulb 10.1
+deadend 5957 at (4000.0, 3725.0, z 0.66) coast -2.1 sand 1.00 region 4 edge 9494 Street '8th Avenue' len 25.0 bulb 10.1
+deadend 5958 at (4025.0, 3850.0, z 0.63) coast 2.0 sand 1.00 region 4 edge 9496 Street 'N 38th Street' len 25.0 bulb 10.1
+deadend 5959 at (4075.0, 4050.0, z 0.52) coast -11.0 sand 1.00 region 4 edge 9497 Boulevard 'Bayshore Boulevard' len 75.0 bulb 0.0
+deadend 5960 at (4100.0, 4150.0, z 0.57) coast -4.0 sand 1.00 region 4 edge 9499 Avenue 'N 42nd Street' len 100.0 bulb 0.0
+deadend 5961 at (4100.0, 4250.0, z 0.73) coast 3.8 sand 1.00 region 4 edge 9501 Avenue 'N 42nd Street' len 100.0 bulb 0.0
+deadend 5962 at (4175.0, 4350.0, z 0.30) coast -1.3 sand 1.00 region 4 edge 9503 Street 'N 44th Street' len 175.0 bulb 10.1
+deadend 5974 at (4200.0, 4400.0, z 1.09) coast 19.3 sand 0.92 region 4 edge 9524 Boulevard 'Sunrise Boulevard' len 50.0 bulb 0.0
+deadend 5975 at (4250.0, 4450.0, z 1.16) coast 16.8 sand 0.99 region 4 edge 9526 Street 'N 44th Street' len 50.0 bulb 10.1
+deadend 5976 at (4350.0, 4550.0, z 0.37) coast 16.8 sand 0.99 region 4 edge 9528 Street 'N 46th Street' len 150.0 bulb 10.1
+deadend 5987 at (4300.0, 2775.0, z 1.56) coast -20.9 sand 1.00 region 3 edge 9544 Street '5th Avenue' len 125.0 bulb 10.1
+deadend 5988 at (4375.0, 2650.0, z 1.40) coast -6.0 sand 1.00 region 3 edge 9545 Street 'N 26th Street' len 75.0 bulb 10.1
+deadend 5989 at (4475.0, 4750.0, z 1.51) coast 45.2 sand 0.00 region 4 edge 9548 Street 'N 48th Street' len 75.0 bulb 10.1
+deadend 5997 at (4500.0, 1800.0, z 1.54) coast -10.2 sand 1.00 region 3 edge 9561 Avenue '3rd Avenue' len 25.0 bulb 0.0
+deadend 5998 at (4500.0, 1825.0, z 0.93) coast -34.3 sand 1.00 region 3 edge 9561 Avenue '3rd Avenue' len 25.0 bulb 0.0
+deadend 5999 at (4500.0, 4775.0, z 0.96) coast 45.3 sand 0.00 region 4 edge 9562 Avenue '3rd Avenue' len 75.0 bulb 0.0
+deadend 6000 at (4525.0, 4850.0, z 1.11) coast 59.5 sand 0.00 region 4 edge 9564 Street 'N 48th Street' len 25.0 bulb 10.1
+deadend 6006 at (4700.0, 5150.0, z 1.48) coast 54.0 sand 0.00 region 4 edge 9578 Avenue 'N 52nd Street' len 100.0 bulb 0.0
+deadend 6043 at (2976.1, -3892.9, z 0.64) coast 58.3 sand 0.00 region 10 edge 9619 Lane 'Lighthouse Sonia' len 20.4 bulb 8.5
+deadend 6045 at (3129.5, -3613.0, z 0.43) coast 33.2 sand 0.18 region 10 edge 9624 Lane 'Magnolia Terrace' len 19.6 bulb 8.5
+deadend 6046 at (3149.4, -3592.5, z 0.28) coast 21.6 sand 0.83 region 10 edge 9625 Lane 'Castile Yoli' len 20.3 bulb 8.5
+deadend 6048 at (3494.7, -2726.3, z 0.68) coast -34.7 sand 1.00 region 10 edge 9627 Lane 'Guava Boulevard' len 18.8 bulb 8.5
+deadend 6049 at (3514.4, -2707.5, z 0.68) coast -39.8 sand 1.00 region 10 edge 9628 Lane 'Magnolia Cora' len 21.2 bulb 8.5
+deadend 6050 at (3587.1, -2057.8, z 0.51) coast -3.1 sand 1.00 region 10 edge 9629 Avenue 'Majestic Street' len 40.7 bulb 0.0
+deadend 6052 at (75.0, -6400.0, z 0.84) coast -32.0 sand 1.00 region 14 edge 9633 Boulevard '188th Street' len 200.0 bulb 0.0
+deadend 6053 at (275.0, -6400.0, z 0.07) coast -33.0 sand 1.00 region 14 edge 9633 Boulevard '188th Street' len 200.0 bulb 0.0
+deadend 6055 at (-2189.3, -5799.5, z 0.64) coast 5.5 sand 1.00 region 14 edge 9634 Lane 'Key Lime Terrace' len 116.4 bulb 8.5
+deadend 6056 at (-2072.9, -5802.7, z -0.21) coast -47.2 sand 0.00 region 14 edge 9634 Lane 'Key Lime Terrace' len 116.4 bulb 8.5
+deadend 6057 at (-1858.1, -5332.5, z 0.49) coast 34.4 sand 0.13 region 14 edge 9635 Lane 'Valencia Boulevard' len 224.3 bulb 8.5
+deadend 6059 at (-2007.8, -5652.5, z 0.26) coast -23.8 sand 1.00 region 14 edge 9636 Street 'Coral Drive' len 122.6 bulb 10.1
+deadend 6060 at (-2001.9, -5530.0, z 0.53) coast -48.5 sand 0.00 region 14 edge 9636 Street 'Coral Drive' len 122.6 bulb 10.1
+deadend 6101 at (-613.4, -6159.7, z 0.73) coast -24.7 sand 1.00 region 14 edge 9657 Lane 'Castile Terrace' len 100.6 bulb 8.5
+deadend 6102 at (-612.9, -6059.1, z 1.78) coast 54.8 sand 0.00 region 14 edge 9657 Lane 'Castile Terrace' len 100.6 bulb 8.5
+deadend 6163 at (4952.0, 4125.0, z 0.59) coast -8.0 sand 1.00 region 6 edge 9694 Street 'Washington Palms Avenue' len 25.0 bulb 10.1
+deadend 6164 at (4800.0, -175.0, z 0.55) coast 0.0 sand 1.00 region 6 edge 9695 Street '28th Street' len 190.1 bulb 10.1
+deadend 6165 at (4840.0, 775.0, z 0.51) coast 8.0 sand 1.00 region 6 edge 9696 Street '38th Street' len 150.1 bulb 10.1
+deadend 6166 at (4890.0, 2675.0, z 0.59) coast -6.0 sand 1.00 region 6 edge 9697 Street '58th Street' len 60.0 bulb 10.1
+deadend 6167 at (4918.0, 3225.0, z 0.51) coast 21.0 sand 1.00 region 6 edge 9698 Street 'Bay Road' len 77.5 bulb 10.1
+deadend 6169 at (-8332.6, -8796.0, z 0.50) coast 28.0 sand 1.00 region 23 edge 9702 Street '23rd Avenue' len 60.2 bulb 10.1
+deadend 6174 at (-6400.0, 9750.0, z 4.00) coast 10.0 sand 1.00 region 17 edge 9706 Road 'County Road 760' len 225.1 bulb 8.8
+deadend 6179 at (-4800.0, 9650.0, z 4.57) coast 46.0 sand 0.00 region 17 edge 9710 Road 'County Road 770' len 850.1 bulb 8.8
+deadend 6181 at (-3200.0, 9600.0, z 3.90) coast 51.8 sand 0.00 region 17 edge 9713 Road 'County Road 780' len 800.1 bulb 8.8
+deadend 6184 at (-1600.0, 9625.0, z 4.98) coast -25.0 sand 1.00 region 17 edge 9718 Road 'County Road 790' len 825.1 bulb 8.8
+deadend 6186 at (0.0, 9575.0, z 5.19) coast -32.3 sand 1.00 region 17 edge 9724 Road 'County Road 800' len 775.1 bulb 8.8
+deadend 6190 at (1600.0, 9575.0, z 2.53) coast -32.3 sand 1.00 region 17 edge 9731 Road 'County Road 810' len 775.2 bulb 8.8
+deadend 6195 at (3200.0, 9550.0, z 5.44) coast -14.0 sand 1.00 region 17 edge 9737 Road 'County Road 820' len 750.1 bulb 8.8
+deadend 6198 at (5025.0, 5600.0, z 1.23) coast 10.6 sand 1.00 region 17 edge 9742 Road 'County Road 735' len 225.1 bulb 8.8
+deadend 6208 at (-1200.0, 9500.0, z 6.41) coast 36.0 sand 0.07 region 17 edge 9758 Track 'Farm Track' len 700.0 bulb 0.0
+deadend 6209 at (-400.0, 9500.0, z 7.03) coast 36.0 sand 0.07 region 17 edge 9759 Track 'Farm Track' len 700.0 bulb 0.0
+deadend 6210 at (2000.0, 9500.0, z 6.07) coast 36.0 sand 0.07 region 17 edge 9761 Track 'Farm Track' len 700.0 bulb 0.0
+deadend 6211 at (2800.0, 9500.0, z 6.81) coast 36.0 sand 0.07 region 17 edge 9762 Track 'Farm Track' len 700.0 bulb 0.0

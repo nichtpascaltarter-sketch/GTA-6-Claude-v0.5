@@ -1,0 +1,49 @@
+World map generated in 11.96 s
+natural terrain generated in 11.96 s
+Places: Ocean Promenade hotel row, 11 hotels at x 5365 (ground 2.4), park 681..1050
+Places: Porto Sol University at (1950, 3700), ground 3.3, 13 halls
+Places: Santa Marea Cemetery at (1600, -750), ground 3.5, 67 mourners
+Places: Palmera State Penitentiary at (350, 9075), ground 6.9
+Places: Palmera Speedway at (400, 5790), ground 6.8
+Places: layout 0.000 s, 5 places, 624 anchors
+Transit: SkyLine loop 8.60 km, 8 stations, 4299 samples; 3 ferry piers
+Sites: 111 pads, 613 elements, 25 roads, 53 buildings requested (0.02 s)
+World map generated in 12.12 s
+terrain with the sites generated in 12.12 s
+Road gen: 18 interchanges, 50 ramps (22 left out where they could not come down in time)
+Road gen: 1 arterial ends at a lone on/off ramp given a turnaround
+Road gen: junction plateaus, 489 profile points levelled (largest change 0.70 m, 6 short links ramped plateau to plateau)
+Road network: 6223 nodes, 9547 edges, 1690 signalized; hwy 61.7 km, streets 1165.8 km (2.87 s)
+roads generated (and graded) in 2.98 s: 6223 nodes, 9547 edges
+map 20.48 km square (2560 x 2560 texels of 8 m); natural land 183.5 km2, water 235.9 km2; land spans x -9644..6124, y -9660..9788 (15.8 x 19.5 km)
+  region Atlantic Ocean land   0.24 km2
+  region Downtown Porto Sol land   1.66 km2
+  region Solaris        land   1.36 km2
+  region Canvas District land   3.27 km2
+  region North Porto Sol land   7.66 km2
+  region Calle Luna     land   2.92 km2
+  region Sol Beach      land   3.64 km2
+  region Bay Isles      land   0.59 km2
+  region Key Coral      land   1.46 km2
+  region Port Isle      land   0.72 km2
+  region The Grove      land   7.01 km2
+  region Porto Sol International land   4.05 km2
+  region Palmetto Flats land   7.72 km2
+  region Westbrook      land  29.07 km2
+  region Redland        land   6.04 km2
+  region The Sawgrass   land  38.36 km2
+  region Ten Palms      land   0.93 km2
+  region Palmera Farmlands land  31.99 km2
+  region Okahatchee     land   1.69 km2
+  region Harlow         land   1.23 km2
+  region Cypress Ridge  land  18.50 km2
+  region Fort Castell   land   8.39 km2
+  region Coral Keys     land   3.84 km2
+  region Key Solano     land   1.19 km2
+sites vs natural: height changed (>0.25 m) on 3.73 km2, land->water 0.017 km2, water->land 0.016 km2, max +9.1 / -15.3 m
+roads vs sites:   height changed (>0.25 m) on 2.12 km2, land->water 0.000 km2, water->land 0.041 km2, max +91.8 / -17.5 m
+wrote the bake files
+
+real	0m27.997s
+user	0m22.262s
+sys	0m0.778s

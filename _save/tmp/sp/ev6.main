@@ -1,0 +1,473 @@
+[OK ] parakeet  male       REF: get in the car we have to go now
+                           HYP: get in the car we have to go now
+[OK ] parakeet  female     REF: get in the car we have to go now
+                           HYP: get in the car we have to go now
+[OK ] parakeet  oldgruff   REF: get in the car we have to go now
+                           HYP: get in the car we have to go now
+[OK ] parakeet  presetM    REF: get in the car we have to go now
+                           HYP: get in the car we have to go now
+[OK ] parakeet  presetF    REF: get in the car we have to go now
+                           HYP: get in the car we have to go now
+[OK ] parakeet  male       REF: the police are coming drive
+                           HYP: the police are coming drive
+[OK ] parakeet  female     REF: the police are coming drive
+                           HYP: the police are coming drive
+[OK ] parakeet  oldgruff   REF: the police are coming drive
+                           HYP: the police are coming drive
+[OK ] parakeet  presetM    REF: the police are coming drive
+                           HYP: the police are coming drive
+[OK ] parakeet  presetF    REF: the police are coming drive
+                           HYP: the police are coming drive
+[OK ] parakeet  male       REF: welcome to porto sol the city that never sleeps
+                           HYP: welcome to porto sol the city that never sleeps
+[OK ] parakeet  female     REF: welcome to porto soul the city that never sleeps
+                           HYP: welcome to porto soul the city that never sleeps
+[OK ] parakeet  oldgruff   REF: welcome to porto sol the city that never sleeps
+                           HYP: welcome to porto sol the city that never sleeps
+[OK ] parakeet  presetM    REF: welcome to porto sol the city that never sleeps
+                           HYP: welcome to porto sol the city that never sleeps
+[OK ] parakeet  presetF    REF: welcome to porto sol the city that never sleeps
+                           HYP: welcome to porto sol the city that never sleeps
+[OK ] parakeet  male       REF: you have got $250 is that all
+                           HYP: you have got $250 is that all
+[OK ] parakeet  female     REF: you have got $250 is that all
+                           HYP: you have got $250 is that all
+[OK ] parakeet  oldgruff   REF: you have got $250 is that all
+                           HYP: you have got $250 is that all
+[OK ] parakeet  presetM    REF: you have got $250 is that all
+                           HYP: you have got $250 is that all
+[OK ] parakeet  presetF    REF: you have got $250 is that all
+                           HYP: you have got $250 is that all
+[OK ] parakeet  male       REF: it is 1030 on a beautiful tuesday morning
+                           HYP: it is 1030 on a beautiful tuesday morning
+[OK ] parakeet  female     REF: it is 1030 on a beautiful tuesday morning
+                           HYP: it is 1030 on a beautiful tuesday morning
+[OK ] parakeet  oldgruff   REF: it is 1030 on a beautiful tuesday morning
+                           HYP: it is 1030 on a beautiful tuesday morning
+[OK ] parakeet  presetM    REF: it is 1030 on a beautiful tuesday morning
+                           HYP: it is 1030 on a beautiful tuesday morning
+[OK ] parakeet  presetF    REF: it is 1030 on a beautiful tuesday morning
+                           HYP: it is 1030 on a beautiful tuesday morning
+[OK ] parakeet  male       REF: i need the money by tomorrow night or you are dead
+                           HYP: i need the money by tomorrow night or you are dead
+[OK ] parakeet  female     REF: i need the money by tomorrow night or you are dead
+                           HYP: i need the money by tomorrow night or you are dead
+[OK ] parakeet  oldgruff   REF: i need the money by tomorrow night or you are dead
+                           HYP: i need the money by tomorrow night or you are dead
+[OK ] parakeet  presetM    REF: i need the money by tomorrow night or you are dead
+                           HYP: i need the money by tomorrow night or you are dead
+[OK ] parakeet  presetF    REF: i need the money by tomorrow night or you are dead
+                           HYP: i need the money by tomorrow night or you are dead
+[OK ] parakeet  male       REF: put your hands up and step away from the vehicle
+                           HYP: put your hands up and step away from the vehicle
+[OK ] parakeet  female     REF: put your hands up and step away from the vehicle
+                           HYP: put your hands up and step away from the vehicle
+[OK ] parakeet  oldgruff   REF: put your hands up and step away from the vehicle
+                           HYP: put your hands up and step away from the vehicle
+[OK ] parakeet  presetM    REF: put your hands up and step away from the vehicle
+                           HYP: put your hands up and step away from the vehicle
+[OK ] parakeet  presetF    REF: put your hands up and step away from the vehicle
+                           HYP: put your hands up and step away from the vehicle
+[OK ] parakeet  male       REF: suspect is heading north on the highway in a red sedan
+                           HYP: suspect is heading north on the highway in a red sedan
+[OK ] parakeet  female     REF: suspect is heading north on the highway in a red sedan
+                           HYP: suspect is heading north on the highway in a red sedan
+[OK ] parakeet  oldgruff   REF: suspect is heading north on the highway in a red sedan
+                           HYP: suspect is heading north on the highway in a red sedan
+[OK ] parakeet  presetM    REF: suspect is heading north on the highway in a red sedan
+                           HYP: suspect is heading north on the highway in a red sedan
+[OK ] parakeet  presetF    REF: suspect is heading north on the highway in a red sedan
+                           HYP: suspect is heading north on the highway in a red sedan
+[OK ] parakeet  male       REF: hey watch where you are going buddy
+                           HYP: hey watch where you are going buddy
+[OK ] parakeet  female     REF: hey watch where you are going buddy
+                           HYP: hey watch where you are going buddy
+[OK ] parakeet  oldgruff   REF: hey watch where you are going buddy
+                           HYP: hey watch where you are going buddy
+[OK ] parakeet  presetM    REF: hey watch where you are going buddy
+                           HYP: hey watch where you are going buddy
+[OK ] parakeet  presetF    REF: hey watch where you are going buddy
+                           HYP: hey watch where you are going buddy
+[OK ] parakeet  male       REF: my brother works down at the docks near the beach
+                           HYP: my brother works down at the docks near the beach
+[OK ] parakeet  female     REF: my brother works down at the docks near the beach
+                           HYP: my brother works down at the docks near the beach
+[OK ] parakeet  oldgruff   REF: my brother works down at the docks near the beach
+                           HYP: my brother works down at the docks near the beach
+[OK ] parakeet  presetM    REF: my brother works down at the docks near the beach
+                           HYP: my brother works down at the docks near the beach
+[OK ] parakeet  presetF    REF: my brother works down at the docks near the beach
+                           HYP: my brother works down at the docks near the beach
+[OK ] parakeet  male       REF: do not worry about it i will take care of everything
+                           HYP: do not worry about it i will take care of everything
+[OK ] parakeet  female     REF: do not worry about it i will take care of everything
+                           HYP: do not worry about it i will take care of everything
+[OK ] parakeet  oldgruff   REF: do not worry about it i will take care of everything
+                           HYP: do not worry about it i will take care of everything
+[OK ] parakeet  presetM    REF: do not worry about it i will take care of everything
+                           HYP: do not worry about it i will take care of everything
+[OK ] parakeet  presetF    REF: do not worry about it i will take care of everything
+                           HYP: do not worry about it i will take care of everything
+[OK ] parakeet  male       REF: this is the hottest station in the city playing the best music all day long
+                           HYP: this is the hottest station in the city playing the best music all day long
+[OK ] parakeet  female     REF: this is the hottest station in the city playing the best music all day long
+                           HYP: this is the hottest station in the city playing the best music all day long
+[OK ] parakeet  oldgruff   REF: this is the hottest station in the city playing the best music all day long
+                           HYP: this is the hottest station in the city playing the best music all day long
+[OK ] parakeet  presetM    REF: this is the hottest station in the city playing the best music all day long
+                           HYP: this is the hottest station in the city playing the best music all day long
+[OK ] parakeet  presetF    REF: this is the hottest station in the city playing the best music all day long
+                           HYP: this is the hottest station in the city playing the best music all day long
+[OK ] parakeet  male       REF: the birch canoe slid on the smooth planks
+                           HYP: the birch canoe slid on the smooth planks
+[OK ] parakeet  female     REF: the birch canoe slid on the smooth planks
+                           HYP: the birch canoe slid on the smooth planks
+[OK ] parakeet  oldgruff   REF: the birch canoe slid on the smooth planks
+                           HYP: the birch canoe slid on the smooth planks
+[OK ] parakeet  presetM    REF: the birch canoe slid on the smooth planks
+                           HYP: the birch canoe slid on the smooth planks
+[OK ] parakeet  presetF    REF: the birch canoe slid on the smooth planks
+                           HYP: the birch canoe slid on the smooth planks
+[OK ] parakeet  male       REF: glue the sheet to the dark blue background
+                           HYP: glue the sheet to the dark blue background
+[OK ] parakeet  female     REF: glue the sheet to the dark blue background
+                           HYP: glue the sheet to the dark blue background
+[OK ] parakeet  oldgruff   REF: glue the sheet to the dark blue background
+                           HYP: glue the sheet to the dark blue background
+[OK ] parakeet  presetM    REF: glue the sheet to the dark blue background
+                           HYP: glue the sheet to the dark blue background
+[OK ] parakeet  presetF    REF: glue the sheet to the dark blue background
+                           HYP: glue the sheet to the dark blue background
+[OK ] parakeet  male       REF: it is easy to tell the depth of a well
+                           HYP: it is easy to tell the depth of a well
+[OK ] parakeet  female     REF: it is easy to tell the depth of a well
+                           HYP: it is easy to tell the depth of a well
+[OK ] parakeet  oldgruff   REF: it is easy to tell the depth of a well
+                           HYP: it is easy to tell the depth of a well
+[OK ] parakeet  presetM    REF: it is easy to tell the depth of a well
+                           HYP: it is easy to tell the depth of a well
+[OK ] parakeet  presetF    REF: it is easy to tell the depth of a well
+                           HYP: it is easy to tell the depth of a well
+[OK ] parakeet  male       REF: these days a chicken leg is a rare dish
+                           HYP: these days a chicken leg is a rare dish
+[OK ] parakeet  female     REF: these days a chicken leg is a rare dish
+                           HYP: these days a chicken leg is a rare dish
+[OK ] parakeet  oldgruff   REF: these days a chicken leg is a rare dish
+                           HYP: these days a chicken leg is a rare dish
+[OK ] parakeet  presetM    REF: these days a chicken leg is a rare dish
+                           HYP: these days a chicken leg is a rare dish
+[OK ] parakeet  presetF    REF: these days a chicken leg is a rare dish
+                           HYP: these days a chicken leg is a rare dish
+[OK ] parakeet  male       REF: rice is often served in round bowls
+                           HYP: rice is often served in round bowls
+[OK ] parakeet  female     REF: rice is often served in round bowls
+                           HYP: rice is often served in round bowls
+[OK ] parakeet  oldgruff   REF: rice is often served in round bowls
+                           HYP: rice is often served in round bowls
+[OK ] parakeet  presetM    REF: rice is often served in round bowls
+                           HYP: rice is often served in round bowls
+[OK ] parakeet  presetF    REF: rice is often served in round bowls
+                           HYP: rice is often served in round bowls
+[OK ] parakeet  male       REF: the juice of lemons makes fine punch
+                           HYP: the juice of lemons makes fine punch
+[OK ] parakeet  female     REF: the juice of lemons makes fine punch
+                           HYP: the juice of lemons makes fine punch
+[OK ] parakeet  oldgruff   REF: the juice of lemons makes fine punch
+                           HYP: the juice of lemons makes fine punch
+[OK ] parakeet  presetM    REF: the juice of lemons makes fine punch
+                           HYP: the juice of lemons makes fine punch
+[OK ] parakeet  presetF    REF: the juice of lemons makes fine punch
+                           HYP: the juice of lemons makes fine punch
+[ERR] parakeet  male       REF: the box was thrown beside the parked truck
+                           HYP: the box was thrown beside the park truck
+[ERR] parakeet  female     REF: the box was thrown beside the parked truck
+                           HYP: the box was thrown beside the park truck
+[ERR] parakeet  oldgruff   REF: the box was thrown beside the parked truck
+                           HYP: the box was thrown beside the park truck
+[ERR] parakeet  presetM    REF: the box was thrown beside the parked truck
+                           HYP: the box was thrown beside the park truck
+[ERR] parakeet  presetF    REF: the box was thrown beside the parked truck
+                           HYP: the box was thrown beside the park truck
+[OK ] parakeet  male       REF: the hogs were fed chopped corn and garbage
+                           HYP: the hogs were fed chopped corn and garbage
+[ERR] parakeet  female     REF: the hogs were fed chopped corn and garbage
+                           HYP: the hogs were fed chopped corn and carbon
+[OK ] parakeet  oldgruff   REF: the hogs were fed chopped corn and garbage
+                           HYP: the hogs were fed chopped corn and garbage
+[OK ] parakeet  presetM    REF: the hogs were fed chopped corn and garbage
+                           HYP: the hogs were fed chopped corn and garbage
+[OK ] parakeet  presetF    REF: the hogs were fed chopped corn and garbage
+                           HYP: the hogs were fed chopped corn and garbage
+[OK ] parakeet  male       REF: 4 hours of steady work faced us
+                           HYP: 4 hours of steady work faced us
+[OK ] parakeet  female     REF: 4 hours of steady work faced us
+                           HYP: 4 hours of steady work faced us
+[OK ] parakeet  oldgruff   REF: 4 hours of steady work faced us
+                           HYP: 4 hours of steady work faced us
+[OK ] parakeet  presetM    REF: 4 hours of steady work faced us
+                           HYP: 4 hours of steady work faced us
+[OK ] parakeet  presetF    REF: 4 hours of steady work faced us
+                           HYP: 4 hours of steady work faced us
+[OK ] parakeet  male       REF: a large size in stockings is hard to sell
+                           HYP: a large size in stockings is hard to sell
+[OK ] parakeet  female     REF: a large size in stockings is hard to sell
+                           HYP: a large size in stockings is hard to sell
+[OK ] parakeet  oldgruff   REF: a large size in stockings is hard to sell
+                           HYP: a large size in stockings is hard to sell
+[OK ] parakeet  presetM    REF: a large size in stockings is hard to sell
+                           HYP: a large size in stockings is hard to sell
+[OK ] parakeet  presetF    REF: a large size in stockings is hard to sell
+                           HYP: a large size in stockings is hard to sell
+[OK ] parakeet  male       REF: meet me at 1030 on 5th avenue with $1500
+                           HYP: meet me at 1030 on 5th avenue with $1500
+[OK ] parakeet  female     REF: meet me at 1030 on 5th avenue with $1500
+                           HYP: meet me at 1030 on 5th avenue with $1500
+[OK ] parakeet  oldgruff   REF: meet me at 1030 on 5th avenue with $1500
+                           HYP: meet me at 1030 on 5th avenue with $1500
+[OK ] parakeet  presetM    REF: meet me at 1030 on 5th avenue with $1500
+                           HYP: meet me at 1030 on 5th avenue with $1500
+[OK ] parakeet  presetF    REF: meet me at 1030 on 5th avenue with $1500
+                           HYP: meet me at 1030 on 5th avenue with $1500
+== parakeet: overall WER 0.6% (6/1015)
+   female       WER   1.0%  (2/203)
+   male         WER   0.5%  (1/203)
+   oldgruff     WER   0.5%  (1/203)
+   presetF      WER   0.5%  (1/203)
+   presetM      WER   0.5%  (1/203)
+[OK ] whisper-base male       REF: get in the car we have to go now
+                           HYP: get in the car we have to go now
+[OK ] whisper-base female     REF: get in the car we have to go now
+                           HYP: get in the car we have to go now
+[OK ] whisper-base oldgruff   REF: get in the car we have to go now
+                           HYP: get in the car we have to go now
+[OK ] whisper-base presetM    REF: get in the car we have to go now
+                           HYP: get in the car we have to go now
+[OK ] whisper-base presetF    REF: get in the car we have to go now
+                           HYP: get in the car we have to go now
+[OK ] whisper-base male       REF: the police are coming drive
+                           HYP: the police are coming drive
+[OK ] whisper-base female     REF: the police are coming drive
+                           HYP: the police are coming drive
+[OK ] whisper-base oldgruff   REF: the police are coming drive
+                           HYP: the police are coming drive
+[OK ] whisper-base presetM    REF: the police are coming drive
+                           HYP: the police are coming drive
+[OK ] whisper-base presetF    REF: the police are coming drive
+                           HYP: the police are coming drive
+[ERR] whisper-base male       REF: welcome to porto sol the city that never sleeps
+                           HYP: welcome to porto seoul the city that never sleeps
+[ERR] whisper-base female     REF: welcome to porto sol the city that never sleeps
+                           HYP: welcome to porto seoul the city that never sleeps
+[ERR] whisper-base oldgruff   REF: welcome to porto sol the city that never sleeps
+                           HYP: welcome to porto seoul the city that never sleeps
+[ERR] whisper-base presetM    REF: welcome to porto sol the city that never sleeps
+                           HYP: welcome to porto seoul the city that never sleeps
+[OK ] whisper-base presetF    REF: welcome to porto sol the city that never sleeps
+                           HYP: welcome to porto sol the city that never sleeps
+[OK ] whisper-base male       REF: you have got $250 is that all
+                           HYP: you have got $250 is that all
+[OK ] whisper-base female     REF: you have got $250 is that all
+                           HYP: you have got $250 is that all
+[OK ] whisper-base oldgruff   REF: you have got $250 is that all
+                           HYP: you have got $250 is that all
+[OK ] whisper-base presetM    REF: you have got $250 is that all
+                           HYP: you have got $250 is that all
+[OK ] whisper-base presetF    REF: you have got $250 is that all
+                           HYP: you have got $250 is that all
+[OK ] whisper-base male       REF: it is 1030 on a beautiful tuesday morning
+                           HYP: it is 1030 on a beautiful tuesday morning
+[OK ] whisper-base female     REF: it is 1030 on a beautiful tuesday morning
+                           HYP: it is 1030 on a beautiful tuesday morning
+[OK ] whisper-base oldgruff   REF: it is 1030 on a beautiful tuesday morning
+                           HYP: it is 1030 on a beautiful tuesday morning
+[OK ] whisper-base presetM    REF: it is 1030 on a beautiful tuesday morning
+                           HYP: it is 1030 on a beautiful tuesday morning
+[OK ] whisper-base presetF    REF: it is 1030 on a beautiful tuesday morning
+                           HYP: it is 1030 on a beautiful tuesday morning
+[OK ] whisper-base male       REF: i need the money by tomorrow night or you are dead
+                           HYP: i need the money by tomorrow night or you are dead
+[OK ] whisper-base female     REF: i need the money by tomorrow night or you are dead
+                           HYP: i need the money by tomorrow night or you are dead
+[OK ] whisper-base oldgruff   REF: i need the money by tomorrow night or you are dead
+                           HYP: i need the money by tomorrow night or you are dead
+[OK ] whisper-base presetM    REF: i need the money by tomorrow night or you are dead
+                           HYP: i need the money by tomorrow night or you are dead
+[OK ] whisper-base presetF    REF: i need the money by tomorrow night or you are dead
+                           HYP: i need the money by tomorrow night or you are dead
+[OK ] whisper-base male       REF: put your hands up and step away from the vehicle
+                           HYP: put your hands up and step away from the vehicle
+[OK ] whisper-base female     REF: put your hands up and step away from the vehicle
+                           HYP: put your hands up and step away from the vehicle
+[OK ] whisper-base oldgruff   REF: put your hands up and step away from the vehicle
+                           HYP: put your hands up and step away from the vehicle
+[OK ] whisper-base presetM    REF: put your hands up and step away from the vehicle
+                           HYP: put your hands up and step away from the vehicle
+[OK ] whisper-base presetF    REF: put your hands up and step away from the vehicle
+                           HYP: put your hands up and step away from the vehicle
+[OK ] whisper-base male       REF: suspect is heading north on the highway in a red sedan
+                           HYP: suspect is heading north on the highway in a red sedan
+[OK ] whisper-base female     REF: suspect is heading north on the highway in a red sedan
+                           HYP: suspect is heading north on the highway in a red sedan
+[OK ] whisper-base oldgruff   REF: suspect is heading north on the highway in a red sedan
+                           HYP: suspect is heading north on the highway in a red sedan
+[OK ] whisper-base presetM    REF: suspect is heading north on the highway in a red sedan
+                           HYP: suspect is heading north on the highway in a red sedan
+[OK ] whisper-base presetF    REF: suspect is heading north on the highway in a red sedan
+                           HYP: suspect is heading north on the highway in a red sedan
+[OK ] whisper-base male       REF: hey watch where you are going buddy
+                           HYP: hey watch where you are going buddy
+[OK ] whisper-base female     REF: hey watch where you are going buddy
+                           HYP: hey watch where you are going buddy
+[OK ] whisper-base oldgruff   REF: hey watch where you are going buddy
+                           HYP: hey watch where you are going buddy
+[OK ] whisper-base presetM    REF: hey watch where you are going buddy
+                           HYP: hey watch where you are going buddy
+[OK ] whisper-base presetF    REF: hey watch where you are going buddy
+                           HYP: hey watch where you are going buddy
+[OK ] whisper-base male       REF: my brother works down at the docks near the beach
+                           HYP: my brother works down at the docks near the beach
+[OK ] whisper-base female     REF: my brother works down at the docks near the beach
+                           HYP: my brother works down at the docks near the beach
+[OK ] whisper-base oldgruff   REF: my brother works down at the docks near the beach
+                           HYP: my brother works down at the docks near the beach
+[OK ] whisper-base presetM    REF: my brother works down at the docks near the beach
+                           HYP: my brother works down at the docks near the beach
+[OK ] whisper-base presetF    REF: my brother works down at the docks near the beach
+                           HYP: my brother works down at the docks near the beach
+[OK ] whisper-base male       REF: do not worry about it i will take care of everything
+                           HYP: do not worry about it i will take care of everything
+[OK ] whisper-base female     REF: do not worry about it i will take care of everything
+                           HYP: do not worry about it i will take care of everything
+[OK ] whisper-base oldgruff   REF: do not worry about it i will take care of everything
+                           HYP: do not worry about it i will take care of everything
+[OK ] whisper-base presetM    REF: do not worry about it i will take care of everything
+                           HYP: do not worry about it i will take care of everything
+[OK ] whisper-base presetF    REF: do not worry about it i will take care of everything
+                           HYP: do not worry about it i will take care of everything
+[ERR] whisper-base male       REF: this is the hottest station in the city playing the best music all day long
+                           HYP: this is the hardest station in the city playing the best music all day long
+[ERR] whisper-base female     REF: this is the hottest station in the city playing the best music all day long
+                           HYP: this is the hardest station in the city playing the best music all day long
+[OK ] whisper-base oldgruff   REF: this is the hottest station in the city playing the best music all day long
+                           HYP: this is the hottest station in the city playing the best music all day long
+[OK ] whisper-base presetM    REF: this is the hottest station in the city playing the best music all day long
+                           HYP: this is the hottest station in the city playing the best music all day long
+[ERR] whisper-base presetF    REF: this is the hottest station in the city playing the best music all day long
+                           HYP: this is the hardest station in the city playing the best music all day long
+[ERR] whisper-base male       REF: the birch canoe slid on the smooth planks
+                           HYP: the birch can easily done the smooth planks
+[ERR] whisper-base female     REF: the birch canoe slid on the smooth planks
+                           HYP: the birds can use lead on the smooth planks
+[ERR] whisper-base oldgruff   REF: the birch canoe slid on the smooth planks
+                           HYP: the birc can oose lid on the smooth plants
+[ERR] whisper-base presetM    REF: the birch canoe slid on the smooth planks
+                           HYP: the birch can easily done the smooth planks
+[ERR] whisper-base presetF    REF: the birch canoe slid on the smooth planks
+                           HYP: the birch can use lead on the smooth planks
+[OK ] whisper-base male       REF: glue the sheet to the dark blue background
+                           HYP: glue the sheet to the dark blue background
+[OK ] whisper-base female     REF: glue the sheet to the dark blue background
+                           HYP: glue the sheet to the dark blue background
+[OK ] whisper-base oldgruff   REF: glue the sheet to the dark blue background
+                           HYP: glue the sheet to the dark blue background
+[OK ] whisper-base presetM    REF: glue the sheet to the dark blue background
+                           HYP: glue the sheet to the dark blue background
+[ERR] whisper-base presetF    REF: glue the sheet to the dark blue background
+                           HYP: blue the sheet to the dark blue background
+[ERR] whisper-base male       REF: it is easy to tell the depth of a well
+                           HYP: it is easy to tell the depths of a whale
+[ERR] whisper-base female     REF: it is easy to tell the depth of a well
+                           HYP: it is easy to tell the depth of a whale
+[ERR] whisper-base oldgruff   REF: it is easy to tell the depth of a well
+                           HYP: it is easy to tell the depth of a whale
+[ERR] whisper-base presetM    REF: it is easy to tell the depth of a well
+                           HYP: it is easy to tell the depth of a whale
+[ERR] whisper-base presetF    REF: it is easy to tell the depth of a well
+                           HYP: it is easy to tell the depth of a whale
+[OK ] whisper-base male       REF: these days a chicken leg is a rare dish
+                           HYP: these days a chicken leg is a rare dish
+[OK ] whisper-base female     REF: these days a chicken leg is a rare dish
+                           HYP: these days a chicken leg is a rare dish
+[OK ] whisper-base oldgruff   REF: these days a chicken leg is a rare dish
+                           HYP: these days a chicken leg is a rare dish
+[OK ] whisper-base presetM    REF: these days a chicken leg is a rare dish
+                           HYP: these days a chicken leg is a rare dish
+[OK ] whisper-base presetF    REF: these days a chicken leg is a rare dish
+                           HYP: these days a chicken leg is a rare dish
+[OK ] whisper-base male       REF: rice is often served in round bowls
+                           HYP: rice is often served in round bowls
+[OK ] whisper-base female     REF: rice is often served in round bowls
+                           HYP: rice is often served in round bowls
+[OK ] whisper-base oldgruff   REF: rice is often served in round bowls
+                           HYP: rice is often served in round bowls
+[OK ] whisper-base presetM    REF: rice is often served in round bowls
+                           HYP: rice is often served in round bowls
+[OK ] whisper-base presetF    REF: rice is often served in round bowls
+                           HYP: rice is often served in round bowls
+[ERR] whisper-base male       REF: the juice of lemons makes fine punch
+                           HYP: the use of lemons makes fine punch
+[ERR] whisper-base female     REF: the juice of lemons makes fine punch
+                           HYP: the use of lemons makes fine punch
+[OK ] whisper-base oldgruff   REF: the juice of lemons makes fine punch
+                           HYP: the juice of lemons makes fine punch
+[OK ] whisper-base presetM    REF: the juice of lemons makes fine punch
+                           HYP: the juice of lemons makes fine punch
+[ERR] whisper-base presetF    REF: the juice of lemons makes fine punch
+                           HYP: the use of lemons makes fine punch
+[ERR] whisper-base male       REF: the box was thrown beside the parked truck
+                           HYP: the box was thrown beside the power truck
+[ERR] whisper-base female     REF: the box was thrown beside the parked truck
+                           HYP: the box was thrown beside the park truck
+[ERR] whisper-base oldgruff   REF: the box was thrown beside the parked truck
+                           HYP: the box was thrown beside the power truck
+[ERR] whisper-base presetM    REF: the box was thrown beside the parked truck
+                           HYP: the box was thrown beside the power truck
+[ERR] whisper-base presetF    REF: the box was thrown beside the parked truck
+                           HYP: the box was thrown beside the power truck
+[ERR] whisper-base male       REF: the hogs were fed chopped corn and garbage
+                           HYP: the hogs were fed shop corn and garbage
+[ERR] whisper-base female     REF: the hogs were fed chopped corn and garbage
+                           HYP: the hogs were fed shop corn and garbage
+[ERR] whisper-base oldgruff   REF: the hogs were fed chopped corn and garbage
+                           HYP: the hogs were fed shop torn and garbage
+[ERR] whisper-base presetM    REF: the hogs were fed chopped corn and garbage
+                           HYP: the hogs were fed shop torn and garbage
+[ERR] whisper-base presetF    REF: the hogs were fed chopped corn and garbage
+                           HYP: the hogs were fed shop corn and garbage
+[OK ] whisper-base male       REF: 4 hours of steady work faced us
+                           HYP: 4 hours of steady work faced us
+[OK ] whisper-base female     REF: 4 hours of steady work faced us
+                           HYP: 4 hours of steady work faced us
+[OK ] whisper-base oldgruff   REF: 4 hours of steady work faced us
+                           HYP: 4 hours of steady work faced us
+[ERR] whisper-base presetM    REF: 4 hours of steady work faced us
+                           HYP: fall hours of steady work faced us
+[ERR] whisper-base presetF    REF: 4 hours of steady work faced us
+                           HYP: 4 hours of steady work faces
+[OK ] whisper-base male       REF: a large size in stockings is hard to sell
+                           HYP: a large size in stockings is hard to sell
+[ERR] whisper-base female     REF: a large size in stockings is hard to sell
+                           HYP: a large size in stock is hard to sell
+[OK ] whisper-base oldgruff   REF: a large size in stockings is hard to sell
+                           HYP: a large size in stockings is hard to sell
+[OK ] whisper-base presetM    REF: a large size in stockings is hard to sell
+                           HYP: a large size in stockings is hard to sell
+[ERR] whisper-base presetF    REF: a large size in stockings is hard to sell
+                           HYP: a large size is talking this hard to sell
+[OK ] whisper-base male       REF: meet me at 1030 on 5th avenue with $1500
+                           HYP: meet me at 1030 on 5th avenue with $1500
+[OK ] whisper-base female     REF: meet me at 1030 on 5th avenue with $1500
+                           HYP: meet me at 1030 on 5th avenue with $1500
+[OK ] whisper-base oldgruff   REF: meet me at 1030 on 5th avenue with $1500
+                           HYP: meet me at 1030 on 5th avenue with $1500
+[OK ] whisper-base presetM    REF: meet me at 1030 on 5th avenue with $1500
+                           HYP: meet me at 1030 on 5th avenue with $1500
+[ERR] whisper-base presetF    REF: meet me at 1030 on 5th avenue with $1500
+                           HYP: meet the at 1030 on 5th avenue with $1500
+== whisper-base: overall WER 5.4% (55/1015)
+   female       WER   5.4%  (11/203)
+   male         WER   4.9%  (10/203)
+   oldgruff     WER   4.9%  (10/203)
+   presetF      WER   7.4%  (15/203)
+   presetM      WER   4.4%  (9/203)
+SUMMARY parakeet=0.6% whisper-base=5.4%

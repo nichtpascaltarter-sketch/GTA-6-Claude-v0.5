@@ -1,0 +1,14 @@
+ntw 1 layout id=lib.layout.midrise.walkup_a_f1
+wall w1 a=0.00,0.00 b=6.00,0.00 t=0.25 ext=front
+wall w2 a=6.00,0.00 b=6.00,10.00 t=0.25 ext=right
+wall w3 a=6.00,10.00 b=0.00,10.00 t=0.25 ext=back
+wall w4 a=0.00,10.00 b=0.00,0.00 t=0.25 ext=left
+wall w5 a=0.00,5.00 b=6.00,5.00 t=0.20
+wall w6 a=3.00,5.00 b=3.00,10.00 t=0.20
+room flat type=living poly=0.00,0.00;6.00,0.00;6.00,5.00;0.00,5.00 cap=4
+room stair type=stair poly=0.00,5.00;3.00,5.00;3.00,10.00;0.00,10.00 cap=6
+room hall type=corridor poly=3.00,5.00;6.00,5.00;6.00,10.00;3.00,10.00 cap=6
+door d1 wall=w6 at=1.00 w=0.90 h=2.10 kind=hinged hinge=left swing=out leads=stair:hall
+door d2 wall=w5 at=4.50 w=0.90 h=2.10 kind=hinged hinge=right swing=in leads=hall:flat lock=resident
+window n1 wall=w1 at=3.00 w=1.20 h=1.40 sill=0.90 kind=dhung room=flat
+lift lf1 at=4.50,7.50 size=1.60x1.40 stops=f0,f1,f2,f3 cap=8 call=4.50,5.80

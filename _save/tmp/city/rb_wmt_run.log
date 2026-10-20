@@ -1,0 +1,4 @@
+FAIL line 667: roads section: truncated was read
+FAIL line 667: roads section: one byte too many was read
+FAIL line 667: roads section: an edge naming node 1000 was read
+worldmodel_test: 3 FAILURES

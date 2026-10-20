@@ -1,0 +1,2 @@
+ntw 1 catalog
+piece lib.prop.shelter_a code=PROP_BUS_SHELTER size=4.00x1.60x2.60 collide=box

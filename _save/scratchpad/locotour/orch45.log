@@ -1,0 +1,22 @@
+start 10:37:47
+  waiting (st20pl) 10:47:17 memfree 8300
+run st19chg 10:48:18 memfree 11489
+run st19chg exit 0 (renderevery 30)
+done st19chg 10:52:28
+run st19ng 10:52:28 memfree 11222
+run st19ng exit 0 (renderevery 30)
+done st19ng 11:01:36
+run st19achg 11:01:37 memfree 11174
+run st19achg exit 0 (renderevery 30)
+done st19achg 11:05:43
+run st20ng 11:08:14 memfree 9314
+run st20ng exit 0 (renderevery 30)
+done st20ng 11:17:34
+run st20sp 11:17:34 memfree 13357
+run st20sp exit 0 (renderevery 30)
+done st20sp 11:21:18
+run st21sp 11:21:18 memfree 11300
+run st21sp exit 0 (renderevery 30)
+done st21sp 11:25:14
+run st21ng 11:25:14 memfree 11359
+run st21ng exit 0 (renderevery 30)

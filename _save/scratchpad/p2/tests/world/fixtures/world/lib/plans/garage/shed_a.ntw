@@ -1,0 +1,6 @@
+ntw 1 plan id=lib.plan.garage.shed_a
+meta class=garage family=shed floors=1 size=3.00x4.00
+footprint poly=0.00,0.00;3.00,0.00;3.00,4.00;0.00,4.00
+floor f0 layout=lib.layout.garage.shed_a_f0 z=0.00 h=2.40
+roof form=shed pitch=10.0
+entrance main door=f0.d1 kind=main

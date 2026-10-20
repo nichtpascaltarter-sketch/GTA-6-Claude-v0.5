@@ -1,0 +1,363 @@
+[   0.001] Neon Tide starting. Data dir: C:\users\root\AppData\Local\NeonTide\
+[   0.274] DXGI is Wine's builtin implementation: presenting with sync interval 0 (no vsync)
+[   0.542] Direct3D 12 device created: adapter 'NVIDIA GeForce GTX 470', VRAM 16094 MB, feature level 11_1, resource binding tier 3, resource heap tier 2, typed UAV loads yes, tearing yes, bindless UAV arrays yes, 2 frames in flight
+[   0.545] Shader source post.hlsl read from Z:\tmp\night\shd_b2\
+[   0.563] Compiled mipgen.hlsl:csMipGen (cs_5_1) in 0.01 s
+[   0.571] UI font 'Segoe UI Semibold' -> 'Liberation Sans'
+[   0.644] UI font 'Bahnschrift SemiBold Condensed' -> 'Liberation Sans'
+[   0.711] UI font 'Impact' -> 'Liberation Sans'
+[   0.755] Font atlas built in 0.19 s
+[   0.766] Compiled ui.hlsl:vsUI (vs_5_1) in 0.01 s
+[   0.900] Compiled ui.hlsl:psUI (ps_5_1) in 0.13 s
+[   0.909] Compiled ui.hlsl:vsUIFull (vs_5_1) in 0.00 s
+[   0.919] Compiled ui.hlsl:psUIDown (ps_5_1) in 0.01 s
+[   0.928] Compiled ui.hlsl:psUIBlur (ps_5_1) in 0.01 s
+ALSA lib confmisc.c:855:(parse_card) cannot find card '0'
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_card_inum returned error: No such file or directory
+ALSA lib confmisc.c:422:(snd_func_concat) error evaluating strings
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_concat returned error: No such file or directory
+ALSA lib confmisc.c:1342:(snd_func_refer) error evaluating name
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5727:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2721:(snd_pcm_open_noupdate) Unknown PCM default
+ALSA lib confmisc.c:855:(parse_card) cannot find card '0'
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_card_inum returned error: No such file or directory
+ALSA lib confmisc.c:422:(snd_func_concat) error evaluating strings
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_concat returned error: No such file or directory
+ALSA lib confmisc.c:1342:(snd_func_refer) error evaluating name
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5727:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2721:(snd_pcm_open_noupdate) Unknown PCM default
+[   0.942] Audio: no output device - audio disabled
+[   0.942] Audio: no output device, continuing silently
+[   1.879] UI icon atlas: 92 icons + 13 weapons in 883 ms
+[  15.610] Places: Ocean Promenade hotel row, 11 hotels at x 5365 (ground 2.4), park 681..1050
+[  15.615] Places: Porto Sol University at (1950, 3700), ground 3.3, 13 halls
+[  15.615] Places: Santa Marea Cemetery at (1600, -750), ground 3.5, 67 mourners
+[  15.615] Places: Palmera State Penitentiary at (350, 9075), ground 6.9
+[  15.615] Places: Palmera Speedway at (400, 5790), ground 6.8
+[  15.615] Places: layout 0.005 s, 5 places, 624 anchors
+[  15.615] Transit: SkyLine loop 8.60 km, 8 stations, 4299 samples; 3 ferry piers
+[  15.656] Sites: 111 pads, 613 elements, 25 roads, 53 buildings requested (0.07 s)
+[  16.673] World map generated in 15.73 s
+[  17.710] Road gen: 18 interchanges, 50 ramps (22 left out where they could not come down in time)
+[  18.458] Road gen: 1 arterial ends at a lone on/off ramp given a turnaround
+[  22.805] Road gen: junction plateaus, 489 profile points levelled (largest change 0.70 m, 6 short links ramped plateau to plateau)
+[  25.421] Road network: 6223 nodes, 9547 edges, 1690 signalized; hwy 61.7 km, streets 1165.8 km (8.75 s)
+[  31.675] Transit: 0 buildings cleared from the SkyLine corridor
+[  31.689] Places: Okahatchee Union Church at (-48, 6872) on edge 4965, 6 buildings made way, 186 graves, 19 mourners
+[  31.741] Places: Old Fort Church at (4501, 7893) on edge 4035, 4 buildings made way, 166 graves, 18 mourners
+[  31.752] Places: Tidewater General Hospital (city) at (1698, 1100) on edge 6868, 7 buildings made way
+[  31.757] Places: Midtown General (city) at (3698, 3195) on edge 9083, 15 buildings made way
+[  31.926] Places: Westbrook Hospital (community) at (-2399, 1647) on edge 5533, 4 buildings made way
+[  32.006] Places: Sol Beach Clinic (clinic) at (5172, -904) on edge 3026, 3 buildings made way
+[  32.022] Places: Harlow County Hospital (community) at (-4886, 5241) on edge 5324, 4 buildings made way
+[  32.040] Places: Okahatchee Medical (community) at (-54, 6622) on edge 4961, 7 buildings made way
+[  32.126] Places: Redland Health (clinic) at (-315, -5222) on edge 2100, 0 buildings made way
+[  32.181] Places: Fort Castell Hospital (community) at (4572, 8021) on edge 4096, 3 buildings made way
+[  32.184] Places: after the lots 0.509 s
+[  32.192] Buildings: 35617 (towers 352, midrise 2411, condo 427, deco 688, shops 4600, strip 640, houses 22192, villas 901, warehouses 1620) in 6.67 s
+[  32.194] Sites: 69 highway billboards
+[  32.195] Sites: 155 silos, 50 windmills
+[  32.196] Sites: 245 beach access paths
+[  32.337] Transit: 3 ferry piers, 1 routes, 4.24 km of water path (0.06 s)
+[  32.358] Transit: ferry pier Sol Beach  base (4836, -1250) length 90 deck 2.3 berth (4741, -1250)
+[  32.358] Transit: ferry pier Port Isle  base (4280, -1044) length 26 deck 2.3 berth (4280, -1075)
+[  32.358] Transit: ferry pier Key Coral  base (4350, -2973) length 58 deck 2.3 berth (4350, -2910)
+[  32.399] Transit: 4 bus routes, 64 stops (48 new shelters) (0.04 s); rejects class 1107 cut 1945 deck 72 road 119 avoid 0 pad 2 furn 283 stop 0
+[  32.401] Transit: bus 3   Airport      8.2 km, 17 stops, 4 buses, headway 6.3 min
+[  32.401] Transit: bus 7   Calle Luna   6.4 km, 15 stops, 3 buses, headway 6.7 min
+[  32.402] Transit: bus 9   Sol Beach    7.1 km, 14 stops, 4 buses, headway 5.4 min
+[  32.402] Transit: bus 12  Bayshore     8.3 km, 20 stops, 4 buses, headway 6.6 min
+[  32.417] Transit: Sol Beach Streetcar 6.24 km, 16 stops, 65 junctions (32 signalled, 30 stop signs), 229 poles, 4 streetcars, headway 4.9 min (0.02 s)
+[  32.419] Transit: streetcar stop Collins-Solano Ave & 46th St s    136 shelter (5191.0, 1496.1, 1.8) travel (-0.00, -1.00)
+[  32.419] Transit: streetcar stop 42nd St              s    511 shelter (5231.0, 1126.8, 1.7) travel (-0.00, -1.00)
+[  32.419] Transit: streetcar stop 38th St              s    892 shelter (5239.0, 746.9, 1.7) travel (-0.00, -1.00)
+[  32.419] Transit: streetcar stop 34th St              s   1277 shelter (5207.0, 367.8, 1.8) travel (0.00, -1.00)
+[  32.419] Transit: streetcar stop 30th St              s   1691 shelter (5239.0, -39.2, 1.9) travel (-0.00, -1.00)
+[  32.419] Transit: streetcar stop 26th St              s   2053 shelter (5231.1, -397.7, 1.8) travel (-0.30, -0.95)
+[  32.419] Transit: streetcar stop 22nd St              s   2427 shelter (5215.0, -773.2, 1.8) travel (-0.00, -1.00)
+[  32.419] Transit: streetcar stop 18th St              s   2811 shelter (5190.5, -1149.6, 1.9) travel (-0.30, -0.95)
+[  32.419] Transit: streetcar stop Ferry Terminal       s   3165 shelter (4941.9, -1174.6, 2.7) travel (0.30, 0.95)
+[  32.419] Transit: streetcar stop 21st St              s   3527 shelter (4973.4, -815.2, 2.9) travel (0.00, 1.00)
+[  32.419] Transit: streetcar stop 25th St              s   3920 shelter (4981.5, -425.5, 2.5) travel (0.30, 0.95)
+[  32.422] Transit: streetcar stop 29th St              s   4291 shelter (4997.4, -55.2, 2.0) travel (0.00, 1.00)
+[  32.423] Transit: streetcar stop 33rd St              s   4688 shelter (4965.4, 336.8, 2.5) travel (-0.00, 1.00)
+[  32.423] Transit: streetcar stop 37th St              s   5071 shelter (4997.4, 712.8, 2.7) travel (0.00, 1.00)
+[  32.423] Transit: streetcar stop 41st St              s   5443 shelter (4994.0, 1086.6, 1.9) travel (-0.30, 0.95)
+[  32.423] Transit: streetcar stop Bay Road & 46th St   s   5926 shelter (4938.0, 1561.6, 3.0) travel (-0.30, 0.95)
+[  32.423] Transit: SkyLine profile 12.9..25.4 m above the street, 274 piers (0 straddle bents) (0.22 s)
+[  32.423] Transit: station Calle Luna       s    691 at (1850, -629) rail 16.5 street 3.1 exits -1/+1
+[  32.423] Transit: station Solaris          s   1891 at (3050, -629) rail 15.0 street 1.5 exits -1/+1
+[  32.423] Transit: station Civic Center     s   3068 at (3275, 400) rail 14.9 street 1.5 exits -1/+1
+[  32.423] Transit: station Midtown          s   3868 at (3275, 1200) rail 15.0 street 1.6 exits -1/+1
+[  32.423] Transit: station Canvas District  s   4644 at (2750, 1529) rail 16.4 street 2.2 exits -1/+1
+[  32.423] Transit: station Palmetto Flats   s   5744 at (1650, 1529) rail 17.0 street 3.5 exits -1/+1
+[  32.423] Transit: station Airport          s   6567 at (979, 1300) rail 17.7 street 4.3 exits -1/+1
+[  32.423] Transit: station Westbrook        s   8067 at (979, -200) rail 17.8 street 4.4 exits -1/+1
+[  32.426] Site runway 09L|27R  from (-1180, 2080) to (820, 2080) z 4.6 width 60
+[  32.430] Site runway 09R|27L  from (-1100, 780) to (700, 780) z 4.6 width 45
+[  32.430] Site terminal             at (628, 1440, 4.6)
+[  32.430] Site control tower        at (730, 1832, 4.6)
+[  32.430] Site container ship       at (4625, -800, 0.0)
+[  32.430] Site container ship       at (4616, -330, 0.0)
+[  32.430] Site port gate            at (4008, -160, 3.0)
+[  32.447] Site Key Coral marina     at (4039, -4035, 0.0)
+[  32.453] Site beach club           at (4873, -3866, 1.2)
+[  32.453] Site beach club           at (4808, -4183, 2.2)
+[  32.453] Site Solaris One          at (3350, -750, 1.4)
+[  32.453] Site stadium              at (3565, 445, 1.6)
+[  32.453] Site City Hall            at (3000, 372, 2.0)
+[  32.453] Site Canvas Park          at (3100, 1800, 1.7)
+[  32.453] Site Sol Beach Pier from (5414, 1250) to (5840, 1250) deck z 5.6
+[  32.453] Site Ferris wheel         at (5504, 1270, 5.6)
+[  32.453] Site lighthouse           at (-2206, -8000, 0.5)
+[  32.453] Site radio mast           at (-6744, 7248, 166.1)
+[  32.453] Site sugar mill           at (1430, 7500, 8.1)
+[  32.453] Site Rio Sol marina       at (2280, 188, 0.0)
+[  32.453] Site Okahatchee boat ramp at (-515, 6822, 7.7)
+[  32.453] Site Sawgrass tower       at (-4873, 420, 0.6)
+[  32.453] Sites finalized: 1486 elements (0.26 s)
+[  32.485] Interiors: 29 planned (convenience 7, gun shops 2) in 31.8 ms
+[  32.502]   interior 'Mari's Apartment' kind 0 building 28142 at (1771.22, 359.23, 3.77) ax (1.0000, 0.0000) x -6.55..2.18 depth 11.50 ceil 3.84: 3 rooms, 3 openings, 3 doors, 3 portals, 0 npc points
+[  32.502]   interior 'Mama Lucha's' kind 2 building 26747 at (1351.86, 340.76, 4.29) ax (-1.0000, -0.0000) x -8.43..8.43 depth 16.00 ceil 4.20: 4 rooms, 5 openings, 4 doors, 5 portals, 34 npc points
+[  32.502]   interior 'Rook's Garage' kind 3 building 27288 at (1562.94, 2361.63, 4.30) ax (1.0000, 0.0000) x -9.74..9.74 depth 20.00 ceil 7.11: 3 rooms, 5 openings, 4 doors, 5 portals, 5 npc points
+[  32.502]   interior 'Dex's Trailer' kind 1 building 25527 at (1106.75, 2666.39, 4.87) ax (1.0000, 0.0000) x -17.46..17.46 depth 16.71 ceil 2.25: 3 rooms, 7 openings, 3 doors, 7 portals, 0 npc points
+[  32.502]   interior 'Police Headquarters' kind 5 building 32504 at (3167.89, -240.34, 1.86) ax (1.0000, 0.0000) x -11.84..11.84 depth 16.00 ceil 5.59: 2 rooms, 8 openings, 2 doors, 8 portals, 14 npc points
+[  32.502]   interior 'Tidewater General Hospital' kind 6 building 35599 at (1692.75, 1073.40, 3.63) ax (1.0000, 0.0000) x -9.55..9.55 depth 16.00 ceil 4.20: 2 rooms, 7 openings, 2 doors, 7 portals, 12 npc points
+[  32.502]   interior 'Palmetto Arms' kind 7 building 25538 at (988.27, 2896.06, 4.79) ax (0.0000, 1.0000) x 0.00..9.20 depth 14.00 ceil 4.20: 2 rooms, 1 openings, 2 doors, 1 portals, 3 npc points
+[  32.502]   interior 'Northside Arms' kind 7 building 32997 at (3284.62, 4017.67, 2.09) ax (0.0000, 1.0000) x -6.33..6.33 depth 14.00 ceil 4.03: 2 rooms, 4 openings, 2 doors, 4 portals, 3 npc points
+[  32.502]   interior 'Threads' kind 9 building 19677 at (5141.16, -280.63, 1.88) ax (-1.0000, 0.0000) x -5.68..8.51 depth 15.00 ceil 3.91: 2 rooms, 6 openings, 2 doors, 6 portals, 4 npc points
+[  32.502]   interior 'Port Isle Warehouse' kind 12 building 35552 at (4034.00, -820.00, 3.15) ax (-0.0000, 1.0000) x -23.22..23.22 depth 38.00 ceil 8.93: 2 rooms, 10 openings, 4 doors, 10 portals, 4 npc points
+[  32.502]   interior 'TideStop Mart' kind 8 building 26846 at (1475.59, -259.27, 4.22) ax (-1.0000, -0.0000) x -6.05..6.05 depth 17.00 ceil 4.20: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+[  32.502]   interior 'Bodega La Luna' kind 8 building 29652 at (2242.71, 540.72, 2.92) ax (-1.0000, -0.0000) x -5.85..5.85 depth 17.00 ceil 4.19: 2 rooms, 4 openings, 2 doors, 4 portals, 5 npc points
+[  32.502]   interior 'Canvas Corner Market' kind 8 building 32545 at (3090.56, 1476.66, 2.21) ax (0.0000, 1.0000) x -7.40..7.40 depth 17.00 ceil 3.92: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+[  32.502]   interior 'Sunrise Food Mart' kind 8 building 19719 at (5227.62, 641.71, 1.78) ax (0.0000, 1.0000) x -7.96..7.96 depth 17.00 ceil 3.43: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+[  32.502]   interior 'Northside Quick Stop' kind 8 building 29914 at (2304.43, 3761.63, 3.12) ax (1.0000, 0.0000) x -6.89..6.89 depth 17.00 ceil 4.12: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+[  32.502]   interior 'Flats Food & Fuel' kind 8 building 24842 at (467.58, 3361.67, 5.21) ax (1.0000, 0.0000) x -10.79..3.60 depth 17.00 ceil 4.20: 2 rooms, 1 openings, 2 doors, 1 portals, 5 npc points
+[  32.502]   interior 'Grove Pantry' kind 8 building 1182 at (2175.56, -3114.24, 2.23) ax (0.0207, -0.9998) x -6.96..6.96 depth 17.00 ceil 2.80: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+[  32.502]   interior 'Palm Motors' kind 17 building 31294 at (2686.87, 1279.16, 2.69) ax (0.0000, 1.0000) x -9.08..12.11 depth 20.00 ceil 3.90: 2 rooms, 8 openings, 3 doors, 8 portals, 5 npc points
+[  32.502]   interior 'Tide Customs Calle Luna' kind 18 building 29601 at (2278.47, -140.75, 2.99) ax (1.0000, 0.0000) x -7.61..7.61 depth 18.00 ceil 4.17: 1 rooms, 6 openings, 2 doors, 6 portals, 3 npc points
+[  32.502]   interior 'Tide Customs Sol Beach' kind 18 building 19788 at (5127.28, 1999.35, 1.92) ax (-1.0000, 0.0000) x -8.01..8.01 depth 18.00 ceil 3.72: 1 rooms, 6 openings, 2 doors, 6 portals, 3 npc points
+[  32.502]   interior 'Sunwash Car Wash' kind 19 building 29044 at (1988.34, 1491.32, 3.44) ax (0.0000, 1.0000) x -7.41..7.41 depth 20.00 ceil 8.08: 1 rooms, 5 openings, 3 doors, 5 portals, 2 npc points
+[  32.502]   interior 'Key Coral Villa' kind 0 building 23718 at (4515.96, -4203.72, 1.64) ax (0.9992, 0.0401) x -7.21..7.21 depth 12.00 ceil 2.80: 3 rooms, 5 openings, 3 doors, 5 portals, 0 npc points
+[  32.502]   interior 'Sol Beach Condo Lobby' kind 20 building 19771 at (5114.61, 1619.32, 1.86) ax (-1.0000, 0.0000) x -5.88..5.88 depth 10.00 ceil 4.20: 2 rooms, 4 openings, 2 doors, 4 portals, 2 npc points
+[  32.502]   interior 'Sol Beach Condo' kind 21 building 19771 at (5114.61, 1619.32, 31.52) ax (-1.0000, 0.0000) x -9.80..5.88 depth 12.00 ceil 2.61: 6 rooms, 4 openings, 5 doors, 4 portals, 0 npc points
+[  32.502]   interior 'Downtown Penthouse Lobby' kind 20 building 33543 at (3511.22, -715.16, 1.71) ax (-0.0000, -1.0000) x -5.25..5.25 depth 10.00 ceil 4.20: 2 rooms, 3 openings, 2 doors, 3 portals, 2 npc points
+[  32.502]   interior 'Downtown Penthouse' kind 21 building 33543 at (3511.22, -715.16, 52.15) ax (-0.0000, -1.0000) x -10.49..10.49 depth 14.00 ceil 2.80: 6 rooms, 4 openings, 5 doors, 4 portals, 0 npc points
+[  32.502]   interior 'Club Riptide' kind 4 building -1 at (5424.10, 900.00, 1.36) ax (0.0000, -1.0000) x -55.00..17.00 depth 32.00 ceil 4.00: 4 rooms, 0 openings, 0 doors, 0 portals, 32 npc points
+[  32.502]   interior 'Solaris One' kind 10 building -1 at (3350.00, -786.00, 1.89) ax (1.0000, -0.0000) x -18.40..18.40 depth 31.00 ceil 8.30: 3 rooms, 4 openings, 4 doors, 4 portals, 17 npc points
+[  32.502]   interior 'Solaris One Penthouse' kind 11 building -1 at (3365.30, -759.93, 457.34) ax (0.5442, 0.8390) x -18.24..18.24 depth 36.48 ceil 8.20: 4 rooms, 4 openings, 1 doors, 4 portals, 15 npc points
+[  32.901] Buildings: 33931 restyled by district palettes in 398.6 ms (taxpayer 1391, 1920s block 924, med revival 774, mimo shop 1036, bodega 339, arcade 118, gallery 11, walk-up 497, mimo apts 763, med apts 530, office 60s 129, modern 372, loft 80, condo slab 134, glass condo 113, mimo hotel 97, podium condo 78, ranch 5468, bungalow 2844, med house 3406, two-storey 2416, mimo house 1920, split level 2251, conch 281, modern villa 190, streamline 176, med hotel 117, mimo motel 133, sawtooth 540, ware office 551, body shop 282, med villa 307, colonial villa 135, stilt house 73, mimo motor court 161, med motel 90, keys motel 113, motor inn 90, mission strip 199, mimo strip 186, power center 255, gambrel barn 34, pole barn 43, gable barn 24, mission church 47, board church 46, brick church 25, a-frame church 43, cbs house 3244, folk victorian 438, raised keys house 66)
+[  33.395] Transit: 0 buildings cleared from the SkyLine corridor
+[  33.395] Buildings: block infill 3457 back buildings (garage rows 719, sheds 1872, back houses 866, 0 in the viaduct corridor dropped, 1213 near a street left as yards), 1465 rear parking lots, 5755 yards in 485.2 ms
+[  33.641] Buildings: repetition (neighbours within 150 m with the same style, archetype, massing, roof, height band and facade pattern): 2.9% overall, 46% of buildings without a twin; by district: Downtown Porto Sol 2.8%, Solaris 2.7%, Canvas District 0.8%, North Porto Sol 1.2%, Calle Luna 1.4%, Sol Beach 1.7%, Key Coral 5.8%, The Grove 2.7%, Palmetto Flats 1.5%, Westbrook 3.7%, Redland 4.7%, Ten Palms 11.8%, Palmera Farmlands 3.3%, Okahatchee 4.9%, Harlow 4.4%, Fort Castell 2.5%, Key Solano 5.4% (245.7 ms)
+[  33.854] Compiled post.hlsl:vsFullscreen (vs_5_1) in 0.01 s
+[  47.116] Compiled lighting.hlsl:csLighting (cs_5_1) in 13.23 s
+[  48.082] Compiled sky.hlsl:csTransmittance (cs_5_1) in 0.05 s
+[  48.706] Compiled sky.hlsl:csMultiScatter (cs_5_1) in 0.62 s
+[  48.820] Compiled sky.hlsl:csSkyView (cs_5_1) in 0.10 s
+[  48.881] Compiled sky.hlsl:csAerialPerspective (cs_5_1) in 0.05 s
+[  49.552] Compiled sky.hlsl:csSkySH (cs_5_1) in 0.66 s
+[  49.641] Compiled post.hlsl:csLumHist (cs_5_1) in 0.05 s
+[  52.154] Compiled post.hlsl:csExposure (cs_5_1) in 2.49 s
+[  52.787] Compiled post.hlsl:csBloomDown (cs_5_1) in 0.05 s
+[  52.814] Compiled post.hlsl:csBloomUp (cs_5_1) in 0.02 s
+[  52.853] Compiled post.hlsl:csSunShafts (cs_5_1) in 0.03 s
+[  52.982] Compiled taa.hlsl:csTAA (cs_5_1) in 0.12 s
+[  53.113] Compiled post.hlsl:psTonemap (ps_5_1) in 0.11 s
+[  53.209] Compiled motionblur.hlsl:csTileMax (cs_5_1) in 0.09 s
+[  53.237] Compiled motionblur.hlsl:csNeighborMax (cs_5_1) in 0.02 s
+[  53.322] Compiled motionblur.hlsl:csMotionBlur (cs_5_1) in 0.08 s
+[  53.376] Compiled post.hlsl:csLocalExpGrid (cs_5_1) in 0.03 s
+[  55.289] Compiled post.hlsl:csLocalExpBlur (cs_5_1) in 1.90 s
+[  55.326] Compiled terrain.hlsl:vsTerrain (vs_5_1) in 0.02 s
+[  55.342] Compiled terrain.hlsl:vsTerrainShadow (vs_5_1) in 0.01 s
+[  56.456] Compiled terrain.hlsl:psTerrain (ps_5_1) in 1.11 s
+[  56.814] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.35 s
+[  57.157] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.29 s
+[  57.695] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.50 s
+[  58.146] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.39 s
+[  58.493] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.31 s
+[  58.818] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.29 s
+[  59.398] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.55 s
+[  59.667] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.20 s
+[  60.071] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.38 s
+[  60.416] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.31 s
+[  60.584] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.13 s
+[  60.968] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.37 s
+[  61.503] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.49 s
+[  62.320] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.77 s
+[  62.551] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.18 s
+[  62.656] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.08 s
+[  62.788] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.12 s
+[  62.920] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.11 s
+[  63.048] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.06 s
+[  63.183] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.12 s
+[  63.300] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.10 s
+[  63.408] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.09 s
+[  63.598] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.17 s
+[  63.861] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.23 s
+[  64.888] Compiled matgen.hlsl:csGenerate (cs_5_1) in 1.00 s
+[  65.116] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.18 s
+[  65.166] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.03 s
+[  65.521] Compiled matgen.hlsl:csGenerate (cs_5_1) in 0.28 s
+[  89.914] Compiled matgen.hlsl:csGenerate (cs_5_1) in 24.36 s
+[  90.461] Material library: 57 layers at 256^2
+[  90.497] Compiled world.hlsl:vsWorld (vs_5_1) in 0.03 s
+[  90.520] Compiled world.hlsl:vsWorldShadow (vs_5_1) in 0.02 s
+[  96.128] Compiled world.hlsl:psWorld (ps_5_1) in 5.60 s
+[  96.234] Compiled water.hlsl:vsWater (vs_5_1) in 0.09 s
+[  97.538] Compiled water.hlsl:psWater (ps_5_1) in 1.30 s
+[  97.592] Compiled water.hlsl:csWaveNormals (cs_5_1) in 0.05 s
+[  97.614] Compiled water.hlsl:vsWake (vs_5_1) in 0.01 s
+[  97.656] Compiled water.hlsl:psWake (ps_5_1) in 0.04 s
+[  98.678] Compiled clouds.hlsl:csShapeNoise (cs_5_1) in 1.02 s
+[  99.056] Compiled clouds.hlsl:csDetailNoise (cs_5_1) in 0.32 s
+[  99.427] Compiled clouds.hlsl:csWeather (cs_5_1) in 0.34 s
+[  99.657] Compiled clouds.hlsl:csCloudTrace (cs_5_1) in 0.21 s
+[  99.731] Compiled clouds.hlsl:csCloudReconstruct (cs_5_1) in 0.05 s
+[  99.783] Compiled clouds.hlsl:csCloudShadow (cs_5_1) in 0.04 s
+[  99.872] Compiled props.hlsl:vsProp (vs_5_1) in 0.07 s
+[  99.925] Compiled props.hlsl:vsPropShadow (vs_5_1) in 0.05 s
+[ 100.163] Compiled props.hlsl:psProp (ps_5_1) in 0.23 s
+[ 100.178] Compiled props.hlsl:psPropShadow (ps_5_1) in 0.01 s
+[ 100.269] Compiled propcull.hlsl:csPropCull (cs_5_1) in 0.09 s
+[ 100.296] Compiled propcull.hlsl:csPropArgs (cs_5_1) in 0.01 s
+[ 100.750] Compiled propcull.hlsl:csDecorPlace (cs_5_1) in 0.45 s
+[ 101.324] Compiled foliage.hlsl:csFoliage (cs_5_1) in 0.53 s
+[ 101.338] Props: 83 prototypes, 43107 verts
+[ 101.459] Compiled dynamic.hlsl:vsRigid (vs_5_1) in 0.12 s
+[ 101.514] Compiled dynamic.hlsl:vsSkinned (vs_5_1) in 0.05 s
+[ 101.584] Compiled dynamic.hlsl:vsRigidShadow (vs_5_1) in 0.06 s
+[ 101.612] Compiled dynamic.hlsl:vsSkinnedShadow (vs_5_1) in 0.02 s
+[ 105.411] Compiled dynamic.hlsl:psDynamic (ps_5_1) in 3.79 s
+[ 105.798] Compiled dynamic.hlsl:psGlass (ps_5_1) in 0.38 s
+[ 105.873] Compiled dynamic.hlsl:psHairCard (ps_5_1) in 0.07 s
+[ 105.904] Compiled dynamic.hlsl:vsSkinnedShadowCard (vs_5_1) in 0.03 s
+[ 105.926] Compiled dynamic.hlsl:psHairCardShadow (ps_5_1) in 0.02 s
+[ 105.948] Compiled particles.hlsl:csEmit (cs_5_1) in 0.02 s
+[ 106.017] Compiled particles.hlsl:csSimulate (cs_5_1) in 0.06 s
+[ 106.048] Compiled particles.hlsl:csKeys (cs_5_1) in 0.02 s
+[ 106.170] Compiled particles.hlsl:csSortLocal (cs_5_1) in 0.12 s
+[ 106.195] Compiled particles.hlsl:csSortGlobal (cs_5_1) in 0.02 s
+[ 106.302] Compiled particles.hlsl:csSortMerge (cs_5_1) in 0.10 s
+[ 107.581] Compiled particles.hlsl:csGenAtlas (cs_5_1) in 1.27 s
+[ 108.090] Compiled particles.hlsl:vsParticle (vs_5_1) in 0.37 s
+[ 108.151] Compiled particles.hlsl:psParticle (ps_5_1) in 0.06 s
+[ 108.178] Compiled decals.hlsl:vsDecal (vs_5_1) in 0.02 s
+[ 108.242] Compiled decals.hlsl:psDecal (ps_5_1) in 0.06 s
+[ 108.261] Compiled decals.hlsl:vsSkid (vs_5_1) in 0.01 s
+[ 108.291] Compiled decals.hlsl:psSkid (ps_5_1) in 0.02 s
+[ 109.266] Compiled decals.hlsl:csGenDecals (cs_5_1) in 0.97 s
+[ 109.349] Compiled hiz.hlsl:csHiZFirst (cs_5_1) in 0.03 s
+[ 109.375] Compiled hiz.hlsl:csHiZDown (cs_5_1) in 0.02 s
+[ 109.396] Compiled hiz.hlsl:csColorDown (cs_5_1) in 0.01 s
+[ 109.619] Compiled gtao.hlsl:csGTAO (cs_5_1) in 0.22 s
+[ 109.725] Compiled gtao.hlsl:csGTAOTemporal (cs_5_1) in 0.08 s
+[ 110.029] Compiled gtao.hlsl:csGTAOBlur (cs_5_1) in 0.29 s
+[ 110.204] Compiled ssr.hlsl:csSSRTrace (cs_5_1) in 0.15 s
+[ 110.326] Compiled ssr.hlsl:csSSRResolve (cs_5_1) in 0.09 s
+[ 111.082] Compiled envprobe.hlsl:psProbeLight (ps_5_1) in 0.74 s
+[ 111.153] Compiled envprobe.hlsl:csPrefilter (cs_5_1) in 0.06 s
+[ 111.398] Compiled envprobe.hlsl:csProbeSH (cs_5_1) in 0.23 s
+[ 111.432] Compiled envprobe.hlsl:csCubeDown (cs_5_1) in 0.02 s
+[ 111.648] Compiled fog.hlsl:csFogInject (cs_5_1) in 0.21 s
+[ 111.700] Compiled fog.hlsl:csFogIntegrate (cs_5_1) in 0.03 s
+[ 111.781] Compiled fog.hlsl:csFogNoise (cs_5_1) in 0.07 s
+[ 111.804] Compiled overhead.hlsl:vsOverhead (vs_5_1) in 0.01 s
+[ 111.815] Compiled overhead.hlsl:psOverhead (ps_5_1) in 0.01 s
+[ 111.831] Compiled rain.hlsl:csOverheadHeight (cs_5_1) in 0.01 s
+[ 111.966] Compiled rain.hlsl:vsRain (vs_5_1) in 0.13 s
+[ 112.078] Compiled rain.hlsl:vsSplash (vs_5_1) in 0.10 s
+[ 112.110] Compiled rain.hlsl:vsBolt (vs_5_1) in 0.03 s
+[ 112.127] Compiled rain.hlsl:psRain (ps_5_1) in 0.01 s
+[ 112.143] Compiled rain.hlsl:psSplash (ps_5_1) in 0.01 s
+[ 112.159] Compiled rain.hlsl:psBolt (ps_5_1) in 0.01 s
+[ 112.316] Compiled grass.hlsl:csGrassPlace (cs_5_1) in 0.15 s
+[ 112.528] Compiled grass.hlsl:vsGrass (vs_5_1) in 0.16 s
+[ 112.636] Compiled grass.hlsl:psGrass (ps_5_1) in 0.10 s
+[ 116.869] Vehicle assets: 45 models in 3.94 s
+[ 152.463] Wardrobe: 29 dedicated looks (night out 12, door staff 3, sportswear 8, cover-ups 6); roster dressed for a night out 8 men / 9 women, office 9, work 6, swim 8, sport 6
+[ 153.333] Character assets: 149 characters in 36.46 s
+[ 153.564] Game assets built in 40.64 s
+[ 153.646] Story place near (800, -5400): no building frontage found, using the street
+[ 153.647] Story places resolved in 52.3 ms (diner 1350 342, Mari's 1771 358, Rook's 1566 2360, Pulse FM 3344 662, boatyard 1650 239, river 1644 140, sawgrass dock -5016 -74)
+[ 153.649] Missions registered: 57
+[ 156.862] Lane graph: 180 plaza walkways and 2 zebra crossings from the sites
+[ 156.862] Lane graph: 25496 lanes, 56760 connectors (1154772 pts), 40687 walk nodes, 56441 walk links, dead-end turning circles moved 22 / obstructed 0 (3.21 s)
+[ 178.937] UI map: base 2560x2560 in 22041 ms, 9547 roads (43960 pts) in 8 ms, 37 labels in 23 ms
+[ 178.937] hudInit done in 22071 ms
+[ 178.937] Init done in 177.99 s (shaders: 129 compiled in 74.67 s)
+[ 179.309] Interior 'Police Headquarters' built: 19990 triangles, 25 lights, 25 colliders, 3 door leaves in 9.2 ms
+[ 179.312] Interior 'Downtown Penthouse Lobby' built: 6090 triangles, 6 lights, 11 colliders, 4 door leaves in 0.8 ms
+[ 189.917] Interior 'Downtown Penthouse' built: 22342 triangles, 26 lights, 47 colliders, 7 door leaves in 6.8 ms
+[ 189.922] Interior 'Solaris One Penthouse' built: 50468 triangles, 33 lights, 53 colliders, 2 door leaves in 34.2 ms
+[ 250.007] exposure: frame 7 EV 3.22, metered 0.8455 cd/m2, night 1.00, storm 0.00
+[ 317.739] exposure: frame 15 EV 3.22, metered 0.8462 cd/m2, night 1.00, storm 0.00
+[ 388.409] exposure: frame 23 EV 3.23, metered 0.8468 cd/m2, night 1.00, storm 0.00
+[ 456.397] exposure: frame 31 EV 3.23, metered 0.8473 cd/m2, night 1.00, storm 0.00
+[ 524.392] exposure: frame 39 EV 3.23, metered 0.8487 cd/m2, night 1.00, storm 0.00
+[ 595.931] exposure: frame 47 EV 3.23, metered 0.8479 cd/m2, night 1.00, storm 0.00
+[ 667.590] exposure: frame 55 EV 3.23, metered 0.8481 cd/m2, night 1.00, storm 0.00
+[ 735.755] exposure: frame 63 EV 3.23, metered 0.8489 cd/m2, night 1.00, storm 0.00
+[ 802.101] exposure: frame 71 EV 3.23, metered 0.8494 cd/m2, night 1.00, storm 0.00
+[ 864.855] exposure: frame 79 EV 3.23, metered 0.8623 cd/m2, night 1.00, storm 0.00
+[ 923.215] exposure: frame 87 EV 3.24, metered 0.8673 cd/m2, night 1.00, storm 0.00
+[ 944.621] Saved Z:\tmp\night\shots\b2\downtown_street_night.bmp
+[ 944.684] Interior 'Solaris One' built: 29672 triangles, 33 lights, 52 colliders, 6 door leaves in 26.4 ms
+[ 984.702] exposure: frame 95 EV 1.80, metered 0.1165 cd/m2, night 1.00, storm 0.00
+[1047.755] exposure: frame 103 EV 1.80, metered 0.1164 cd/m2, night 1.00, storm 0.00
+[1107.537] exposure: frame 111 EV 1.80, metered 0.1204 cd/m2, night 1.00, storm 0.00
+[1162.819] exposure: frame 119 EV 1.80, metered 0.1209 cd/m2, night 1.00, storm 0.00
+[1184.391] Saved Z:\tmp\night\shots\b2\downtown_aerial_night.bmp
+[1217.460] exposure: frame 127 EV 1.80, metered 0.1152 cd/m2, night 1.00, storm 0.00
+[1271.743] exposure: frame 135 EV 1.80, metered 0.1150 cd/m2, night 1.00, storm 0.00
+[1324.149] exposure: frame 143 EV 1.80, metered 0.1150 cd/m2, night 1.00, storm 0.00
+[1373.035] exposure: frame 151 EV 1.80, metered 0.1148 cd/m2, night 1.00, storm 0.00
+[1422.000] exposure: frame 159 EV 1.80, metered 0.1148 cd/m2, night 1.00, storm 0.00
+[1472.652] exposure: frame 167 EV 1.80, metered 0.1146 cd/m2, night 1.00, storm 0.00
+[1524.583] exposure: frame 175 EV 2.44, metered 0.3367 cd/m2, night 1.00, storm 0.00
+[1580.771] exposure: frame 183 EV 2.46, metered 0.3595 cd/m2, night 1.00, storm 0.00
+[1648.659] Saved Z:\tmp\night\shots\b2\mimo_motel_night.bmp
+[1655.060] exposure: frame 191 EV 1.80, metered 0.0743 cd/m2, night 1.00, storm 0.00
+[1706.893] exposure: frame 199 EV 1.80, metered 0.0743 cd/m2, night 1.00, storm 0.00
+[1750.006] exposure: frame 207 EV 1.80, metered 0.0743 cd/m2, night 1.00, storm 0.00
+[1794.210] exposure: frame 215 EV 1.80, metered 0.0743 cd/m2, night 1.00, storm 0.00
+[1841.151] exposure: frame 223 EV 1.80, metered 0.0743 cd/m2, night 1.00, storm 0.00
+[1887.847] exposure: frame 231 EV 1.80, metered 0.0743 cd/m2, night 1.00, storm 0.00
+[1935.789] exposure: frame 239 EV 1.80, metered 0.0743 cd/m2, night 1.00, storm 0.00
+[1991.393] exposure: frame 247 EV 1.80, metered 0.0743 cd/m2, night 1.00, storm 0.00
+[2048.745] exposure: frame 255 EV 1.80, metered 0.0743 cd/m2, night 1.00, storm 0.00
+[2095.458] exposure: frame 263 EV 1.80, metered 0.0743 cd/m2, night 1.00, storm 0.00
+[2143.968] exposure: frame 271 EV 1.80, metered 0.1294 cd/m2, night 1.00, storm 0.00
+[2189.102] exposure: frame 279 EV 1.80, metered 0.1296 cd/m2, night 1.00, storm 0.00
+[2200.961] Saved Z:\tmp\night\shots\b2\westbrook_pools_night.bmp
+[2201.007] Interior 'Mari's Apartment' built: 15566 triangles, 12 lights, 25 colliders, 3 door leaves in 2.0 ms
+[2201.015] Interior 'Mama Lucha's' built: 36586 triangles, 26 lights, 68 colliders, 5 door leaves in 14.4 ms
+[2205.274] Interior 'Bodega La Luna' built: 116605 triangles, 18 lights, 14 colliders, 3 door leaves in 36.4 ms
+[2205.277] Interior 'Tide Customs Calle Luna' built: 11390 triangles, 11 lights, 15 colliders, 2 door leaves in 1.1 ms
+[2231.711] exposure: frame 287 EV 3.47, metered 1.1214 cd/m2, night 1.00, storm 0.00
+[2274.522] exposure: frame 295 EV 3.49, metered 1.1403 cd/m2, night 1.00, storm 0.00
+[2318.003] exposure: frame 303 EV 3.49, metered 1.1457 cd/m2, night 1.00, storm 0.00
+[2362.135] exposure: frame 311 EV 3.49, metered 1.1444 cd/m2, night 1.00, storm 0.00
+[2411.421] exposure: frame 319 EV 3.49, metered 1.1448 cd/m2, night 1.00, storm 0.00
+[2465.259] exposure: frame 327 EV 3.50, metered 1.1484 cd/m2, night 1.00, storm 0.00
+[2516.539] exposure: frame 335 EV 3.50, metered 1.1524 cd/m2, night 1.00, storm 0.00
+[2570.759] exposure: frame 343 EV 3.65, metered 1.3391 cd/m2, night 1.00, storm 0.00
+[2617.432] exposure: frame 351 EV 3.66, metered 1.3435 cd/m2, night 1.00, storm 0.00
+[2646.037] Saved Z:\tmp\night\shots\b2\calle_luna_street_evening.bmp
+[2660.563] exposure: frame 359 EV 2.62, metered 0.4159 cd/m2, night 1.00, storm 0.00
+[2707.715] exposure: frame 367 EV 2.62, metered 0.4160 cd/m2, night 1.00, storm 0.00
+[2753.796] exposure: frame 375 EV 2.62, metered 0.4164 cd/m2, night 1.00, storm 0.00
+[2801.947] exposure: frame 383 EV 2.62, metered 0.4161 cd/m2, night 1.00, storm 0.00
+[2850.687] exposure: frame 391 EV 2.62, metered 0.4156 cd/m2, night 1.00, storm 0.00
+[2904.787] exposure: frame 399 EV 2.62, metered 0.4151 cd/m2, night 1.00, storm 0.00
+[2957.193] exposure: frame 407 EV 2.62, metered 0.4147 cd/m2, night 1.00, storm 0.00
+[3016.617] exposure: frame 415 EV 2.62, metered 0.4145 cd/m2, night 1.00, storm 0.00
+[3083.133] exposure: frame 423 EV 2.62, metered 0.4212 cd/m2, night 1.00, storm 0.00
+[3133.468] exposure: frame 431 EV 2.63, metered 0.4223 cd/m2, night 1.00, storm 0.00
+[3148.559] Saved Z:\tmp\night\shots\b2\mimo_strip_mall_evening.bmp
+[3156.620] Shutdown complete.
+X connection to :110 broken (explicit kill or server shutdown).
+exit 0

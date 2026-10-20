@@ -1,0 +1,24 @@
+# world model v0 blobs (city agent): path blob [base]; on bcb8a71 + road fix c5bc0aab + step 4.1
+src/world/roads.cpp 120a1113de78dd3f496e0ea4bad08548df66ccb6 on c5bc0aab
+src/world/roads.h 8f46021fd8ca52ed4de27d2486c02b0454188e90 on eee40e8e
+src/world/ntwschema.h 29d50e6add068af2830f774f05db1442a6397d85 on 862eac69
+src/world/ntwschema.cpp 667e43c32b05c34614481abbd692acba53662fcb on 906d1d0f
+docs/NTW_FORMAT.md 1763c8dc580b6ee478c384c71297174790503e15 on d318643d
+tests/world/world_format_test.cpp 24ff960c56f4376c7960134be6e5f186b66e3f03 on 90f983c5
+.github/workflows/windows-build.yml 5d63b13a58354c8e87d1d98a063bc77a6725eff0 on afe28696
+src/world/roadnet.cpp 610c4236b9b6d33cdd67b0951d92564e2f9245d6 new
+src/world/worldmodel.h bbaa9486ee054c33024792cc610207e5f1cc18ab new
+src/world/worldmodel.cpp 584aa2487f91a7418cf0fbb4f5c2d99b632b3f84 new
+src/world/worldmodel_roads.cpp f2230630e1dddc2a129bf9396fe2270ae5df4659 new
+tests/world/worldmodel_test.cpp 81f620d74b77e9bbe556324a36417a4a0da0f6b3 new
+tests/world/fixtures/model/districts/cl/blocks/b001/block.ntw eabd996ab8615393c3879f7985fceb1598d0f317 new
+tests/world/fixtures/model/districts/cl/district.ntw 5cf39548d4c4a6a5261f6090a6992b4851dc170f new
+tests/world/fixtures/model/districts/cl/roads.ntw e49cf828b2d6031c260395ef124186ba1539f1ff new
+tests/world/fixtures/model/districts/sb/district.ntw 2ecc811423aeb6c2a674fb29786e20fce270bf18 new
+tests/world/fixtures/model/districts/sb/roads.ntw 708ddccb20c9ce17d80d884bbf64ad91872a4b08 new
+tests/world/fixtures/model/lib/catalog.ntw cb8d504f6f062583ed305a1aed6c6478b4af9a8d new
+tests/world/fixtures/model/lib/signals/fourway.ntw e55c41708077b95a5f03ac2343d135bedf9a8d0c new
+tests/world/fixtures/model/places/places.ntw 54c55b63bd82fd3adb7a0abea1f6cd2590d00976 new
+tests/world/fixtures/model/transit/bus.1.ntw 78a32b778af36519606dbfbfca60e1f5927a7010 new
+tests/world/fixtures/model/trunk/roads.ntw ad49d21380a09c890fc19f5c308c1ccbbb6857ae new
+tests/world/fixtures/model/world.ntw f21ea7f56f0695f70cc700468f30dab3de5ddc70 new

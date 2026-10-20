@@ -1,0 +1,10 @@
+cq64 start Tue Oct 20 13:57:16 UTC 2026
+MinGW main.cpp rc=0 errors 0 warnings 0 Tue Oct 20 13:57:53 UTC 2026
+rfcheck_cp build rc=0 Tue Oct 20 14:00:21 UTC 2026
+rfcheck_cp run rc=0: record lines vs v0's: 0 differ (of 55085); all lines with times masked: 0 differ Tue Oct 20 14:00:42 UTC 2026
+ts_s61 build rc=0 Tue Oct 20 14:03:48 UTC 2026
+ts_s61 --walkcheck rc=0: walk links through buildings: sidewalk 0 (0 m) crosswalk 0 (0 m) corner 0 (0 m) path 1 (18 m) zebra 0 (0 m); walk links on a carriageway: sidewalk 445 (4304 m) crosswalk 0 (0 m) corner 284 (2079 m) path 0 (0 m) zebra 0 (0 m); 1 in-building lines Tue Oct 20 14:04:08 UTC 2026
+ts_cp build rc=0 Tue Oct 20 14:07:45 UTC 2026
+ts_cp --walkcheck rc=0: walk links through buildings: sidewalk 0 (0 m) crosswalk 0 (0 m) corner 0 (0 m) path 0 (0 m) zebra 0 (0 m); walk links on a carriageway: sidewalk 445 (4304 m) crosswalk 0 (0 m) corner 284 (2079 m) path 0 (0 m) zebra 0 (0 m); 0 in-building lines Tue Oct 20 14:13:25 UTC 2026
+campus link: base 0, fix 0; in-building diff lines: 1 Tue Oct 20 14:13:25 UTC 2026
+cq64 done Tue Oct 20 14:13:25 UTC 2026

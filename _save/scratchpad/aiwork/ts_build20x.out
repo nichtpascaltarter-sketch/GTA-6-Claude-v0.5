@@ -1,0 +1,9 @@
+overlay s20/ai.cpp
+overlay s20/pedai.cpp
+overlay s20/police.cpp
+overlay s20/population.cpp
+overlay s20/traffic_core.cpp
+overlay s20/ai_core.h
+overlay s20/ai_game.h
+16:13:36 ai part (s20)
+16:14:03 built /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/ts/traffic_sim20x

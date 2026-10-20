@@ -1,0 +1,10 @@
+ntw 1 unit id=lib.unit.test.flat slot_size=6.00x5.00 kind=flat
+# a unit: its edges on the slot's boundary need no walls of its own, and its doors lead out across that boundary
+wall w1 a=3.00,0.00 b=3.00,5.00 t=0.12
+wall w2 a=0.00,0.00 b=3.00,0.00 t=0.12
+room living type=living poly=0.00,0.00;3.00,0.00;3.00,5.00;0.00,5.00
+room bed type=bed poly=3.00,0.00;6.00,0.00;6.00,3.00;3.00,3.00 # expect room.closed
+door d1 wall=w2 at=1.50 w=0.90 h=2.10 kind=hinged leads=out:living
+door d2 wall=w1 at=4.00 w=0.90 h=2.10 kind=hinged leads=living:out # expect door.rooms
+window n1 wall=w2 at=2.50 w=0.60 h=1.00 sill=1.00 kind=fixed room=living # expect window.wall
+door d3 wall=w1 at=1.50 w=0.90 h=2.10 kind=hinged leads=living:bed

@@ -1,0 +1,23 @@
+First-person melee, police K9 units, interchange and dead-end road fixes
+
+First person: fists come up in a boxing guard while fighting (lead left, rear right; higher and tighter when
+blocking, knocked aside by a stagger) and stay up a moment after the last exchange. Each strike drives its fist along
+its own path, timed by the move's contact frame: jab and cross straight out turning palm-down, the uppercut rising
+from below, the hook swinging round from the side, the counter shove with open hands. A knife is held low in view
+whenever it is out (slash across, stab forward); a bat rests on the right shoulder with both hands on the handle (a
+level swing, an overhead smash). `--autoplay melee --meleeweapon knife|bat` tests them.
+
+Police: K9 units at two stars and up. Once a suspect on foot has been lost for a while, a handler with a German
+shepherd follows the scent trail (the player's path since the police last saw them). The dog tracks ahead with its
+nose down, barks when it finds the suspect (the police know where they are again), and is released on a suspect who
+runs, taking them to the ground. Traffic: a car that cannot get round a corner at full lock, or that ran into a kerb,
+pole or car, backs off with the wheel held over.
+
+World: a two-way arterial that ends at a lone one-way ramp narrows to a street for its last 80 m. A stub carries on
+past the ramp mouth to a turning circle (77th Boulevard). Where only the expressway and its ramps meet, the median
+barrier and its yellow lines run straight through (no blunt barrier end). Lot hedges and garden walls leave a dead
+end's turning room open. Sign text on the port and airport signs reads the right way round; the taxi rank and a
+planter group moved out of the garage stair towers.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Fsx2GTrhwusdowbWY9LHRP

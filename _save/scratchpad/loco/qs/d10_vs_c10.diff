@@ -1,0 +1,106 @@
+--- ctree10/src/anim/animator.cpp	2026-10-19 20:42:51.082047552 +0000
++++ dtree10/src/anim/animator.cpp	2026-10-19 21:43:05.135468162 +0000
+@@ -448,6 +448,7 @@
+         A.stepFrom[s] = rotate(qBack, A.stepFrom[s]) - d;
+         A.stepFromYaw[s] = wrapAngle(A.stepFromYaw[s] - dpsi);
+         A.scanLand[s] = rotate(qBack, A.scanLand[s]) - d;
++        A.stairDir[s] = rotate(qBack, A.stairDir[s]);
+         A.stepScanFrom[s] = rotate(qBack, A.stepScanFrom[s]) - d;
+         A.stepScanDir[s] = rotate(qBack, A.stepScanDir[s]);
+     }
+@@ -513,6 +514,22 @@
+     // planted pivot: the same point of the sole on a footprint (heel point h, yaw y)
+     auto pivotP = [&](int s, vec3 h, float y) { return h + rotate(qz(y), vec3(0.f, wBall[s] * L, 0.f)); };
+     // displayed heel / yaw of a foot (animation + current correction)
++    // the body's turn over the next sT metres of its way at its turn rate now (at most 1.2 rad), and where a point carried
++    // with it - across, where p is now; along, `lead` ahead of the body then - will be once the body has gone that far along
++    // its turning way: a swing's landing on a curving way (a spiral stair, a turn onto a flight) is where the turn takes it
++    auto turnOver = [&](float sT) { return Clamp(in.turnRate * sT / Max(spd, 0.3f), -1.2f, 1.2f); };
++    auto landAhead = [&](vec3 p, float sT, float lead) {
++        const vec3 f(md.x, md.y, 0.f), lt(-md.y, md.x, 0.f);
++        const float psi = turnOver(sT);
++        vec3 D = f * sT;
++        if (fabsf(psi) > 1e-3f) {
++            const float rho = sT / psi;
++            D = f * (rho * sinf(psi)) + lt * (rho * (1.f - cosf(psi)));
++        }
++        vec3 r = D + rotate(qz(psi), lt * dot(vec2(p.x, p.y), vec2(lt.x, lt.y)) + f * lead);
++        r.z = p.z;
++        return r;
++    };
+     auto shownHeel = [&](int s) {
+         vec3 pa = pivotA(s);
+         return pa + A.plantCorr[s] + rotate(qz(A.corrYaw[s]), heel[s] - pa);
+@@ -898,7 +915,8 @@
+                 // (onto the tread its landing was fitted to by the time it lands: quicker for a fit made late in the swing)
+                 const float tLand = A.stairLand[s] > -8.f && swingU[s] > 0.f && cycle > 0.f ? (1.f - swingU[s]) * (1.f - duty) * cycle / Max(spd, 0.3f) : 1.f;
+                 float k = expf(-dt / Clamp(0.35f * tLand, 0.025f, 0.07f));
+-                const vec3 to = vec3(md.x, md.y, 0.f) * A.stairShift[s];
++                static const bool kC0 = getenv("LM_CURVE0") != nullptr;   // DEBUG switch
++                const vec3 to = (kC0 ? vec3(md.x, md.y, 0.f) : A.stairDir[s]) * A.stairShift[s];
+                 A.plantCorr[s] = to + (A.plantCorr[s] - to) * k;
+                 A.corrYaw[s] *= k;
+             }
+@@ -957,9 +975,14 @@
+         // (where it lands: across, where it is now; along, where the body will be at the heel strike plus the strike's
+         // lead over the body - as the last steps had it, about 0.3 of a stride - and any move onto a stair's tread; under
+         // the forefoot rather than the middle, so a landing that would straddle an edge shows)
+-        if (A.probeAhead[s])
++        static const bool kC0 = getenv("LM_CURVE0") != nullptr;   // DEBUG switch
++        if (A.probeAhead[s] && kC0)
+             m = m + vec3(md.x, md.y, 0.f) * (Clamp(cycle * ((1.f - swingU[s]) * (1.f - duty) * A.rootRatio + A.strikeLead), 0.05f, 1.5f) + A.stairShift[s] +
+                                              0.4f * L - dot(vec2(m.x, m.y), vec2(md.x, md.y)));
++        else if (A.probeAhead[s]) {
++            const float sT = Clamp(cycle * (1.f - swingU[s]) * (1.f - duty) * A.rootRatio, 0.f, 1.2f);
++            m = landAhead(m, sT, cycle * A.strikeLead + A.stairShift[s] + 0.4f * L);
++        }
+         else if (swinging && A.stairLand[s] > -8.f && A.stairLand[s] < (s ? A.footR : A.footL) - 0.04f)
+             m = pa + A.plantCorr[s] * w + rotate(qz(A.corrYaw[s] * w), heel[s] - pa);   // (down a step: under the heel, till it clears the nose)
+         else if (A.stepT[s] >= 0.f && A.stairSeen < 1.5f)
+@@ -977,6 +1000,13 @@
+             const vec3 sd0 = A.stepScanDir[s];
+             const float uH = dot(vec2(A.stepTo[s].x - A.stepScanFrom[s].x, A.stepTo[s].y - A.stepScanFrom[s].y), vec2(sd0.x, sd0.y));
+             offScan = uH < -0.05f || uH + L > (kGroundScan - 0.5f) * kGroundScanStep - 0.05f;
++            // (a turning step: its landing gone off the scanned line, or turned from it - the scan no longer runs along the foot)
++            static const bool kC0 = getenv("LM_CURVE0") != nullptr;   // DEBUG switch
++            if (!kC0) {
++                const float vH = dot(vec2(A.stepTo[s].x - A.stepScanFrom[s].x, A.stepTo[s].y - A.stepScanFrom[s].y), vec2(-sd0.y, sd0.x));
++                const vec3 sdNow = rotate(qz(A.stepToYaw[s]), vec3(0.f, 1.f, 0.f));
++                offScan = offScan || fabsf(vH) > 0.08f * scale || dot(vec2(sdNow.x, sdNow.y), vec2(sd0.x, sd0.y)) < 0.94f;
++            }
+         }
+         if (A.stepT[s] >= 0.f && (A.stepT[s] < 0.6f || offScan) && A.stairSeen < 1.5f && (!A.stepScanAsked[s] || offScan) && !A.scanWant && terrain &&
+             in.footProbes) {
+@@ -998,19 +1028,28 @@
+             // where it lands: across, where it is now; along, where the body will be at the heel strike plus the strike's
+             // lead over the body (as the last steps had it: the swing starts slow, a share of the remaining stride falls short)
+             vec3 lm = pa + A.plantCorr[s] * w + rotate(qz(A.corrYaw[s] * w), mid - pa);
+-            const vec2 mdv(md.x, md.y);
+-            lm = lm + vec3(mdv.x, mdv.y, 0.f) * (cycle * ((1.f - swingU[s]) * (1.f - duty) * A.rootRatio + A.strikeLead) - dot(vec2(lm.x, lm.y), mdv));
++            static const bool kC0 = getenv("LM_CURVE0") != nullptr;   // DEBUG switch
++            const float sT = Clamp(cycle * (1.f - swingU[s]) * (1.f - duty) * A.rootRatio, 0.f, 1.2f);
++            const vec3 mdw = kC0 ? vec3(md.x, md.y, 0.f) : rotate(qz(turnOver(sT)), vec3(md.x, md.y, 0.f));   // (the way at the landing)
++            const vec2 mdv(mdw.x, mdw.y);
++            if (kC0) lm = lm + vec3(md.x, md.y, 0.f) * (cycle * ((1.f - swingU[s]) * (1.f - duty) * A.rootRatio + A.strikeLead) - dot(vec2(lm.x, lm.y), vec2(md.x, md.y)));
++            else lm = landAhead(lm, sT, cycle * A.strikeLead);
+             const bool first = !A.scanDone[s] && swingU[s] < 0.6f &&
+                                (A.stairSeen < 1.5f || fabsf(A.groundAhead[s] - (s ? A.footR : A.footL)) > 0.04f ||
+                                 (A.planted[1 - s] && fabsf(A.groundAhead[s] - (s ? A.footL : A.footR)) > 0.1f));
+-            const bool again = A.scanDone[s] && A.stairSeen < 1.5f && fabsf(dot(vec2(lm.x, lm.y) - vec2(A.scanLand[s].x, A.scanLand[s].y), mdv)) > 0.03f;
++            bool again = A.scanDone[s] && A.stairSeen < 1.5f && fabsf(dot(vec2(lm.x, lm.y) - vec2(A.scanLand[s].x, A.scanLand[s].y), mdv)) > 0.03f;
++            // (a turning walk: the landing gone 5 cm across the scanned line, or the way at it turned 15 degrees from the scan)
++            if (!kC0 && A.scanDone[s] && A.stairSeen < 1.5f)
++                again = again || fabsf(dot(vec2(lm.x, lm.y) - vec2(A.scanLand[s].x, A.scanLand[s].y), vec2(-mdv.y, mdv.x))) > 0.05f * scale ||
++                        dot(mdv, vec2(A.stairDir[s].x, A.stairDir[s].y)) < 0.966f;
+             if (first || again) {
+                 A.scanLand[s] = lm;
+                 lm = rotate(qBack, lm) - d;
+                 A.scanWant = true;
+                 A.scanFoot = (u8)s;
+-                A.scanDir = rotate(qBack, vec3(md.x, md.y, 0.f));
++                A.scanDir = rotate(qBack, mdw);
+                 A.scanFrom = vec3(lm.x, lm.y, 0.f) - A.scanDir * kScanBack;
++                A.stairDir[s] = A.scanDir;
+             }
+         }
+     }

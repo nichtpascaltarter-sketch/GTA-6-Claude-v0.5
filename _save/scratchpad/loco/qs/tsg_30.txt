@@ -1,0 +1,27 @@
+M turnstop.90.steps                                45.000
+M turnstop.90.slide_cm_step_mean                    0.958
+M turnstop.90.slide_cm_step_p90                     2.472
+M turnstop.90.slide_cm_step_max                    10.780
+M turnstop.90.pivot_deg_step_mean                  32.202
+M turnstop.90.pivot_deg_step_max                   83.619
+M turnstop.90.slide_cm_total_per_person             2.750
+M turnstop.90.pivot_deg_total_per_person           83.048
+M turnstop.90.lowest_sole_mm                       -5.249
+M turnstop.90.planted_float_frames                  6.000
+M turnstop.90.planted_float_max_mm                 23.515
+M turnstop.90.scuffs                               18.000
+M turnstop.180.steps                               59.000
+M turnstop.180.slide_cm_step_mean                   0.945
+M turnstop.180.slide_cm_step_p90                    4.808
+M turnstop.180.slide_cm_step_max                    8.705
+M turnstop.180.pivot_deg_step_mean                 40.063
+M turnstop.180.pivot_deg_step_max                 186.545
+M turnstop.180.slide_cm_total_per_person            3.645
+M turnstop.180.pivot_deg_total_per_person         134.800
+M turnstop.180.lowest_sole_mm                      -3.597
+M turnstop.180.planted_float_frames                 4.000
+M turnstop.180.planted_float_max_mm                17.099
+M turnstop.180.scuffs                              20.000
+time 0.2 s
+animator 4.941 us per update over 7332 updates
+ground scans 0 (one per 0 updates)

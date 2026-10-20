@@ -1,0 +1,3 @@
+ntw 1 layout id=lib.layout.test.parse
+wall w1 a=0.00,0.00 b=1.00,0.00 t=0.20
+room Hall type=hall poly=0.00,0.00;1.00,0.00;1.00,1.00 # expect file.parse

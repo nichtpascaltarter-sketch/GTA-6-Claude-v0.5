@@ -1,0 +1,97 @@
+--- a/src/anim/animator.cpp
++++ b/src/anim/animator.cpp
+@@ -647,11 +647,16 @@
+                         // a step, or lags behind up one - and the landing probe's under the forefoot)
+                         if (A.stairSeen < 1.5f) (s ? A.footR : A.footL) = Max(s ? A.footR : A.footL, A.groundAhead[s]);
+                     }
++                    // (a foot held since its toe-off stays on its footprint: the shown heel is this update's pose with the
++                    // last update's correction, off by the pose's own move since)
++                    const bool held = A.footHold[s];
+                     A.planted[s] = true;
+                     A.footHold[s] = false;
+-                    vec3 h = shownHeel(s);
+-                    A.plantP[s] = vec3(h.x, h.y, 0.f);
+-                    A.plantYaw[s] = wrapAngle(fyaw[s] + A.corrYaw[s]);
++                    if (!held) {
++                        vec3 h = shownHeel(s);
++                        A.plantP[s] = vec3(h.x, h.y, 0.f);
++                        A.plantYaw[s] = wrapAngle(fyaw[s] + A.corrYaw[s]);
++                    }
+                     A.footEvents |= 1u << s;
+                 } else if (!contact && A.planted[s]) {
+                     // toe-off: held where it is until the pose has lifted it clear (a foot never slides off)
+@@ -662,7 +667,10 @@
+                 // standing: a foot that comes down stays down where it is shown - on stairs, the other foot down, it comes
+                 // down onto a tread, as a short step from there
+                 const int o = 1 - s;
+-                const vec3 h = shownHeel(s);
++                // (a foot held since its toe-off stands where it is held)
++                const bool held = A.footHold[s];
++                const vec3 h = held ? A.plantP[s] : shownHeel(s);
++                const float hy = held ? A.plantYaw[s] : wrapAngle(fyaw[s] + A.corrYaw[s]);
+                 A.ballProbe[s] = false;
+                 A.footHold[s] = false;
+                 if (A.stairSeen < 1.5f && terrain && in.footProbes && A.planted[o] && A.stepT[o] < 0.f) {
+@@ -671,14 +679,14 @@
+                     A.stepFitLand[s] = -9.f;
+                     A.stepFitShift[s] = 0.f;
+                     A.stepFrom[s] = vec3(h.x, h.y, 0.f);
+-                    A.stepFromYaw[s] = wrapAngle(fyaw[s] + A.corrYaw[s]);
++                    A.stepFromYaw[s] = hy;
+                     A.stepDur[s] = 0.22f;
+                     A.stepLift[s] = 0.02f * scale;
+                 } else {
+                     A.plantSlack[s] = 0.f;
+                     A.planted[s] = true;
+                     A.plantP[s] = vec3(h.x, h.y, 0.f);
+-                    A.plantYaw[s] = wrapAngle(fyaw[s] + A.corrYaw[s]);
++                    A.plantYaw[s] = hy;
+                 }
+             }
+         }
+@@ -1968,6 +1976,7 @@
+         snap = pose;
+         snapW = 1.f;
+         snapRate = 6.f;
++        snapUpper = false;
+     }
+     stanceClip = sClip;
+     bool leftSeat = false;   // this update takes the ped out of a vehicle seat
+@@ -1975,6 +1984,11 @@
+         snap = pose;
+         snapW = 1.f;
+         snapRate = stanceIsVehicle(st) || stanceIsVehicle(stance) ? 4.f : (stanceIsGuard(st) && stanceIsGuard(stance) ? 12.f : 3.f);
++        // (between stances whose legs are the walk's or the stand's - plain, chatting, on the phone, smoking, waiting -
++        // only the upper body crossfades: the legs are the same either way, and a crossfade of theirs from the captured
++        // pose, after the feet are put on the ground, drags planted feet with the body's move and turn since)
++        auto baseLegs = [](int s) { return s == 0 || s == 7 || s == 8 || s == 10 || s == 23; };
++        snapUpper = baseLegs(st) && baseLegs(stance);
+         leftSeat = stanceIsVehicle(stance) && !stanceIsVehicle(st);
+         prevStance = stance;
+         stance = st;
+@@ -2038,6 +2052,7 @@
+         if (!extBlend) {
+             snap = pose;
+             snapW = 1.f;
++            snapUpper = false;
+             snapRate = in.action == CLIP_HIT_FRONT || in.action == CLIP_HIT_BACK || in.action == CLIP_FIRE_PISTOL ||
+                                in.action == CLIP_FIRE_RIFLE || in.action == CLIP_HIT_HEAD || in.action == CLIP_HIT_BODY
+                            ? 14.f
+@@ -2605,6 +2620,7 @@
+                 // hand back to the base layers with a crossfade from the last displayed pose
+                 snap = pose;
+                 snapW = 1.f;
++                snapUpper = false;
+                 snapRate = action == CLIP_JUMP_START ? 8.f : 4.f;
+                 action = -1;
+             }
+@@ -3030,7 +3046,8 @@
+     if (snapW > 0.f) {
+         snapW = Max(0.f, snapW - dt * snapRate);
+         float w = snapW * snapW * (3.f - 2.f * snapW);
+-        blendCtl(outp, snap, w, pose);
++        if (snapUpper) blendUpperBody(outp, snap, w, pose);
++        else blendCtl(outp, snap, w, pose);
+     } else {
+         pose = outp;
+     }

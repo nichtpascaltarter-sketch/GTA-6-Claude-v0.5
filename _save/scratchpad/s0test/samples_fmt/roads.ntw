@@ -1,0 +1,14 @@
+ntw 1 roads district=cl
+node cl.n0012 at=1702.00,365.50 z=3.40 control=signal plan=lib.signal.4way_2phase offset=12.0
+node cl.n0013 at=1702.00,481.00 z=3.55 control=stop
+edge cl.e0007 from=cl.n0012 to=cl.n0013 class=street name="SW 8th St" lanes=1/1 lanewidth=3.20 parking=both:2.40
+  sidewalk=both:3.00 speed=13.4 shape=1702.00,365.50;1702.40,420.00;1702.00,481.00 profile=0.00:3.40;115.50:3.55
+  crossing at=8.00 kind=signal
+  crossing at=60.00 kind=zebra
+  busstop cl.bus.08 at=40.00 side=right shelter=lib.prop.shelter_a
+  parkbay from=12.00 to=58.00 side=left kind=parallel
+  curbcut at=72.00 side=right w=4.00 to=cl.b014.p03
+end
+junction cl.n0012 turns=custom
+  connect from=cl.e0007:0 to=cl.e0011:0 turn=left protected=1
+end

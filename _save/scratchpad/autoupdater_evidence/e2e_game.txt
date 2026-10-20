@@ -1,0 +1,147 @@
+served from /tmp/upd/srv size 13457920 sha256 6c5df8f4c78c69e01bbab9e8103d2a4981cc346b911f08ea605e4d95ab77d56a
+=== 1. the old exe (0.02.7-dev) downloads 9.9.9 and writes the pending update
+--- start: NeonTide.exe --update-test --update-url http://127.0.0.1:8765/latest.json -> exit=0
+    folder: NeonTide.exe (13048832 bytes) NeonTide.exe.pending (13457920 bytes) NeonTide.exe.pending.json (117 bytes) 
+    log| [   0.009] Neon Tide starting (version 0.02.7-dev). Data dir: C:\users\root\AppData\Local\NeonTide\
+    log| [   0.010] Updater test: running 0.02.7-dev from Z:\tmp\upd\g1\NeonTide.exe
+    log| [   0.011] Updater: checking http://127.0.0.1:8765/latest.json (running 0.02.7-dev)
+    log| [   0.021] Updater: 9.9.9 is available (NeonTide-9.9.9.exe, 13457920 bytes)
+    log| [   0.023] Updater: published SHA-256 6c5df8f4c78c69e01bbab9e8103d2a4981cc346b911f08ea605e4d95ab77d56a (NeonTide-9.9.9.exe.sha256)
+    log| [   0.023] Updater: downloading http://127.0.0.1:8765/NeonTide-9.9.9.exe
+    log| [   0.309] Updater: 9.9.9 downloaded and verified (13457920 bytes, SHA-256 6c5df8f4c78c69e01bbab9e8103d2a4981cc346b911f08ea605e4d95ab77d56a, matches the published one): it installs at the next start
+    log| [   0.309] Updater test: done, update downloaded and verified, it installs at the next start
+=== 2. the next start installs it and starts it (the relaunched exe is 9.9.9)
+--- start: NeonTide.exe --update-test --update-url http://127.0.0.1:8765/latest.json -> exit=0
+    folder: NeonTide.exe (13457920 bytes) 
+    log| [   0.001] Neon Tide starting (version 0.02.7-dev). Data dir: C:\users\root\AppData\Local\NeonTide\
+    log| [   0.002] Updater test: running 0.02.7-dev from Z:\tmp\upd\g1\NeonTide.exe
+    log| [   0.080] Updater: installed 9.9.9 over 0.02.7-dev (Z:\tmp\upd\g1\NeonTide.exe)
+    log| [   0.103] Updater: started Z:\tmp\upd\g1\NeonTide.exe
+    log| [   0.103] Updater test: done, installed 9.9.9 and started it
+    log| [   0.004] Neon Tide starting (version 9.9.9). Data dir: C:\users\root\AppData\Local\NeonTide\
+    log| [   0.004] Updater: now running 9.9.9, updated from 0.02.7-dev
+    log| [   0.004] Updater test: running 9.9.9 from Z:\tmp\upd\g1\NeonTide.exe
+    log| [   0.005] Updater: removed the previous version (Z:\tmp\upd\g1\NeonTide.exe.old)
+    log| [   0.005] Updater: checking http://127.0.0.1:8765/latest.json (running 9.9.9)
+    log| [   0.008] Updater: up to date (running 9.9.9, newest release v9.9.9)
+    log| [   0.008] Updater test: done, no update
+    NeonTide.exe sha256 now 6c5df8f4c78c69e0..., the 9.9.9 build 6c5df8f4c78c69e0..., the dev build 3e3c27bab03951ed...
+=== 3. a third start removes a leftover NeonTide.exe.old (put back here: Wine let the relaunched exe delete it at once)
+--- start: NeonTide.exe --update-test --update-url http://127.0.0.1:8765/latest.json -> exit=1
+    folder: NeonTide.exe (13457920 bytes) 
+    log| [   0.040] Neon Tide starting (version 9.9.9). Data dir: C:\users\root\AppData\Local\NeonTide\
+    log| [   0.051] Updater test: running 9.9.9 from Z:\tmp\upd\g1\NeonTide.exe
+    log| [   0.063] Updater: removed the previous version (Z:\tmp\upd\g1\NeonTide.exe.old)
+    log| [   0.095] Updater: checking http://127.0.0.1:8765/latest.json (running 9.9.9)
+    log| [   0.218] Updater: up to date (running 9.9.9, newest release v9.9.9)
+    log| [   0.218] Updater test: done, no update
+=== rejection: wrongsum.json
+--- start: NeonTide.exe --update-test --update-url http://127.0.0.1:8765/wrongsum.json -> exit=2
+    folder: NeonTide.exe (13048832 bytes) 
+    log| [   0.001] Neon Tide starting (version 0.02.7-dev). Data dir: C:\users\root\AppData\Local\NeonTide\
+    log| [   0.002] Updater test: running 0.02.7-dev from Z:\tmp\upd\g1\NeonTide.exe
+    log| [   0.002] Updater: checking http://127.0.0.1:8765/wrongsum.json (running 0.02.7-dev)
+    log| [   0.021] Updater: 9.9.9 is available (NeonTide-9.9.9.exe, 13457920 bytes)
+    log| [   0.026] Updater: published SHA-256 99fc6ed85a46236642dff187e9eac7c03fc56bfdcc68001ad7ed7cbc94b7f269 (NeonTide-9.9.9.exe.sha256)
+    log| [   0.027] Updater: downloading http://127.0.0.1:8765/NeonTide-9.9.9.exe
+    log| [   1.052] Updater: rejected the download of 9.9.9 (SHA-256 mismatch: the file has 6c5df8f4c78c69e01bbab9e8103d2a4981cc346b911f08ea605e4d95ab77d56a)
+    log| [   1.054] Updater test: done, update not downloaded
+=== rejection: wrongsize.json
+--- start: NeonTide.exe --update-test --update-url http://127.0.0.1:8765/wrongsize.json -> exit=2
+    folder: NeonTide.exe (13048832 bytes) 
+    log| [   0.005] Neon Tide starting (version 0.02.7-dev). Data dir: C:\users\root\AppData\Local\NeonTide\
+    log| [   0.006] Updater test: running 0.02.7-dev from Z:\tmp\upd\g1\NeonTide.exe
+    log| [   0.006] Updater: checking http://127.0.0.1:8765/wrongsize.json (running 0.02.7-dev)
+    log| [   0.022] Updater: 9.9.9 is available (NeonTide-9.9.9.exe, 13457921 bytes)
+    log| [   0.030] Updater: published SHA-256 6c5df8f4c78c69e01bbab9e8103d2a4981cc346b911f08ea605e4d95ab77d56a (NeonTide-9.9.9.exe.sha256)
+    log| [   0.030] Updater: downloading http://127.0.0.1:8765/NeonTide-9.9.9.exe
+    log| [   0.313] Updater: rejected the download of 9.9.9 (13457920 of 13457921 bytes)
+    log| [   0.322] Updater test: done, update not downloaded
+=== rejection: bigger.json
+--- start: NeonTide.exe --update-test --update-url http://127.0.0.1:8765/bigger.json -> exit=2
+    folder: NeonTide.exe (13048832 bytes) 
+    log| [   0.008] Neon Tide starting (version 0.02.7-dev). Data dir: C:\users\root\AppData\Local\NeonTide\
+    log| [   0.008] Updater test: running 0.02.7-dev from Z:\tmp\upd\g1\NeonTide.exe
+    log| [   0.009] Updater: checking http://127.0.0.1:8765/bigger.json (running 0.02.7-dev)
+    log| [   0.037] Updater: 9.9.9 is available (NeonTide-9.9.9.exe, 13457919 bytes)
+    log| [   0.050] Updater: published SHA-256 6c5df8f4c78c69e01bbab9e8103d2a4981cc346b911f08ea605e4d95ab77d56a (NeonTide-9.9.9.exe.sha256)
+    log| [   0.050] Updater: downloading http://127.0.0.1:8765/NeonTide-9.9.9.exe
+    log| [   1.104] Updater: rejected the download of 9.9.9 (larger than the listed size)
+    log| [   1.105] Updater test: done, update not downloaded
+=== rejection: notpe.json
+--- start: NeonTide.exe --update-test --update-url http://127.0.0.1:8765/notpe.json -> exit=2
+    folder: NeonTide.exe (13048832 bytes) 
+    log| [   0.004] Neon Tide starting (version 0.02.7-dev). Data dir: C:\users\root\AppData\Local\NeonTide\
+    log| [   0.005] Updater test: running 0.02.7-dev from Z:\tmp\upd\g1\NeonTide.exe
+    log| [   0.006] Updater: checking http://127.0.0.1:8765/notpe.json (running 0.02.7-dev)
+    log| [   0.032] Updater: 9.9.9 is available (NeonTide-9.9.9.exe, 2560 bytes)
+    log| [   0.035] Updater: published SHA-256 f24049e8cb4d3a6217167576b6d12e49628e8476598f27e32f6b33d149d0a286 (NeonTide-9.9.9.exe.sha256)
+    log| [   0.036] Updater: downloading http://127.0.0.1:8765/page.exe
+    log| [   0.057] Updater: rejected the download of 9.9.9 (not a Windows program: no MZ header)
+    log| [   0.058] Updater test: done, update not downloaded
+=== rejection: equal.json
+--- start: NeonTide.exe --update-test --update-url http://127.0.0.1:8765/equal.json -> exit=1
+    folder: NeonTide.exe (13048832 bytes) 
+    log| [   0.002] Neon Tide starting (version 0.02.7-dev). Data dir: C:\users\root\AppData\Local\NeonTide\
+    log| [   0.003] Updater test: running 0.02.7-dev from Z:\tmp\upd\g1\NeonTide.exe
+    log| [   0.003] Updater: checking http://127.0.0.1:8765/equal.json (running 0.02.7-dev)
+    log| [   0.030] Updater: up to date (running 0.02.7-dev, newest release v0.02.7-dev)
+    log| [   0.030] Updater test: done, no update
+=== rejection: older.json
+--- start: NeonTide.exe --update-test --update-url http://127.0.0.1:8765/older.json -> exit=1
+    folder: NeonTide.exe (13048832 bytes) 
+    log| [   0.003] Neon Tide starting (version 0.02.7-dev). Data dir: C:\users\root\AppData\Local\NeonTide\
+    log| [   0.004] Updater test: running 0.02.7-dev from Z:\tmp\upd\g1\NeonTide.exe
+    log| [   0.004] Updater: checking http://127.0.0.1:8765/older.json (running 0.02.7-dev)
+    log| [   0.017] Updater: up to date (running 0.02.7-dev, newest release v0.02.6)
+    log| [   0.017] Updater test: done, no update
+=== rejection: unreachable server
+--- start: NeonTide.exe --update-test --update-url http://127.0.0.1:9/latest.json -> exit=1
+    folder: NeonTide.exe (13048832 bytes) 
+    log| [   0.008] Neon Tide starting (version 0.02.7-dev). Data dir: C:\users\root\AppData\Local\NeonTide\
+    log| [   0.009] Updater test: running 0.02.7-dev from Z:\tmp\upd\g1\NeonTide.exe
+    log| [   0.009] Updater: checking http://127.0.0.1:9/latest.json (running 0.02.7-dev)
+    log| [   0.017] Updater: no update (send: cannot connect)
+    log| [   0.020] Updater test: done, no update
+=== checksum sources: GitHub digest, release notes, none; and the release list (pre-release by version)
+--- start: NeonTide.exe --update-test --update-url http://127.0.0.1:8765/digest.json -> exit=0
+    folder: NeonTide.exe (13048832 bytes) NeonTide.exe.pending (13457920 bytes) NeonTide.exe.pending.json (117 bytes) 
+    log| [   0.004] Neon Tide starting (version 0.02.7-dev). Data dir: C:\users\root\AppData\Local\NeonTide\
+    log| [   0.004] Updater test: running 0.02.7-dev from Z:\tmp\upd\g1\NeonTide.exe
+    log| [   0.005] Updater: checking http://127.0.0.1:8765/digest.json (running 0.02.7-dev)
+    log| [   0.027] Updater: 9.9.9 is available (NeonTide-9.9.9.exe, 13457920 bytes)
+    log| [   0.028] Updater: published SHA-256 6c5df8f4c78c69e01bbab9e8103d2a4981cc346b911f08ea605e4d95ab77d56a (GitHub's asset digest)
+    log| [   0.028] Updater: downloading http://127.0.0.1:8765/NeonTide-9.9.9.exe
+    log| [   0.745] Updater: 9.9.9 downloaded and verified (13457920 bytes, SHA-256 6c5df8f4c78c69e01bbab9e8103d2a4981cc346b911f08ea605e4d95ab77d56a, matches the published one): it installs at the next start
+    log| [   0.746] Updater test: done, update downloaded and verified, it installs at the next start
+--- start: NeonTide.exe --update-test --update-url http://127.0.0.1:8765/notes.json -> exit=0
+    folder: NeonTide.exe (13048832 bytes) NeonTide.exe.pending (13457920 bytes) NeonTide.exe.pending.json (117 bytes) 
+    log| [   0.005] Neon Tide starting (version 0.02.7-dev). Data dir: C:\users\root\AppData\Local\NeonTide\
+    log| [   0.006] Updater test: running 0.02.7-dev from Z:\tmp\upd\g1\NeonTide.exe
+    log| [   0.006] Updater: checking http://127.0.0.1:8765/notes.json (running 0.02.7-dev)
+    log| [   0.043] Updater: 9.9.9 is available (NeonTide-9.9.9.exe, 13457920 bytes)
+    log| [   0.046] Updater: published SHA-256 6c5df8f4c78c69e01bbab9e8103d2a4981cc346b911f08ea605e4d95ab77d56a (the release notes)
+    log| [   0.051] Updater: downloading http://127.0.0.1:8765/NeonTide-9.9.9.exe
+    log| [   0.740] Updater: 9.9.9 downloaded and verified (13457920 bytes, SHA-256 6c5df8f4c78c69e01bbab9e8103d2a4981cc346b911f08ea605e4d95ab77d56a, matches the published one): it installs at the next start
+    log| [   0.740] Updater test: done, update downloaded and verified, it installs at the next start
+--- start: NeonTide.exe --update-test --update-url http://127.0.0.1:8765/nosum.json -> exit=0
+    folder: NeonTide.exe (13048832 bytes) NeonTide.exe.pending (13457920 bytes) NeonTide.exe.pending.json (117 bytes) 
+    log| [   0.004] Neon Tide starting (version 0.02.7-dev). Data dir: C:\users\root\AppData\Local\NeonTide\
+    log| [   0.005] Updater test: running 0.02.7-dev from Z:\tmp\upd\g1\NeonTide.exe
+    log| [   0.005] Updater: checking http://127.0.0.1:8765/nosum.json (running 0.02.7-dev)
+    log| [   0.011] Updater: 9.9.9 is available (NeonTide-9.9.9.exe, 13457920 bytes)
+    log| [   0.011] Updater: no SHA-256 published for NeonTide-9.9.9.exe: checking its size and program header
+    log| [   0.011] Updater: downloading http://127.0.0.1:8765/NeonTide-9.9.9.exe
+    log| [   0.207] Updater: 9.9.9 downloaded and verified (13457920 bytes, SHA-256 6c5df8f4c78c69e01bbab9e8103d2a4981cc346b911f08ea605e4d95ab77d56a, none published): it installs at the next start
+    log| [   0.207] Updater test: done, update downloaded and verified, it installs at the next start
+--- start: NeonTide.exe --update-test --update-url http://127.0.0.1:8765/list.json -> exit=0
+    folder: NeonTide.exe (13048832 bytes) NeonTide.exe.pending (13457920 bytes) NeonTide.exe.pending.json (117 bytes) 
+    log| [   0.005] Neon Tide starting (version 0.02.7-dev). Data dir: C:\users\root\AppData\Local\NeonTide\
+    log| [   0.006] Updater test: running 0.02.7-dev from Z:\tmp\upd\g1\NeonTide.exe
+    log| [   0.007] Updater: checking http://127.0.0.1:8765/list.json (running 0.02.7-dev)
+    log| [   0.021] Updater: 9.9.9 is available (NeonTide-9.9.9.exe, 13457920 bytes, pre-release)
+    log| [   0.022] Updater: published SHA-256 6c5df8f4c78c69e01bbab9e8103d2a4981cc346b911f08ea605e4d95ab77d56a (GitHub's asset digest)
+    log| [   0.022] Updater: downloading http://127.0.0.1:8765/NeonTide-9.9.9.exe
+    log| [   0.785] Updater: 9.9.9 downloaded and verified (13457920 bytes, SHA-256 6c5df8f4c78c69e01bbab9e8103d2a4981cc346b911f08ea605e4d95ab77d56a, matches the published one): it installs at the next start
+    log| [   0.785] Updater test: done, update downloaded and verified, it installs at the next start
+done

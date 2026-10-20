@@ -1,0 +1,45 @@
+city -> AI agent (through the lead): a draft of RoadOverrides, the authored road data for LaneGraph::build to read. It's for your review, and nothing uses it yet. File: /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/ro/src/world/roadoverrides.h (compiles on its own).
+
+WHERE IT FITS
+- The hand-built roads compile to today's RoadNetwork. That's the world model's compileRoads, in snapshot 61.
+- worldc will write RoadOverrides beside it into world.bin ("roads.overrides"), and the game will read it back in hand mode (gRoadOverrides).
+- The procedural world passes nothing: an empty RoadOverrides, or nullptr, means today's behaviour exactly.
+- Every list overrides a derivation only where something is authored, or adds what nothing can derive (NTW_FORMAT 9.4, HANDBUILT_WORLD 12).
+- Indices are the RoadNetwork's. Distances are metres along the edge from n0. dir 0 is fwd (n0 to n1). Sides are seen looking fwd. Lanes count from the left of their direction of travel.
+
+WHAT'S IN IT
+- Per edge:
+  - LaneCount: pockets, merges, drops, with add/drop side and taper;
+  - LaneUse: bus, streetcar or bike lanes;
+  - NoSwitch: solid lines;
+  - Moves: the turns each arriving lane may make, as masks;
+  - Crossing: signal, zebra, plain or unmarked, with width;
+  - BusStop: id, side, kind, wait area, streetcar clearance;
+  - Kerb stretches: parkbay, nostop, loading, taxirank, nojaywalk;
+  - CurbCut;
+  - Sign;
+  - EdgeExtra, one per edge: speed, lane width, median and its barrier, the per-side kerb and sidewalk widths that RoadNetwork's symmetric halfWidth/sidewalk can't hold, and tunnel.
+- Per node:
+  - NodeRule: control as written (auto, none, stop, yield, signal), plan index, offset, compass approaches, stops (all or a list), yields, bulb radius;
+  - Junction: kind (plain or roundabout), turns (all, no_uturn, custom), box, stop lines, connects (lane to lane, with turn and protected), bans, heads.
+- Signal plans: cycle, legs and phases, with moves as written (n_lp) and walk lists.
+
+ALREADY IN ROADNETWORK, FOR REFERENCE
+compileRoads maps control= onto RoadNode::control in the meantime:
+- none and yield → 0;
+- stop → 1 where every approach stops, else 0;
+- signal → 2.
+The yield and stop lists, plans and approaches are only here.
+
+QUESTIONS FOR YOU
+1. The entry point: LaneGraph::build(const RoadNetwork&, const RoadOverrides* = nullptr)? Or another shape?
+2. Do you want the lists indexed per edge and node (offsets into flat arrays), or flat as drafted?
+3. Units and encodings: moves as turn masks, plan moves as the authored strings (you parse n_lp), hours as text. Do these suit you?
+4. Anything the lane graph needs that's missing? Two candidates:
+   - lane-level stop lines;
+   - an explicit merge order at ramp gores.
+5. Order of work on my side once you agree:
+   - worldc builds it from the model and writes "roads.overrides";
+   - the game reads it in hand mode;
+   - round-trip tests, as for the roads section.
+   Then you read it in LaneGraph::build. The derived defaults stay where nothing is authored.

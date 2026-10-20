@@ -1,0 +1,7 @@
+QS run 3 up t4.133 foot 1 u 0.00 h   0.0 b   0.0 t -17.0 g 0.00 0.00 0.17 fz 0.000 gIn 0.000 yh 4.993 yt 5.255 yFrom 4.993 yTo 5.154 lift 0.055 pz 1.870
+QS run 3 up t4.167 foot 1 u 0.15 h  13.7 b  -3.3 t  -3.3 g -0.17 0.00 0.00 fz -0.059 gIn 0.000 yh 5.011 yt 5.272 yFrom 4.993 yTo 5.284 lift 0.055 pz 2.040
+QS run 3 up t4.200 foot 1 u 0.31 h  17.8 b   0.8 t   0.8 g -0.17 0.00 0.00 fz -0.037 gIn 0.000 yh 5.059 yt 5.317 yFrom 4.993 yTo 5.288 lift 0.055 pz 2.040
+QS run 3 up t4.233 foot 1 u 0.46 h  19.5 b   2.5 t   2.5 g -0.17 0.00 0.00 fz -0.030 gIn 0.000 yh 5.123 yt 5.377 yFrom 4.993 yTo 5.290 lift 0.055 pz 2.040
+QS run 3 up t4.267 foot 1 u 0.61 h   2.5 b   2.4 t   2.4 g 0.00 0.00 0.00 fz -0.028 gIn 0.000 yh 5.191 yt 5.440 yFrom 4.993 yTo 5.291 lift 0.055 pz 2.040
+QS run 3 up t4.300 foot 1 u 0.76 h   1.1 b   1.1 t -15.9 g 0.00 0.00 0.17 fz -0.027 gIn 0.000 yh 5.249 yt 5.493 yFrom 4.993 yTo 5.291 lift 0.055 pz 2.040
+QS run 3 up t4.333 foot 1 u 0.92 h  -1.2 b  -1.2 t -18.2 g 0.00 0.00 0.17 fz -0.026 gIn 0.000 yh 5.285 yt 5.526 yFrom 4.993 yTo 5.291 lift 0.055 pz 2.040

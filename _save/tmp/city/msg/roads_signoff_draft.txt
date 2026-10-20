@@ -1,0 +1,39 @@
+city snapshot-safe: roads into world.bin, read in hand mode. worldc compiles the hand-built roads into world.bin's "roads" and "roads.ids" sections, and --world=hand reads them into gRoads.
+
+Blobs are in /tmp/city/rb_blobs.txt. Every base is snapshot 61's (21d9af33; HEAD 1846b52 has the same blobs), except where noted:
+@BLOBS@
+
+What it does:
+- src/world/roadsbin.h/.cpp (new): the two sections.
+  - "roads", version 1: the nodes (x, y, z, radius, control, highway) and the edges (n0, n1, class, flags, lanes, half width, sidewalk, cut-backs, seed, name, points).
+  - "roads.ids": every node's and edge's authored id, in network order, for missions, saves and tools.
+  - readRoads rebuilds the node edge lists, the distances, the lengths and the spatial hash.
+  - It refuses a section that is missing, truncated, over-long, of another version or inconsistent, gives a reason, and leaves the network empty, never half read.
+- tools/worldc.cpp:
+  - World, district, roads, signal and transit files go through the world model (loadParsed, compileRoads) into those sections. Errors carry file:line and a code.
+  - Blocks, buildings, places and the library stop the build with "no compiler for X files yet", as you decided.
+  - The docs say so where they describe worldc's per-kind behaviour: NTW_FORMAT sections 1 and 9.4, HANDBUILT_WORLD 6.1.
+  - world/ has only the terrain today, so the embedded world.bin is byte-identical to 4.1's.
+- src/world/handworld.cpp/.h: loadHandWorld reads the roads when world.bin has them, else an empty network as before, and logs the counts. src/main.cpp gains one include, for roadsbin.cpp.
+- build.sh: worldc's dependency list gains the files it now includes.
+- src/world/roomlight.h (on a6fcf2b8): adds roomMinute(timeOfDay), which the night agent asked for, so the CB and the CPU callers share one integer.
+- tests/world/worldmodel_test.cpp (on cec03b2b):
+  - An exact round trip: every field, the ids, and the hash working after the read.
+  - An empty network, and a network written without ids.
+  - Six damaged sections, each refused with a reason and an empty network: truncated, one byte too many, another version, an edge naming node 1000, empty, and a world.bin without the section.
+  - roomMinute.
+
+Checks (cq65 and cq66):
+- worldmodel_test with CI's flags: all passed.
+  - The first run found the half-read bug above; the fix is in, and the rerun passes.
+- worldc on world/: identical to 4.1's world.bin.
+- worldc on a test world with the model fixture's roads: "roads 9 nodes, 8 edges, 1 signalised".
+  - rbcheck: worldc's world.bin, read back, is IDENTICAL to compileRoads on the files.
+  - Adding a block file: rc 1, with the "no compiler" error.
+- MinGW syntax: main.cpp and worldc, 0 errors, 0 warnings.
+- I scanned the files MSVC now compiles in worldc for GCC-only syntax (designated initialisers, alternative tokens, builtins, VLAs, POSIX calls) and found none.
+- The exe built.
+- Hand mode on the test world: rc 0, no fatal errors, and the log reads "Hand world: terrain and 9 road nodes, 8 edges from ...". The UI map drew the 8 roads.
+@GAMES@
+
+Not in this: drawing the roads in hand mode, grading the terrain under them, and the pilot's streets. Those are part 1's sign-off, which is being checked now (cq68).

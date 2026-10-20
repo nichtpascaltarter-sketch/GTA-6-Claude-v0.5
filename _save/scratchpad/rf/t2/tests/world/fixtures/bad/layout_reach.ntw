@@ -1,0 +1,10 @@
+ntw 1 layout id=lib.layout.test.reach
+# a room no door, stair or lift leads to
+wall w1 a=0.00,0.00 b=8.00,0.00 t=0.20 ext=front
+wall w2 a=8.00,0.00 b=8.00,6.00 t=0.20 ext=right
+wall w3 a=8.00,6.00 b=0.00,6.00 t=0.20 ext=back
+wall w4 a=0.00,6.00 b=0.00,0.00 t=0.20 ext=left
+wall w5 a=4.00,0.00 b=4.00,6.00 t=0.12
+room a type=living poly=0.00,0.00;4.00,0.00;4.00,6.00;0.00,6.00
+room b type=bed poly=4.00,0.00;8.00,0.00;8.00,6.00;4.00,6.00 # expect room.reach
+door d1 wall=w1 at=2.00 w=0.90 h=2.10 kind=hinged leads=out:a

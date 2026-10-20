@@ -1,0 +1,21 @@
+city snapshot-safe: batch 11b - interiors.cpp garageIntrudes() now reads batch 11's garage, not the seed's phantom wing. 1 world file, based on 590854d (PR #45, snapshot 43): interiors.cpp, untouched there and by main. Copied into the shared tree over 590854d's copy, blob written with git hash-object -w. MinGW syntax check in the shared tree (x86_64-w64-mingw32-g++-posix -std=c++17 -fsyntax-only -Ibuild/gen -Isrc src/main.cpp), with the other agents' current src/game edits in place: 0 errors, 0 warnings (/tmp/city/syntax_shared_b11b.log).
+
+FILE (src/world), new blob (590854d blob):
+- interiors.cpp 423f6f250beb4937d6202939967ad3b9b2f61d90 (590854d acffb1f)
+
+WHAT CHANGED (the Codex finding is right)
+- garageIntrudes() still rebuilt the garage from the seed, (BS_HOUSE && seed % 10 < 7) || BS_VILLA, a 6.4 m wing on the seed & 64 side. After batch 11, a house on a narrow lot has a driveway strip (garageKind 2) or no garage (0), so the check put a phantom wing beside it. A neighbour could be turned down as an interior host for it.
+- Now it takes the rectangle buildmesh.cpp's house branch builds, through batch 11's helpers:
+  - only garageKind(h) == 1, on garageSide(h), and never for site-element houses (hand-built, no wing);
+  - 3.2 m half wide beside the house, massing::carportHalfDepth(h) deep from the front (Min(hy, 3.4), less on a mobile home's carport), at the same centre;
+  - with the roof: the carport's slab 0.15 m over the front and the outer side, the wing's eave all round (0.5 m eave slab or 0.4 m pitched roof, by buildmesh's own test);
+  - the same separating-axis test and 0.2 m tolerance as before.
+- Effect, counted over every building (worldcheck with both checks side by side): the old check flagged 48 buildings (mid-rises and shops among them) where no garage stands. The new one flags 0. After batch 11 no real wing or carport, roof included, reaches into another building, which matches the footprint pass. None of the 48 was any interior's pick, so no interior host moves.
+
+TESTS (signed off on the static evidence, as you asked; garageIntrudes' only caller is the interior-host choice, interiors.cpp:171):
+- Interior hosts, all 29: identical before and after. Same buildings, same origins. Bodega La Luna stays at building 29653. Grove Pantry and Key Coral Villa are unchanged.
+- worldcheck on these files: passed, 0 overlapping building pairs; 0 colliders and 0 props in drivable lanes.
+- In game: nt_dev15b.exe (batch 11 + this file) built clean. I stopped its regression as you asked. Batch 13's story regression will run on a build that includes 11b.
+- Stick-up encounter: its spot can't move, because Bodega La Luna's host is unchanged (29653).
+- MinGW on the private tree: 0 errors, 0 warnings.
+- MSVC-safety scan: clang++ -std=c++17 -fsyntax-only -Wvla -Wgnu -Wpedantic over the whole world code (worldcheck's unity of src/world): 0 diagnostics. No GCC builtins, VLAs, __attribute__, statement expressions, typeof, case ranges or M_PI in the change.

@@ -1,0 +1,9 @@
+Embedded 35 shader files.
+In file included from src/audio/audio_all.cpp:9,
+                 from src/main.cpp:53:
+src/audio/music.cpp: In member function 'void Audio::detail::music::Comp::note(int, int, float, float, int, int, u8, float)':
+src/audio/music.cpp:2179: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
+ 2179 |         if (s < 0) s = 0;
+      | 
+src/audio/music.cpp:2179: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
+-rwxr-xr-x 1 root root 10102784 Sep 30 17:13 bin/nt_char3.exe

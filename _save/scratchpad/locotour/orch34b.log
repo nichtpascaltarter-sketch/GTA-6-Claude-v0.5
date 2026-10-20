@@ -1,0 +1,9 @@
+start 03:41:52
+have st17p
+have st16ap
+run st17s 03:51:22 memfree 11120
+run st17s exit 0
+done st17s 04:51:40
+run st16as 04:51:40 memfree 4819
+run st16as exit 137
+incomplete st16as 05:07:50

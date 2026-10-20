@@ -1,0 +1,35 @@
+city snapshot-safe: batch 17, the beacon-sync world side: aviation lights blink with their red lamps. 7 files on top of HEAD 1a83e24 (each is the same at HEAD as at b71d339, where I made the change), copied into the shared tree over HEAD's copies. worldtypes.h is already in: you put 63a9e6e3 (on 21d26d2) in with the night agent's half. Blobs written with git hash-object -w. MinGW syntax check in the shared tree: 0 errors, 0 warnings, with the other agents' current edits in place (/tmp/city/syntax_shared_b18.log).
+
+FILES
+- src/world/worldtypes.h 63a9e6e3f61166ae61a4c7e5a69e3402a5be6554 (HEAD 21d26d2), already in the shared tree
+- src/world/sitegeo.cpp cd6ce52ae5ac71e5ef9e13c0738c09d364e50862 (HEAD 2afd2c8)
+- src/world/landmarks.cpp 8a4afa65b42873aa73d7ec46d72b4523686cc361 (HEAD cb2b991)
+- src/world/leisure.cpp 4dbe20317122ffb96ef868987d57b3a7a811b187 (HEAD 8a227dd)
+- src/world/airport.cpp 2666684d4236f0a74d3af41220da16928bf6c14c (HEAD 1a1015d)
+- src/world/port.cpp 448b93b2d0396347b844081f4de908d3f68ca54b (HEAD 2a32ccc)
+- src/world/rural.cpp 832aa0d89975db6884d907be42204d3d7cb059c0 (HEAD 630c3da)
+- src/world/buildmesh.cpp 610a2aa4a50aec373c86de24f721c7fc20b81093 (HEAD 46cfe87)
+
+WHAT
+Every type-4 light now carries its lamp's blink phase in LightInstance::phase (1/256 of a period). With the night agent's world_render.cpp case 4, the light and the lamp's emissive switch on and off together.
+- sitegeo.cpp: new beaconLight(g, p, colour, radius, phase), a type-4 light with that phase.
+- landmarks.cpp: Solaris One's spire lamps (each level had its own phase, k*30) now all use phase 90, with the tip and the four corners, so the tower flashes as one, as real towers do. The corner lamps keep their size (0.6 m). City Hall's spire beacon: phase 5, its lamp's.
+- leisure.cpp: the Ferris wheel, (seed >> 3) & 255, its lamp's; the drop tower, 3.
+- airport.cpp: the control tower's antenna, 17.
+- port.cpp: each STS crane's boom tip and apex lamps now share one phase (seed & 255), and the light takes it.
+- rural.cpp: the radio mast's levels and the sugar mill's three stacks move from the slow blink (pattern 7) to pattern 1, phases 40 and 60, as you chose ("don't keep the slow ones"). Each structure flashes as one.
+- buildmesh.cpp: the antenna beacon's light gets phase 0 explicitly; its lamp is pattern 1, phase 0.
+
+CHANGELOG (player-facing): Aviation warning lights on towers, cranes, masts, the Ferris wheel and the drop tower now flash in step with their red lamps, and each tower's lights flash together. The radio mast and the sugar mill stacks flash at the same rate as every other aviation light instead of a slow blink.
+
+TESTS
+- worldcheck on dev28 (b71d339 + these 8 files), FP_BEACONS: 154 aviation lights. 97 have a pattern-1 lamp within 1.6 m, and all 97 share its phase: 0 out of step, 0 on another pattern. 57 have no lamp: buildmesh's crown lights, unchanged at phase 0. 0 overlapping building pairs; passed.
+- MSVC-safety scan (clang over src/world): 0 diagnostics. MinGW on dev28: 0 errors, 0 warnings.
+- Story regression on nt_dev27: these files, plus batch 16 (landed since) and my held work (the bag variant, the larger corners, the four MAT_PLASTIC sites). 27/27 passed. Buildings, restyles, story places and the 29 interior hosts are identical to the earlier baseline.
+- Tours 2-5, nt_dev27 against nt_dev24 (HEAD 0d67933): draws mean/max before -> after: downtown_afternoon 683/755 -> 684/755, solaris_plaza 566/577 -> 567/577, midtown_park 388/455 -> 383/450, beach_condos 688/729 -> 584/605. Stops 2 and 3 have the same peds and vehicles. At stop 5 the two runs went different ways: a fender bender and a hug in the after run, a ped asking the way in the before run. That is the same run-history split as on 13 Oct (583 vs ~711), which matched when run alone. No segfaults or kills. Stop 5 alone on both builds is queued behind your memory hold (PID 14554 or 22:30 UTC), and I'll send its numbers.
+
+NOT IN THIS SIGN-OFF (held, as you said): the second bag-pile variant, the larger Solaris One corner beacons, the four MAT_PLASTIC sites (batch 19) and the props_render.cpp line, which nothing needs now. They stay in my private trees (dev26, dev27) and aren't in the shared tree.
+
+EVIDENCE: worldcheck /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/wc/dev28.txt; checks /tmp/city/cq30.status; regression /tmp/city/reg_dev27_log.txt; tours /tmp/city/tour_dev27_log.txt and /tmp/city/tour_dev24_log.txt.
+
+MEMORY (your hold): no game or compile of mine is running. I stopped my queued chain before it started anything. Its replacement (/tmp/city/jobs35.sh) holds until PID 14554 is gone or 22:30 UTC, then runs one -O1 prototype compile and the two stop-5 games, one at a time behind the gates.

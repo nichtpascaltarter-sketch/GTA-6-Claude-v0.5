@@ -1,0 +1,7 @@
+In file included from src/main.cpp:70:
+src/game/app.cpp: In member function 'void Game::App::benchWriteReport()':
+src/game/app.cpp:6218: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
+ 6218 |         for (const std::string& l : benchLines) r += l + "\n";
+      | 
+src/game/app.cpp:6218: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
+-rwxr-xr-x 1 root root 13311488 Oct 19 13:41 bin/nt_ai101.exe

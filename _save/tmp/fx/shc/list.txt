@@ -1,0 +1,120 @@
+clouds.hlsl csCloudReconstruct cs_5_0
+clouds.hlsl csCloudShadow cs_5_0
+clouds.hlsl csCloudTrace cs_5_0
+clouds.hlsl csDetailNoise cs_5_0
+clouds.hlsl csShapeNoise cs_5_0
+clouds.hlsl csWeather cs_5_0
+decals.hlsl csGenDecals cs_5_0
+envprobe.hlsl csCubeDown cs_5_0
+envprobe.hlsl csPrefilter cs_5_0
+envprobe.hlsl csProbeSH cs_5_0
+fog.hlsl csFogInject cs_5_0
+fog.hlsl csFogIntegrate cs_5_0
+fog.hlsl csFogNoise cs_5_0
+foliage.hlsl csFoliage cs_5_0
+grass.hlsl csGrassPlace cs_5_0
+gtao.hlsl csGTAO cs_5_0
+gtao.hlsl csGTAOBlur cs_5_0
+gtao.hlsl csGTAOTemporal cs_5_0
+hiz.hlsl csColorDown cs_5_0
+hiz.hlsl csHiZDown cs_5_0
+hiz.hlsl csHiZFirst cs_5_0
+lighting.hlsl csLighting cs_5_0
+matgen.hlsl csGenerate cs_5_0
+motionblur.hlsl csMotionBlur cs_5_0
+motionblur.hlsl csNeighborMax cs_5_0
+motionblur.hlsl csTileMax cs_5_0
+particles.hlsl csEmit cs_5_0
+particles.hlsl csGenAtlas cs_5_0
+particles.hlsl csKeys cs_5_0
+particles.hlsl csSimulate cs_5_0
+particles.hlsl csSortGlobal cs_5_0
+particles.hlsl csSortLocal cs_5_0
+particles.hlsl csSortMerge cs_5_0
+post.hlsl csBloomDown cs_5_0
+post.hlsl csBloomUp cs_5_0
+post.hlsl csExposure cs_5_0
+post.hlsl csLumHist cs_5_0
+post.hlsl csSunShafts cs_5_0
+rain.hlsl csOverheadHeight cs_5_0
+sky.hlsl csAerialPerspective cs_5_0
+sky.hlsl csMultiScatter cs_5_0
+sky.hlsl csSkySH cs_5_0
+sky.hlsl csSkyView cs_5_0
+sky.hlsl csTransmittance cs_5_0
+ssr.hlsl csSSRResolve cs_5_0
+ssr.hlsl csSSRTrace cs_5_0
+taa.hlsl csTAA cs_5_0
+water.hlsl csWaveNormals cs_5_0
+decals.hlsl psDecal ps_5_0
+decals.hlsl psSkid ps_5_0
+dynamic.hlsl psDynamic ps_5_0
+dynamic.hlsl psGlass ps_5_0
+dynamic.hlsl psHairCard ps_5_0
+dynamic.hlsl psHairCardShadow ps_5_0
+envprobe.hlsl psProbeLight ps_5_0
+grass.hlsl psGrass ps_5_0
+overhead.hlsl psOverhead ps_5_0
+particles.hlsl psParticle ps_5_0
+post.hlsl psTonemap ps_5_0
+props.hlsl psProp ps_5_0
+props.hlsl psPropShadow ps_5_0
+rain.hlsl psBolt ps_5_0
+rain.hlsl psRain ps_5_0
+rain.hlsl psSplash ps_5_0
+terrain.hlsl psTerrain ps_5_0
+ui.hlsl psUI ps_5_0
+ui.hlsl psUIBlur ps_5_0
+ui.hlsl psUIDown ps_5_0
+water.hlsl psWake ps_5_0
+water.hlsl psWater ps_5_0
+world.hlsl psWorld ps_5_0
+decals.hlsl vsDecal vs_5_0
+decals.hlsl vsSkid vs_5_0
+dynamic.hlsl vsRigid vs_5_0
+dynamic.hlsl vsRigidShadow vs_5_0
+dynamic.hlsl vsSkinned vs_5_0
+dynamic.hlsl vsSkinnedShadow vs_5_0
+dynamic.hlsl vsSkinnedShadowCard vs_5_0
+grass.hlsl vsGrass vs_5_0
+overhead.hlsl vsOverhead vs_5_0
+particles.hlsl vsParticle vs_5_0
+post.hlsl vsFullscreen vs_5_0
+props.hlsl vsProp vs_5_0
+props.hlsl vsPropShadow vs_5_0
+rain.hlsl vsBolt vs_5_0
+rain.hlsl vsRain vs_5_0
+rain.hlsl vsSplash vs_5_0
+terrain.hlsl vsTerrain vs_5_0
+terrain.hlsl vsTerrainShadow vs_5_0
+ui.hlsl vsUI vs_5_0
+ui.hlsl vsUIFull vs_5_0
+water.hlsl vsWake vs_5_0
+water.hlsl vsWater vs_5_0
+world.hlsl vsWorld vs_5_0
+world.hlsl vsWorldShadow vs_5_0
+matgen.hlsl csGenerate cs_5_0 GEN=0
+matgen.hlsl csGenerate cs_5_0 GEN=1
+matgen.hlsl csGenerate cs_5_0 GEN=2
+matgen.hlsl csGenerate cs_5_0 GEN=6
+matgen.hlsl csGenerate cs_5_0 GEN=7
+matgen.hlsl csGenerate cs_5_0 GEN=8
+matgen.hlsl csGenerate cs_5_0 GEN=9
+matgen.hlsl csGenerate cs_5_0 GEN=10
+matgen.hlsl csGenerate cs_5_0 GEN=11
+matgen.hlsl csGenerate cs_5_0 GEN=12
+matgen.hlsl csGenerate cs_5_0 GEN=13
+matgen.hlsl csGenerate cs_5_0 GEN=14
+matgen.hlsl csGenerate cs_5_0 GEN=15
+matgen.hlsl csGenerate cs_5_0 GEN=16
+matgen.hlsl csGenerate cs_5_0 GEN=17
+matgen.hlsl csGenerate cs_5_0 GEN=18
+matgen.hlsl csGenerate cs_5_0 GEN=19
+matgen.hlsl csGenerate cs_5_0 GEN=20
+matgen.hlsl csGenerate cs_5_0 GEN=21
+matgen.hlsl csGenerate cs_5_0 GEN=22
+matgen.hlsl csGenerate cs_5_0 GEN=23
+matgen.hlsl csGenerate cs_5_0 GEN=24
+matgen.hlsl csGenerate cs_5_0 GEN=25
+matgen.hlsl csGenerate cs_5_0 GEN=26
+matgen.hlsl csGenerate cs_5_0 GEN=27

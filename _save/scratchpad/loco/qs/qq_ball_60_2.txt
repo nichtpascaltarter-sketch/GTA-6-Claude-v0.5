@@ -1,0 +1,14 @@
+QS run 9 up t3.567 foot 1 u 0.00 h  17.0 b   0.0 t   0.0 g -0.17 0.00 0.00 fz 0.000 gIn 0.000 yh 4.160 yt 4.399 yFrom 4.160 yTo 4.379 lift 0.059 pz 1.530 | n 2 dz 0.021 o pl1 hold0 st-1.00
+QS run 9 up t3.583 foot 1 u 0.07 h  18.3 b   1.3 t   1.3 g -0.17 0.00 0.00 fz 0.000 gIn 0.000 yh 4.165 yt 4.405 yFrom 4.160 yTo 4.499 lift 0.059 pz 1.530 | n 1 dz 0.000 o pl1 hold0 st-1.00
+QS run 9 up t3.600 foot 1 u 0.15 h  26.7 b   9.7 t   9.7 g -0.17 0.00 0.00 fz 0.070 gIn 0.170 yh 4.180 yt 4.420 yFrom 4.160 yTo 4.502 lift 0.059 pz 1.530 | n 1 dz 0.000 o pl0 hold1 st-1.00
+QS run 9 up t3.617 foot 1 u 0.22 h  31.0 b  14.0 t  14.0 g -0.17 0.00 0.00 fz 0.102 gIn 0.170 yh 4.203 yt 4.443 yFrom 4.160 yTo 4.505 lift 0.059 pz 1.530 | n 0 dz 0.016 o pl0 hold0 st-1.00
+QS run 9 up t3.633 foot 1 u 0.29 h  33.8 b  16.8 t  16.8 g -0.17 0.00 0.00 fz 0.121 gIn 0.170 yh 4.232 yt 4.473 yFrom 4.160 yTo 4.507 lift 0.059 pz 1.530 | n 0 dz 0.016 o pl0 hold0 st-1.00
+QS run 9 up t3.650 foot 1 u 0.37 h  35.6 b  18.6 t  18.6 g -0.17 0.00 0.00 fz 0.132 gIn 0.170 yh 4.267 yt 4.508 yFrom 4.160 yTo 4.509 lift 0.059 pz 1.530 | n 0 dz 0.016 o pl0 hold0 st-1.00
+QS run 9 up t3.667 foot 1 u 0.44 h  36.6 b  19.6 t  19.6 g -0.17 0.00 0.00 fz 0.138 gIn 0.170 yh 4.304 yt 4.547 yFrom 4.160 yTo 4.511 lift 0.059 pz 1.530 | n 0 dz 0.016 o pl0 hold0 st-1.00
+QS run 9 up t3.683 foot 1 u 0.51 h  20.1 b  20.1 t  20.1 g 0.00 0.00 0.00 fz 0.142 gIn 0.170 yh 4.343 yt 4.587 yFrom 4.160 yTo 4.512 lift 0.059 pz 1.530 | n 0 dz 0.016 o pl0 hold0 st-1.00
+QS run 9 up t3.700 foot 1 u 0.59 h  20.1 b  20.1 t   3.1 g 0.00 0.00 0.17 fz 0.144 gIn 0.170 yh 4.382 yt 4.627 yFrom 4.160 yTo 4.513 lift 0.059 pz 1.530 | n 0 dz 0.016 o pl0 hold0 st-1.00
+QS run 9 up t3.717 foot 1 u 0.66 h  19.7 b  19.7 t   2.7 g 0.00 0.00 0.17 fz 0.146 gIn 0.170 yh 4.419 yt 4.666 yFrom 4.160 yTo 4.514 lift 0.059 pz 1.530 | n 0 dz 0.016 o pl0 hold0 st-1.00
+QS run 9 up t3.733 foot 1 u 0.73 h  19.0 b   2.0 t   2.0 g 0.00 0.17 0.17 fz 0.146 gIn 0.170 yh 4.453 yt 4.701 yFrom 4.160 yTo 4.515 lift 0.059 pz 1.530 | n 0 dz 0.016 o pl0 hold0 st-1.00
+QS run 9 up t3.750 foot 1 u 0.81 h  24.5 b   7.5 t   7.5 g -0.11 0.06 0.06 fz 0.101 gIn 0.060 yh 4.480 yt 4.729 yFrom 4.160 yTo 4.515 lift 0.059 pz 1.640 | n 0 dz 0.016 o pl0 hold0 st-1.00
+QS run 9 up t3.767 foot 1 u 0.88 h  23.0 b   6.0 t   6.0 g -0.15 0.02 0.02 fz 0.059 gIn 0.021 yh 4.501 yt 4.750 yFrom 4.160 yTo 4.515 lift 0.059 pz 1.679 | n 0 dz 0.016 o pl0 hold0 st-1.00
+QS run 9 up t3.783 foot 1 u 0.95 h  20.4 b   3.4 t   3.4 g -0.17 0.00 0.00 fz 0.025 gIn 0.000 yh 4.513 yt 4.762 yFrom 4.160 yTo 4.515 lift 0.059 pz 1.700 | n 0 dz 0.016 o pl0 hold0 st-1.00

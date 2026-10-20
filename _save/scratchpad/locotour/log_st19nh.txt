@@ -1,0 +1,475 @@
+[   0.001] Neon Tide starting (version 0.02.7-dev). Data dir: C:\users\root\AppData\Local\NeonTide\
+[   0.416] DXGI is Wine's builtin implementation: presenting with sync interval 0 (no vsync)
+[   0.729] Direct3D 12 device created: adapter 'NVIDIA GeForce GTX 470', VRAM 16093 MB, feature level 11_1, resource binding tier 3, resource heap tier 2, typed UAV loads yes, tearing yes, bindless UAV arrays yes, 2 frames in flight
+[   0.736] UI font 'Segoe UI Semibold' -> 'Liberation Sans'
+[   0.779] UI font 'Bahnschrift SemiBold Condensed' -> 'Liberation Sans'
+[   0.820] UI font 'Impact' -> 'Liberation Sans'
+[   0.867] Font atlas built in 0.13 s
+[   0.891] Audio: no output device - audio disabled
+[   0.891] Audio: no output device, continuing silently
+[   0.891] Updater: no update check (automated run)
+[   1.377] UI icon atlas: 92 icons + 13 weapons in 464 ms
+[   7.034] Places: Ocean Promenade hotel row, 11 hotels at x 5365 (ground 2.4), park 681..1050
+[   7.034] Places: Porto Sol University at (1950, 3700), ground 3.3, 13 halls
+[   7.034] Places: Santa Marea Cemetery at (1600, -750), ground 3.5, 67 mourners
+[   7.034] Places: Palmera State Penitentiary at (350, 9075), ground 6.9
+[   7.035] Places: Palmera Speedway at (400, 5790), ground 6.8
+[   7.035] Places: layout 0.001 s, 5 places, 624 anchors
+[   7.036] Transit: SkyLine loop 8.60 km, 8 stations, 4299 samples; 3 ferry piers
+[   7.046] Sites: 111 pads, 613 elements, 25 roads, 53 buildings requested (0.02 s)
+[   7.434] World map generated in 6.54 s
+[   7.766] Road gen: 18 interchanges, 50 ramps (22 left out where they could not come down in time)
+[   7.923] Road gen: 1 arterial ends at a lone on/off ramp given a turnaround
+[   9.268] Road gen: junction plateaus, 489 profile points levelled (largest change 0.70 m, 6 short links ramped plateau to plateau)
+[   9.987] Road network: 6223 nodes, 9547 edges, 1690 signalized; hwy 61.7 km, streets 1165.8 km (2.55 s)
+[  11.941] Transit: 0 buildings cleared from the SkyLine corridor
+[  11.949] Places: Okahatchee Union Church at (-48, 6872) on edge 4965, 6 buildings made way, 186 graves, 19 mourners
+[  11.964] Places: Old Fort Church at (4501, 7893) on edge 4035, 4 buildings made way, 166 graves, 18 mourners
+[  11.966] Places: Tidewater General Hospital (city) at (1698, 1100) on edge 6868, 7 buildings made way
+[  11.974] Places: Midtown General (city) at (3698, 3195) on edge 9083, 15 buildings made way
+[  12.049] Places: Westbrook Hospital (community) at (-2399, 1647) on edge 5533, 4 buildings made way
+[  12.072] Places: Sol Beach Clinic (clinic) at (5172, -904) on edge 3026, 3 buildings made way
+[  12.075] Places: Harlow County Hospital (community) at (-4886, 5241) on edge 5324, 4 buildings made way
+[  12.080] Places: Okahatchee Medical (community) at (-54, 6622) on edge 4961, 7 buildings made way
+[  12.110] Places: Redland Health (clinic) at (-315, -5222) on edge 2100, 0 buildings made way
+[  12.131] Places: Fort Castell Hospital (community) at (4572, 8021) on edge 4096, 3 buildings made way
+[  12.134] Places: after the lots 0.192 s
+[  12.136] Buildings: 35617 (towers 352, midrise 2411, condo 427, deco 688, shops 4600, strip 640, houses 22192, villas 901, warehouses 1620) in 2.12 s
+[  12.139] Sites: 69 highway billboards
+[  12.140] Sites: 155 silos, 50 windmills
+[  12.142] Sites: 245 beach access paths
+[  12.176] Transit: 3 ferry piers, 1 routes, 4.24 km of water path (0.01 s)
+[  12.177] Transit: ferry pier Sol Beach  base (4836, -1250) length 90 deck 2.3 berth (4741, -1250)
+[  12.177] Transit: ferry pier Port Isle  base (4280, -1044) length 26 deck 2.3 berth (4280, -1075)
+[  12.177] Transit: ferry pier Key Coral  base (4350, -2973) length 58 deck 2.3 berth (4350, -2910)
+[  12.187] Transit: 4 bus routes, 64 stops (48 new shelters) (0.01 s); rejects class 1107 cut 1945 deck 72 road 119 avoid 0 pad 2 furn 283 stop 0
+[  12.187] Transit: bus 3   Airport      8.2 km, 17 stops, 4 buses, headway 6.3 min
+[  12.187] Transit: bus 7   Calle Luna   6.4 km, 15 stops, 3 buses, headway 6.7 min
+[  12.187] Transit: bus 9   Sol Beach    7.1 km, 14 stops, 4 buses, headway 5.4 min
+[  12.187] Transit: bus 12  Bayshore     8.3 km, 20 stops, 4 buses, headway 6.6 min
+[  12.195] Transit: Sol Beach Streetcar 6.24 km, 16 stops, 65 junctions (32 signalled, 30 stop signs), 229 poles, 4 streetcars, headway 4.9 min (0.01 s)
+[  12.195] Transit: streetcar stop Collins-Solano Ave & 46th St s    136 shelter (5191.0, 1496.1, 1.8) travel (-0.00, -1.00)
+[  12.195] Transit: streetcar stop 42nd St              s    511 shelter (5231.0, 1126.8, 1.7) travel (-0.00, -1.00)
+[  12.195] Transit: streetcar stop 38th St              s    892 shelter (5239.0, 746.9, 1.7) travel (-0.00, -1.00)
+[  12.195] Transit: streetcar stop 34th St              s   1277 shelter (5207.0, 367.8, 1.8) travel (0.00, -1.00)
+[  12.195] Transit: streetcar stop 30th St              s   1691 shelter (5239.0, -39.2, 1.9) travel (-0.00, -1.00)
+[  12.195] Transit: streetcar stop 26th St              s   2053 shelter (5231.1, -397.7, 1.8) travel (-0.30, -0.95)
+[  12.195] Transit: streetcar stop 22nd St              s   2427 shelter (5215.0, -773.2, 1.8) travel (-0.00, -1.00)
+[  12.195] Transit: streetcar stop 18th St              s   2811 shelter (5190.5, -1149.6, 1.9) travel (-0.30, -0.95)
+[  12.195] Transit: streetcar stop Ferry Terminal       s   3165 shelter (4941.9, -1174.6, 2.7) travel (0.30, 0.95)
+[  12.195] Transit: streetcar stop 21st St              s   3527 shelter (4973.4, -815.2, 2.9) travel (0.00, 1.00)
+[  12.195] Transit: streetcar stop 25th St              s   3920 shelter (4981.5, -425.5, 2.5) travel (0.30, 0.95)
+[  12.195] Transit: streetcar stop 29th St              s   4291 shelter (4997.4, -55.2, 2.0) travel (0.00, 1.00)
+[  12.196] Transit: streetcar stop 33rd St              s   4688 shelter (4965.4, 336.8, 2.5) travel (-0.00, 1.00)
+[  12.196] Transit: streetcar stop 37th St              s   5071 shelter (4997.4, 712.8, 2.7) travel (0.00, 1.00)
+[  12.196] Transit: streetcar stop 41st St              s   5443 shelter (4994.0, 1086.6, 1.9) travel (-0.30, 0.95)
+[  12.196] Transit: streetcar stop Bay Road & 46th St   s   5926 shelter (4938.0, 1561.6, 3.0) travel (-0.30, 0.95)
+[  12.196] Transit: SkyLine profile 12.9..25.4 m above the street, 274 piers (0 straddle bents) (0.05 s)
+[  12.196] Transit: station Calle Luna       s    691 at (1850, -629) rail 16.5 street 3.1 exits -1/+1
+[  12.196] Transit: station Solaris          s   1891 at (3050, -629) rail 15.0 street 1.5 exits -1/+1
+[  12.196] Transit: station Civic Center     s   3068 at (3275, 400) rail 14.9 street 1.5 exits -1/+1
+[  12.196] Transit: station Midtown          s   3868 at (3275, 1200) rail 15.0 street 1.6 exits -1/+1
+[  12.196] Transit: station Canvas District  s   4644 at (2750, 1529) rail 16.4 street 2.2 exits -1/+1
+[  12.196] Transit: station Palmetto Flats   s   5744 at (1650, 1529) rail 17.0 street 3.5 exits -1/+1
+[  12.196] Transit: station Airport          s   6567 at (979, 1300) rail 17.7 street 4.3 exits -1/+1
+[  12.196] Transit: station Westbrook        s   8067 at (979, -200) rail 17.8 street 4.4 exits -1/+1
+[  12.201] Site runway 09L|27R  from (-1180, 2080) to (820, 2080) z 4.6 width 60
+[  12.201] Site runway 09R|27L  from (-1100, 780) to (700, 780) z 4.6 width 45
+[  12.201] Site terminal             at (628, 1440, 4.6)
+[  12.201] Site control tower        at (730, 1832, 4.6)
+[  12.201] Site container ship       at (4625, -800, 0.0)
+[  12.201] Site container ship       at (4616, -330, 0.0)
+[  12.202] Site port gate            at (4008, -160, 3.0)
+[  12.202] Site Key Coral marina     at (4039, -4035, 0.0)
+[  12.202] Site beach club           at (4873, -3866, 1.2)
+[  12.202] Site beach club           at (4808, -4183, 2.2)
+[  12.202] Site Solaris One          at (3350, -750, 1.4)
+[  12.202] Site stadium              at (3565, 445, 1.6)
+[  12.202] Site City Hall            at (3000, 372, 2.0)
+[  12.202] Site Canvas Park          at (3100, 1800, 1.7)
+[  12.202] Site Sol Beach Pier from (5414, 1250) to (5840, 1250) deck z 5.6
+[  12.202] Site Ferris wheel         at (5504, 1270, 5.6)
+[  12.202] Site lighthouse           at (-2206, -8000, 0.5)
+[  12.202] Site radio mast           at (-6744, 7248, 166.1)
+[  12.202] Site sugar mill           at (1430, 7500, 8.1)
+[  12.202] Site Rio Sol marina       at (2280, 188, 0.0)
+[  12.202] Site Okahatchee boat ramp at (-515, 6822, 7.7)
+[  12.202] Site Sawgrass tower       at (-4873, 420, 0.6)
+[  12.202] Sites finalized: 1486 elements (0.07 s)
+[  12.212] Interiors: 29 planned (convenience 7, gun shops 2) in 9.7 ms
+[  12.212]   interior 'Mari's Apartment' kind 0 building 28142 at (1771.22, 359.23, 3.77) ax (1.0000, 0.0000) x -6.55..2.18 depth 11.50 ceil 3.84: 3 rooms, 3 openings, 3 doors, 3 portals, 0 npc points
+[  12.212]   interior 'Mama Lucha's' kind 2 building 26747 at (1351.86, 340.76, 4.29) ax (-1.0000, -0.0000) x -8.43..8.43 depth 16.00 ceil 4.20: 4 rooms, 5 openings, 4 doors, 5 portals, 34 npc points
+[  12.212]   interior 'Rook's Garage' kind 3 building 27288 at (1562.94, 2361.63, 4.30) ax (1.0000, 0.0000) x -9.74..9.74 depth 20.00 ceil 7.11: 3 rooms, 5 openings, 4 doors, 5 portals, 5 npc points
+[  12.212]   interior 'Dex's Trailer' kind 1 building 25527 at (1106.75, 2666.39, 4.87) ax (1.0000, 0.0000) x -17.46..17.46 depth 16.71 ceil 2.25: 3 rooms, 7 openings, 3 doors, 7 portals, 0 npc points
+[  12.212]   interior 'Police Headquarters' kind 5 building 32504 at (3167.89, -240.34, 1.86) ax (1.0000, 0.0000) x -11.84..11.84 depth 16.00 ceil 5.59: 2 rooms, 8 openings, 2 doors, 8 portals, 14 npc points
+[  12.212]   interior 'Tidewater General Hospital' kind 6 building 35599 at (1692.75, 1073.40, 3.63) ax (1.0000, 0.0000) x -9.55..9.55 depth 16.00 ceil 4.20: 2 rooms, 7 openings, 2 doors, 7 portals, 12 npc points
+[  12.212]   interior 'Palmetto Arms' kind 7 building 25538 at (988.27, 2896.06, 4.79) ax (0.0000, 1.0000) x 0.00..9.20 depth 14.00 ceil 4.20: 2 rooms, 1 openings, 2 doors, 1 portals, 3 npc points
+[  12.212]   interior 'Northside Arms' kind 7 building 32997 at (3284.62, 4017.67, 2.09) ax (0.0000, 1.0000) x -6.33..6.33 depth 14.00 ceil 4.03: 2 rooms, 4 openings, 2 doors, 4 portals, 3 npc points
+[  12.212]   interior 'Threads' kind 9 building 19677 at (5141.16, -280.63, 1.88) ax (-1.0000, 0.0000) x -5.68..8.51 depth 15.00 ceil 3.91: 2 rooms, 6 openings, 2 doors, 6 portals, 4 npc points
+[  12.212]   interior 'Port Isle Warehouse' kind 12 building 35552 at (4034.00, -820.00, 3.15) ax (-0.0000, 1.0000) x -23.22..23.22 depth 38.00 ceil 8.93: 2 rooms, 10 openings, 4 doors, 10 portals, 4 npc points
+[  12.212]   interior 'TideStop Mart' kind 8 building 26846 at (1475.59, -259.27, 4.22) ax (-1.0000, -0.0000) x -6.05..6.05 depth 17.00 ceil 4.20: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+[  12.212]   interior 'Bodega La Luna' kind 8 building 29653 at (2255.23, 540.74, 2.91) ax (-1.0000, -0.0000) x -5.95..5.95 depth 17.00 ceil 3.98: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+[  12.212]   interior 'Canvas Corner Market' kind 8 building 32545 at (3090.56, 1476.66, 2.21) ax (0.0000, 1.0000) x -7.40..7.40 depth 17.00 ceil 3.92: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+[  12.212]   interior 'Sunrise Food Mart' kind 8 building 19719 at (5227.62, 641.71, 1.78) ax (0.0000, 1.0000) x -7.96..7.96 depth 17.00 ceil 3.43: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+[  12.212]   interior 'Northside Quick Stop' kind 8 building 29914 at (2304.43, 3761.63, 3.12) ax (1.0000, 0.0000) x -6.89..6.89 depth 17.00 ceil 4.12: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+[  12.212]   interior 'Flats Food & Fuel' kind 8 building 24842 at (467.58, 3361.67, 5.21) ax (1.0000, 0.0000) x -10.79..3.60 depth 17.00 ceil 4.20: 2 rooms, 1 openings, 2 doors, 1 portals, 5 npc points
+[  12.212]   interior 'Grove Pantry' kind 8 building 1182 at (2175.54, -3113.27, 2.23) ax (0.0207, -0.9998) x -6.96..6.96 depth 17.00 ceil 2.80: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+[  12.212]   interior 'Palm Motors' kind 17 building 31294 at (2686.87, 1279.16, 2.69) ax (0.0000, 1.0000) x -9.08..12.11 depth 20.00 ceil 3.90: 2 rooms, 8 openings, 3 doors, 8 portals, 5 npc points
+[  12.212]   interior 'Tide Customs Calle Luna' kind 18 building 29601 at (2278.47, -140.75, 2.99) ax (1.0000, 0.0000) x -7.61..7.61 depth 18.00 ceil 4.17: 1 rooms, 6 openings, 2 doors, 6 portals, 3 npc points
+[  12.212]   interior 'Tide Customs Sol Beach' kind 18 building 19788 at (5127.28, 1999.35, 1.92) ax (-1.0000, 0.0000) x -8.01..8.01 depth 18.00 ceil 3.72: 1 rooms, 6 openings, 2 doors, 6 portals, 3 npc points
+[  12.212]   interior 'Sunwash Car Wash' kind 19 building 29044 at (1988.34, 1491.32, 3.44) ax (0.0000, 1.0000) x -7.41..7.41 depth 20.00 ceil 8.08: 1 rooms, 5 openings, 3 doors, 5 portals, 2 npc points
+[  12.212]   interior 'Key Coral Villa' kind 0 building 23718 at (4516.12, -4203.72, 1.64) ax (0.9992, 0.0401) x -7.21..7.21 depth 12.00 ceil 2.80: 3 rooms, 5 openings, 3 doors, 5 portals, 0 npc points
+[  12.212]   interior 'Sol Beach Condo Lobby' kind 20 building 19771 at (5114.61, 1619.32, 1.86) ax (-1.0000, 0.0000) x -5.88..5.88 depth 10.00 ceil 4.20: 2 rooms, 4 openings, 2 doors, 4 portals, 2 npc points
+[  12.212]   interior 'Sol Beach Condo' kind 21 building 19771 at (5114.61, 1619.32, 31.52) ax (-1.0000, 0.0000) x -9.80..5.88 depth 12.00 ceil 2.61: 6 rooms, 4 openings, 5 doors, 4 portals, 0 npc points
+[  12.213]   interior 'Downtown Penthouse Lobby' kind 20 building 33543 at (3511.22, -715.16, 1.71) ax (-0.0000, -1.0000) x -5.25..5.25 depth 10.00 ceil 4.20: 2 rooms, 3 openings, 2 doors, 3 portals, 2 npc points
+[  12.213]   interior 'Downtown Penthouse' kind 21 building 33543 at (3511.22, -715.16, 52.15) ax (-0.0000, -1.0000) x -10.49..10.49 depth 14.00 ceil 2.80: 6 rooms, 4 openings, 5 doors, 4 portals, 0 npc points
+[  12.213]   interior 'Club Riptide' kind 4 building -1 at (5424.10, 900.00, 1.36) ax (0.0000, -1.0000) x -55.00..17.00 depth 32.00 ceil 4.00: 4 rooms, 0 openings, 0 doors, 0 portals, 32 npc points
+[  12.213]   interior 'Solaris One' kind 10 building -1 at (3350.00, -786.00, 1.89) ax (1.0000, -0.0000) x -18.40..18.40 depth 31.00 ceil 8.30: 3 rooms, 4 openings, 4 doors, 4 portals, 17 npc points
+[  12.213]   interior 'Solaris One Penthouse' kind 11 building -1 at (3365.30, -759.93, 457.34) ax (0.5442, 0.8390) x -18.24..18.24 depth 36.48 ceil 8.20: 4 rooms, 4 openings, 1 doors, 4 portals, 15 npc points
+[  12.285] Buildings: 33925 restyled by district palettes in 72.3 ms (taxpayer 1392, 1920s block 924, med revival 774, mimo shop 1036, bodega 338, arcade 118, gallery 11, walk-up 497, mimo apts 763, med apts 530, office 60s 129, modern 372, loft 80, condo slab 134, glass condo 113, mimo hotel 97, podium condo 78, ranch 5438, bungalow 2806, med house 3406, two-storey 2417, mimo house 1933, split level 2251, conch 265, modern villa 190, streamline 176, med hotel 117, mimo motel 133, sawtooth 540, ware office 551, body shop 282, med villa 307, colonial villa 135, stilt house 73, mimo motor court 161, med motel 90, keys motel 113, motor inn 90, mission strip 199, mimo strip 186, power center 255, gambrel barn 34, pole barn 43, gable barn 24, mission church 47, board church 46, brick church 25, a-frame church 43, cbs house 3237, folk victorian 363, raised keys house 63, mobile home 149)
+[  12.451] Transit: 0 buildings cleared from the SkyLine corridor
+[  12.452] Buildings: block infill 3458 back buildings (garage rows 720, sheds 1872, back houses 866, 0 in the viaduct corridor dropped, 1210 near a street left as yards), 1465 rear parking lots, 5760 yards in 166.2 ms
+[  12.594] Transit: 0 buildings cleared from the SkyLine corridor
+[  12.594] Buildings: frontage fill 4300 gaps: 1676 vacant lots, 731 street parking lots, 649 side yards, 458 service yards, 786 left bare (142.3 ms)
+[  12.669] Buildings: repetition (neighbours within 150 m with the same style, archetype, massing, roof, height band and facade pattern): 2.0% overall, 56% of buildings without a twin; by district: Downtown Porto Sol 2.8%, Solaris 3.0%, Canvas District 0.8%, North Porto Sol 1.0%, Calle Luna 1.4%, Sol Beach 1.7%, Key Coral 4.6%, The Grove 2.0%, Palmetto Flats 1.2%, Westbrook 2.5%, Redland 3.0%, Ten Palms 1.6%, Palmera Farmlands 4.9%, Okahatchee 3.5%, Harlow 2.7%, Fort Castell 1.7%, Key Solano 2.5% (74.3 ms)
+[  16.488] Material library: 57 layers at 256^2
+[  16.757] Props: 83 prototypes, 43433 verts
+[  19.068] Vehicle assets: 45 models in 1.57 s
+[  32.283] Wardrobe: 29 dedicated looks (night out 12, door staff 3, sportswear 8, cover-ups 6); roster dressed for a night out 8 men / 9 women, office 9, work 6, swim 8, sport 6
+[  32.481] Character assets: 149 characters in 13.41 s
+[  32.500] Game assets built in 15.00 s
+[  32.566] Story place near (800, -5400): no building frontage found, using the street
+[  32.567] Story places resolved in 50.1 ms (diner 1350 342, Mari's 1771 358, Rook's 1566 2360, Pulse FM 3344 662, boatyard 1650 239, river 1644 140, sawgrass dock -5016 -74)
+[  32.573] Missions registered: 57
+[  33.634] Lane graph: 180 plaza walkways and 2 zebra crossings from the sites
+[  33.635] Lane graph: 25496 lanes, 56760 connectors (1154772 pts), 40687 walk nodes, 56441 walk links, dead-end turning circles moved 22 / obstructed 0 (1.06 s)
+[  43.206] UI map: base 2560x2560 in 9545 ms, 9547 roads (43960 pts) in 8 ms, 37 labels in 17 ms
+[  43.206] hudInit done in 9570 ms
+[  43.207] Init done in 42.32 s (shaders: 0 compiled in 0.00 s)
+[  43.214] Transit: SkyLine timetable built (2.8 ms): loop 12.4 / 12.4 min, 4 trains per direction, headway 3.1 min
+[  43.214] Transit: 9 lines published to the map
+[  43.218] Transit: SkyLine car models registered as vehicle assets 45 / 46
+[  43.625] Transit: 4 route bus models (destination signs) in 407 ms
+[  43.626] Transit: 64 bus stops registered with the AI (48 lane stops added, 240 waiting spots)
+[  43.626] Transit: 15 buses on 4 routes
+[  43.626] Transit: Bay Ferry timetable: loop 13.2 min, 2 ferries, headway 6.6 min
+[  43.628] Transit: Sol Ferry model registered as vehicle asset 51
+[  43.631] Transit: streetcar modules registered as vehicle assets 52 53 54
+[  43.633] Transit: 16 streetcar stops registered (16 curb lanes kept clear)
+[  43.633] Transit: 4 streetcars on the 6.24 km loop, 16 stops, 65/65 junction movements found
+[  43.640] Stunt jumps: 0 road crests (0 candidates); ramps being placed
+[  43.642] fishing: 9 spots (lake yes, 3 Keys docks)
+[  44.523] Stunt ramps: 10 placed (0 over water) in 341 ms (25869 corridors tested); 10 unique stunt jumps
+[  44.562] Wildlife: 28 species models ready (166 k triangles in the detailed LODs)
+[  46.379] Interior 'TideStop Mart' built: 110618 triangles, 18 lights, 14 colliders, 3 door leaves in 21.2 ms
+[  46.382] Interior 'Tide Customs Calle Luna' built: 11390 triangles, 11 lights, 15 colliders, 2 door leaves in 1.2 ms
+[  52.844] locoplayer: switchback at 1855.9 -638.0 3.04, flights along 1.00 0.00 (23 boxes, 17 cm risers)
+[  52.844] locoplayer: station Calle Luna, stair top 1815.4 -638.0 17.6, foot 1848.1 -638.0 3.1, 32.7 m long
+[  52.849] locoplayer: 4 walkers on the switchback (one way at a time, a half circle round)
+[  63.480] locoplayer deep switchback up npc foot 0: h  -0.0 b   1.2 t -15.1 cm | v 0.50 | age0.17 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  63.485] locoplayer deep switchback up npc foot 0: h  -0.0 b   0.5 t -16.1 cm | v 0.50 | age0.20 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  63.488] locoplayer deep switchback up npc foot 0: h  -0.0 b   0.1 t -16.7 cm | v 0.50 | age0.23 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  63.497] locoplayer deep switchback up npc foot 0: h  -0.0 b   0.0 t -16.8 cm | v 0.50 | age0.27 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  63.498] locoplayer deep switchback up npc foot 0: h  -0.0 b   0.0 t -16.8 cm | v 0.50 | age0.30 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  63.510] locoplayer deep switchback up npc foot 0: h  -0.0 b   0.0 t -16.8 cm | v 0.50 | age0.33 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  63.519] locoplayer deep switchback up npc foot 0: h  -0.0 b   0.0 t -16.8 cm | v 0.50 | age0.37 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  63.520] locoplayer deep switchback up npc foot 0: h  -0.0 b   0.0 t -16.8 cm | v 0.50 | age0.40 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  63.523] locoplayer deep switchback up npc foot 0: h  -0.0 b   0.0 t -16.8 cm | v 0.50 | age0.43 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  63.530] locoplayer deep switchback up npc foot 0: h  -0.0 b   0.0 t -16.8 cm | v 0.50 | age0.47 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  63.533] locoplayer deep switchback up npc foot 0: h  -0.0 b   0.0 t -16.8 cm | v 0.50 | age0.50 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  63.534] locoplayer deep switchback up npc foot 0: h  -0.0 b   0.0 t -16.8 cm | v 0.50 | age0.53 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  63.539] locoplayer deep switchback up npc foot 0: h  -0.0 b   0.0 t -16.8 cm | v 0.50 | age0.57 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  63.542] locoplayer deep switchback up npc foot 0: h  -0.0 b   0.0 t -16.8 cm | v 0.50 | age0.60 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  63.544] locoplayer deep switchback up npc foot 0: h   0.0 b   0.0 t -16.8 cm | v 0.50 | age0.63 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  63.546] locoplayer deep switchback up npc foot 0: h   0.4 b   0.0 t -16.8 cm | v 0.50 | age0.67 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  63.549] locoplayer deep switchback up npc foot 0: h   1.0 b   0.0 t -16.8 cm | v 0.50 | age0.70 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  63.557] locoplayer deep switchback up npc foot 0: h   1.8 b   0.0 t -16.8 cm | v 0.50 | age0.73 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  64.864] locoplayer deep switchback up npc foot 0: h   2.8 b   0.0 t -16.8 cm | v 0.50 | age0.77 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  64.870] locoplayer deep switchback up npc foot 0: h   3.8 b   0.1 t -16.8 cm | v 0.50 | age0.80 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  64.874] locoplayer deep switchback up npc foot 0: h   4.7 b   0.1 t -16.8 cm | v 0.50 | age0.83 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  64.878] locoplayer deep switchback up npc foot 0: h   5.5 b   0.2 t -16.8 cm | v 0.50 | age0.87 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  64.881] locoplayer deep switchback up npc foot 0: h   6.0 b   0.2 t -16.8 cm | v 0.50 | age0.90 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  64.883] locoplayer deep switchback up npc foot 0: h   6.1 b   0.2 t -16.8 cm | v 0.50 | age0.93 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  64.889] locoplayer deep switchback up npc foot 0: h   6.1 b   0.4 t -16.8 cm | v 0.50 | age0.97 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  64.891] locoplayer deep switchback up npc foot 0: h   6.0 b   0.6 t -16.8 cm | v 0.50 | age1.00 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  72.440] locoplayer switchback t15 walker 0: up going s 5.5 of 12.7, z 1.53, v 0.00 | x -0.30 a 2.52, detour 0.0 s, held 0.0 s, yaw off 1 deg
+[  72.440] locoplayer switchback t15 walker 1: up going s 4.5 of 13.2, z 0.34, v 0.50 | x -0.50 a 0.31, detour 0.0 s, held 0.0 s, yaw off 0 deg
+[  72.440] locoplayer switchback t15 walker 2: up going s 2.5 of 13.7, z 0.01, v 0.50 | x -0.50 a -2.90, detour 0.0 s, held 0.0 s, yaw off 0 deg
+[  72.440] locoplayer switchback t15 walker 3: up going s 0.5 of 14.2, z 0.01, v 0.50 | x -0.50 a -6.10, detour 0.0 s, held 0.0 s, yaw off 0 deg
+[  73.595] Transit: 0.753 ms/frame avg, 1 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[  84.148] locoplayer deep switchback up npc foot 0: h -17.0 b -17.0 t -17.0 cm | v 0.24 | age0.03 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  86.770] Wildlife: 99 animals (91 birds) in 14 groups, 47 drawn in 9 draws | update 0.130 ms, render 0.217 ms
+[  88.042] locoplayer bigslide switchback up npc foot 1: 21.3 cm over 3 frames | planted 0 stepT 0.61
+[  92.048] locoplayer deep switchback up npc foot 1: h   0.0 b   0.3 t -16.3 cm | v 0.49 | age0.03 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  92.051] locoplayer deep switchback up npc foot 1: h   0.0 b   0.8 t -15.7 cm | v 0.50 | age0.07 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  92.055] locoplayer deep switchback up npc foot 1: h   0.7 b   0.0 t -16.6 cm | v 0.50 | age0.10 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  92.058] locoplayer deep switchback up npc foot 1: h   2.4 b   0.0 t -16.8 cm | v 0.50 | age0.13 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  92.062] locoplayer deep switchback up npc foot 1: h   3.5 b   0.1 t -17.0 cm | v 0.50 | age0.17 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  92.064] locoplayer deep switchback up npc foot 1: h   3.6 b   0.1 t -17.0 cm | v 0.30 | age0.20 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  92.070] locoplayer deep switchback up npc foot 1: h   3.6 b   0.1 t -17.0 cm | v 0.30 | age0.23 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  92.071] locoplayer deep switchback up npc foot 1: h   3.6 b   0.1 t -17.0 cm | v 0.30 | age0.27 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  92.078] locoplayer deep switchback up npc foot 1: h   3.6 b   0.1 t -17.0 cm | v 0.30 | age0.30 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  92.081] locoplayer deep switchback up npc foot 1: h   3.6 b   0.1 t -17.0 cm | v 0.30 | age0.33 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  92.081] locoplayer deep switchback up npc foot 1: h   0.0 b   0.0 t -16.9 cm | v 0.09 | age0.10 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  92.084] locoplayer deep switchback up npc foot 1: h   3.5 b   0.1 t -17.0 cm | v 0.30 | age0.37 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  92.084] locoplayer deep switchback up npc foot 1: h   0.1 b   0.0 t -16.9 cm | v 0.09 | age0.13 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  92.089] locoplayer deep switchback up npc foot 1: h   3.1 b   0.1 t -17.0 cm | v 0.30 | age0.40 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  92.089] locoplayer deep switchback up npc foot 1: h   0.2 b   0.0 t -16.9 cm | v 0.09 | age0.17 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  92.091] locoplayer deep switchback up npc foot 1: h   2.6 b   0.1 t -17.0 cm | v 0.29 | age0.43 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  92.091] locoplayer deep switchback up npc foot 1: h   0.4 b   0.0 t -16.9 cm | v 0.09 | age0.20 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  92.100] locoplayer deep switchback up npc foot 1: h   2.1 b   0.0 t -17.0 cm | v 0.29 | age0.47 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  92.100] locoplayer deep switchback up npc foot 1: h   0.6 b   0.0 t -16.9 cm | v 0.20 | age0.23 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  92.103] locoplayer deep switchback up npc foot 1: h   1.6 b   0.0 t -17.0 cm | v 0.29 | age0.50 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  92.103] locoplayer deep switchback up npc foot 1: h   0.8 b   0.0 t -16.9 cm | v 0.20 | age0.27 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  92.107] locoplayer deep switchback up npc foot 1: h   1.2 b   0.0 t -17.0 cm | v 0.29 | age0.53 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  92.107] locoplayer deep switchback up npc foot 1: h   1.0 b   0.0 t -16.9 cm | v 0.20 | age0.30 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  92.108] locoplayer deep switchback up npc foot 1: h   0.7 b   0.0 t -17.0 cm | v 0.28 | age0.57 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  92.110] locoplayer deep switchback up npc foot 1: h   1.0 b   0.0 t -16.9 cm | v 0.20 | age0.33 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  92.115] locoplayer deep switchback up npc foot 1: h   0.5 b   0.0 t -17.0 cm | v 0.28 | age0.60 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  92.115] locoplayer deep switchback up npc foot 1: h   1.1 b   0.1 t -16.9 cm | v 0.20 | age0.37 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  92.116] locoplayer deep switchback up npc foot 1: h   1.1 b   0.2 t -16.9 cm | v 0.20 | age0.40 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  92.130] locoplayer deep switchback up npc foot 1: h   0.9 b   0.2 t -16.9 cm | v 0.20 | age0.43 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  93.153] locoplayer switchback t30 walker 0: up going s 5.6 of 12.7, z 1.53, v 0.00 | x -0.24 a 2.55, detour 0.0 s, held 0.0 s, yaw off 2 deg
+[  93.154] locoplayer switchback t30 walker 1: up going s 6.5 of 13.2, z 1.53, v 0.00 | x -0.80 a 2.34, detour -0.0 s, held 0.5 s, yaw off 0 deg
+[  93.154] locoplayer switchback t30 walker 2: up going s 6.5 of 13.7, z 0.68, v 0.27 | x -0.73 a 0.85, detour -0.0 s, held 0.0 s, yaw off 0 deg
+[  93.155] locoplayer switchback t30 walker 3: up going s 6.8 of 14.2, z 0.17, v 0.19 | x -0.36 a 0.18, detour 1.3 s, held 0.0 s, yaw off 36 deg
+[  99.181] locoplayer deep switchback up npc foot 1: h   0.8 b -17.0 t -16.7 cm | v 0.18 | age0.03 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[  99.267] Transit: 0.063 ms/frame avg, 1 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[ 100.433] locoplayer deep switchback up npc foot 0: h -17.0 b -16.5 t -16.3 cm | v 0.00 | age0.03 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 104.593] locoplayer deep switchback up npc foot 0: h   1.0 b   0.5 t -16.7 cm | v 0.25 | age0.03 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 109.075] locoplayer deep switchback up npc foot 0: h   0.0 b -16.9 t -16.9 cm | v 0.06 | age0.03 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 110.274] locoplayer deep switchback up npc foot 0: h   0.0 b -17.0 t -17.0 cm | v 0.06 | age0.10 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 110.281] locoplayer deep switchback up npc foot 0: h   0.0 b -17.0 t -17.0 cm | v 0.04 | age0.13 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 110.288] locoplayer deep switchback up npc foot 0: h   0.0 b -17.0 t -17.0 cm | v 0.03 | age0.17 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 110.291] locoplayer deep switchback up npc foot 0: h   0.0 b -17.0 t -17.0 cm | v 0.03 | age0.20 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 110.296] locoplayer deep switchback up npc foot 0: h   0.0 b -17.0 t -17.0 cm | v 0.03 | age0.23 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 110.301] locoplayer deep switchback up npc foot 0: h   0.0 b -17.0 t -17.0 cm | v 0.03 | age0.27 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 110.305] locoplayer deep switchback up npc foot 0: h   0.0 b -17.0 t -17.0 cm | v 0.03 | age0.30 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 110.306] locoplayer deep switchback up npc foot 0: h   0.0 b -17.0 t -17.0 cm | v 0.03 | age0.33 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 110.312] locoplayer deep switchback up npc foot 0: h   0.0 b -17.0 t -17.0 cm | v 0.03 | age0.37 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 110.316] locoplayer deep switchback up npc foot 0: h   0.0 b -17.0 t -17.0 cm | v 0.03 | age0.40 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 110.317] locoplayer deep switchback up npc foot 0: h   0.0 b -17.0 t -17.0 cm | v 0.02 | age0.43 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 110.321] locoplayer deep switchback up npc foot 0: h   0.0 b -17.0 t -17.0 cm | v 0.02 | age0.47 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 110.327] locoplayer deep switchback up npc foot 0: h   0.0 b -17.0 t -17.0 cm | v 0.02 | age0.50 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 111.845] locoplayer deep switchback up npc foot 0: h   0.0 b   0.0 t -17.0 cm | v 0.01 | age0.10 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 111.846] locoplayer deep switchback up npc foot 0: h   0.0 b   0.0 t -17.0 cm | v 0.01 | age0.13 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 111.851] locoplayer deep switchback up npc foot 0: h   0.0 b   0.0 t -17.0 cm | v 0.01 | age0.17 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 111.854] locoplayer deep switchback up npc foot 0: h   0.0 b   0.0 t -17.0 cm | v 0.01 | age0.20 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 111.860] locoplayer deep switchback up npc foot 0: h   0.0 b   0.0 t -17.0 cm | v 0.01 | age0.23 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 111.865] locoplayer deep switchback up npc foot 0: h   0.0 b   0.0 t -17.0 cm | v 0.01 | age0.27 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 111.866] locoplayer deep switchback up npc foot 0: h   0.0 b   0.0 t -17.0 cm | v 0.01 | age0.30 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 111.872] locoplayer deep switchback up npc foot 0: h   0.0 b   0.0 t -17.0 cm | v 0.01 | age0.33 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 111.887] locoplayer deep switchback up npc foot 0: h   0.0 b   0.0 t -17.0 cm | v 0.01 | age0.37 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 113.136] locoplayer deep switchback up npc foot 0: h   0.0 b   0.0 t -17.0 cm | v 0.01 | age0.40 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 113.140] locoplayer switchback t45 walker 0: up going s 5.7 of 12.7, z 1.53, v 0.00 | x -0.17 a 2.52, detour 0.0 s, held 0.0 s, yaw off 3 deg
+[ 113.141] locoplayer switchback t45 walker 1: up going s 7.1 of 13.2, z 1.53, v 0.00 | x -0.47 a 3.04, detour -0.0 s, held 0.5 s, yaw off 83 deg
+[ 113.142] locoplayer switchback t45 walker 2: up going s 7.8 of 13.7, z 1.53, v 0.01 | x -0.80 a 2.30, detour 0.9 s, held 0.6 s, yaw off 66 deg
+[ 113.142] locoplayer deep switchback up npc foot 0: h   0.0 b   0.0 t -17.0 cm | v 0.01 | age0.43 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 113.142] locoplayer switchback t45 walker 3: up going s 8.3 of 14.2, z 1.19, v 0.00 | x -0.72 a 1.70, detour 0.6 s, held 0.9 s, yaw off 75 deg
+[ 113.145] locoplayer deep switchback up npc foot 0: h   0.0 b   0.0 t -17.0 cm | v 0.01 | age0.47 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 113.148] locoplayer deep switchback up npc foot 0: h   0.0 b   0.0 t -17.0 cm | v 0.01 | age0.50 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 116.024] locoplayer deep switchback up npc foot 0: h -14.4 b   0.1 t 102.1 cm | v 0.34 | age0.20 ballProbe 1 stairLand -9.00 stepT -1.00 lead 0.300
+[ 117.415] locoplayer deep switchback up npc foot 0: h   0.5 b   0.1 t -17.0 cm | v 0.06 | age0.03 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 118.816] locoplayer deep switchback up npc foot 0: h   0.3 b   0.1 t -17.0 cm | v 0.06 | age0.07 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 118.828] locoplayer deep switchback up npc foot 0: h   0.1 b   0.0 t -17.0 cm | v 0.06 | age0.10 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 118.835] locoplayer deep switchback up npc foot 0: h   0.0 b   0.1 t -16.9 cm | v 0.05 | age0.13 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 118.837] locoplayer deep switchback up npc foot 0: h   0.0 b   0.2 t -16.8 cm | v 0.05 | age0.17 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 118.842] locoplayer deep switchback up npc foot 0: h   0.0 b   0.2 t -16.7 cm | v 0.05 | age0.20 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 118.848] locoplayer deep switchback up npc foot 0: h   0.0 b   0.3 t -16.6 cm | v 0.05 | age0.23 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 118.852] locoplayer deep switchback up npc foot 0: h   0.0 b   0.3 t -16.6 cm | v 0.05 | age0.27 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 118.855] locoplayer deep switchback up npc foot 0: h   0.0 b   0.3 t -16.6 cm | v 0.05 | age0.30 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 118.858] locoplayer deep switchback up npc foot 0: h   0.0 b   0.2 t -16.7 cm | v 0.05 | age0.33 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 118.862] locoplayer deep switchback up npc foot 0: h   0.0 b   0.2 t -16.7 cm | v 0.36 | age0.37 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 118.865] locoplayer deep switchback up npc foot 0: h   0.0 b   0.1 t -16.9 cm | v 0.20 | age0.40 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 118.868] locoplayer deep switchback up npc foot 0: h   0.0 b   0.0 t -17.0 cm | v 0.21 | age0.43 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 118.874] locoplayer deep switchback up npc foot 0: h   0.0 b   0.0 t -17.0 cm | v 0.22 | age0.47 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 118.878] locoplayer deep switchback up npc foot 0: h   0.0 b   0.0 t -17.0 cm | v 0.24 | age0.50 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 118.879] locoplayer deep switchback up npc foot 0: h   0.0 b   0.0 t -17.0 cm | v 0.24 | age0.53 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 123.227] locoplayer deep switchback up npc foot 1: h   3.6 b -16.8 t -17.0 cm | v 0.47 | age0.37 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 123.234] locoplayer deep switchback up npc foot 1: h   3.8 b -16.6 t -17.0 cm | v 0.47 | age0.40 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 123.236] locoplayer deep switchback up npc foot 0: h -16.6 b -17.0 t -17.0 cm | v 0.46 | age0.03 ballProbe 1 stairLand -9.00 stepT -1.00 lead 0.300
+[ 124.484] locoplayer deep switchback up npc foot 0: h   0.0 b   0.0 t -17.0 cm | v 0.41 | age0.03 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 124.490] locoplayer deep switchback up npc foot 0: h   0.3 b   0.0 t -17.0 cm | v 0.41 | age0.07 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 124.492] locoplayer deep switchback up npc foot 0: h   0.8 b   0.0 t -17.0 cm | v 0.41 | age0.10 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 124.499] locoplayer deep switchback up npc foot 0: h   1.5 b   0.0 t -17.0 cm | v 0.41 | age0.13 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 124.506] locoplayer deep switchback up npc foot 0: h   2.4 b   0.0 t -17.0 cm | v 0.40 | age0.17 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 124.512] locoplayer deep switchback up npc foot 0: h   3.2 b   0.1 t -17.0 cm | v 0.40 | age0.20 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 124.514] locoplayer deep switchback up npc foot 0: h   3.8 b   0.1 t -17.0 cm | v 0.40 | age0.23 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 124.517] locoplayer deep switchback up npc foot 0: h   4.3 b   0.1 t -17.0 cm | v 0.39 | age0.27 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 124.523] locoplayer deep switchback up npc foot 0: h   4.5 b   0.1 t -17.0 cm | v 0.39 | age0.30 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 124.527] locoplayer deep switchback up npc foot 0: h   4.5 b   0.2 t -17.0 cm | v 0.39 | age0.33 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 124.528] locoplayer deep switchback up npc foot 0: h   3.9 b   0.3 t -17.0 cm | v 0.13 | age0.37 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 124.533] locoplayer deep switchback up npc foot 0: h   3.3 b   0.4 t -17.0 cm | v 0.10 | age0.40 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 127.104] Transit: 0.078 ms/frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[ 128.244] Wildlife: 99 animals (91 birds) in 14 groups, 47 drawn in 9 draws | update 0.127 ms, render 0.247 ms
+[ 133.455] locoplayer switchback turn 0: 0 of 4 up after 60.0 s
+[ 133.464] locoplayer switchback t60 walker 0: down waiting s 11.6 of 12.7, z 3.06, v 0.00 | x 0.50 a -2.07, detour 0.0 s, held 0.0 s, yaw off 40 deg
+[ 133.465] locoplayer switchback t60 walker 1: down waiting s 11.8 of 13.2, z 3.06, v 0.00 | x 0.50 a -1.10, detour -0.0 s, held 0.0 s, yaw off 18 deg
+[ 133.465] locoplayer switchback t60 walker 2: down waiting s 8.6 of 13.7, z 1.53, v 0.00 | x -0.04 a 2.80, detour -0.0 s, held 0.0 s, yaw off 71 deg
+[ 133.465] locoplayer switchback t60 walker 3: down waiting s 9.4 of 14.2, z 1.53, v 0.00 | x -0.75 a 3.04, detour 1.4 s, held 0.0 s, yaw off 163 deg
+[ 149.858] locoplayer deep switchback down npc foot 0: h -17.0 b   2.8 t   3.8 cm | v 0.50 | age0.03 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 149.863] locoplayer deep switchback down npc foot 0: h -17.0 b   3.0 t   4.1 cm | v 0.50 | age0.07 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 149.865] locoplayer deep switchback down npc foot 0: h -17.0 b   2.9 t   4.0 cm | v 0.50 | age0.10 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 149.869] locoplayer deep switchback down npc foot 0: h -17.0 b   2.7 t   3.6 cm | v 0.50 | age0.13 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 149.872] locoplayer deep switchback down npc foot 0: h -17.0 b   2.3 t   3.2 cm | v 0.50 | age0.17 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 149.889] locoplayer deep switchback down npc foot 0: h -17.0 b   1.7 t   2.3 cm | v 0.50 | age0.20 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 151.099] locoplayer deep switchback down npc foot 0: h -17.0 b   0.9 t   1.2 cm | v 0.50 | age0.23 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 151.101] locoplayer deep switchback down npc foot 0: h -17.0 b   0.2 t   0.3 cm | v 0.50 | age0.27 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 151.107] locoplayer deep switchback down npc foot 0: h -17.0 b   0.0 t   0.0 cm | v 0.50 | age0.30 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 151.109] locoplayer deep switchback down npc foot 0: h -17.0 b   0.0 t   0.0 cm | v 0.50 | age0.33 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 151.114] locoplayer deep switchback down npc foot 0: h -17.0 b   0.0 t   0.0 cm | v 0.50 | age0.37 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 151.119] locoplayer deep switchback down npc foot 0: h -17.0 b   0.0 t   0.0 cm | v 0.50 | age0.40 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 151.124] locoplayer deep switchback down npc foot 0: h -17.0 b   0.0 t   0.0 cm | v 0.50 | age0.43 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 151.125] locoplayer deep switchback down npc foot 0: h -17.0 b   0.0 t   0.0 cm | v 0.50 | age0.47 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 151.131] locoplayer deep switchback down npc foot 0: h -17.0 b   0.0 t   0.0 cm | v 0.50 | age0.50 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 151.133] locoplayer deep switchback down npc foot 0: h -17.0 b   0.0 t   0.0 cm | v 0.50 | age0.53 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 151.140] locoplayer deep switchback down npc foot 0: h -17.0 b   0.0 t   0.0 cm | v 0.50 | age0.57 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 151.146] locoplayer deep switchback down npc foot 0: h -17.0 b   0.0 t   0.0 cm | v 0.50 | age0.60 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 151.149] locoplayer deep switchback down npc foot 0: h -17.0 b   0.0 t   0.0 cm | v 0.50 | age0.63 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 151.150] locoplayer deep switchback down npc foot 0: h -17.0 b   0.0 t   0.0 cm | v 0.50 | age0.67 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 151.160] locoplayer deep switchback down npc foot 0: h -17.0 b   0.0 t   0.0 cm | v 0.50 | age0.70 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 151.162] locoplayer deep switchback down npc foot 0: h -16.9 b   0.0 t   0.0 cm | v 0.50 | age0.73 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 151.168] locoplayer deep switchback down npc foot 0: h -16.5 b   0.0 t   0.0 cm | v 0.50 | age0.77 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 151.169] locoplayer deep switchback down npc foot 0: h -15.8 b   0.0 t   0.0 cm | v 0.50 | age0.80 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 151.173] locoplayer deep switchback down npc foot 0: h -15.0 b   0.0 t   0.0 cm | v 0.50 | age0.83 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 151.174] locoplayer deep switchback down npc foot 0: h -14.2 b   0.0 t   0.0 cm | v 0.30 | age0.87 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 151.181] locoplayer deep switchback down npc foot 0: h -13.5 b   0.1 t   0.0 cm | v 0.30 | age0.90 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 151.182] locoplayer deep switchback down npc foot 0: h -12.8 b   0.1 t  17.0 cm | v 0.30 | age0.93 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 151.188] locoplayer deep switchback down npc foot 0: h -12.3 b   0.1 t  17.0 cm | v 0.30 | age0.97 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 151.205] locoplayer deep switchback down npc foot 0: h -12.0 b   0.2 t  17.0 cm | v 0.30 | age1.10 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 151.208] locoplayer deep switchback down npc foot 0: h -12.2 b   0.4 t   0.0 cm | v 0.30 | age1.13 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 153.619] locoplayer switchback t75 walker 0: down going s 1.4 of 12.7, z 3.06, v 0.50 | x 0.50 a -1.23, detour 0.0 s, held 0.0 s, yaw off 0 deg
+[ 153.619] locoplayer switchback t75 walker 1: down going s 3.3 of 13.2, z 2.04, v 0.25 | x 0.50 a 1.43, detour -0.0 s, held 0.0 s, yaw off 0 deg
+[ 153.620] locoplayer switchback t75 walker 2: down going s 4.5 of 13.7, z 1.53, v 0.00 | x -0.05 a 2.79, detour -0.0 s, held 0.1 s, yaw off 99 deg
+[ 153.620] locoplayer switchback t75 walker 3: down going s 4.3 of 14.2, z 1.53, v 0.01 | x -0.80 a 3.04, detour 1.3 s, held 0.2 s, yaw off 178 deg
+[ 153.702] Transit: 0.086 ms/frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[ 158.876] locoplayer deep switchback down npc foot 1: h -17.0 b   1.9 t   2.6 cm | v 0.36 | age0.03 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 158.884] locoplayer deep switchback down npc foot 1: h -17.0 b   1.9 t   2.6 cm | v 0.36 | age0.07 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 158.889] locoplayer deep switchback down npc foot 1: h -17.0 b   1.7 t   2.3 cm | v 0.35 | age0.10 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 158.891] locoplayer deep switchback down npc foot 1: h -17.0 b   1.4 t   2.0 cm | v 0.35 | age0.13 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 158.895] locoplayer deep switchback down npc foot 1: h -17.0 b   1.0 t   1.4 cm | v 0.34 | age0.17 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 158.902] locoplayer deep switchback down npc foot 1: h -17.0 b   0.5 t   0.7 cm | v 0.34 | age0.20 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 158.903] locoplayer deep switchback down npc foot 1: h -17.0 b   0.1 t   0.1 cm | v 0.33 | age0.23 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 158.908] locoplayer deep switchback down npc foot 1: h -17.0 b   0.0 t   0.0 cm | v 0.33 | age0.27 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 158.910] locoplayer deep switchback down npc foot 1: h -17.0 b   0.0 t   0.0 cm | v 0.50 | age0.30 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 158.915] locoplayer deep switchback down npc foot 1: h -17.0 b   0.0 t   0.0 cm | v 0.50 | age0.33 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 158.920] locoplayer deep switchback down npc foot 1: h -17.0 b   0.0 t   0.0 cm | v 0.50 | age0.37 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 158.921] locoplayer deep switchback down npc foot 1: h -17.0 b   0.0 t   0.0 cm | v 0.50 | age0.40 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 158.927] locoplayer deep switchback down npc foot 1: h -17.0 b   0.0 t   0.0 cm | v 0.50 | age0.43 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 158.929] locoplayer deep switchback down npc foot 1: h -17.0 b   0.0 t   0.0 cm | v 0.50 | age0.47 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 158.932] locoplayer deep switchback down npc foot 1: h -17.0 b   0.0 t   0.0 cm | v 0.50 | age0.50 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 158.938] locoplayer deep switchback down npc foot 1: h -17.0 b   0.0 t   0.0 cm | v 0.50 | age0.53 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 158.939] locoplayer deep switchback down npc foot 1: h -17.0 b   0.0 t   0.0 cm | v 0.50 | age0.57 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 158.947] locoplayer deep switchback down npc foot 1: h -17.0 b   0.0 t   0.0 cm | v 0.50 | age0.60 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 158.951] locoplayer deep switchback down npc foot 1: h -17.0 b   0.0 t   0.0 cm | v 0.50 | age0.63 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 158.952] locoplayer deep switchback down npc foot 1: h -16.7 b   0.0 t   0.0 cm | v 0.50 | age0.67 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 158.958] locoplayer deep switchback down npc foot 1: h -16.2 b   0.0 t   0.0 cm | v 0.50 | age0.70 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 158.959] locoplayer deep switchback down npc foot 1: h -15.4 b   0.0 t   0.0 cm | v 0.50 | age0.73 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 158.963] locoplayer deep switchback down npc foot 1: h -14.5 b   0.0 t   0.0 cm | v 0.50 | age0.77 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 158.966] locoplayer deep switchback down npc foot 1: h -13.5 b   0.1 t   0.0 cm | v 0.50 | age0.80 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 158.968] locoplayer deep switchback down npc foot 1: h -12.6 b   0.1 t   0.0 cm | v 0.50 | age0.83 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 158.972] locoplayer deep switchback down npc foot 1: h -12.1 b   0.1 t   0.0 cm | v 0.30 | age0.87 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 158.980] locoplayer deep switchback down npc foot 1: h -12.2 b   0.2 t   0.0 cm | v 0.30 | age0.97 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 158.986] locoplayer deep switchback down npc foot 1: h -12.5 b   0.4 t   0.0 cm | v 0.30 | age1.00 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 168.085] Wildlife: 99 animals (91 birds) in 14 groups, 47 drawn in 9 draws | update 0.155 ms, render 0.244 ms
+[ 169.413] locoplayer deep switchback down npc foot 0: h -17.0 b   0.8 t   1.1 cm | v 0.48 | age0.03 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 169.416] locoplayer deep switchback down npc foot 0: h -17.0 b   0.8 t   1.1 cm | v 0.50 | age0.07 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 169.417] locoplayer deep switchback down npc foot 0: h -17.0 b   0.4 t   0.5 cm | v 0.50 | age0.10 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 170.729] locoplayer bigslide switchback down npc foot 0: 16.4 cm over 4 frames | planted 0 stepT 0.61
+[ 173.428] locoplayer switchback t90 walker 0: down going s 4.9 of 12.7, z 1.70, v 0.02 | x 0.36 a 2.04, detour 1.4 s, held 0.1 s, yaw off 23 deg
+[ 173.428] locoplayer switchback t90 walker 1: down going s 4.9 of 13.2, z 1.53, v 0.19 | x 0.39 a 3.04, detour 0.8 s, held 0.0 s, yaw off 86 deg
+[ 173.429] locoplayer switchback t90 walker 2: down going s 4.8 of 13.7, z 1.53, v 0.50 | x -0.16 a 2.67, detour -0.0 s, held 0.0 s, yaw off 31 deg
+[ 173.429] locoplayer switchback t90 walker 3: down going s 4.3 of 14.2, z 1.53, v 0.00 | x -0.80 a 3.04, detour 0.7 s, held 0.7 s, yaw off 164 deg
+[ 173.457] locoplayer deep switchback down npc foot 0: h -17.0 b -17.0 t -17.0 cm | v 0.01 | age0.03 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 174.823] locoplayer deep switchback down npc foot 0: h   0.0 b -17.0 t -17.0 cm | v 0.47 | age0.03 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 174.826] locoplayer deep switchback down npc foot 0: h   0.0 b -17.0 t -17.0 cm | v 0.47 | age0.07 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 174.827] locoplayer deep switchback down npc foot 0: h   0.0 b -17.0 t -17.0 cm | v 0.47 | age0.10 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 174.832] locoplayer deep switchback down npc foot 0: h   0.1 b -17.0 t -17.0 cm | v 0.47 | age0.13 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 174.833] locoplayer deep switchback down npc foot 0: h   0.1 b -17.0 t -17.0 cm | v 0.47 | age0.17 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 174.838] locoplayer deep switchback down npc foot 0: h   1.3 b -16.9 t -17.0 cm | v 0.47 | age0.20 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 174.838] locoplayer deep switchback down npc foot 0: h   2.7 b -16.9 t -17.0 cm | v 0.46 | age0.23 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 174.845] locoplayer deep switchback down npc foot 0: h   4.0 b -16.9 t -17.0 cm | v 0.46 | age0.27 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 174.846] locoplayer deep switchback down npc foot 0: h   3.4 b -16.9 t -17.0 cm | v 0.46 | age0.30 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 174.849] locoplayer deep switchback down npc foot 0: h   2.9 b -16.9 t -17.0 cm | v 0.46 | age0.33 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 174.852] locoplayer deep switchback down npc foot 0: h   2.4 b -17.0 t -17.0 cm | v 0.46 | age0.37 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 174.857] locoplayer deep switchback down npc foot 0: h   1.8 b -17.0 t -17.0 cm | v 0.46 | age0.40 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 174.858] locoplayer deep switchback down npc foot 0: h   1.6 b -17.0 t -17.0 cm | v 0.46 | age0.43 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 174.864] locoplayer deep switchback down npc foot 0: h   2.5 b -17.0 t -17.0 cm | v 0.46 | age0.47 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 174.865] locoplayer deep switchback down npc foot 0: h   3.4 b -16.9 t -17.0 cm | v 0.45 | age0.50 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 174.871] locoplayer deep switchback down npc foot 0: h   4.2 b -16.9 t -17.0 cm | v 0.45 | age0.53 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 174.879] locoplayer deep switchback down npc foot 0: h   4.8 b -16.9 t -17.0 cm | v 0.45 | age0.57 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 174.881] locoplayer deep switchback down npc foot 0: h   5.1 b -16.8 t -17.0 cm | v 0.45 | age0.60 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 174.887] locoplayer deep switchback down npc foot 0: h   5.0 b -16.8 t -17.0 cm | v 0.45 | age0.63 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 174.889] locoplayer deep switchback down npc foot 0: h   4.9 b -16.6 t -17.0 cm | v 0.45 | age0.67 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 177.609] locoplayer deep switchback down npc foot 0: h  -1.4 b   0.0 t -16.5 cm | v 0.34 | age0.03 ballProbe 1 stairLand -9.00 stepT -1.00 lead 0.300
+[ 177.616] locoplayer deep switchback down npc foot 0: h  -1.2 b   0.0 t -16.5 cm | v 0.34 | age0.07 ballProbe 1 stairLand -9.00 stepT -1.00 lead 0.300
+[ 177.621] locoplayer deep switchback down npc foot 0: h  -1.0 b   0.0 t -16.6 cm | v 0.34 | age0.10 ballProbe 1 stairLand -9.00 stepT -1.00 lead 0.300
+[ 177.622] locoplayer deep switchback down npc foot 0: h  -0.5 b   0.0 t -16.8 cm | v 0.34 | age0.13 ballProbe 1 stairLand -9.00 stepT -1.00 lead 0.300
+[ 177.626] locoplayer deep switchback down npc foot 0: h  -0.1 b   0.0 t -16.9 cm | v 0.34 | age0.17 ballProbe 1 stairLand -9.00 stepT -1.00 lead 0.300
+[ 177.631] locoplayer deep switchback down npc foot 0: h  -0.1 b   0.0 t -17.0 cm | v 0.34 | age0.20 ballProbe 1 stairLand -9.00 stepT -1.00 lead 0.300
+[ 177.636] locoplayer deep switchback down npc foot 0: h  -0.1 b   0.0 t -17.0 cm | v 0.34 | age0.23 ballProbe 1 stairLand -9.00 stepT -1.00 lead 0.300
+[ 177.640] locoplayer deep switchback down npc foot 0: h  -0.1 b   0.0 t -17.0 cm | v 0.15 | age0.27 ballProbe 1 stairLand -9.00 stepT -1.00 lead 0.300
+[ 180.745] Transit: 0.068 ms/frame avg, 1 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[ 193.219] locoplayer switchback t105 walker 0: down going s 11.8 of 12.7, z 3.06, v 0.34 | x 0.36 a -2.63, detour -0.0 s, held 0.0 s, yaw off 0 deg
+[ 193.219] locoplayer switchback t105 walker 1: down going s 5.2 of 13.2, z 1.53, v 0.00 | x -0.04 a 2.79, detour -0.0 s, held 0.0 s, yaw off 1 deg
+[ 193.221] locoplayer switchback t105 walker 2: down going s 12.5 of 13.7, z 0.01, v 0.50 | x -0.50 a -4.79, detour -0.0 s, held 0.0 s, yaw off 0 deg
+[ 193.221] locoplayer switchback t105 walker 3: down going s 4.3 of 14.2, z 1.53, v 0.00 | x -0.80 a 3.04, detour 0.8 s, held 0.6 s, yaw off 164 deg
+[ 206.900] Transit: 0.075 ms/frame avg, 1 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[ 208.094] Wildlife: 99 animals (91 birds) in 14 groups, 47 drawn in 9 draws | update 0.124 ms, render 0.236 ms
+[ 213.351] locoplayer switchback turn 1: 1 of 4 down after 60.0 s
+[ 213.374] locoplayer switchback t120 walker 0: up waiting s 11.8 of 12.7, z 3.06, v 0.00 | x 0.36 a -2.53, detour 0.8 s, held 0.0 s, yaw off 128 deg
+[ 213.374] locoplayer switchback t120 walker 1: up waiting s 5.2 of 13.2, z 1.53, v 0.00 | x -0.04 a 2.79, detour -0.0 s, held 0.0 s, yaw off 25 deg
+[ 213.374] locoplayer switchback t120 walker 2: up waiting s 13.1 of 13.7, z 0.01, v 0.00 | x -0.50 a -5.36, detour -0.0 s, held 0.0 s, yaw off 164 deg
+[ 213.374] locoplayer switchback t120 walker 3: up waiting s 4.3 of 14.2, z 1.53, v 0.00 | x -0.80 a 3.04, detour 1.1 s, held 0.3 s, yaw off 176 deg
+[ 232.556] locoplayer switchback t135 walker 0: up there s 12.1 of 12.7, z 3.06, v 0.00 | x 0.38 a -2.55, detour -0.0 s, held 0.0 s, yaw off 39 deg
+[ 232.557] locoplayer switchback t135 walker 1: up going s 7.4 of 13.2, z 1.53, v 0.00 | x -0.04 a 2.79, detour -0.0 s, held 0.0 s, yaw off 116 deg
+[ 232.557] locoplayer switchback t135 walker 2: up going s 2.9 of 13.7, z 0.01, v 0.50 | x -0.50 a -2.46, detour -0.0 s, held 0.0 s, yaw off 0 deg
+[ 232.557] locoplayer switchback t135 walker 3: up going s 9.4 of 14.2, z 1.53, v 0.00 | x -0.80 a 3.04, detour 0.9 s, held 0.5 s, yaw off 97 deg
+[ 232.629] Transit: 0.053 ms/frame avg, 1 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[ 246.852] Wildlife: 99 animals (91 birds) in 14 groups, 47 drawn in 9 draws | update 0.121 ms, render 0.288 ms
+[ 248.365] locoplayer deep switchback up npc foot 1: h -14.7 b   0.1 t   0.0 cm | v 0.44 | age0.27 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 248.371] locoplayer deep switchback up npc foot 1: h -13.5 b   0.1 t   0.0 cm | v 0.44 | age0.30 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 251.298] locoplayer deep switchback up npc foot 0: h -14.7 b   0.0 t  85.0 cm | v 0.25 | age0.03 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 251.302] locoplayer deep switchback up npc foot 0: h -14.7 b   0.0 t  85.0 cm | v 0.25 | age0.07 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 251.308] locoplayer deep switchback up npc foot 0: h -15.2 b   0.0 t  85.0 cm | v 0.24 | age0.10 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 251.310] locoplayer deep switchback up npc foot 0: h -15.6 b   0.0 t  85.0 cm | v 0.24 | age0.13 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 251.315] locoplayer deep switchback up npc foot 0: h -15.6 b   0.1 t  85.0 cm | v 0.24 | age0.17 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 251.318] locoplayer deep switchback up npc foot 0: h -15.5 b   0.2 t  85.0 cm | v 0.24 | age0.20 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 251.326] locoplayer deep switchback up npc foot 0: h -15.5 b   0.3 t  85.0 cm | v 0.24 | age0.23 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 251.328] locoplayer deep switchback up npc foot 0: h -15.9 b   0.3 t  85.0 cm | v 0.23 | age0.27 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 252.585] locoplayer switchback t150 walker 0: up there s 12.1 of 12.7, z 3.06, v 0.00 | x 0.38 a -2.55, detour -0.0 s, held 0.0 s, yaw off 39 deg
+[ 252.585] locoplayer switchback t150 walker 1: up going s 7.4 of 13.2, z 1.53, v 0.00 | x -0.04 a 2.79, detour -0.0 s, held 0.0 s, yaw off 116 deg
+[ 252.585] locoplayer switchback t150 walker 2: up going s 7.5 of 13.7, z 1.19, v 0.21 | x -0.73 a 1.69, detour -0.0 s, held 0.0 s, yaw off 0 deg
+[ 252.586] locoplayer switchback t150 walker 3: up going s 9.4 of 14.2, z 1.53, v 0.00 | x -0.80 a 3.04, detour 1.1 s, held 0.3 s, yaw off 97 deg
+[ 259.832] Transit: 0.056 ms/frame avg, 2 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[ 261.038] locoplayer deep switchback up npc foot 0: h   0.4 b   0.0 t -17.0 cm | v 0.07 | age0.03 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 261.043] locoplayer deep switchback up npc foot 0: h   0.6 b   0.0 t -17.0 cm | v 0.07 | age0.07 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 261.048] locoplayer deep switchback up npc foot 0: h   0.7 b   0.0 t -17.0 cm | v 0.07 | age0.10 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 261.050] locoplayer deep switchback up npc foot 0: h   0.8 b   0.0 t -17.0 cm | v 0.07 | age0.13 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 261.055] locoplayer deep switchback up npc foot 0: h   0.9 b   0.0 t -17.0 cm | v 0.06 | age0.17 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 261.057] locoplayer deep switchback up npc foot 0: h   0.9 b   0.0 t -17.0 cm | v 0.06 | age0.20 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 261.060] locoplayer deep switchback up npc foot 0: h   0.8 b   0.0 t -17.0 cm | v 0.06 | age0.23 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 261.066] locoplayer deep switchback up npc foot 0: h   0.8 b   0.1 t -17.0 cm | v 0.06 | age0.27 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 261.071] locoplayer deep switchback up npc foot 0: h   0.7 b   0.1 t -17.0 cm | v 0.06 | age0.30 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 261.085] locoplayer deep switchback up npc foot 0: h   0.6 b   0.1 t -17.0 cm | v 0.06 | age0.33 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 262.287] locoplayer deep switchback up npc foot 0: h   0.5 b   0.1 t -17.0 cm | v 0.06 | age0.37 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 262.293] locoplayer deep switchback up npc foot 0: h   0.3 b   0.1 t -17.0 cm | v 0.06 | age0.40 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 262.294] locoplayer deep switchback up npc foot 0: h   0.1 b   0.0 t -17.0 cm | v 0.06 | age0.43 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 262.342] locoplayer deep switchback up npc foot 0: h   0.0 b -17.0 t -17.0 cm | v 0.00 | age0.10 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 262.343] locoplayer deep switchback up npc foot 0: h   0.0 b -17.0 t -17.0 cm | v 0.00 | age0.13 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 262.348] locoplayer deep switchback up npc foot 0: h   0.0 b -17.0 t -17.0 cm | v 0.00 | age0.17 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 262.352] locoplayer deep switchback up npc foot 0: h   0.0 b -17.0 t -17.0 cm | v 0.00 | age0.20 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 262.358] locoplayer deep switchback up npc foot 0: h   0.0 b -17.0 t -17.0 cm | v 0.00 | age0.23 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 262.361] locoplayer deep switchback up npc foot 0: h   0.0 b -17.0 t -17.0 cm | v 0.00 | age0.27 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 262.364] locoplayer deep switchback up npc foot 0: h   0.0 b -17.0 t -17.0 cm | v 0.00 | age0.30 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 262.368] locoplayer deep switchback up npc foot 0: h   0.0 b -17.0 t -17.0 cm | v 0.00 | age0.33 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 262.369] locoplayer deep switchback up npc foot 0: h   0.0 b -17.0 t -17.0 cm | v 0.00 | age0.37 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 262.370] locoplayer deep switchback up npc foot 0: h   0.0 b -17.0 t -17.0 cm | v 0.00 | age0.40 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.300
+[ 272.908] locoplayer switchback t165 walker 0: up there s 12.1 of 12.7, z 3.06, v 0.00 | x 0.38 a -2.55, detour -0.0 s, held 0.0 s, yaw off 39 deg
+[ 272.908] locoplayer switchback t165 walker 1: up going s 7.4 of 13.2, z 1.53, v 0.00 | x -0.04 a 2.79, detour -0.0 s, held 0.0 s, yaw off 116 deg
+[ 272.908] locoplayer switchback t165 walker 2: up going s 12.5 of 13.7, z 0.00, v 0.34 | x -0.36 a -0.53, detour -0.0 s, held 0.0 s, yaw off 0 deg
+[ 272.909] locoplayer switchback t165 walker 3: up going s 9.4 of 14.2, z 1.53, v 0.00 | x -0.80 a 3.04, detour 1.3 s, held 0.1 s, yaw off 116 deg
+[ 278.147] locoplayer switchback up   npc    steps 449 | slide cm/step mean 0.49 p90 0.49 max 21.29 | scuffs 37 | planted foot-frames 12440 | sunk 1 cm 1.4%, 3 cm 1.3% | lifted 0.3% | deep 151 | lowest sole -170.0 mm
+[ 278.148] locoplayer switchback down npc    steps 286 | slide cm/step mean 0.22 p90 0.07 max 16.41 | scuffs 14 | planted foot-frames 7051 | sunk 1 cm 1.4%, 3 cm 1.3% | lifted 0.7% | deep 91 | lowest sole -170.0 mm
+[ 278.148] locoplayer done
+[ 283.468] Shutdown complete.

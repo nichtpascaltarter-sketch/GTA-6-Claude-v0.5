@@ -1,0 +1,9 @@
+{
+  "id": "18",
+  "subject": "Benchmark mode for real-hardware validation",
+  "description": "--benchmark verified end to end under Wine (5 scenes, report file + results screen + exit). Real-hardware numbers pending the user's run.",
+  "activeForm": "Adding benchmark mode",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": []
+}

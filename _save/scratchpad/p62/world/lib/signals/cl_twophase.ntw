@@ -1,0 +1,5 @@
+ntw 1 signal id=lib.signal.cl_twophase
+# Calle Luna's crossings: north-south, then east-west, a 60 s cycle with a walk on each
+plan cycle=60.0 legs=4
+phase p1 green=24.0 amber=4.0 allred=2.0 moves=n_s,n_r,n_l,s_s,s_r,s_l walk=e,w walktime=7.0 flash=10.0
+phase p2 green=24.0 amber=4.0 allred=2.0 moves=e_s,e_r,e_l,w_s,w_r,w_l walk=n,s walktime=7.0 flash=10.0

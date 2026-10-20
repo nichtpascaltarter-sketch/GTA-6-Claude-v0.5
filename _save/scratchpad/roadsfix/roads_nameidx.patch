@@ -1,0 +1,19 @@
+152a153,154
+> // a name-table index for a grid line that may be negative (C++ % keeps the sign: -39 % n indexed before the table)
+> static inline int nameIdx(int i, int n) { int r = i % n; return r < 0 ? r + n : r; }
+463c465
+<             std::string name = major ? StrFormat("%s Boulevard", kStreetNames[(ix * 7 + 3) % ARRAY_COUNT(kStreetNames)])
+---
+>             std::string name = major ? StrFormat("%s Boulevard", kStreetNames[nameIdx(ix * 7 + 3, ARRAY_COUNT(kStreetNames))])
+477c479
+<             std::string name = major ? StrFormat("%s Boulevard", kStreetNames[(iy * 11 + 5) % ARRAY_COUNT(kStreetNames)])
+---
+>             std::string name = major ? StrFormat("%s Boulevard", kStreetNames[nameIdx(iy * 11 + 5, ARRAY_COUNT(kStreetNames))])
+544c546
+<                     if (line.size() >= 3) b.add(line, cls, 0, 0, StrFormat("%s %s", kStreetNames[(iy * 13 + 1) % ARRAY_COUNT(kStreetNames)], kStreetSuffix[(iy + 3) % 10]).c_str());
+---
+>                     if (line.size() >= 3) b.add(line, cls, 0, 0, StrFormat("%s %s", kStreetNames[nameIdx(iy * 13 + 1, ARRAY_COUNT(kStreetNames))], kStreetSuffix[nameIdx(iy + 3, 10)]).c_str());
+548c550
+<             if (line.size() >= 3) b.add(line, cls, 0, 0, StrFormat("%s %s", kStreetNames[(iy * 13 + 1) % ARRAY_COUNT(kStreetNames)], kStreetSuffix[(iy + 3) % 10]).c_str());
+---
+>             if (line.size() >= 3) b.add(line, cls, 0, 0, StrFormat("%s %s", kStreetNames[nameIdx(iy * 13 + 1, ARRAY_COUNT(kStreetNames))], kStreetSuffix[nameIdx(iy + 3, 10)]).c_str());

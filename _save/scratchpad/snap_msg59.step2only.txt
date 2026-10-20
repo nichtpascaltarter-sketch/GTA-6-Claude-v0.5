@@ -1,0 +1,31 @@
+The hand-built world loads: --world=hand runs the baked terrain, compiled into the exe
+
+Stage 0 step 2 of the hand-built world (docs/HANDBUILT_WORLD.md). The procedural world stays the default and runs as
+before; --world=hand selects the new one, which at this stage is the bare terrain: no roads, buildings or plants yet.
+
+- tools/worldc.cpp: the world compiler. It reads world/terrain/terrain.ntw, checks every grid against its hash and
+  size, and writes build/gen/world.bin (2.67 MB, 5 sections) and world.rc. build.sh and build.bat build and run it and
+  link the resource into the exe (RCDATA NT_WORLD); in build.sh every output goes through a temp file and a rename,
+  and nothing is redone while the resource is newer than worldc and world/, so builds sharing build/ never see a
+  half-written file.
+- src/world/ntw.cpp/.h: the NTW text parser (records, ids, fields, continuation lines, blocks, comments, strict value
+  readers; CRLF and a UTF-8 BOM accepted). Only worldc uses it; the game reads no text.
+- src/world/worldbin.cpp/.h: the world.bin container: named, 16-byte aligned sections behind a header whose FNV-1a
+  hash covers the table and the data, so a damaged or truncated file is refused.
+- src/world/handworld.cpp/.h: --world=hand|procedural, the embedded world.bin (FindResource, no copy), and the loader:
+  the four grids decoded in parallel into WorldMap (heights, water, regions, coast distance, outlines, channels), the
+  splat recomputed, and empty roads and buildings so every query finds nothing. --worldfile=<path> loads a world.bin
+  from disk for development.
+- src/game/app.cpp: in hand mode the loader thread loads the hand world, the game isn't initialised and the free camera
+  stays up (stage 0 has nothing to play); --shot and --viewer work as before. src/world/cellgen.cpp generates nothing
+  in hand mode. src/render/renderer.cpp skips the GPU grass and decor scatter in hand mode (every plant is to be placed
+  by hand, decision D2).
+- .gitattributes: NTW text keeps LF on every checkout, NTG grids are binary.
+- docs/HANDBUILT_WORLD.md v1.1: the AI's details and validator checks (overlapping carriageways, conflicting greens,
+  fence crossings), and stair and door geometry for the building kit (4.9) from the animation harness.
+
+Checks (city agent): worldc builds with -Wall clean and compiles the terrain in 0.57 s; host load test ALL OK
+(heights within 5 mm of the generator, water and regions identical, damaged files refused); CRLF and BOM copies of
+world/ compile to a byte-identical world.bin; a simulated Windows checkout keeps terrain.ntw LF and the grids
+unchanged. In game (Wine): --world=hand, 4 shots (Calle Luna, downtown from the air, Port Isle, the lake and ridge):
+bare terrain, no plants, terrain from the exe in 3.75 s; the drive and melee smokes on the same exe ran to their ends.

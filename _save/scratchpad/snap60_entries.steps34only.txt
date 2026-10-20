@@ -1,0 +1,17 @@
+100644 96b7c6cdbdc6f49fb8ba2ec549f1d15c33ef8b56	src/main.cpp
+100755 23675c45c0f20ffdd619e2690304f9624091dbd7	build.sh
+100644 a19d9d2d38beca6a319bc8c058e5687d1f3b2806	src/world/ntw.h
+100644 16f5ae39ea693cca36a705ea1e3b3b5cc1c31f5b	src/world/ntw.cpp
+100644 6495e861f6307eb567430382f006fe57123d5e4c	src/world/worldbin.h
+100644 23699c8a5e06c1ece0658fe4728cff5d7cbae08e	src/world/worldbin.cpp
+100644 07589e1bf18baba9dbde66d486bd36107a400d3e	src/world/handworld.cpp
+100644 46563ddf192986062efca662e6a1f5e274ee9e05	tools/worldc.cpp
+100644 f95b26b0cb33055582a0e3d6a810fcb20bbec002	tools/terrainbake.cpp
+100644 76451f1a47e37d2a6a46dfb873a88a7d07cfc9c5	world/terrain/terrain.ntw
+100644 619be4391e896ec5b3d6cb7880e28c97c8a18605	src/world/lz.h
+100644 0344dc0c52e2a2bf7f22c5635df4b1104b4fe686	src/world/lz.cpp
+100644 862eac6927eb7d9b1ed8c2812ddfc67c9540c531	src/world/ntwschema.h
+100644 b6339abbe355c3a4e4b8b4d35a1ae2f4132424f5	src/world/ntwschema.cpp
+100644 ee4b316509b413c0883416f02b18562c6968e3a6	tools/ntwfmt.cpp
+100644 b91a548eae7519366ea9ce28be13350044d61ea7	tests/world/world_format_test.cpp
+100644 1785aebfb704fe938d9a66db3ee7de3c2a74def6	docs/NTW_FORMAT.md

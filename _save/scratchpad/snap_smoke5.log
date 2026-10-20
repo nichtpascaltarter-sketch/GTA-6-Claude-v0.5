@@ -1,0 +1,6 @@
+Embedded 35 shader files.
+[ 567.366] autoplay t=9.5 pos 1806.7 201.1 4.6 state 2 health 200 veh 1 speed 11.3 | peds 88 vehicles 62 wanted 0 | cpu ms player 0.08 ai 1.88 veh 0.61 peds 4.9
+[ 788.103] autoplay t=17.5 pos 1806.7 247.5 3.5 state 2 health 200 veh 1 speed 10.9 | peds 88 vehicles 66 wanted 0 | cpu ms player 0.15 ai 0.45 veh 0.46 peds 0.
+6346c7d Prison inmates, hair fades and ties, hips that turn with the travel, window shopping, see-through markers
+branch 'claude/neon-tide' set up to track 'origin/claude/neon-tide'.
+COMMITTED 1f47a482cb23c7a35f2ce59a347c126af3c028b4

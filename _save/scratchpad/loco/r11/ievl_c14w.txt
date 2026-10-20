@@ -1,0 +1,1 @@
+IEV kit.lstair.w0.8.down p4 run 4 t5.917 foot 1 low   4.0 h 16.9 b  5.9 t  4.0 at   0.06,  4.47 fy  170.0 gz  1.40/ 1.40/ 1.40 age 0.02 st -1.00 v 1.00 tr  0.32 yaw  168.7

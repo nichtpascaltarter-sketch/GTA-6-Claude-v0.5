@@ -1,0 +1,607 @@
+08:26:41 start: --sim 5250 600 450 --cars 140 --peds 120 --minutes 6 --seed 2 -v
+binary traffic_sim19x
+Places: Ocean Promenade hotel row, 11 hotels at x 5365 (ground 2.4), park 681..1050
+Places: Porto Sol University at (1950, 3700), ground 3.3, 13 halls
+Places: Santa Marea Cemetery at (1600, -750), ground 3.5, 67 mourners
+Places: Palmera State Penitentiary at (350, 9075), ground 6.9
+Places: Palmera Speedway at (400, 5790), ground 6.8
+Places: layout 0.000 s, 5 places, 624 anchors
+Transit: SkyLine loop 8.60 km, 8 stations, 4299 samples; 3 ferry piers
+Sites: 111 pads, 613 elements, 25 roads, 53 buildings requested (0.08 s)
+World map generated in 15.12 s
+Road gen: 18 interchanges, 50 ramps (22 left out where they could not come down in time)
+Road gen: 1 arterial ends at a lone on/off ramp given a turnaround
+Road gen: junction plateaus, 489 profile points levelled (largest change 0.70 m, 6 short links ramped plateau to plateau)
+Road network: 6223 nodes, 9547 edges, 1690 signalized; hwy 61.7 km, streets 1165.8 km (3.22 s)
+Transit: 0 buildings cleared from the SkyLine corridor
+Places: Okahatchee Union Church at (-48, 6872) on edge 4965, 6 buildings made way, 186 graves, 19 mourners
+Places: Old Fort Church at (4501, 7893) on edge 4035, 4 buildings made way, 166 graves, 18 mourners
+Places: Tidewater General Hospital (city) at (1698, 1100) on edge 6868, 7 buildings made way
+Places: Midtown General (city) at (3698, 3195) on edge 9083, 15 buildings made way
+Places: Westbrook Hospital (community) at (-2399, 1647) on edge 5533, 4 buildings made way
+Places: Sol Beach Clinic (clinic) at (5172, -904) on edge 3026, 3 buildings made way
+Places: Harlow County Hospital (community) at (-4886, 5241) on edge 5324, 4 buildings made way
+Places: Okahatchee Medical (community) at (-54, 6622) on edge 4961, 7 buildings made way
+Places: Redland Health (clinic) at (-315, -5222) on edge 2100, 0 buildings made way
+Places: Fort Castell Hospital (community) at (4572, 8021) on edge 4096, 3 buildings made way
+Places: after the lots 0.168 s
+Buildings: 35617 (towers 352, midrise 2411, condo 427, deco 688, shops 4600, strip 640, houses 22192, villas 901, warehouses 1620) in 2.00 s
+Sites: 69 highway billboards
+Sites: 155 silos, 50 windmills
+Sites: 245 beach access paths
+Transit: 3 ferry piers, 1 routes, 4.24 km of water path (0.01 s)
+Transit: ferry pier Sol Beach  base (4836, -1250) length 90 deck 2.3 berth (4741, -1250)
+Transit: ferry pier Port Isle  base (4280, -1044) length 26 deck 2.3 berth (4280, -1075)
+Transit: ferry pier Key Coral  base (4350, -2973) length 58 deck 2.3 berth (4350, -2910)
+Transit: 4 bus routes, 64 stops (48 new shelters) (0.01 s); rejects class 1107 cut 1945 deck 72 road 119 avoid 0 pad 2 furn 283 stop 0
+Transit: bus 3   Airport      8.2 km, 17 stops, 4 buses, headway 6.3 min
+Transit: bus 7   Calle Luna   6.4 km, 15 stops, 3 buses, headway 6.7 min
+Transit: bus 9   Sol Beach    7.1 km, 14 stops, 4 buses, headway 5.4 min
+Transit: bus 12  Bayshore     8.3 km, 20 stops, 4 buses, headway 6.6 min
+Transit: Sol Beach Streetcar 6.24 km, 16 stops, 65 junctions (32 signalled, 30 stop signs), 229 poles, 4 streetcars, headway 4.9 min (0.01 s)
+Transit: streetcar stop Collins-Solano Ave & 46th St s    136 shelter (5191.0, 1496.1, 1.8) travel (-0.00, -1.00)
+Transit: streetcar stop 42nd St              s    511 shelter (5231.0, 1126.8, 1.7) travel (-0.00, -1.00)
+Transit: streetcar stop 38th St              s    892 shelter (5239.0, 746.9, 1.7) travel (-0.00, -1.00)
+Transit: streetcar stop 34th St              s   1277 shelter (5207.0, 367.8, 1.8) travel (0.00, -1.00)
+Transit: streetcar stop 30th St              s   1691 shelter (5239.0, -39.2, 1.9) travel (-0.00, -1.00)
+Transit: streetcar stop 26th St              s   2053 shelter (5231.1, -397.7, 1.8) travel (-0.30, -0.95)
+Transit: streetcar stop 22nd St              s   2427 shelter (5215.0, -773.2, 1.8) travel (-0.00, -1.00)
+Transit: streetcar stop 18th St              s   2811 shelter (5190.5, -1149.6, 1.9) travel (-0.30, -0.95)
+Transit: streetcar stop Ferry Terminal       s   3165 shelter (4941.9, -1174.6, 2.7) travel (0.30, 0.95)
+Transit: streetcar stop 21st St              s   3527 shelter (4973.4, -815.2, 2.9) travel (0.00, 1.00)
+Transit: streetcar stop 25th St              s   3920 shelter (4981.5, -425.5, 2.5) travel (0.30, 0.95)
+Transit: streetcar stop 29th St              s   4291 shelter (4997.4, -55.2, 2.0) travel (0.00, 1.00)
+Transit: streetcar stop 33rd St              s   4688 shelter (4965.4, 336.8, 2.5) travel (-0.00, 1.00)
+Transit: streetcar stop 37th St              s   5071 shelter (4997.4, 712.8, 2.7) travel (0.00, 1.00)
+Transit: streetcar stop 41st St              s   5443 shelter (4994.0, 1086.6, 1.9) travel (-0.30, 0.95)
+Transit: streetcar stop Bay Road & 46th St   s   5926 shelter (4938.0, 1561.6, 3.0) travel (-0.30, 0.95)
+Transit: SkyLine profile 12.9..25.4 m above the street, 274 piers (0 straddle bents) (0.05 s)
+Transit: station Calle Luna       s    691 at (1850, -629) rail 16.5 street 3.1 exits -1/+1
+Transit: station Solaris          s   1891 at (3050, -629) rail 15.0 street 1.5 exits -1/+1
+Transit: station Civic Center     s   3068 at (3275, 400) rail 14.9 street 1.5 exits -1/+1
+Transit: station Midtown          s   3868 at (3275, 1200) rail 15.0 street 1.6 exits -1/+1
+Transit: station Canvas District  s   4644 at (2750, 1529) rail 16.4 street 2.2 exits -1/+1
+Transit: station Palmetto Flats   s   5744 at (1650, 1529) rail 17.0 street 3.5 exits -1/+1
+Transit: station Airport          s   6567 at (979, 1300) rail 17.7 street 4.3 exits -1/+1
+Transit: station Westbrook        s   8067 at (979, -200) rail 17.8 street 4.4 exits -1/+1
+Site runway 09L|27R  from (-1180, 2080) to (820, 2080) z 4.6 width 60
+Site runway 09R|27L  from (-1100, 780) to (700, 780) z 4.6 width 45
+Site terminal             at (628, 1440, 4.6)
+Site control tower        at (730, 1832, 4.6)
+Site container ship       at (4625, -800, 0.0)
+Site container ship       at (4616, -330, 0.0)
+Site port gate            at (4008, -160, 3.0)
+Site Key Coral marina     at (4039, -4035, 0.0)
+Site beach club           at (4873, -3866, 1.2)
+Site beach club           at (4808, -4183, 2.2)
+Site Solaris One          at (3350, -750, 1.4)
+Site stadium              at (3565, 445, 1.6)
+Site City Hall            at (3000, 372, 2.0)
+Site Canvas Park          at (3100, 1800, 1.7)
+Site Sol Beach Pier from (5414, 1250) to (5840, 1250) deck z 5.6
+Site Ferris wheel         at (5504, 1270, 5.6)
+Site lighthouse           at (-2206, -8000, 0.5)
+Site radio mast           at (-6744, 7248, 166.1)
+Site sugar mill           at (1430, 7500, 8.1)
+Site Rio Sol marina       at (2280, 188, 0.0)
+Site Okahatchee boat ramp at (-515, 6822, 7.7)
+Site Sawgrass tower       at (-4873, 420, 0.6)
+Sites finalized: 1486 elements (0.07 s)
+Interiors: 29 planned (convenience 7, gun shops 2) in 12.0 ms
+  interior 'Mari's Apartment' kind 0 building 28142 at (1771.22, 359.23, 3.77) ax (1.0000, 0.0000) x -6.55..2.18 depth 11.50 ceil 3.84: 3 rooms, 3 openings, 3 doors, 3 portals, 0 npc points
+  interior 'Mama Lucha's' kind 2 building 26747 at (1351.86, 340.76, 4.29) ax (-1.0000, -0.0000) x -8.43..8.43 depth 16.00 ceil 4.20: 4 rooms, 5 openings, 4 doors, 5 portals, 34 npc points
+  interior 'Rook's Garage' kind 3 building 27288 at (1562.94, 2361.63, 4.30) ax (1.0000, 0.0000) x -9.74..9.74 depth 20.00 ceil 7.11: 3 rooms, 5 openings, 4 doors, 5 portals, 5 npc points
+  interior 'Dex's Trailer' kind 1 building 25527 at (1106.75, 2666.39, 4.87) ax (1.0000, 0.0000) x -17.46..17.46 depth 16.71 ceil 2.25: 3 rooms, 7 openings, 3 doors, 7 portals, 0 npc points
+  interior 'Police Headquarters' kind 5 building 32504 at (3167.89, -240.34, 1.86) ax (1.0000, 0.0000) x -11.84..11.84 depth 16.00 ceil 5.59: 2 rooms, 8 openings, 2 doors, 8 portals, 14 npc points
+  interior 'Tidewater General Hospital' kind 6 building 35599 at (1692.75, 1073.40, 3.63) ax (1.0000, 0.0000) x -9.55..9.55 depth 16.00 ceil 4.20: 2 rooms, 7 openings, 2 doors, 7 portals, 12 npc points
+  interior 'Palmetto Arms' kind 7 building 25538 at (988.27, 2896.06, 4.79) ax (0.0000, 1.0000) x 0.00..9.20 depth 14.00 ceil 4.20: 2 rooms, 1 openings, 2 doors, 1 portals, 3 npc points
+  interior 'Northside Arms' kind 7 building 32997 at (3284.62, 4017.67, 2.09) ax (0.0000, 1.0000) x -6.33..6.33 depth 14.00 ceil 4.03: 2 rooms, 4 openings, 2 doors, 4 portals, 3 npc points
+  interior 'Threads' kind 9 building 19677 at (5141.16, -280.63, 1.88) ax (-1.0000, 0.0000) x -5.68..8.51 depth 15.00 ceil 3.91: 2 rooms, 6 openings, 2 doors, 6 portals, 4 npc points
+  interior 'Port Isle Warehouse' kind 12 building 35552 at (4034.00, -820.00, 3.15) ax (-0.0000, 1.0000) x -23.22..23.22 depth 38.00 ceil 8.93: 2 rooms, 10 openings, 4 doors, 10 portals, 4 npc points
+  interior 'TideStop Mart' kind 8 building 26846 at (1475.59, -259.27, 4.22) ax (-1.0000, -0.0000) x -6.05..6.05 depth 17.00 ceil 4.20: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+  interior 'Bodega La Luna' kind 8 building 29653 at (2255.23, 540.74, 2.91) ax (-1.0000, -0.0000) x -5.95..5.95 depth 17.00 ceil 3.98: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+  interior 'Canvas Corner Market' kind 8 building 32545 at (3090.56, 1476.66, 2.21) ax (0.0000, 1.0000) x -7.40..7.40 depth 17.00 ceil 3.92: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+  interior 'Sunrise Food Mart' kind 8 building 19719 at (5227.62, 641.71, 1.78) ax (0.0000, 1.0000) x -7.96..7.96 depth 17.00 ceil 3.43: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+  interior 'Northside Quick Stop' kind 8 building 29914 at (2304.43, 3761.63, 3.12) ax (1.0000, 0.0000) x -6.89..6.89 depth 17.00 ceil 4.12: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+  interior 'Flats Food & Fuel' kind 8 building 24842 at (467.58, 3361.67, 5.21) ax (1.0000, 0.0000) x -10.79..3.60 depth 17.00 ceil 4.20: 2 rooms, 1 openings, 2 doors, 1 portals, 5 npc points
+  interior 'Grove Pantry' kind 8 building 1182 at (2175.54, -3113.27, 2.23) ax (0.0207, -0.9998) x -6.96..6.96 depth 17.00 ceil 2.80: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+  interior 'Palm Motors' kind 17 building 31294 at (2686.87, 1279.16, 2.69) ax (0.0000, 1.0000) x -9.08..12.11 depth 20.00 ceil 3.90: 2 rooms, 8 openings, 3 doors, 8 portals, 5 npc points
+  interior 'Tide Customs Calle Luna' kind 18 building 29601 at (2278.47, -140.75, 2.99) ax (1.0000, 0.0000) x -7.61..7.61 depth 18.00 ceil 4.17: 1 rooms, 6 openings, 2 doors, 6 portals, 3 npc points
+  interior 'Tide Customs Sol Beach' kind 18 building 19788 at (5127.28, 1999.35, 1.92) ax (-1.0000, 0.0000) x -8.01..8.01 depth 18.00 ceil 3.72: 1 rooms, 6 openings, 2 doors, 6 portals, 3 npc points
+  interior 'Sunwash Car Wash' kind 19 building 29044 at (1988.34, 1491.32, 3.44) ax (0.0000, 1.0000) x -7.41..7.41 depth 20.00 ceil 8.08: 1 rooms, 5 openings, 3 doors, 5 portals, 2 npc points
+  interior 'Key Coral Villa' kind 0 building 23718 at (4516.12, -4203.72, 1.64) ax (0.9992, 0.0401) x -7.21..7.21 depth 12.00 ceil 2.80: 3 rooms, 5 openings, 3 doors, 5 portals, 0 npc points
+  interior 'Sol Beach Condo Lobby' kind 20 building 19771 at (5114.61, 1619.32, 1.86) ax (-1.0000, 0.0000) x -5.88..5.88 depth 10.00 ceil 4.20: 2 rooms, 4 openings, 2 doors, 4 portals, 2 npc points
+  interior 'Sol Beach Condo' kind 21 building 19771 at (5114.61, 1619.32, 31.52) ax (-1.0000, 0.0000) x -9.80..5.88 depth 12.00 ceil 2.61: 6 rooms, 4 openings, 5 doors, 4 portals, 0 npc points
+  interior 'Downtown Penthouse Lobby' kind 20 building 33543 at (3511.22, -715.16, 1.71) ax (-0.0000, -1.0000) x -5.25..5.25 depth 10.00 ceil 4.20: 2 rooms, 3 openings, 2 doors, 3 portals, 2 npc points
+  interior 'Downtown Penthouse' kind 21 building 33543 at (3511.22, -715.16, 52.15) ax (-0.0000, -1.0000) x -10.49..10.49 depth 14.00 ceil 2.80: 6 rooms, 4 openings, 5 doors, 4 portals, 0 npc points
+  interior 'Club Riptide' kind 4 building -1 at (5424.10, 900.00, 1.36) ax (0.0000, -1.0000) x -55.00..17.00 depth 32.00 ceil 4.00: 4 rooms, 0 openings, 0 doors, 0 portals, 32 npc points
+  interior 'Solaris One' kind 10 building -1 at (3350.00, -786.00, 1.89) ax (1.0000, -0.0000) x -18.40..18.40 depth 31.00 ceil 8.30: 3 rooms, 4 openings, 4 doors, 4 portals, 17 npc points
+  interior 'Solaris One Penthouse' kind 11 building -1 at (3365.30, -759.93, 457.34) ax (0.5442, 0.8390) x -18.24..18.24 depth 36.48 ceil 8.20: 4 rooms, 4 openings, 1 doors, 4 portals, 15 npc points
+Buildings: 33925 restyled by district palettes in 82.8 ms (taxpayer 1392, 1920s block 924, med revival 774, mimo shop 1036, bodega 338, arcade 118, gallery 11, walk-up 497, mimo apts 763, med apts 530, office 60s 129, modern 372, loft 80, condo slab 134, glass condo 113, mimo hotel 97, podium condo 78, ranch 5438, bungalow 2806, med house 3406, two-storey 2417, mimo house 1933, split level 2251, conch 265, modern villa 190, streamline 176, med hotel 117, mimo motel 133, sawtooth 540, ware office 551, body shop 282, med villa 307, colonial villa 135, stilt house 73, mimo motor court 161, med motel 90, keys motel 113, motor inn 90, mission strip 199, mimo strip 186, power center 255, gambrel barn 34, pole barn 43, gable barn 24, mission church 47, board church 46, brick church 25, a-frame church 43, cbs house 3237, folk victorian 363, raised keys house 63, mobile home 149)
+Transit: 0 buildings cleared from the SkyLine corridor
+Buildings: block infill 3458 back buildings (garage rows 720, sheds 1872, back houses 866, 0 in the viaduct corridor dropped, 1210 near a street left as yards), 1465 rear parking lots, 5760 yards in 176.8 ms
+Transit: 0 buildings cleared from the SkyLine corridor
+Buildings: frontage fill 4300 gaps: 1676 vacant lots, 731 street parking lots, 649 side yards, 458 service yards, 786 left bare (176.1 ms)
+Buildings: repetition (neighbours within 150 m with the same style, archetype, massing, roof, height band and facade pattern): 2.0% overall, 56% of buildings without a twin; by district: Downtown Porto Sol 2.8%, Solaris 3.0%, Canvas District 0.8%, North Porto Sol 1.0%, Calle Luna 1.4%, Sol Beach 1.7%, Key Coral 4.6%, The Grove 2.0%, Palmetto Flats 1.2%, Westbrook 2.5%, Redland 3.0%, Ten Palms 1.6%, Palmera Farmlands 4.9%, Okahatchee 3.5%, Harlow 2.7%, Fort Castell 1.7%, Key Solano 2.5% (86.9 ms)
+Lane graph: 180 plaza walkways and 2 zebra crossings from the sites
+Lane graph: 25496 lanes, 56760 connectors (1154772 pts), 40687 walk nodes, 56441 walk links, dead-end turning circles moved 22 / obstructed 0 (0.90 s)
+Loaded 25 collision cells
+Simulating 6.0 minutes around (5250, 600) r=450 with 140 cars, 120 peds, 0 parked
+LATDEV t=14.8 car 82 (Sawgrass) at 4977.3 608.1 lane 8094 u 23.8 latErr -0.91 v 14.0 vT 14.1 steer 0.28 diag e -0.96 psi -0.03 ff 0.02 st 0.14
+PSIJUMP t=14.9 car 37 psi -0.01 real -0.26 fp 7537 fu 16.48 u 14.78 lcLane 7536 lcU0 11.8 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.30 nudge 0.00
+LATDEV t=24.8 car 4 (Tomo) at 5218.2 436.1 lane 7528 u 42.6 latErr -1.47 v 14.9 vT 16.1 steer 0.52 diag e -1.60 psi -0.09 ff 0.01 st 0.26
+LATDEV t=28.4 car 17 (Tekko) at 5236.8 606.2 lane 7540 u 21.7 latErr -0.90 v 14.3 vT 17.6 steer 0.32 diag e -0.99 psi -0.06 ff 0.02 st 0.16
+PSIJUMP t=28.5 car 26 psi -0.07 real 0.18 fp 7556 fu 18.54 u 17.28 lcLane 7557 lcU0 11.9 lcLen 18.0 lcFrom 0.00 lcTo 3.30 lat 0.70 nudge 0.00
+PSIJUMP t=32.6 car 62 psi -0.06 real 0.19 fp 7514 fu 16.53 u 15.28 lcLane 7515 lcU0 11.9 lcLen 16.0 lcFrom 0.00 lcTo 3.30 lat 0.39 nudge 0.00
+COLLISION t=34.77 imp 2396 at 5035.2 490.4
+   A 11: Falke 7 v=0.7 vT=1.5 lane 8090(e3287 d1 i2) u=65.7/71.4 lc -1 lat 0.00 nudge 0.00 obst 3.5(30) stop 1000000000.0 dummy 0
+   B 30: Parcel P70 v=0.3 vT=0.0 conn 19257 node 2478 turn 0 ctl 1 u=28.9/33.5 lc -1 lat 0.00 nudge 0.00 obst 0.0(11) stop 1000000000.0 dummy 0
+LATDEV t=42.5 car 131 (Minnow) at 4973.3 167.1 lane 8061 u 39.1 latErr -0.91 v 14.6 vT 14.8 steer 0.32 diag e -0.97 psi -0.05 ff 0.01 st 0.16
+PSIJUMP t=47.4 car 128 psi 0.08 real -0.17 fp 7549 fu 16.55 u 15.18 lcLane 7548 lcU0 11.9 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.36 nudge 0.00
+PSIJUMP t=51.9 car 132 psi 0.11 real -0.14 fp 7553 fu 62.95 u 61.57 lcLane 7552 lcU0 58.2 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.37 nudge 0.00
+LATDEV t=58.1 car 32 (Tanuki) at 5093.3 536.8 lane 7863 u 49.4 latErr 1.01 v 10.7 vT 10.2 steer -0.08 diag e 0.90 psi -0.11 ff -0.01 st -0.04
+  sim 60 s: collisions 1 (hard 0), red 0, stuck 0, deadlocks 0, ped hits 0, respawns 19 (wall 12 s)
+LATDEV t=61.7 car 36 (Cutter '74) at 5225.6 241.7 lane 7520 u 59.5 latErr -1.21 v 13.1 vT 13.2 steer 0.42 diag e -1.30 psi -0.05 ff 0.01 st 0.22
+PSIJUMP t=62.3 car 132 psi -0.02 real -0.28 fp 7552 fu 69.05 u 67.71 lcLane 7552 lcU0 58.2 lcLen 16.0 lcFrom 3.30 lcTo 0.00 lat 1.20 nudge 0.00
+LATDEV t=62.6 car 12 (Harbor) at 5093.4 546.5 lane 7863 u 39.9 latErr 0.95 v 11.7 vT 11.3 steer -0.49 diag e 1.13 psi 0.11 ff -0.01 st -0.26
+LATDEV t=63.0 car 99 (Kumo) at 5236.1 644.2 lane 7543 u 37.2 latErr 0.90 v 14.7 vT 17.4 steer -0.37 diag e 1.01 psi 0.08 ff -0.01 st -0.19
+LATDEV t=63.2 car 98 (Raijin 1000) at 5088.7 308.6 lane 7857 u 8.6 latErr -0.90 v 4.3 vT 11.8 steer 0.41 diag e 0.00 psi 0.00 ff 0.00 st 0.00
+DEADLOCK t=68.1 car 133 at 4964.4 525.0 lane e3285 d-1 i0 u 61.3/69.0 stopU 63.9 next conn 19612 turn 0 ctl 2 gateNode 2546 stopDist 0.4 obst 21.0 (body 71) sig 0
+   -> car 71 conn 19608 turn 2 node 2546 u 19.8/22.7 hold 13.5 committed 1 v=0.0 vT=0.3 stop 0.4 obst 1000000000.0(-1) wait 56.3 gateConn 19608 gateNode 2546 stopDone 0 lat -0.45
+DEADLOCK t=68.8 car 35 at 4940.2 499.2 lane e3286 d-1 i1 u 802.4/810.3 stopU 805.2 next conn 19616 turn 0 ctl 2 gateNode 2546 stopDist 0.4 obst 1000000000.0 (body -1) sig 2
+COLLISION t=69.85 imp 115 at 5029.8 488.8
+   A 11: Falke 7 v=0.1 vT=1.4 lane 8090(e3287 d1 i2) u=65.4/71.4 lc -1 lat 0.00 nudge 0.00 obst 3.4(30) stop 1000000000.0 dummy 0
+   B 87: Kiko v=0.1 vT=0.0 lane 8090(e3287 d1 i2) u=60.8/71.4 lc -1 lat 0.00 nudge 0.00 obst 0.2(11) stop 3.5 dummy 0
+DEADLOCK t=71.9 car 71 at 4964.7 498.6 conn 19608 turn 2 appr 1 node 2546 ctl 2 u 19.8/22.7 hold 13.5 committed 1 gateNode 2546 stopDist 0.4 obst 1000000000.0 (body -1) sig 2
+PSIJUMP t=75.5 car 82 psi 0.01 real -0.24 fp 7543 fu 16.61 u 15.12 lcLane 7542 lcU0 11.9 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.35 nudge 0.00
+LATDEV t=76.6 car 99 (Kumo) at 5220.1 544.3 lane 7537 u 42.2 latErr 0.91 v 15.3 vT 16.2 steer -0.39 diag e 1.02 psi 0.09 ff -0.01 st -0.20
+DEADLOCK t=77.8 car 16 at 4964.4 531.9 lane e3285 d-1 i0 u 54.4/69.0 stopU 63.9 next conn 19612 turn 0 ctl 2 gateNode 2546 stopDist 7.0 obst 1.9 (body 133) sig 0
+   -> car 133 lane e3285 d-1 i0 u 61.3/69.0 v=0.0 vT=0.2 stop 0.4 obst 21.0(71) wait 69.6 gateConn 19612 gateNode 2546 stopDone 1 lat 0.00
+   -> car 71 conn 19608 turn 2 node 2546 u 19.8/22.7 hold 13.5 committed 1 v=0.0 vT=0.3 stop 0.4 obst 5.8(134) wait 65.9 gateConn 19608 gateNode 2546 stopDone 0 lat -0.45
+   -> car 134 conn 19593 turn 0 node 2544 u 8.2/13.5 hold 0.0 committed 0 v=1.4 vT=1.3 stop 3.0 obst 4.5(71) wait 0.0 gateConn 19593 gateNode 2544 stopDone 0 lat -0.01
+   -> car 71 conn 19608 turn 2 node 2546 u 19.8/22.7 hold 13.5 committed 1 v=0.0 vT=0.3 stop 0.4 obst 5.8(134) wait 65.9 gateConn 19608 gateNode 2546 stopDone 0 lat -0.45
+   -> car 134 conn 19593 turn 0 node 2544 u 8.2/13.5 hold 0.0 committed 0 v=1.4 vT=1.3 stop 3.0 obst 4.5(71) wait 0.0 gateConn 19593 gateNode 2544 stopDone 0 lat -0.01
+LATDEV t=85.5 car 64 (Tomo) at 5249.5 1084.9 lane 7568 u 24.5 latErr 0.90 v 14.9 vT 17.8 steer -0.25 diag e 0.94 psi 0.02 ff -0.02 st -0.12
+LATDEV t=85.5 car 82 (Sawgrass) at 5223.4 544.0 lane 7536 u 42.4 latErr 0.92 v 15.2 vT 16.0 steer -0.41 diag e 1.06 psi 0.09 ff -0.01 st -0.21
+DEADLOCK t=94.5 car 51 at 4964.4 538.8 lane e3285 d-1 i0 u 47.5/69.0 stopU 63.9 next conn 19612 turn 0 ctl 2 gateNode 2546 stopDist 14.2 obst 1.9 (body 16) sig 2
+   -> car 16 lane e3285 d-1 i0 u 54.4/69.0 v=0.0 vT=0.2 stop 7.0 obst 1.9(133) wait 76.7 gateConn 19612 gateNode 2546 stopDone 0 lat 0.01
+   -> car 133 lane e3285 d-1 i0 u 61.3/69.0 v=0.0 vT=0.2 stop 0.4 obst 21.0(71) wait 86.4 gateConn 19612 gateNode 2546 stopDone 1 lat 0.00
+   -> car 71 conn 19608 turn 2 node 2546 u 19.8/22.7 hold 13.5 committed 1 v=0.0 vT=0.3 stop 0.4 obst 7.5(1) wait 82.6 gateConn 19608 gateNode 2546 stopDone 0 lat -0.45
+   -> car 1 lane e3280 d1 i0 u 85.6/88.8 v=4.2 vT=10.1 stop 1000000000.0 obst 1000000000.0(-1) wait 0.0 gateConn 19593 gateNode 2544 stopDone 1 lat 0.03
+DEADLOCK t=95.1 car 87 at 5027.4 488.7 lane e3287 d1 i2 u 60.7/71.4 stopU 66.3 next conn 19260 turn 2 ctl 1 gateNode 2478 stopDist 3.5 obst 0.4 (body 11) sig 4
+   -> car 11 lane e3287 d1 i2 u 65.6/71.4 v=0.0 vT=0.0 stop 1000000000.0 obst 1.6(171) wait 3.8 gateConn 19260 gateNode 2478 stopDone 1 lat 0.13
+LATDEV t=97.2 car 120 (Cutter '74) at 4965.9 258.6 lane 8064 u 53.2 latErr 0.90 v 13.5 vT 13.9 steer -0.29 diag e 0.95 psi 0.03 ff -0.02 st -0.14
+PSIJUMP t=102.6 car 92 psi 0.08 real -0.17 fp 7521 fu 16.75 u 15.38 lcLane 7520 lcU0 11.9 lcLen 16.1 lcFrom 0.00 lcTo -3.30 lat -0.39 nudge 0.00
+LATDEV t=104.4 car 82 (Sawgrass) at 5215.4 469.2 lane 7530 u 21.6 latErr 0.92 v 14.4 vT 17.1 steer -0.43 diag e 1.07 psi 0.10 ff -0.01 st -0.23
+DEADLOCK t=105.9 car 30 at 5037.7 491.7 conn 19257 turn 0 appr 0 node 2478 ctl 1 u 29.0/33.5 hold 0.0 committed 0 gateNode 2478 stopDist 1000000000.0 obst 0.0 (body 11) sig 4
+   -> car 11 lane e3287 d1 i2 u 65.7/71.4 v=0.0 vT=1.4 stop 1000000000.0 obst 3.3(30) wait 3.9 gateConn 19260 gateNode 2478 stopDone 1 lat 0.14
+   -> car 30 conn 19257 turn 0 node 2478 u 29.0/33.5 hold 0.0 committed 0 v=0.0 vT=0.0 stop 1000000000.0 obst 0.0(11) wait 60.0 gateConn 19257 gateNode 2478 stopDone 0 lat 0.10
+   -> car 11 lane e3287 d1 i2 u 65.7/71.4 v=0.0 vT=1.4 stop 1000000000.0 obst 3.3(30) wait 3.9 gateConn 19260 gateNode 2478 stopDone 1 lat 0.14
+   -> car 30 conn 19257 turn 0 node 2478 u 29.0/33.5 hold 0.0 committed 0 v=0.0 vT=0.0 stop 1000000000.0 obst 0.0(11) wait 60.0 gateConn 19257 gateNode 2478 stopDone 0 lat 0.10
+   -> car 11 lane e3287 d1 i2 u 65.7/71.4 v=0.0 vT=1.4 stop 1000000000.0 obst 3.3(30) wait 3.9 gateConn 19260 gateNode 2478 stopDone 1 lat 0.14
+LATDEV t=109.2 car 62 (Tomo) at 5357.7 1107.5 lane 7208 u 48.7 latErr -0.91 v 13.8 vT 13.9 steer 0.35 diag e -1.00 psi -0.06 ff 0.01 st 0.18
+PSIJUMP t=109.8 car 80 psi -0.18 real 0.07 fp 7540 fu 18.54 u 16.99 lcLane 7541 lcU0 11.9 lcLen 18.0 lcFrom 0.00 lcTo 3.30 lat 0.65 nudge 0.00
+LATDEV t=111.9 car 71 (Tekko) at 4962.8 501.7 lane 8076 u 12.8 latErr -4.60 v 3.3 vT 10.7 steer -1.00 diag e 10.45 psi 0.23 ff 0.00 st -1.64
+DEADLOCK t=117.8 car 136 at 4964.5 547.0 lane e3285 d-1 i0 u 39.4/69.0 stopU 63.9 next conn 19613 turn 2 ctl 2 gateNode 2546 stopDist 22.1 obst 3.3 (body 51) sig 0
+   -> car 51 lane e3285 d-1 i0 u 47.5/69.0 v=0.0 vT=0.2 stop 14.2 obst 1.9(16) wait 83.4 gateConn 19612 gateNode 2546 stopDone 0 lat 0.01
+   -> car 16 lane e3285 d-1 i0 u 54.4/69.0 v=0.0 vT=0.2 stop 7.0 obst 1.9(133) wait 100.1 gateConn 19612 gateNode 2546 stopDone 0 lat 0.01
+   -> car 133 lane e3285 d-1 i0 u 61.3/69.0 v=0.0 vT=0.2 stop 0.4 obst 30.7(1) wait 109.8 gateConn 19612 gateNode 2546 stopDone 1 lat 0.00
+   -> car 1 conn 19593 turn 0 node 2544 u 10.8/13.5 hold 0.0 committed 0 v=0.0 vT=0.2 stop 0.4 obst 33.2(111) wait 16.4 gateConn 19593 gateNode 2544 stopDone 0 lat -0.00
+   -> car 111 lane e3284 d1 i0 u 50.3/70.5 v=0.0 vT=0.2 stop 12.5 obst 2.6(134) wait 5.3 gateConn 19261 gateNode 2478 stopDone 0 lat -0.00
+  sim 120 s: collisions 2 (hard 0), red 0, stuck 0, deadlocks 8, ped hits 0, respawns 57 (wall 25 s)
+COLLISION t=122.61 imp 291 at 5030.1 488.8
+   A 11: Falke 7 v=0.1 vT=1.3 lane 8090(e3287 d1 i2) u=65.8/71.4 lc -1 lat 0.00 nudge 0.00 obst 3.3(30) stop 1000000000.0 dummy 0
+   B 87: Kiko v=0.2 vT=0.9 lane 8090(e3287 d1 i2) u=61.1/71.4 lc -1 lat 0.00 nudge 0.00 obst 0.0(162) stop 3.2 dummy 0
+PSIJUMP t=125.4 car 113 psi 0.08 real -0.17 fp 7559 fu 16.64 u 15.21 lcLane 7558 lcU0 11.9 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.36 nudge 0.00
+LATDEV t=126.3 car 36 (Cutter '74) at 5218.6 431.6 lane 7528 u 38.0 latErr -1.02 v 12.5 vT 14.7 steer 0.53 diag e -1.22 psi -0.12 ff 0.01 st 0.27
+COLLISION t=128.76 imp 781 at 5035.0 492.1
+   A 30: Parcel P70 v=0.6 vT=0.9 conn 19257 node 2478 turn 0 ctl 1 u=28.8/33.5 lc -1 lat 0.00 nudge 0.00 obst -0.0(171) stop 1000000000.0 dummy 0
+   B 131: Stevedore v=0.2 vT=0.2 lane 8089(e3287 d1 i1) u=65.6/71.4 lc -1 lat 0.00 nudge 0.00 obst 2.5(30) stop 1000000000.0 dummy 0
+DEADLOCK t=132.7 car 121 at 4965.8 554.6 lane e3285 d-1 i0 u 31.8/69.0 stopU 63.9 next conn 19612 turn 0 ctl 2 gateNode 2546 stopDist 29.6 obst 2.5 (body 136) sig 0
+   -> car 136 lane e3285 d-1 i0 u 39.4/69.0 v=0.0 vT=0.2 stop 22.1 obst 3.3(51) wait 74.9 gateConn 19613 gateNode 2546 stopDone 0 lat -0.07
+   -> car 51 lane e3285 d-1 i0 u 47.5/69.0 v=0.0 vT=0.2 stop 14.2 obst 1.9(16) wait 98.3 gateConn 19612 gateNode 2546 stopDone 0 lat 0.01
+   -> car 16 lane e3285 d-1 i0 u 54.4/69.0 v=0.0 vT=0.2 stop 7.0 obst 1.9(133) wait 115.0 gateConn 19612 gateNode 2546 stopDone 0 lat 0.01
+   -> car 133 lane e3285 d-1 i0 u 61.3/69.0 v=0.0 vT=0.2 stop 0.4 obst 26.7(35) wait 124.6 gateConn 19612 gateNode 2546 stopDone 1 lat 0.00
+   -> car 35 conn 19616 turn 0 node 2546 u 11.4/34.4 hold 0.0 committed 0 v=0.0 vT=0.2 stop 1000000000.0 obst 2.6(1) wait 10.7 gateConn 19616 gateNode 2546 stopDone 0 lat -0.01
+DEADLOCK t=135.0 car 54 at 5046.4 491.6 conn 19257 turn 0 appr 0 node 2478 ctl 1 u 20.3/33.5 hold 0.0 committed 0 gateNode 2478 stopDist 1000000000.0 obst 2.2 (body 30) sig 4
+   -> car 30 conn 19257 turn 0 node 2478 u 28.8/33.5 hold 0.0 committed 0 v=0.0 vT=0.0 stop 1000000000.0 obst 0.0(11) wait 83.8 gateConn 19257 gateNode 2478 stopDone 0 lat 0.16
+   -> car 11 lane e3287 d1 i2 u 67.8/71.4 v=0.0 vT=0.0 stop 1000000000.0 obst 1.3(30) wait 12.8 gateConn 19260 gateNode 2478 stopDone 1 lat 0.20
+   -> car 30 conn 19257 turn 0 node 2478 u 28.8/33.5 hold 0.0 committed 0 v=0.0 vT=0.0 stop 1000000000.0 obst 0.0(11) wait 83.8 gateConn 19257 gateNode 2478 stopDone 0 lat 0.16
+   -> car 11 lane e3287 d1 i2 u 67.8/71.4 v=0.0 vT=0.0 stop 1000000000.0 obst 1.3(30) wait 12.8 gateConn 19260 gateNode 2478 stopDone 1 lat 0.20
+   -> car 30 conn 19257 turn 0 node 2478 u 28.8/33.5 hold 0.0 committed 0 v=0.0 vT=0.0 stop 1000000000.0 obst 0.0(11) wait 83.8 gateConn 19257 gateNode 2478 stopDone 0 lat 0.16
+DEADLOCK t=137.5 car 118 at 4968.0 561.3 lane e3285 d-1 i0 u 24.9/69.0 stopU 63.9 next conn 19612 turn 0 ctl 2 gateNode 2546 stopDist 37.0 obst 2.5 (body 121) sig 0
+   -> car 121 lane e3285 d-1 i0 u 31.8/69.0 v=0.0 vT=0.2 stop 29.6 obst 2.5(136) wait 64.8 gateConn 19612 gateNode 2546 stopDone 0 lat -0.01
+   -> car 136 lane e3285 d-1 i0 u 39.4/69.0 v=0.0 vT=0.2 stop 22.1 obst 3.3(51) wait 79.7 gateConn 19613 gateNode 2546 stopDone 0 lat -0.07
+   -> car 51 lane e3285 d-1 i0 u 47.5/69.0 v=0.0 vT=0.2 stop 14.2 obst 1.9(16) wait 103.1 gateConn 19612 gateNode 2546 stopDone 0 lat 0.01
+   -> car 16 lane e3285 d-1 i0 u 54.4/69.0 v=0.0 vT=0.2 stop 7.0 obst 1.9(133) wait 119.8 gateConn 19612 gateNode 2546 stopDone 0 lat 0.01
+   -> car 133 lane e3285 d-1 i0 u 61.3/69.0 v=0.0 vT=0.2 stop 0.4 obst 26.7(35) wait 129.4 gateConn 19612 gateNode 2546 stopDone 1 lat 0.00
+LATDEV t=138.3 car 17 (Tekko) at 5109.5 642.3 lane 7867 u 38.9 latErr 0.91 v 14.8 vT 14.8 steer -0.29 diag e 0.98 psi 0.05 ff -0.02 st -0.14
+PSIJUMP t=140.6 car 6 psi 0.09 real -0.17 fp 7555 fu 16.67 u 15.33 lcLane 7554 lcU0 12.0 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.38 nudge 0.00
+LATDEV t=141.1 car 99 (Kumo) at 5214.2 267.6 lane 7521 u 31.1 latErr 0.90 v 10.1 vT 8.4 steer -0.42 diag e 0.97 psi 0.05 ff -0.01 st -0.20
+DEADLOCK t=143.4 car 25 at 4970.0 567.7 lane e3285 d-1 i0 u 18.1/69.0 stopU 63.9 next conn 19612 turn 0 ctl 2 gateNode 2546 stopDist 43.6 obst 2.6 (body 118) sig 2
+   -> car 118 lane e3285 d-1 i0 u 24.9/69.0 v=0.0 vT=0.2 stop 37.0 obst 2.5(121) wait 65.9 gateConn 19612 gateNode 2546 stopDone 0 lat -0.01
+   -> car 121 lane e3285 d-1 i0 u 31.8/69.0 v=0.0 vT=0.2 stop 29.6 obst 2.5(136) wait 70.7 gateConn 19612 gateNode 2546 stopDone 0 lat -0.01
+   -> car 136 lane e3285 d-1 i0 u 39.4/69.0 v=0.0 vT=0.2 stop 1000000000.0 obst 3.3(51) wait 85.6 gateConn 19613 gateNode 2546 stopDone 0 lat -0.07
+   -> car 51 lane e3285 d-1 i0 u 47.5/69.0 v=0.0 vT=0.2 stop 14.2 obst 1.9(16) wait 109.0 gateConn 19612 gateNode 2546 stopDone 0 lat 0.01
+   -> car 16 lane e3285 d-1 i0 u 54.4/69.0 v=0.0 vT=0.2 stop 7.0 obst 1.9(133) wait 125.7 gateConn 19612 gateNode 2546 stopDone 0 lat 0.01
+LATDEV t=144.2 car 130 (Seiran) at 5236.1 642.2 lane 7543 u 39.1 latErr 0.90 v 15.6 vT 17.1 steer -0.31 diag e 0.98 psi 0.05 ff -0.02 st -0.15
+PSIJUMP t=145.5 car 41 psi -0.07 real 0.18 fp 7558 fu 17.85 u 16.54 lcLane 7559 lcU0 11.9 lcLen 17.3 lcFrom 0.00 lcTo 3.30 lat 0.58 nudge 0.00
+DEADLOCK t=147.8 car 5 at 4972.0 574.4 lane e3285 d-1 i0 u 10.9/69.0 stopU 63.9 next conn 19612 turn 0 ctl 2 gateNode 2479 stopDist 1000000000.0 obst 2.6 (body 25) sig 2
+   -> car 25 lane e3285 d-1 i0 u 18.1/69.0 v=0.0 vT=0.2 stop 43.6 obst 2.6(118) wait 64.4 gateConn 19612 gateNode 2546 stopDone 0 lat 0.01
+   -> car 118 lane e3285 d-1 i0 u 24.9/69.0 v=0.0 vT=0.2 stop 37.0 obst 2.5(121) wait 70.3 gateConn 19612 gateNode 2546 stopDone 0 lat -0.01
+   -> car 121 lane e3285 d-1 i0 u 31.8/69.0 v=0.0 vT=0.2 stop 29.6 obst 2.5(136) wait 75.1 gateConn 19612 gateNode 2546 stopDone 0 lat -0.01
+   -> car 136 lane e3285 d-1 i0 u 39.4/69.0 v=0.0 vT=0.2 stop 34.2 obst 3.3(51) wait 90.0 gateConn 19613 gateNode 2546 stopDone 0 lat -0.07
+   -> car 51 lane e3285 d-1 i0 u 47.5/69.0 v=0.0 vT=0.2 stop 14.2 obst 1.9(16) wait 113.4 gateConn 19612 gateNode 2546 stopDone 0 lat 0.01
+LATDEV t=148.8 car 10 (Harbor) at 5357.7 1107.6 lane 7208 u 48.8 latErr -0.91 v 14.5 vT 14.5 steer 0.36 diag e -1.00 psi -0.07 ff 0.01 st 0.18
+PSIJUMP t=151.8 car 127 psi -0.06 real 0.19 fp 7558 fu 18.58 u 16.77 lcLane 7559 lcU0 11.8 lcLen 18.1 lcFrom 0.00 lcTo 3.30 lat 0.60 nudge 0.00
+LATDEV t=152.9 car 99 (Kumo) at 5230.0 167.5 lane 7515 u 38.6 latErr -0.92 v 15.3 vT 17.0 steer 0.40 diag e -1.03 psi -0.09 ff 0.01 st 0.20
+LATDEV t=170.9 car 130 (Seiran) at 5220.1 542.3 lane 7537 u 44.0 latErr 0.90 v 14.6 vT 14.4 steer -0.29 diag e 0.96 psi 0.04 ff -0.01 st -0.15
+LATDEV t=171.1 car 84 (Kaito) at 5236.1 645.5 lane 7543 u 36.1 latErr 0.92 v 13.7 vT 15.3 steer -0.46 diag e 1.10 psi 0.13 ff -0.01 st -0.26
+PSIJUMP t=177.9 car 11 psi 0.19 real -0.06 fp 7531 fu 16.61 u 15.02 lcLane 7530 lcU0 11.9 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.32 nudge 0.00
+  sim 180 s: collisions 4 (hard 0), red 0, stuck 0, deadlocks 13, ped hits 0, respawns 80 (wall 38 s)
+PSIJUMP t=188.8 car 12 psi -0.05 real 0.21 fp 7528 fu 16.51 u 15.14 lcLane 7529 lcU0 11.8 lcLen 16.0 lcFrom 0.00 lcTo 3.30 lat 0.37 nudge 0.00
+PSIJUMP t=192.6 car 86 psi 0.12 real -0.14 fp 7529 fu 16.68 u 15.35 lcLane 7528 lcU0 11.9 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.38 nudge 0.00
+PSIJUMP t=198.1 car 76 psi 0.08 real -0.17 fp 7519 fu 16.73 u 15.26 lcLane 7518 lcU0 12.0 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.35 nudge 0.00
+LATDEV t=200.8 car 130 (Seiran) at 5212.1 467.8 lane 7531 u 23.1 latErr 0.91 v 14.8 vT 17.8 steer -0.30 diag e 0.97 psi 0.04 ff -0.01 st -0.15
+PSIJUMP t=203.6 car 94 psi 0.18 real -0.07 fp 8090 fu 21.30 u 20.09 lcLane 8089 lcU0 16.8 lcLen 16.0 lcFrom 0.00 lcTo -3.40 lat -0.36 nudge 0.00
+DEADLOCK t=211.3 car 126 at 5096.0 491.6 conn 18525 turn 0 appr 1 node 2404 ctl 1 u 5.3/17.0 hold 0.0 committed 0 gateNode 2404 stopDist 21.9 obst 2.6 (body 61) sig 4
+   -> car 61 conn 18528 turn 1 node 2404 u 8.0/12.6 hold 0.0 committed 0 v=0.1 vT=1.4 stop 14.8 obst 3.5(4) wait 28.2 gateConn 18528 gateNode 2404 stopDone 0 lat 0.28
+   -> car 4 lane e3177 d1 i0 u 12.4/26.0 v=2.6 vT=5.2 stop 6.1 obst 6.0(32) wait 0.0 gateConn 19256 gateNode 2478 stopDone 0 lat -0.00
+   -> car 32 lane e3177 d1 i0 u 23.5/26.0 v=6.2 vT=6.2 stop 1000000000.0 obst 12.0(20) wait 0.0 gateConn 19257 gateNode 2478 stopDone 1 lat 0.00
+   -> car 20 conn 19257 turn 0 node 2478 u 14.1/33.5 hold 0.0 committed 0 v=0.9 vT=0.7 stop 1000000000.0 obst 3.2(3) wait 20.4 gateConn 19257 gateNode 2478 stopDone 0 lat 0.00
+   -> car 3 conn 19257 turn 0 node 2478 u 22.0/33.5 hold 0.0 committed 0 v=0.0 vT=0.2 stop 1000000000.0 obst 1.9(54) wait 52.8 gateConn 19257 gateNode 2478 stopDone 0 lat -0.00
+PSIJUMP t=213.6 car 31 psi -0.07 real 0.19 fp 7526 fu 18.90 u 17.52 lcLane 7527 lcU0 12.1 lcLen 18.1 lcFrom 0.00 lcTo 3.30 lat 0.72 nudge 0.00
+PSIJUMP t=214.2 car 130 psi 0.11 real -0.14 fp 7525 fu 58.23 u 56.83 lcLane 7524 lcU0 53.5 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.37 nudge 0.00
+DEADLOCK t=217.4 car 57 at 5110.3 491.6 lane e3053 d1 i0 u 112.5/121.5 stopU 116.4 next conn 18523 turn 2 ctl 1 gateNode 2404 stopDist 1000000000.0 obst 3.7 (body 72) sig 4
+   -> car 72 lane e3053 d1 i0 u 120.5/121.5 v=0.0 vT=0.2 stop 28.3 obst 2.5(126) wait 32.4 gateConn 18525 gateNode 2404 stopDone 1 lat 0.00
+   -> car 126 conn 18525 turn 0 node 2404 u 6.0/17.0 hold 0.0 committed 0 v=0.0 vT=0.0 stop 21.2 obst 0.0(124) wait 64.1 gateConn 18525 gateNode 2404 stopDone 0 lat -0.00
+   -> car 124 conn 18528 turn 1 node 2404 u 5.0/12.6 hold 0.0 committed 0 v=0.9 vT=0.7 stop 17.2 obst 4.4(61) wait 0.0 gateConn 18528 gateNode 2404 stopDone 0 lat 0.51
+   -> car 61 lane e3177 d1 i0 u 10.6/26.0 v=0.0 vT=0.2 stop 8.1 obst 2.5(4) wait 0.9 gateConn 19256 gateNode 2478 stopDone 0 lat 0.09
+   -> car 4 lane e3177 d1 i0 u 18.0/26.0 v=0.0 vT=0.2 stop 0.4 obst 10.1(32) wait 2.6 gateConn 19256 gateNode 2478 stopDone 1 lat -0.00
+DEADLOCK t=217.9 car 133 at 4963.6 498.8 conn 19612 turn 0 appr 2 node 2546 ctl 2 u 18.5/21.2 hold 0.0 committed 0 gateNode 2546 stopDist 0.4 obst 5.0 (body 69) sig 0
+   -> car 69 conn 19593 turn 0 node 2544 u 10.8/13.5 hold 0.0 committed 0 v=0.0 vT=0.2 stop 0.4 obst 1000000000.0(-1) wait 4.3 gateConn 19593 gateNode 2544 stopDone 0 lat -0.01
+DEADLOCK t=218.5 car 3 at 5044.7 491.6 conn 19257 turn 0 appr 0 node 2478 ctl 1 u 22.0/33.5 hold 0.0 committed 0 gateNode 2478 stopDist 1000000000.0 obst 1.9 (body 54) sig 4
+   -> car 54 conn 19257 turn 0 node 2478 u 28.7/33.5 hold 0.0 committed 0 v=0.0 vT=0.0 stop 1000000000.0 obst 1.8(208) wait 128.3 gateConn 19257 gateNode 2478 stopDone 0 lat 0.00
+DEADLOCK t=219.2 car 16 at 4964.5 505.7 conn 19612 turn 0 appr 2 node 2546 ctl 2 u 11.6/21.2 hold 0.0 committed 0 gateNode 2546 stopDist 7.0 obst 1.9 (body 133) sig 0
+   -> car 133 conn 19612 turn 0 node 2546 u 18.5/21.2 hold 0.0 committed 0 v=0.0 vT=0.2 stop 0.4 obst 5.0(69) wait 61.3 gateConn 19612 gateNode 2546 stopDone 0 lat 0.08
+   -> car 69 conn 19593 turn 0 node 2544 u 10.8/13.5 hold 0.0 committed 0 v=0.0 vT=0.2 stop 0.4 obst 1000000000.0(-1) wait 5.6 gateConn 19593 gateNode 2544 stopDone 0 lat -0.01
+DEADLOCK t=225.1 car 81 at 4991.3 508.3 lane e3287 d-1 i2 u 63.3/71.4 stopU 66.3 next conn 19611 turn 0 ctl 2 gateNode 2546 stopDist 0.4 obst 23.6 (body 51) sig 2
+   -> car 51 conn 19612 turn 0 node 2546 u 4.5/21.2 hold 0.0 committed 0 v=0.0 vT=0.2 stop 14.4 obst 2.0(16) wait 28.4 gateConn 19612 gateNode 2546 stopDone 0 lat -0.01
+   -> car 16 conn 19612 turn 0 node 2546 u 11.6/21.2 hold 0.0 committed 0 v=0.0 vT=0.2 stop 7.0 obst 1.9(133) wait 65.8 gateConn 19612 gateNode 2546 stopDone 0 lat 0.05
+   -> car 133 conn 19612 turn 0 node 2546 u 18.5/21.2 hold 0.0 committed 0 v=0.0 vT=0.2 stop 0.4 obst 5.0(69) wait 67.1 gateConn 19612 gateNode 2546 stopDone 0 lat 0.08
+   -> car 69 conn 19593 turn 0 node 2544 u 10.8/13.5 hold 0.0 committed 0 v=0.0 vT=0.2 stop 0.4 obst 1000000000.0(-1) wait 11.5 gateConn 19593 gateNode 2544 stopDone 0 lat -0.01
+LATDEV t=228.6 car 92 (Harbor) at 5348.3 165.2 lane 7173 u 41.1 latErr -0.90 v 14.8 vT 14.9 steer 0.24 diag e -0.92 psi -0.01 ff 0.01 st 0.12
+DEADLOCK t=235.0 car 5 at 4965.5 553.5 lane e3285 d-1 i0 u 32.9/69.0 stopU 63.9 next conn 19612 turn 0 ctl 2 gateNode 2546 stopDist 28.5 obst 2.6 (body 25) sig 0
+   -> car 25 lane e3285 d-1 i0 u 40.1/69.0 v=0.0 vT=0.2 stop 21.6 obst 2.6(118) wait 31.0 gateConn 19612 gateNode 2546 stopDone 0 lat -0.04
+   -> car 118 lane e3285 d-1 i0 u 46.7/69.0 v=0.0 vT=0.2 stop 15.1 obst 2.5(121) wait 34.3 gateConn 19612 gateNode 2546 stopDone 0 lat -0.00
+   -> car 121 lane e3285 d-1 i0 u 53.6/69.0 v=0.0 vT=0.2 stop 7.8 obst 2.5(136) wait 35.8 gateConn 19612 gateNode 2546 stopDone 0 lat 0.00
+   -> car 136 lane e3285 d-1 i0 u 61.1/69.0 v=0.0 vT=0.2 stop 0.4 obst 7.5(51) wait 37.5 gateConn 19613 gateNode 2546 stopDone 1 lat 0.00
+   -> car 51 conn 19612 turn 0 node 2546 u 4.5/21.2 hold 0.0 committed 0 v=0.0 vT=0.2 stop 14.4 obst 2.0(16) wait 38.3 gateConn 19612 gateNode 2546 stopDone 0 lat -0.01
+DEADLOCK t=235.3 car 138 at 4967.8 560.8 lane e3285 d-1 i0 u 25.4/69.0 stopU 63.9 next conn 19612 turn 0 ctl 2 gateNode 2546 stopDist 35.7 obst 1.9 (body 5) sig 0
+   -> car 5 lane e3285 d-1 i0 u 32.9/69.0 v=0.0 vT=0.2 stop 28.5 obst 2.6(25) wait 60.3 gateConn 19612 gateNode 2546 stopDone 0 lat -0.01
+   -> car 25 lane e3285 d-1 i0 u 40.1/69.0 v=0.0 vT=0.2 stop 21.6 obst 2.6(118) wait 31.3 gateConn 19612 gateNode 2546 stopDone 0 lat -0.04
+   -> car 118 lane e3285 d-1 i0 u 46.7/69.0 v=0.0 vT=0.2 stop 15.1 obst 2.5(121) wait 34.6 gateConn 19612 gateNode 2546 stopDone 0 lat -0.00
+   -> car 121 lane e3285 d-1 i0 u 53.6/69.0 v=0.0 vT=0.2 stop 7.8 obst 2.5(136) wait 36.1 gateConn 19612 gateNode 2546 stopDone 0 lat 0.00
+   -> car 136 lane e3285 d-1 i0 u 61.1/69.0 v=0.0 vT=0.2 stop 0.4 obst 7.5(51) wait 37.7 gateConn 19613 gateNode 2546 stopDone 1 lat 0.00
+PSIJUMP t=239.9 car 41 psi 0.08 real -0.17 fp 7565 fu 16.76 u 15.44 lcLane 7564 lcU0 12.0 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.39 nudge 0.00
+  sim 240 s: collisions 4 (hard 0), red 0, stuck 0, deadlocks 21, ped hits 0, respawns 107 (wall 49 s)
+DEADLOCK t=248.0 car 22 at 4975.1 608.8 lane e3288 d-1 i0 u 73.8/89.0 stopU 83.9 next conn 19268 turn 0 ctl 1 gateNode 2479 stopDist 7.5 obst 2.5 (body 135) sig 4
+   -> car 135 lane e3288 d-1 i0 u 81.2/89.0 v=0.0 vT=0.2 stop 1000000000.0 obst 1.9(27) wait 32.3 gateConn 19268 gateNode 2479 stopDone 1 lat -0.07
+   -> car 27 lane e3288 d-1 i0 u 87.4/89.0 v=0.0 vT=0.2 stop 1000000000.0 obst 2.5(85) wait 33.7 gateConn 19269 gateNode 2479 stopDone 1 lat -0.02
+   -> car 85 conn 19268 turn 0 node 2479 u 7.0/16.8 hold 0.0 committed 0 v=0.0 vT=0.2 stop 1000000000.0 obst 2.6(89) wait 36.3 gateConn 19268 gateNode 2479 stopDone 0 lat -0.01
+   -> car 89 conn 19268 turn 0 node 2479 u 15.8/16.8 hold 0.0 committed 0 v=0.0 vT=0.2 stop 1000000000.0 obst 3.2(110) wait 37.6 gateConn 19268 gateNode 2479 stopDone 0 lat 0.05
+   -> car 110 lane e3285 d-1 i0 u 16.2/69.0 v=0.0 vT=0.2 stop 1000000000.0 obst 3.3(138) wait 39.5 gateConn 19265 gateNode 2479 stopDone 0 lat 0.01
+DEADLOCK t=251.8 car 20 at 5051.6 491.6 conn 19257 turn 0 appr 0 node 2478 ctl 1 u 15.2/33.5 hold 0.0 committed 0 gateNode 2478 stopDist 1000000000.0 obst 2.6 (body 3) sig 4
+   -> car 3 conn 19257 turn 0 node 2478 u 22.5/33.5 hold 0.0 committed 0 v=0.0 vT=0.3 stop 1000000000.0 obst 2.0(54) wait 92.3 gateConn 19257 gateNode 2478 stopDone 0 lat 0.00
+   -> car 54 conn 19257 turn 0 node 2478 u 29.3/33.5 hold 0.0 committed 0 v=0.0 vT=0.2 stop 1000000000.0 obst 2.4(30) wait 159.2 gateConn 19257 gateNode 2478 stopDone 0 lat 0.00
+   -> car 30 lane e3284 d-1 i0 u 21.4/78.7 v=0.0 vT=0.2 stop 1000000000.0 obst 2.0(131) wait 47.6 gateConn 19257 gateNode 2478 stopDone 0 lat -0.72
+   -> car 131 lane e3287 d1 i1 u 54.2/71.4 v=0.0 vT=0.0 stop 9.2 obst 1.7(30) wait 44.7 gateConn 19259 gateNode 2478 stopDone 0 lat 2.64
+   -> car 30 lane e3284 d-1 i0 u 21.4/78.7 v=0.0 vT=0.2 stop 1000000000.0 obst 2.0(131) wait 47.6 gateConn 19257 gateNode 2478 stopDone 0 lat -0.72
+PSIJUMP t=252.5 car 122 psi 0.08 real -0.17 fp 7553 fu 16.53 u 15.15 lcLane 7552 lcU0 11.8 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.36 nudge 0.00
+DEADLOCK t=253.3 car 119 at 5113.6 491.6 lane e3053 d1 i0 u 109.2/121.5 stopU 116.4 next conn 18524 turn 1 ctl 1 gateNode 2404 stopDist 5.0 obst 2.6 (body 57) sig 4
+   -> car 57 lane e3053 d1 i0 u 116.5/121.5 v=0.0 vT=0.2 stop 1000000000.0 obst 3.3(72) wait 90.8 gateConn 18523 gateNode 2404 stopDone 1 lat 0.00
+   -> car 72 conn 18525 turn 0 node 2404 u 2.8/17.0 hold 0.0 committed 0 v=0.0 vT=0.2 stop 24.6 obst 2.5(126) wait 8.3 gateConn 18525 gateNode 2404 stopDone 0 lat 0.00
+   -> car 126 conn 18525 turn 0 node 2404 u 9.8/17.0 hold 0.0 committed 0 v=0.0 vT=0.2 stop 17.4 obst 3.3(124) wait 94.3 gateConn 18525 gateNode 2404 stopDone 0 lat -0.00
+   -> car 124 lane e3177 d1 i0 u 10.3/26.0 v=0.0 vT=0.2 stop 7.8 obst 3.3(61) wait 11.5 gateConn 19257 gateNode 2478 stopDone 0 lat 0.24
+   -> car 61 lane e3177 d1 i0 u 18.9/26.0 v=0.0 vT=0.2 stop 1000000000.0 obst 2.5(4) wait 13.6 gateConn 19256 gateNode 2478 stopDone 1 lat 0.00
+DEADLOCK t=256.7 car 51 at 4964.5 512.8 conn 19612 turn 0 appr 2 node 2546 ctl 2 u 4.5/21.2 hold 0.0 committed 0 gateNode 2546 stopDist 14.4 obst 2.0 (body 16) sig 1
+   -> car 16 conn 19612 turn 0 node 2546 u 11.6/21.2 hold 0.0 committed 0 v=0.0 vT=0.2 stop 7.0 obst 1.9(133) wait 97.5 gateConn 19612 gateNode 2546 stopDone 0 lat 0.05
+   -> car 133 conn 19612 turn 0 node 2546 u 18.5/21.2 hold 0.0 committed 0 v=0.0 vT=0.2 stop 0.4 obst 16.9(73) wait 98.8 gateConn 19612 gateNode 2546 stopDone 0 lat 0.08
+   -> car 73 conn 19605 turn 1 node 2546 u 13.7/19.3 hold 0.0 committed 0 v=0.0 vT=0.0 stop 1000000000.0 obst 0.2(238) wait 41.0 gateConn 19605 gateNode 2546 stopDone 0 lat -0.12
+DEADLOCK t=259.1 car 62 at 5094.4 514.7 lane e3176 d-1 i0 u 71.5/88.2 stopU 83.1 next conn 18526 turn 0 ctl 1 gateNode 2404 stopDist 9.4 obst 3.3 (body 49) sig 4
+   -> car 49 lane e3176 d-1 i0 u 79.0/88.2 v=0.0 vT=0.2 stop 2.1 obst 3.3(17) wait 7.1 gateConn 18527 gateNode 2404 stopDone 1 lat 0.00
+   -> car 17 lane e3176 d-1 i0 u 87.5/88.2 v=0.0 vT=0.2 stop 23.3 obst 2.0(126) wait 9.9 gateConn 18528 gateNode 2404 stopDone 1 lat 0.23
+   -> car 126 conn 18525 turn 0 node 2404 u 9.8/17.0 hold 0.0 committed 0 v=0.0 vT=0.2 stop 17.4 obst 3.3(124) wait 100.1 gateConn 18525 gateNode 2404 stopDone 0 lat -0.00
+   -> car 124 lane e3177 d1 i0 u 10.3/26.0 v=0.0 vT=0.2 stop 7.8 obst 3.3(61) wait 17.3 gateConn 19257 gateNode 2478 stopDone 0 lat 0.24
+   -> car 61 lane e3177 d1 i0 u 18.9/26.0 v=0.0 vT=0.2 stop 1000000000.0 obst 2.5(4) wait 19.3 gateConn 19256 gateNode 2478 stopDone 1 lat 0.00
+DEADLOCK t=260.3 car 35 at 5045.3 494.6 conn 19258 turn 2 appr 1 node 2478 ctl 1 u 9.2/31.7 hold 0.0 committed 0 gateNode 2478 stopDist 32.5 obst 2.0 (body 20) sig 4
+   -> car 20 conn 19257 turn 0 node 2478 u 15.2/33.5 hold 0.0 committed 0 v=0.0 vT=0.3 stop 1000000000.0 obst 2.6(3) wait 68.5 gateConn 19257 gateNode 2478 stopDone 0 lat -0.00
+   -> car 3 conn 19257 turn 0 node 2478 u 22.5/33.5 hold 0.0 committed 0 v=0.0 vT=0.3 stop 1000000000.0 obst 2.0(54) wait 100.8 gateConn 19257 gateNode 2478 stopDone 0 lat 0.00
+   -> car 54 conn 19257 turn 0 node 2478 u 29.3/33.5 hold 0.0 committed 0 v=0.0 vT=0.2 stop 1000000000.0 obst 2.4(30) wait 167.7 gateConn 19257 gateNode 2478 stopDone 0 lat 0.00
+   -> car 30 lane e3284 d-1 i0 u 21.4/78.7 v=0.0 vT=0.2 stop 1000000000.0 obst 2.1(131) wait 56.1 gateConn 19257 gateNode 2478 stopDone 0 lat 0.02
+   -> car 131 lane e3287 d1 i1 u 54.2/71.4 v=0.0 vT=0.0 stop 9.2 obst 1.7(30) wait 53.2 gateConn 19259 gateNode 2478 stopDone 0 lat 2.64
+DEADLOCK t=262.4 car 136 at 4964.4 521.0 lane e3285 d-1 i0 u 65.3/69.0 stopU 63.9 next conn 19613 turn 2 ctl 2 gateNode 2546 stopDist 1000000000.0 obst 3.3 (body 51) sig 0
+   -> car 51 conn 19612 turn 0 node 2546 u 4.5/21.2 hold 0.0 committed 0 v=0.0 vT=0.2 stop 14.4 obst 2.0(16) wait 65.7 gateConn 19612 gateNode 2546 stopDone 0 lat -0.01
+   -> car 16 conn 19612 turn 0 node 2546 u 11.6/21.2 hold 0.0 committed 0 v=0.0 vT=0.2 stop 7.0 obst 1.9(133) wait 103.3 gateConn 19612 gateNode 2546 stopDone 0 lat 0.05
+   -> car 133 conn 19612 turn 0 node 2546 u 18.5/21.2 hold 0.0 committed 0 v=0.0 vT=0.2 stop 0.4 obst 16.9(73) wait 104.6 gateConn 19612 gateNode 2546 stopDone 0 lat 0.08
+   -> car 73 conn 19605 turn 1 node 2546 u 13.7/19.3 hold 0.0 committed 0 v=0.0 vT=0.0 stop 1000000000.0 obst 0.2(238) wait 46.7 gateConn 19605 gateNode 2546 stopDone 0 lat -0.12
+DEADLOCK t=264.1 car 121 at 4964.4 528.5 lane e3285 d-1 i0 u 57.8/69.0 stopU 63.9 next conn 19612 turn 0 ctl 2 gateNode 2546 stopDist 3.7 obst 2.5 (body 136) sig 0
+   -> car 136 lane e3285 d-1 i0 u 65.3/69.0 v=0.0 vT=0.2 stop 1000000000.0 obst 3.3(51) wait 61.7 gateConn 19613 gateNode 2546 stopDone 1 lat 0.00
+   -> car 51 conn 19612 turn 0 node 2546 u 4.5/21.2 hold 0.0 committed 0 v=0.0 vT=0.2 stop 14.4 obst 2.0(16) wait 67.4 gateConn 19612 gateNode 2546 stopDone 0 lat -0.01
+   -> car 16 conn 19612 turn 0 node 2546 u 11.6/21.2 hold 0.0 committed 0 v=0.0 vT=0.2 stop 7.0 obst 1.9(133) wait 104.9 gateConn 19612 gateNode 2546 stopDone 0 lat 0.05
+   -> car 133 conn 19612 turn 0 node 2546 u 18.5/21.2 hold 0.0 committed 0 v=0.0 vT=0.2 stop 0.4 obst 16.9(73) wait 106.2 gateConn 19612 gateNode 2546 stopDone 0 lat 0.08
+   -> car 73 conn 19605 turn 1 node 2546 u 13.7/19.3 hold 0.0 committed 0 v=0.0 vT=0.0 stop 1000000000.0 obst 0.3(238) wait 48.4 gateConn 19605 gateNode 2546 stopDone 0 lat -0.12
+DEADLOCK t=264.2 car 30 at 5028.6 491.6 lane e3284 d-1 i0 u 21.4/78.7 stopU 73.6 next conn 19595 turn 2 ctl 1 gateNode 2478 stopDist 1000000000.0 obst 2.1 (body 131) sig 4
+   -> car 131 lane e3287 d1 i1 u 54.2/71.4 v=0.0 vT=0.0 stop 9.2 obst 1.9(30) wait 57.1 gateConn 19259 gateNode 2478 stopDone 0 lat 1.00
+   -> car 30 lane e3284 d-1 i0 u 21.4/78.7 v=0.0 vT=0.2 stop 1000000000.0 obst 2.1(131) wait 60.0 gateConn 19257 gateNode 2478 stopDone 0 lat 0.02
+   -> car 131 lane e3287 d1 i1 u 54.2/71.4 v=0.0 vT=0.0 stop 9.2 obst 1.9(30) wait 57.1 gateConn 19259 gateNode 2478 stopDone 0 lat 1.00
+   -> car 30 lane e3284 d-1 i0 u 21.4/78.7 v=0.0 vT=0.2 stop 1000000000.0 obst 2.1(131) wait 60.0 gateConn 19257 gateNode 2478 stopDone 0 lat 0.02
+   -> car 131 lane e3287 d1 i1 u 54.2/71.4 v=0.0 vT=0.0 stop 9.2 obst 1.9(30) wait 57.1 gateConn 19259 gateNode 2478 stopDone 0 lat 1.00
+DEADLOCK t=265.7 car 118 at 4964.4 535.4 lane e3285 d-1 i0 u 50.9/69.0 stopU 63.9 next conn 19612 turn 0 ctl 2 gateNode 2546 stopDist 11.0 obst 2.5 (body 121) sig 0
+   -> car 121 lane e3285 d-1 i0 u 57.8/69.0 v=0.0 vT=0.2 stop 3.7 obst 2.5(136) wait 61.6 gateConn 19612 gateNode 2546 stopDone 0 lat 0.00
+   -> car 136 lane e3285 d-1 i0 u 65.3/69.0 v=0.0 vT=0.2 stop 1000000000.0 obst 3.3(51) wait 63.3 gateConn 19613 gateNode 2546 stopDone 1 lat 0.00
+   -> car 51 conn 19612 turn 0 node 2546 u 4.5/21.2 hold 0.0 committed 0 v=0.0 vT=0.2 stop 14.4 obst 2.0(16) wait 69.0 gateConn 19612 gateNode 2546 stopDone 0 lat -0.01
+   -> car 16 conn 19612 turn 0 node 2546 u 11.6/21.2 hold 0.0 committed 0 v=0.0 vT=0.2 stop 7.0 obst 1.9(133) wait 106.6 gateConn 19612 gateNode 2546 stopDone 0 lat 0.05
+   -> car 133 conn 19612 turn 0 node 2546 u 18.5/21.2 hold 0.0 committed 0 v=0.0 vT=0.2 stop 0.4 obst 16.9(73) wait 107.8 gateConn 19612 gateNode 2546 stopDone 0 lat 0.08
+LATDEV t=266.6 car 99 (Kumo) at 5340.3 243.0 lane 7177 u 58.2 latErr -0.91 v 14.0 vT 14.0 steer 0.35 diag e -1.00 psi -0.07 ff 0.01 st 0.18
+DEADLOCK t=267.1 car 131 at 5020.6 491.5 lane e3287 d1 i1 u 54.2/71.4 stopU 66.3 next conn 19259 turn 2 ctl 1 gateNode 2478 stopDist 9.2 obst 1.8 (body 30) sig 4
+   -> car 30 lane e3284 d-1 i0 u 21.4/78.7 v=0.0 vT=0.2 stop 1000000000.0 obst 2.0(131) wait 62.9 gateConn 19257 gateNode 2478 stopDone 0 lat -1.51
+   -> car 131 lane e3287 d1 i1 u 54.2/71.4 v=0.0 vT=0.0 stop 9.2 obst 1.8(30) wait 60.0 gateConn 19259 gateNode 2478 stopDone 0 lat 2.40
+   -> car 30 lane e3284 d-1 i0 u 21.4/78.7 v=0.0 vT=0.2 stop 1000000000.0 obst 2.0(131) wait 62.9 gateConn 19257 gateNode 2478 stopDone 0 lat -1.51
+   -> car 131 lane e3287 d1 i1 u 54.2/71.4 v=0.0 vT=0.0 stop 9.2 obst 1.8(30) wait 60.0 gateConn 19259 gateNode 2478 stopDone 0 lat 2.40
+   -> car 30 lane e3284 d-1 i0 u 21.4/78.7 v=0.0 vT=0.2 stop 1000000000.0 obst 2.0(131) wait 62.9 gateConn 19257 gateNode 2478 stopDone 0 lat -1.51
+LATDEV t=268.1 car 63 (Sawgrass) at 5333.7 435.4 lane 7182 u 41.9 latErr -0.90 v 14.4 vT 14.6 steer 0.22 diag e -0.91 psi -0.01 ff 0.01 st 0.11
+PSIJUMP t=268.5 car 7 psi 0.03 real -0.22 fp 7543 fu 16.68 u 15.36 lcLane 7542 lcU0 12.0 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.38 nudge 0.00
+DEADLOCK t=269.8 car 25 at 4964.4 542.0 lane e3285 d-1 i0 u 44.2/69.0 stopU 63.9 next conn 19612 turn 0 ctl 2 gateNode 2546 stopDist 17.5 obst 2.6 (body 118) sig 0
+   -> car 118 lane e3285 d-1 i0 u 50.9/69.0 v=0.0 vT=0.2 stop 11.0 obst 2.5(121) wait 64.0 gateConn 19612 gateNode 2546 stopDone 0 lat 0.00
+   -> car 121 lane e3285 d-1 i0 u 57.8/69.0 v=0.0 vT=0.2 stop 3.7 obst 2.5(136) wait 65.6 gateConn 19612 gateNode 2546 stopDone 0 lat 0.00
+   -> car 136 lane e3285 d-1 i0 u 65.3/69.0 v=0.0 vT=0.2 stop 1000000000.0 obst 3.3(51) wait 67.3 gateConn 19613 gateNode 2546 stopDone 1 lat 0.00
+   -> car 51 conn 19612 turn 0 node 2546 u 4.5/21.2 hold 0.0 committed 0 v=0.0 vT=0.2 stop 14.4 obst 2.0(16) wait 73.0 gateConn 19612 gateNode 2546 stopDone 0 lat -0.01
+   -> car 16 conn 19612 turn 0 node 2546 u 11.6/21.2 hold 0.0 committed 0 v=0.0 vT=0.2 stop 7.0 obst 1.9(133) wait 110.6 gateConn 19612 gateNode 2546 stopDone 0 lat 0.05
+DEADLOCK t=271.1 car 94 at 5012.6 490.9 lane e3287 d1 i1 u 46.4/71.4 stopU 66.3 next conn 19259 turn 2 ctl 1 gateNode 2478 stopDist 17.8 obst 2.6 (body 131) sig 4
+   -> car 131 lane e3287 d1 i1 u 54.2/71.4 v=0.0 vT=0.0 stop 9.2 obst 1.8(30) wait 64.0 gateConn 19259 gateNode 2478 stopDone 0 lat 1.66
+   -> car 30 lane e3284 d-1 i0 u 21.4/78.7 v=0.0 vT=0.2 stop 1000000000.0 obst 2.0(131) wait 66.9 gateConn 19257 gateNode 2478 stopDone 0 lat -1.63
+   -> car 131 lane e3287 d1 i1 u 54.2/71.4 v=0.0 vT=0.0 stop 9.2 obst 1.8(30) wait 64.0 gateConn 19259 gateNode 2478 stopDone 0 lat 1.66
+   -> car 30 lane e3284 d-1 i0 u 21.4/78.7 v=0.0 vT=0.2 stop 1000000000.0 obst 2.0(131) wait 66.9 gateConn 19257 gateNode 2478 stopDone 0 lat -1.63
+   -> car 131 lane e3287 d1 i1 u 54.2/71.4 v=0.0 vT=0.0 stop 9.2 obst 1.8(30) wait 64.0 gateConn 19259 gateNode 2478 stopDone 0 lat 1.66
+LATDEV t=271.7 car 36 (Cutter '74) at 5242.7 1109.0 lane 7568 u 50.2 latErr -0.90 v 13.2 vT 14.7 steer 0.24 diag e -0.91 psi -0.01 ff 0.01 st 0.12
+DEADLOCK t=275.8 car 32 at 5058.2 491.6 conn 19257 turn 0 appr 0 node 2478 ctl 1 u 8.6/33.5 hold 0.0 committed 0 gateNode 2478 stopDist 1000000000.0 obst 1.9 (body 20) sig 4
+   -> car 20 conn 19257 turn 0 node 2478 u 15.2/33.5 hold 0.0 committed 0 v=0.0 vT=0.3 stop 1000000000.0 obst 2.6(3) wait 84.0 gateConn 19257 gateNode 2478 stopDone 0 lat -0.00
+   -> car 3 conn 19257 turn 0 node 2478 u 22.5/33.5 hold 0.0 committed 0 v=0.0 vT=0.3 stop 1000000000.0 obst 2.0(54) wait 116.3 gateConn 19257 gateNode 2478 stopDone 0 lat 0.00
+   -> car 54 conn 19257 turn 0 node 2478 u 29.3/33.5 hold 0.0 committed 0 v=0.0 vT=0.2 stop 1000000000.0 obst 2.4(30) wait 183.2 gateConn 19257 gateNode 2478 stopDone 0 lat 0.00
+   -> car 30 lane e3284 d-1 i0 u 21.4/78.7 v=0.0 vT=0.2 stop 1000000000.0 obst 2.1(131) wait 71.6 gateConn 19257 gateNode 2478 stopDone 0 lat 0.02
+   -> car 131 lane e3287 d1 i1 u 54.2/71.4 v=0.0 vT=0.0 stop 9.2 obst 1.7(30) wait 68.7 gateConn 19259 gateNode 2478 stopDone 0 lat 2.64
+LATDEV t=277.3 car 92 (Longbow 9) at 4969.0 214.2 lane 8064 u 9.2 latErr 1.40 v 3.0 vT 11.2 steer 0.38 diag e 0.52 psi -0.30 ff 0.00 st 0.22
+DEADLOCK t=277.8 car 85 at 4972.6 582.5 conn 19268 turn 0 appr 2 node 2479 ctl 1 u 11.1/16.8 hold 0.0 committed 0 gateNode 2479 stopDist 1000000000.0 obst 2.6 (body 89) sig 4
+   -> car 89 lane e3285 d-1 i0 u 11.6/69.0 v=0.0 vT=0.2 stop 1000000000.0 obst 3.2(110) wait 18.8 gateConn 19268 gateNode 2479 stopDone 0 lat 0.19
+   -> car 110 lane e3285 d-1 i0 u 20.4/69.0 v=0.0 vT=0.2 stop 41.0 obst 3.3(138) wait 20.2 gateConn 19612 gateNode 2546 stopDone 0 lat 0.00
+   -> car 138 lane e3285 d-1 i0 u 29.5/69.0 v=0.0 vT=0.2 stop 31.6 obst 1.9(5) wait 97.9 gateConn 19612 gateNode 2546 stopDone 0 lat -0.00
+   -> car 5 lane e3285 d-1 i0 u 37.1/69.0 v=0.0 vT=0.2 stop 24.3 obst 2.6(25) wait 97.6 gateConn 19612 gateNode 2546 stopDone 0 lat -0.18
+   -> car 25 lane e3285 d-1 i0 u 44.2/69.0 v=0.0 vT=0.2 stop 17.5 obst 2.6(118) wait 68.0 gateConn 19612 gateNode 2546 stopDone 0 lat -0.01
+DEADLOCK t=285.8 car 86 at 5120.8 491.6 lane e3053 d1 i0 u 102.0/121.5 stopU 116.4 next conn 18525 turn 0 ctl 1 gateNode 2404 stopDist 12.2 obst 2.6 (body 119) sig 4
+   -> car 119 lane e3053 d1 i0 u 109.2/121.5 v=0.0 vT=0.2 stop 5.0 obst 2.6(57) wait 92.5 gateConn 18524 gateNode 2404 stopDone 0 lat -0.00
+   -> car 57 lane e3053 d1 i0 u 116.5/121.5 v=0.0 vT=0.2 stop 1000000000.0 obst 3.3(72) wait 123.3 gateConn 18523 gateNode 2404 stopDone 1 lat 0.00
+   -> car 72 conn 18525 turn 0 node 2404 u 2.8/17.0 hold 0.0 committed 0 v=0.0 vT=0.2 stop 24.6 obst 2.5(126) wait 40.7 gateConn 18525 gateNode 2404 stopDone 0 lat 0.00
+   -> car 126 conn 18525 turn 0 node 2404 u 9.8/17.0 hold 0.0 committed 0 v=0.0 vT=0.2 stop 17.4 obst 3.3(124) wait 126.7 gateConn 18525 gateNode 2404 stopDone 0 lat -0.00
+   -> car 124 lane e3177 d1 i0 u 10.3/26.0 v=0.0 vT=0.2 stop 7.8 obst 3.3(61) wait 43.9 gateConn 19257 gateNode 2478 stopDone 0 lat 0.24
+LATDEV t=288.0 car 69 (Glint) at 4984.5 632.5 lane 8094 u 48.8 latErr 0.91 v 14.5 vT 14.5 steer -0.32 diag e 0.98 psi 0.06 ff -0.02 st -0.16
+DEADLOCK t=288.9 car 24 at 5094.4 522.6 lane e3176 d-1 i0 u 63.7/88.2 stopU 83.1 next conn 18526 turn 0 ctl 1 gateNode 2404 stopDist 17.3 obst 3.3 (body 62) sig 4
+   -> car 62 lane e3176 d-1 i0 u 71.5/88.2 v=0.0 vT=0.2 stop 9.4 obst 3.3(49) wait 89.8 gateConn 18526 gateNode 2404 stopDone 0 lat 0.00
+   -> car 49 lane e3176 d-1 i0 u 79.0/88.2 v=0.0 vT=0.2 stop 1000000000.0 obst 3.3(17) wait 36.8 gateConn 18527 gateNode 2404 stopDone 1 lat 0.00
+   -> car 17 lane e3176 d-1 i0 u 87.5/88.2 v=0.0 vT=0.2 stop 23.3 obst 2.0(126) wait 39.6 gateConn 18528 gateNode 2404 stopDone 1 lat 0.23
+   -> car 126 conn 18525 turn 0 node 2404 u 9.8/17.0 hold 0.0 committed 0 v=0.0 vT=0.2 stop 17.4 obst 3.3(124) wait 129.9 gateConn 18525 gateNode 2404 stopDone 0 lat -0.00
+   -> car 124 lane e3177 d1 i0 u 10.3/26.0 v=0.0 vT=0.2 stop 7.8 obst 3.3(61) wait 47.0 gateConn 19257 gateNode 2478 stopDone 0 lat 0.24
+DEADLOCK t=291.2 car 74 at 5094.4 530.4 lane e3176 d-1 i0 u 55.8/88.2 stopU 83.1 next conn 18526 turn 0 ctl 1 gateNode 2404 stopDist 24.8 obst 3.3 (body 24) sig 4
+   -> car 24 lane e3176 d-1 i0 u 63.7/88.2 v=0.0 vT=0.2 stop 17.3 obst 3.3(62) wait 62.4 gateConn 18526 gateNode 2404 stopDone 0 lat 0.00
+   -> car 62 lane e3176 d-1 i0 u 71.5/88.2 v=0.0 vT=0.2 stop 9.4 obst 3.3(49) wait 92.2 gateConn 18526 gateNode 2404 stopDone 0 lat 0.00
+   -> car 49 lane e3176 d-1 i0 u 79.0/88.2 v=0.0 vT=0.2 stop 1000000000.0 obst 3.3(17) wait 39.2 gateConn 18527 gateNode 2404 stopDone 1 lat 0.00
+   -> car 17 lane e3176 d-1 i0 u 87.5/88.2 v=0.0 vT=0.2 stop 23.3 obst 2.0(126) wait 41.9 gateConn 18528 gateNode 2404 stopDone 1 lat 0.23
+   -> car 126 conn 18525 turn 0 node 2404 u 9.8/17.0 hold 0.0 committed 0 v=0.0 vT=0.2 stop 17.4 obst 3.3(124) wait 132.2 gateConn 18525 gateNode 2404 stopDone 0 lat -0.00
+DEADLOCK t=292.6 car 46 at 5094.4 538.3 lane e3176 d-1 i0 u 48.0/88.2 stopU 83.1 next conn 18527 turn 2 ctl 1 gateNode 2404 stopDist 32.7 obst 2.5 (body 74) sig 4
+   -> car 74 lane e3176 d-1 i0 u 55.8/88.2 v=0.0 vT=0.2 stop 24.8 obst 3.3(24) wait 61.3 gateConn 18526 gateNode 2404 stopDone 0 lat 0.00
+   -> car 24 lane e3176 d-1 i0 u 63.7/88.2 v=0.0 vT=0.2 stop 17.3 obst 3.3(62) wait 63.7 gateConn 18526 gateNode 2404 stopDone 0 lat 0.00
+   -> car 62 lane e3176 d-1 i0 u 71.5/88.2 v=0.0 vT=0.2 stop 9.4 obst 3.3(49) wait 93.5 gateConn 18526 gateNode 2404 stopDone 0 lat 0.00
+   -> car 49 lane e3176 d-1 i0 u 79.0/88.2 v=0.0 vT=0.2 stop 1000000000.0 obst 3.3(17) wait 40.5 gateConn 18527 gateNode 2404 stopDone 1 lat 0.00
+   -> car 17 lane e3176 d-1 i0 u 87.5/88.2 v=0.0 vT=0.2 stop 23.3 obst 2.0(126) wait 43.3 gateConn 18528 gateNode 2404 stopDone 1 lat 0.23
+LATDEV t=294.8 car 99 (Kumo) at 5229.1 259.6 lane 7519 u 53.2 latErr 0.90 v 12.7 vT 13.1 steer -0.20 diag e 0.90 psi -0.00 ff -0.02 st -0.11
+PSIJUMP t=294.8 car 31 psi 0.08 real -0.17 fp 7555 fu 16.54 u 15.16 lcLane 7554 lcU0 11.9 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.36 nudge 0.00
+DEADLOCK t=298.9 car 4 at 5066.5 491.7 conn 19256 turn 1 appr 0 node 2478 ctl 1 u 0.2/34.5 hold 0.0 committed 0 gateNode 2478 stopDist 1000000000.0 obst 2.0 (body 32) sig 4
+   -> car 32 conn 19257 turn 0 node 2478 u 8.6/33.5 hold 0.0 committed 0 v=0.0 vT=0.3 stop 1000000000.0 obst 1.9(20) wait 83.1 gateConn 19257 gateNode 2478 stopDone 0 lat -0.00
+   -> car 20 conn 19257 turn 0 node 2478 u 15.2/33.5 hold 0.0 committed 0 v=0.0 vT=0.3 stop 1000000000.0 obst 2.6(3) wait 107.1 gateConn 19257 gateNode 2478 stopDone 0 lat -0.00
+   -> car 3 conn 19257 turn 0 node 2478 u 22.6/33.5 hold 0.0 committed 0 v=0.0 vT=0.3 stop 1000000000.0 obst 1.9(54) wait 139.4 gateConn 19257 gateNode 2478 stopDone 0 lat 0.00
+   -> car 54 conn 19257 turn 0 node 2478 u 29.3/33.5 hold 0.0 committed 0 v=0.0 vT=0.2 stop 1000000000.0 obst 2.4(30) wait 206.3 gateConn 19257 gateNode 2478 stopDone 0 lat 0.00
+   -> car 30 lane e3284 d-1 i0 u 21.4/78.7 v=0.0 vT=0.2 stop 1000000000.0 obst 2.0(131) wait 94.7 gateConn 19257 gateNode 2478 stopDone 0 lat -1.81
+DEADLOCK t=299.8 car 61 at 5073.9 491.6 lane e3177 d1 i0 u 18.9/26.0 stopU 20.9 next conn 19256 turn 1 ctl 1 gateNode 2478 stopDist 1000000000.0 obst 2.5 (body 4) sig 4
+   -> car 4 conn 19256 turn 1 node 2478 u 0.2/34.5 hold 0.0 committed 0 v=0.0 vT=0.3 stop 1000000000.0 obst 2.0(32) wait 61.0 gateConn 19256 gateNode 2478 stopDone 0 lat 0.10
+   -> car 32 conn 19257 turn 0 node 2478 u 8.6/33.5 hold 0.0 committed 0 v=0.0 vT=0.3 stop 1000000000.0 obst 1.9(20) wait 84.1 gateConn 19257 gateNode 2478 stopDone 0 lat -0.00
+   -> car 20 conn 19257 turn 0 node 2478 u 15.2/33.5 hold 0.0 committed 0 v=0.0 vT=0.3 stop 1000000000.0 obst 2.6(3) wait 108.1 gateConn 19257 gateNode 2478 stopDone 0 lat -0.00
+   -> car 3 conn 19257 turn 0 node 2478 u 22.6/33.5 hold 0.0 committed 0 v=0.0 vT=0.3 stop 1000000000.0 obst 1.9(54) wait 140.4 gateConn 19257 gateNode 2478 stopDone 0 lat 0.00
+   -> car 54 conn 19257 turn 0 node 2478 u 29.3/33.5 hold 0.0 committed 0 v=0.0 vT=0.2 stop 1000000000.0 obst 2.4(30) wait 207.3 gateConn 19257 gateNode 2478 stopDone 0 lat 0.00
+  sim 300 s: collisions 4 (hard 0), red 0, stuck 0, deadlocks 42, ped hits 0, respawns 133 (wall 60 s)
+DEADLOCK t=301.8 car 34 at 4939.5 495.9 lane e3286 d-1 i2 u 802.5/810.3 stopU 805.2 next conn 19615 turn 1 ctl 2 gateNode 2546 stopDist 0.4 obst 20.5 (body 133) sig 0
+   -> car 133 conn 19612 turn 0 node 2546 u 18.5/21.2 hold 0.0 committed 0 v=0.0 vT=0.2 stop 0.4 obst 20.7(75) wait 143.9 gateConn 19612 gateNode 2546 stopDone 0 lat 0.08
+   -> car 75 conn 19605 turn 1 node 2546 u 18.6/19.3 hold 0.0 committed 0 v=3.0 vT=3.0 stop 1000000000.0 obst 11.7(8) wait 0.0 gateConn 19605 gateNode 2546 stopDone 0 lat -0.36
+   -> car 8 lane e3284 d1 i0 u 35.7/70.5 v=0.6 vT=0.4 stop 27.4 obst 2.7(100) wait 0.0 gateConn 19261 gateNode 2478 stopDone 0 lat -0.00
+   -> car 100 lane e3287 d1 i2 u 40.0/71.4 v=0.0 vT=0.2 stop 24.0 obst 1.9(21) wait 2.2 gateConn 19260 gateNode 2478 stopDone 0 lat -0.00
+   -> car 21 lane e3284 d1 i0 u 49.9/70.5 v=0.0 vT=0.2 stop 13.2 obst 2.5(73) wait 4.3 gateConn 19261 gateNode 2478 stopDone 0 lat -0.00
+DEADLOCK t=301.8 car 124 at 5082.5 491.8 lane e3177 d1 i0 u 10.3/26.0 stopU 20.9 next conn 19257 turn 0 ctl 1 gateNode 2478 stopDist 7.8 obst 3.4 (body 61) sig 4
+   -> car 61 lane e3177 d1 i0 u 18.9/26.0 v=0.0 vT=0.2 stop 1000000000.0 obst 2.5(4) wait 62.0 gateConn 19256 gateNode 2478 stopDone 1 lat 0.00
+   -> car 4 conn 19256 turn 1 node 2478 u 0.3/34.5 hold 0.0 committed 0 v=0.0 vT=0.3 stop 1000000000.0 obst 2.0(32) wait 63.0 gateConn 19256 gateNode 2478 stopDone 0 lat 0.10
+   -> car 32 conn 19257 turn 0 node 2478 u 8.6/33.5 hold 0.0 committed 0 v=0.0 vT=0.3 stop 1000000000.0 obst 1.9(20) wait 86.1 gateConn 19257 gateNode 2478 stopDone 0 lat -0.00
+   -> car 20 conn 19257 turn 0 node 2478 u 15.2/33.5 hold 0.0 committed 0 v=0.0 vT=0.3 stop 1000000000.0 obst 2.6(3) wait 110.1 gateConn 19257 gateNode 2478 stopDone 0 lat -0.00
+   -> car 3 conn 19257 turn 0 node 2478 u 22.6/33.5 hold 0.0 committed 0 v=0.0 vT=0.3 stop 1000000000.0 obst 1.9(54) wait 142.4 gateConn 19257 gateNode 2478 stopDone 0 lat 0.00
+DEADLOCK t=305.1 car 72 at 5098.5 491.6 conn 18525 turn 0 appr 1 node 2404 ctl 1 u 2.8/17.0 hold 0.0 committed 0 gateNode 2404 stopDist 24.6 obst 2.5 (body 126) sig 4
+   -> car 126 conn 18525 turn 0 node 2404 u 9.8/17.0 hold 0.0 committed 0 v=0.0 vT=0.2 stop 17.4 obst 3.3(124) wait 146.0 gateConn 18525 gateNode 2404 stopDone 0 lat -0.00
+   -> car 124 lane e3177 d1 i0 u 10.3/26.0 v=0.0 vT=0.2 stop 7.8 obst 3.4(61) wait 63.2 gateConn 19257 gateNode 2478 stopDone 0 lat 0.24
+   -> car 61 lane e3177 d1 i0 u 18.9/26.0 v=0.0 vT=0.2 stop 1000000000.0 obst 2.5(4) wait 65.2 gateConn 19256 gateNode 2478 stopDone 1 lat 0.00
+   -> car 4 conn 19256 turn 1 node 2478 u 0.3/34.5 hold 0.0 committed 0 v=0.0 vT=0.3 stop 1000000000.0 obst 2.0(32) wait 66.2 gateConn 19256 gateNode 2478 stopDone 0 lat 0.10
+   -> car 32 conn 19257 turn 0 node 2478 u 8.6/33.5 hold 0.0 committed 0 v=0.0 vT=0.3 stop 1000000000.0 obst 1.9(20) wait 89.3 gateConn 19257 gateNode 2478 stopDone 0 lat -0.00
+DEADLOCK t=308.1 car 129 at 5128.3 491.6 lane e3053 d1 i0 u 94.5/121.5 stopU 116.4 next conn 18525 turn 0 ctl 1 gateNode 2404 stopDist 19.3 obst 2.5 (body 86) sig 4
+   -> car 86 lane e3053 d1 i0 u 102.0/121.5 v=0.0 vT=0.2 stop 12.2 obst 2.6(119) wait 82.3 gateConn 18525 gateNode 2404 stopDone 0 lat -0.00
+   -> car 119 lane e3053 d1 i0 u 109.2/121.5 v=0.0 vT=0.2 stop 5.0 obst 2.6(57) wait 114.8 gateConn 18524 gateNode 2404 stopDone 0 lat -0.00
+   -> car 57 lane e3053 d1 i0 u 116.5/121.5 v=0.0 vT=0.2 stop 1000000000.0 obst 3.3(72) wait 145.6 gateConn 18523 gateNode 2404 stopDone 1 lat 0.00
+   -> car 72 conn 18525 turn 0 node 2404 u 2.8/17.0 hold 0.0 committed 0 v=0.0 vT=0.2 stop 24.6 obst 2.5(126) wait 63.0 gateConn 18525 gateNode 2404 stopDone 0 lat 0.00
+   -> car 126 conn 18525 turn 0 node 2404 u 9.8/17.0 hold 0.0 committed 0 v=0.0 vT=0.2 stop 17.4 obst 3.3(124) wait 149.0 gateConn 18525 gateNode 2404 stopDone 0 lat -0.00
+LATDEV t=308.3 car 113 (Gatorback '70) at 5218.3 434.6 lane 7528 u 41.1 latErr -1.30 v 13.8 vT 5.8 steer 0.39 diag e -1.35 psi -0.03 ff 0.01 st 0.19
+PSIJUMP t=308.5 car 18 psi 0.08 real -0.17 fp 7547 fu 16.70 u 15.45 lcLane 7546 lcU0 12.0 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.40 nudge 0.00
+PSIJUMP t=308.9 car 56 psi 0.07 real -0.18 fp 7521 fu 16.54 u 15.02 lcLane 7520 lcU0 11.8 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.34 nudge 0.00
+DEADLOCK t=309.3 car 17 at 5093.8 499.2 lane e3176 d-1 i0 u 87.5/88.2 stopU 83.1 next conn 18528 turn 1 ctl 1 gateNode 2404 stopDist 23.3 obst 2.0 (body 126) sig 4
+   -> car 126 conn 18525 turn 0 node 2404 u 9.8/17.0 hold 0.0 committed 0 v=0.0 vT=0.2 stop 17.4 obst 3.3(124) wait 150.3 gateConn 18525 gateNode 2404 stopDone 0 lat -0.00
+   -> car 124 lane e3177 d1 i0 u 10.3/26.0 v=0.0 vT=0.2 stop 7.8 obst 3.4(61) wait 67.5 gateConn 19257 gateNode 2478 stopDone 0 lat 0.24
+   -> car 61 lane e3177 d1 i0 u 18.9/26.0 v=0.0 vT=0.2 stop 1000000000.0 obst 2.5(4) wait 69.5 gateConn 19256 gateNode 2478 stopDone 1 lat 0.00
+   -> car 4 conn 19256 turn 1 node 2478 u 0.3/34.5 hold 0.0 committed 0 v=0.0 vT=0.3 stop 1000000000.0 obst 2.0(32) wait 70.4 gateConn 19256 gateNode 2478 stopDone 0 lat 0.10
+   -> car 32 conn 19257 turn 0 node 2478 u 8.6/33.5 hold 0.0 committed 0 v=0.0 vT=0.3 stop 1000000000.0 obst 1.9(20) wait 93.6 gateConn 19257 gateNode 2478 stopDone 0 lat -0.00
+DEADLOCK t=309.9 car 40 at 4980.0 625.0 lane e3288 d-1 i0 u 56.6/89.0 stopU 83.9 next conn 19268 turn 0 ctl 1 gateNode 2479 stopDist 24.4 obst 2.5 (body 44) sig 4
+   -> car 44 lane e3288 d-1 i0 u 64.4/89.0 v=0.0 vT=0.2 stop 17.2 obst 1.9(68) wait 37.3 gateConn 19268 gateNode 2479 stopDone 0 lat 0.01
+   -> car 68 lane e3288 d-1 i0 u 71.0/89.0 v=0.0 vT=0.2 stop 10.6 obst 2.0(91) wait 38.1 gateConn 19268 gateNode 2479 stopDone 0 lat -0.00
+   -> car 91 lane e3288 d-1 i0 u 77.8/89.0 v=0.0 vT=0.2 stop 4.0 obst 2.5(22) wait 38.9 gateConn 19268 gateNode 2479 stopDone 0 lat -0.00
+   -> car 22 lane e3288 d-1 i0 u 85.3/89.0 v=0.0 vT=0.2 stop 1000000000.0 obst 2.5(135) wait 11.0 gateConn 19268 gateNode 2479 stopDone 1 lat -0.10
+   -> car 135 conn 19268 turn 0 node 2479 u 3.7/16.8 hold 0.0 committed 0 v=0.0 vT=0.2 stop 1000000000.0 obst 1.9(85) wait 45.6 gateConn 19268 gateNode 2479 stopDone 0 lat -0.01
+LATDEV t=311.8 car 122 (Harbor) at 5223.4 542.3 lane 7536 u 43.9 latErr 0.91 v 15.3 vT 15.7 steer -0.32 diag e 0.98 psi 0.05 ff -0.01 st -0.16
+DEADLOCK t=312.1 car 49 at 5094.4 507.3 lane e3176 d-1 i0 u 79.0/88.2 stopU 83.1 next conn 18527 turn 2 ctl 1 gateNode 2404 stopDist 1000000000.0 obst 3.3 (body 17) sig 4
+   -> car 17 lane e3176 d-1 i0 u 87.5/88.2 v=0.0 vT=0.2 stop 23.3 obst 2.0(126) wait 62.7 gateConn 18528 gateNode 2404 stopDone 1 lat 0.23
+   -> car 126 conn 18525 turn 0 node 2404 u 9.8/17.0 hold 0.0 committed 0 v=0.0 vT=0.0 stop 17.4 obst 2.1(182) wait 152.6 gateConn 18525 gateNode 2404 stopDone 0 lat -0.00
+DEADLOCK t=314.0 car 90 at 5136.1 491.6 lane e3053 d1 i0 u 86.7/121.5 stopU 116.4 next conn 18525 turn 0 ctl 1 gateNode 2404 stopDist 27.3 obst 2.6 (body 129) sig 4
+   -> car 129 lane e3053 d1 i0 u 94.5/121.5 v=0.0 vT=0.2 stop 19.3 obst 2.5(86) wait 65.9 gateConn 18525 gateNode 2404 stopDone 0 lat -0.00
+   -> car 86 lane e3053 d1 i0 u 102.0/121.5 v=0.0 vT=0.2 stop 12.2 obst 2.6(119) wait 88.3 gateConn 18525 gateNode 2404 stopDone 0 lat -0.00
+   -> car 119 lane e3053 d1 i0 u 109.2/121.5 v=0.0 vT=0.2 stop 5.0 obst 2.6(57) wait 120.7 gateConn 18524 gateNode 2404 stopDone 0 lat -0.00
+   -> car 57 lane e3053 d1 i0 u 116.5/121.5 v=0.0 vT=0.2 stop 1000000000.0 obst 3.3(72) wait 151.5 gateConn 18523 gateNode 2404 stopDone 1 lat 0.00
+   -> car 72 conn 18525 turn 0 node 2404 u 2.8/17.0 hold 0.0 committed 0 v=0.0 vT=0.2 stop 24.5 obst 2.5(126) wait 69.0 gateConn 18525 gateNode 2404 stopDone 0 lat 0.00
+DEADLOCK t=317.6 car 110 at 4969.3 565.6 lane e3285 d-1 i0 u 20.4/69.0 stopU 63.9 next conn 19612 turn 0 ctl 2 gateNode 2546 stopDist 41.0 obst 3.3 (body 138) sig 0
+   -> car 138 lane e3285 d-1 i0 u 29.5/69.0 v=0.0 vT=0.2 stop 31.6 obst 1.9(5) wait 137.8 gateConn 19612 gateNode 2546 stopDone 0 lat -0.00
+   -> car 5 lane e3285 d-1 i0 u 37.1/69.0 v=0.0 vT=0.2 stop 24.3 obst 2.6(25) wait 137.4 gateConn 19612 gateNode 2546 stopDone 0 lat -0.18
+   -> car 25 lane e3285 d-1 i0 u 44.2/69.0 v=0.0 vT=0.2 stop 17.5 obst 2.6(118) wait 107.9 gateConn 19612 gateNode 2546 stopDone 0 lat -0.01
+   -> car 118 lane e3285 d-1 i0 u 50.9/69.0 v=0.0 vT=0.2 stop 11.0 obst 2.5(121) wait 111.9 gateConn 19612 gateNode 2546 stopDone 0 lat 0.00
+   -> car 121 lane e3285 d-1 i0 u 57.8/69.0 v=0.0 vT=0.2 stop 3.7 obst 2.5(136) wait 113.5 gateConn 19612 gateNode 2546 stopDone 0 lat 0.00
+LATDEV t=317.9 car 65 (Tomo) at 5354.5 641.4 lane 7191 u 39.8 latErr 0.90 v 14.2 vT 14.2 steer -0.26 diag e 0.94 psi 0.03 ff -0.02 st -0.13
+DEADLOCK t=319.0 car 89 at 4971.7 573.8 lane e3285 d-1 i0 u 11.6/69.0 stopU 63.9 next conn 19612 turn 0 ctl 2 gateNode 2479 stopDist 1000000000.0 obst 3.2 (body 110) sig 0
+   -> car 110 lane e3285 d-1 i0 u 20.4/69.0 v=0.0 vT=0.2 stop 41.0 obst 3.3(138) wait 61.4 gateConn 19612 gateNode 2546 stopDone 0 lat 0.00
+   -> car 138 lane e3285 d-1 i0 u 29.5/69.0 v=0.0 vT=0.2 stop 31.6 obst 1.9(5) wait 139.2 gateConn 19612 gateNode 2546 stopDone 0 lat -0.00
+   -> car 5 lane e3285 d-1 i0 u 37.1/69.0 v=0.0 vT=0.2 stop 24.3 obst 2.6(25) wait 138.8 gateConn 19612 gateNode 2546 stopDone 0 lat -0.18
+   -> car 25 lane e3285 d-1 i0 u 44.2/69.0 v=0.0 vT=0.2 stop 17.5 obst 2.6(118) wait 109.3 gateConn 19612 gateNode 2546 stopDone 0 lat -0.01
+   -> car 118 lane e3285 d-1 i0 u 50.9/69.0 v=0.0 vT=0.2 stop 11.0 obst 2.5(121) wait 113.3 gateConn 19612 gateNode 2546 stopDone 0 lat 0.00
+PSIJUMP t=321.2 car 96 psi 0.08 real -0.17 fp 7557 fu 16.60 u 15.22 lcLane 7556 lcU0 11.9 lcLen 16.0 lcFrom 0.00 lcTo -3.30 lat -0.37 nudge 0.00
+PSIJUMP t=323.9 car 50 psi 0.05 real 0.30 fp 7530 fu 16.60 u 15.53 lcLane 7531 lcU0 11.9 lcLen 16.0 lcFrom 0.00 lcTo 3.30 lat 0.42 nudge 0.00
+DEADLOCK t=324.3 car 135 at 4972.5 589.8 conn 19268 turn 0 appr 2 node 2479 ctl 1 u 3.7/16.8 hold 0.0 committed 0 gateNode 2479 stopDist 1000000000.0 obst 1.9 (body 85) sig 4
+   -> car 85 conn 19268 turn 0 node 2479 u 11.1/16.8 hold 0.0 committed 0 v=0.0 vT=0.0 stop 1000000000.0 obst 0.7(209) wait 106.6 gateConn 19268 gateNode 2479 stopDone 0 lat 0.03
+PSIJUMP t=326.1 car 108 psi -0.25 real 0.00 fp 7540 fu 69.09 u 67.59 lcLane 7541 lcU0 64.4 lcLen 16.0 lcFrom 0.00 lcTo 3.30 lat 0.34 nudge 0.00
+DEADLOCK t=327.0 car 132 at 4980.4 633.4 lane e3288 d-1 i0 u 47.8/89.0 stopU 83.9 next conn 19269 turn 2 ctl 1 gateNode 2479 stopDist 33.3 obst 2.5 (body 40) sig 4
+   -> car 40 lane e3288 d-1 i0 u 56.6/89.0 v=0.0 vT=0.2 stop 24.4 obst 2.5(44) wait 77.2 gateConn 19268 gateNode 2479 stopDone 0 lat 0.29
+   -> car 44 lane e3288 d-1 i0 u 64.4/89.0 v=0.0 vT=0.2 stop 17.2 obst 1.9(68) wait 54.5 gateConn 19268 gateNode 2479 stopDone 0 lat 0.01
+   -> car 68 lane e3288 d-1 i0 u 71.0/89.0 v=0.0 vT=0.2 stop 10.6 obst 2.0(91) wait 55.3 gateConn 19268 gateNode 2479 stopDone 0 lat -0.00
+   -> car 91 lane e3288 d-1 i0 u 77.8/89.0 v=0.0 vT=0.2 stop 4.0 obst 2.5(22) wait 56.0 gateConn 19268 gateNode 2479 stopDone 0 lat -0.00
+   -> car 22 lane e3288 d-1 i0 u 85.3/89.0 v=0.0 vT=0.2 stop 1000000000.0 obst 2.5(135) wait 28.1 gateConn 19268 gateNode 2479 stopDone 1 lat -0.10
+PSIJUMP t=328.8 car 123 psi -0.28 real -0.03 fp 7520 fu 53.40 u 51.96 lcLane 7521 lcU0 48.7 lcLen 16.0 lcFrom 0.00 lcTo 3.30 lat 0.36 nudge 0.00
+DEADLOCK t=331.0 car 91 at 4973.9 604.9 lane e3288 d-1 i0 u 77.8/89.0 stopU 83.9 next conn 19268 turn 0 ctl 1 gateNode 2479 stopDist 4.0 obst 2.5 (body 22) sig 4
+   -> car 22 lane e3288 d-1 i0 u 85.3/89.0 v=0.0 vT=0.2 stop 1000000000.0 obst 2.5(135) wait 32.1 gateConn 19268 gateNode 2479 stopDone 1 lat -0.10
+   -> car 135 conn 19268 turn 0 node 2479 u 3.7/16.8 hold 0.0 committed 0 v=0.0 vT=0.2 stop 1000000000.0 obst 1.9(85) wait 66.7 gateConn 19268 gateNode 2479 stopDone 0 lat -0.01
+   -> car 85 conn 19268 turn 0 node 2479 u 11.1/16.8 hold 0.0 committed 0 v=0.0 vT=0.2 stop 1000000000.0 obst 2.6(89) wait 113.3 gateConn 19268 gateNode 2479 stopDone 0 lat 0.03
+   -> car 89 lane e3285 d-1 i0 u 11.6/69.0 v=0.0 vT=0.2 stop 1000000000.0 obst 3.2(110) wait 72.0 gateConn 19268 gateNode 2479 stopDone 0 lat 0.19
+   -> car 110 lane e3285 d-1 i0 u 20.4/69.0 v=0.0 vT=0.2 stop 41.0 obst 3.3(138) wait 73.4 gateConn 19612 gateNode 2546 stopDone 0 lat 0.00
+DEADLOCK t=331.7 car 68 at 4976.0 611.4 lane e3288 d-1 i0 u 71.0/89.0 stopU 83.9 next conn 19268 turn 0 ctl 1 gateNode 2479 stopDist 10.6 obst 2.0 (body 91) sig 4
+   -> car 91 lane e3288 d-1 i0 u 77.8/89.0 v=0.0 vT=0.2 stop 4.0 obst 2.5(22) wait 60.7 gateConn 19268 gateNode 2479 stopDone 0 lat -0.00
+   -> car 22 lane e3288 d-1 i0 u 85.3/89.0 v=0.0 vT=0.2 stop 1000000000.0 obst 2.5(135) wait 32.8 gateConn 19268 gateNode 2479 stopDone 1 lat -0.10
+   -> car 135 conn 19268 turn 0 node 2479 u 3.7/16.8 hold 0.0 committed 0 v=0.0 vT=0.2 stop 1000000000.0 obst 1.9(85) wait 67.4 gateConn 19268 gateNode 2479 stopDone 0 lat -0.01
+   -> car 85 conn 19268 turn 0 node 2479 u 11.1/16.8 hold 0.0 committed 0 v=0.0 vT=0.2 stop 1000000000.0 obst 2.6(89) wait 114.0 gateConn 19268 gateNode 2479 stopDone 0 lat 0.03
+   -> car 89 lane e3285 d-1 i0 u 11.6/69.0 v=0.0 vT=0.2 stop 1000000000.0 obst 3.2(110) wait 72.8 gateConn 19268 gateNode 2479 stopDone 0 lat 0.19
+DEADLOCK t=332.5 car 44 at 4978.0 617.7 lane e3288 d-1 i0 u 64.4/89.0 stopU 83.9 next conn 19268 turn 0 ctl 1 gateNode 2479 stopDist 17.2 obst 1.9 (body 68) sig 4
+   -> car 68 lane e3288 d-1 i0 u 71.0/89.0 v=0.0 vT=0.2 stop 10.6 obst 2.0(91) wait 60.8 gateConn 19268 gateNode 2479 stopDone 0 lat -0.00
+   -> car 91 lane e3288 d-1 i0 u 77.8/89.0 v=0.0 vT=0.2 stop 4.0 obst 2.5(22) wait 61.5 gateConn 19268 gateNode 2479 stopDone 0 lat -0.00
+   -> car 22 lane e3288 d-1 i0 u 85.3/89.0 v=0.0 vT=0.2 stop 1000000000.0 obst 2.5(135) wait 33.6 gateConn 19268 gateNode 2479 stopDone 1 lat -0.10
+   -> car 135 conn 19268 turn 0 node 2479 u 3.7/16.8 hold 0.0 committed 0 v=0.0 vT=0.2 stop 1000000000.0 obst 1.9(85) wait 68.2 gateConn 19268 gateNode 2479 stopDone 0 lat -0.01
+   -> car 85 conn 19268 turn 0 node 2479 u 11.1/16.8 hold 0.0 committed 0 v=0.0 vT=0.2 stop 1000000000.0 obst 2.6(89) wait 114.8 gateConn 19268 gateNode 2479 stopDone 0 lat 0.03
+DEADLOCK t=337.5 car 39 at 4980.5 647.1 lane e3288 d-1 i0 u 34.3/89.0 stopU 83.9 next conn 19268 turn 0 ctl 1 gateNode 2481 stopDist 1000000000.0 obst 1.9 (body 23) sig 4
+   -> car 23 lane e3288 d-1 i0 u 40.5/89.0 v=0.0 vT=0.2 stop 41.3 obst 1.9(132) wait 31.1 gateConn 19268 gateNode 2479 stopDone 0 lat -0.00
+   -> car 132 lane e3288 d-1 i0 u 47.8/89.0 v=0.0 vT=0.2 stop 33.3 obst 2.5(40) wait 70.5 gateConn 19269 gateNode 2479 stopDone 0 lat -0.00
+   -> car 40 lane e3288 d-1 i0 u 56.6/89.0 v=0.0 vT=0.2 stop 24.4 obst 2.5(44) wait 87.6 gateConn 19268 gateNode 2479 stopDone 0 lat 0.29
+   -> car 44 lane e3288 d-1 i0 u 64.4/89.0 v=0.0 vT=0.2 stop 17.2 obst 1.9(68) wait 64.9 gateConn 19268 gateNode 2479 stopDone 0 lat 0.01
+   -> car 68 lane e3288 d-1 i0 u 71.0/89.0 v=0.0 vT=0.2 stop 10.6 obst 2.0(91) wait 65.7 gateConn 19268 gateNode 2479 stopDone 0 lat -0.00
+DEADLOCK t=337.8 car 48 at 5093.0 485.2 conn 18521 turn 0 appr 0 node 2404 ctl 1 u 3.9/17.2 hold 0.0 committed 0 gateNode 2404 stopDist 1000000000.0 obst 1.9 (body 126) sig 4
+   -> car 126 conn 18525 turn 0 node 2404 u 9.8/17.0 hold 0.0 committed 0 v=0.0 vT=0.2 stop 17.4 obst 3.3(124) wait 178.0 gateConn 18525 gateNode 2404 stopDone 0 lat -0.00
+   -> car 124 lane e3177 d1 i0 u 10.3/26.0 v=0.0 vT=0.2 stop 7.8 obst 3.4(61) wait 96.0 gateConn 19257 gateNode 2478 stopDone 0 lat 0.24
+   -> car 61 lane e3177 d1 i0 u 18.9/26.0 v=0.0 vT=0.2 stop 1000000000.0 obst 2.6(4) wait 98.0 gateConn 19256 gateNode 2478 stopDone 1 lat 0.00
+   -> car 4 conn 19256 turn 1 node 2478 u 0.3/34.5 hold 0.0 committed 0 v=0.0 vT=0.3 stop 1000000000.0 obst 2.0(32) wait 99.0 gateConn 19256 gateNode 2478 stopDone 0 lat 0.10
+   -> car 32 conn 19257 turn 0 node 2478 u 8.7/33.5 hold 0.0 committed 0 v=0.0 vT=0.2 stop 1000000000.0 obst 1.9(20) wait 122.1 gateConn 19257 gateNode 2478 stopDone 0 lat -0.00
+DEADLOCK t=338.7 car 80 at 4931.4 498.0 lane e3286 d-1 i2 u 794.6/810.3 stopU 805.2 next conn 19617 turn 0 ctl 2 gateNode 2546 stopDist 1000000000.0 obst 3.3 (body 34) sig 2
+   -> car 34 lane e3286 d-1 i2 u 802.5/810.3 v=0.0 vT=0.2 stop 0.4 obst 20.5(133) wait 97.0 gateConn 19615 gateNode 2546 stopDone 1 lat -0.60
+   -> car 133 conn 19612 turn 0 node 2546 u 18.5/21.2 hold 0.0 committed 0 v=0.0 vT=0.2 stop 0.4 obst 6.0(92) wait 180.8 gateConn 19612 gateNode 2546 stopDone 0 lat 0.08
+   -> car 92 lane e3280 d1 i0 u 84.3/88.8 v=4.3 vT=6.9 stop 13.8 obst 1000000000.0(-1) wait 0.0 gateConn 19593 gateNode 2544 stopDone 1 lat 0.30
+DEADLOCK t=341.3 car 73 at 5020.1 488.1 lane e3287 d1 i2 u 53.4/71.4 stopU 66.3 next conn 19260 turn 2 ctl 1 gateNode 2478 stopDist 10.5 obst 3.3 (body 30) sig 4
+   -> car 30 lane e3284 d-1 i0 u 21.4/78.7 v=0.0 vT=0.2 stop 1000000000.0 obst 2.0(131) wait 137.1 gateConn 19257 gateNode 2478 stopDone 0 lat -1.59
+   -> car 131 lane e3287 d1 i1 u 54.2/71.4 v=0.0 vT=0.0 stop 9.2 obst 1.7(30) wait 134.2 gateConn 19259 gateNode 2478 stopDone 0 lat 2.64
+   -> car 30 lane e3284 d-1 i0 u 21.4/78.7 v=0.0 vT=0.2 stop 1000000000.0 obst 2.0(131) wait 137.1 gateConn 19257 gateNode 2478 stopDone 0 lat -1.59
+   -> car 131 lane e3287 d1 i1 u 54.2/71.4 v=0.0 vT=0.0 stop 9.2 obst 1.7(30) wait 134.2 gateConn 19259 gateNode 2478 stopDone 0 lat 2.64
+   -> car 30 lane e3284 d-1 i0 u 21.4/78.7 v=0.0 vT=0.2 stop 1000000000.0 obst 2.0(131) wait 137.1 gateConn 19257 gateNode 2478 stopDone 0 lat -1.59
+DEADLOCK t=342.4 car 70 at 4981.8 654.5 lane e3288 d-1 i0 u 26.9/89.0 stopU 83.9 next conn 19269 turn 2 ctl 1 gateNode 2481 stopDist 1000000000.0 obst 2.5 (body 39) sig 4
+   -> car 39 lane e3288 d-1 i0 u 34.3/89.0 v=0.0 vT=0.2 stop 1000000000.0 obst 1.9(23) wait 65.0 gateConn 19292 gateNode 2481 stopDone 0 lat -0.06
+   -> car 23 lane e3288 d-1 i0 u 40.5/89.0 v=0.0 vT=0.2 stop 41.3 obst 1.9(132) wait 36.1 gateConn 19268 gateNode 2479 stopDone 0 lat -0.00
+   -> car 132 lane e3288 d-1 i0 u 47.8/89.0 v=0.0 vT=0.2 stop 33.3 obst 2.5(40) wait 75.5 gateConn 19269 gateNode 2479 stopDone 0 lat -0.00
+   -> car 40 lane e3288 d-1 i0 u 56.6/89.0 v=0.0 vT=0.2 stop 24.4 obst 2.5(44) wait 92.6 gateConn 19268 gateNode 2479 stopDone 0 lat 0.29
+   -> car 44 lane e3288 d-1 i0 u 64.4/89.0 v=0.0 vT=0.2 stop 17.2 obst 1.9(68) wait 69.9 gateConn 19268 gateNode 2479 stopDone 0 lat 0.01
+DEADLOCK t=343.3 car 83 at 4980.0 586.1 conn 19265 turn 2 appr 1 node 2479 ctl 1 u 2.6/15.5 hold 0.0 committed 0 gateNode 2479 stopDist 1000000000.0 obst 2.5 (body 85) sig 4
+   -> car 85 conn 19268 turn 0 node 2479 u 11.1/16.8 hold 0.0 committed 0 v=0.0 vT=0.2 stop 1000000000.0 obst 2.6(89) wait 125.6 gateConn 19268 gateNode 2479 stopDone 0 lat 0.03
+   -> car 89 lane e3285 d-1 i0 u 11.6/69.0 v=0.0 vT=0.2 stop 1000000000.0 obst 3.2(110) wait 84.3 gateConn 19268 gateNode 2479 stopDone 0 lat 0.19
+   -> car 110 lane e3285 d-1 i0 u 20.4/69.0 v=0.0 vT=0.2 stop 41.0 obst 3.3(138) wait 85.7 gateConn 19612 gateNode 2546 stopDone 0 lat 0.00
+   -> car 138 lane e3285 d-1 i0 u 29.5/69.0 v=0.0 vT=0.2 stop 31.6 obst 1.9(5) wait 163.5 gateConn 19612 gateNode 2546 stopDone 0 lat -0.00
+   -> car 5 lane e3285 d-1 i0 u 37.1/69.0 v=0.0 vT=0.2 stop 24.3 obst 2.6(25) wait 163.1 gateConn 19612 gateNode 2546 stopDone 0 lat -0.18
+DEADLOCK t=345.0 car 1 at 5085.4 488.6 conn 18531 turn 2 appr 3 node 2404 ctl 1 u 1.1/17.0 hold 0.0 committed 0 gateNode 2404 stopDist 1000000000.0 obst 2.5 (body 126) sig 4
+   -> car 126 conn 18525 turn 0 node 2404 u 9.8/17.0 hold 0.0 committed 0 v=0.0 vT=0.2 stop 17.4 obst 3.3(124) wait 185.3 gateConn 18525 gateNode 2404 stopDone 0 lat -0.00
+   -> car 124 lane e3177 d1 i0 u 10.3/26.0 v=0.0 vT=0.2 stop 7.8 obst 3.4(61) wait 103.2 gateConn 19257 gateNode 2478 stopDone 0 lat 0.24
+   -> car 61 lane e3177 d1 i0 u 18.9/26.0 v=0.0 vT=0.2 stop 1000000000.0 obst 2.6(4) wait 105.2 gateConn 19256 gateNode 2478 stopDone 1 lat 0.00
+   -> car 4 conn 19256 turn 1 node 2478 u 0.3/34.5 hold 0.0 committed 0 v=0.0 vT=0.3 stop 1000000000.0 obst 2.0(32) wait 106.2 gateConn 19256 gateNode 2478 stopDone 0 lat 0.10
+   -> car 32 conn 19257 turn 0 node 2478 u 8.7/33.5 hold 0.0 committed 0 v=0.0 vT=0.2 stop 1000000000.0 obst 1.9(20) wait 129.3 gateConn 19257 gateNode 2478 stopDone 0 lat -0.00
+DEADLOCK t=348.8 car 58 at 4984.0 661.4 lane e3288 d-1 i0 u 19.7/89.0 stopU 83.9 next conn 19270 turn 1 ctl 1 gateNode 2481 stopDist 1000000000.0 obst 2.5 (body 70) sig 4
+   -> car 70 lane e3288 d-1 i0 u 26.9/89.0 v=0.0 vT=0.2 stop 1000000000.0 obst 2.5(39) wait 66.4 gateConn 19292 gateNode 2481 stopDone 0 lat -0.00
+   -> car 39 lane e3288 d-1 i0 u 34.3/89.0 v=0.0 vT=0.2 stop 1000000000.0 obst 1.9(23) wait 71.3 gateConn 19292 gateNode 2481 stopDone 0 lat -0.06
+   -> car 23 lane e3288 d-1 i0 u 40.5/89.0 v=0.0 vT=0.2 stop 41.3 obst 1.9(132) wait 42.5 gateConn 19268 gateNode 2479 stopDone 0 lat -0.00
+   -> car 132 lane e3288 d-1 i0 u 47.8/89.0 v=0.0 vT=0.2 stop 33.3 obst 2.5(40) wait 81.8 gateConn 19269 gateNode 2479 stopDone 0 lat -0.00
+   -> car 40 lane e3288 d-1 i0 u 56.6/89.0 v=0.0 vT=0.2 stop 24.4 obst 2.5(44) wait 99.0 gateConn 19268 gateNode 2479 stopDone 0 lat 0.29
+LATDEV t=348.8 car 120 (Cutter '74) at 5333.2 266.0 lane 7177 u 33.6 latErr 0.90 v 13.8 vT 13.9 steer -0.26 diag e 0.94 psi 0.02 ff -0.02 st -0.12
+DEADLOCK t=348.9 car 71 at 5078.0 488.4 lane e3177 d-1 i0 u 28.0/34.3 stopU 29.2 next conn 18530 turn 0 ctl 1 gateNode 2404 stopDist 1000000000.0 obst 2.6 (body 1) sig 4
+   -> car 1 conn 18531 turn 2 node 2404 u 1.1/17.0 hold 0.0 committed 0 v=0.0 vT=0.2 stop 1000000000.0 obst 2.5(126) wait 63.8 gateConn 18531 gateNode 2404 stopDone 0 lat -0.11
+   -> car 126 conn 18525 turn 0 node 2404 u 9.8/17.0 hold 0.0 committed 0 v=0.0 vT=0.2 stop 17.4 obst 3.3(124) wait 189.1 gateConn 18525 gateNode 2404 stopDone 0 lat -0.00
+   -> car 124 lane e3177 d1 i0 u 10.3/26.0 v=0.0 vT=0.2 stop 7.8 obst 3.4(61) wait 107.1 gateConn 19257 gateNode 2478 stopDone 0 lat 0.24
+   -> car 61 lane e3177 d1 i0 u 18.9/26.0 v=0.0 vT=0.2 stop 1000000000.0 obst 2.6(4) wait 109.1 gateConn 19256 gateNode 2478 stopDone 1 lat 0.00
+   -> car 4 conn 19256 turn 1 node 2478 u 0.3/34.5 hold 0.0 committed 0 v=0.0 vT=0.3 stop 1000000000.0 obst 2.0(32) wait 110.0 gateConn 19256 gateNode 2478 stopDone 0 lat 0.10
+DEADLOCK t=349.1 car 76 at 5143.1 491.6 lane e3053 d1 i0 u 79.7/121.5 stopU 116.4 next conn 18525 turn 0 ctl 1 gateNode 2404 stopDist 34.2 obst 1.9 (body 90) sig 4
+   -> car 90 lane e3053 d1 i0 u 86.7/121.5 v=0.0 vT=0.2 stop 27.3 obst 2.6(129) wait 95.1 gateConn 18525 gateNode 2404 stopDone 0 lat -0.00
+   -> car 129 lane e3053 d1 i0 u 94.5/121.5 v=0.0 vT=0.2 stop 19.3 obst 2.5(86) wait 101.1 gateConn 18525 gateNode 2404 stopDone 0 lat -0.00
+   -> car 86 lane e3053 d1 i0 u 102.0/121.5 v=0.0 vT=0.2 stop 12.2 obst 2.6(119) wait 123.3 gateConn 18525 gateNode 2404 stopDone 0 lat -0.00
+   -> car 119 lane e3053 d1 i0 u 109.2/121.5 v=0.0 vT=0.2 stop 5.0 obst 2.6(57) wait 155.8 gateConn 18524 gateNode 2404 stopDone 0 lat -0.00
+   -> car 57 lane e3053 d1 i0 u 116.5/121.5 v=0.0 vT=0.2 stop 1000000000.0 obst 3.3(72) wait 186.6 gateConn 18523 gateNode 2404 stopDone 1 lat 0.00
+DEADLOCK t=352.1 car 130 at 5089.6 470.2 lane e3174 d1 i0 u 76.8/88.7 stopU 83.6 next conn 18520 turn 1 ctl 1 gateNode 2404 stopDist 4.5 obst 3.3 (body 93) sig 4
+   -> car 93 lane e3174 d1 i0 u 85.6/88.7 v=0.0 vT=0.2 stop 1000000000.0 obst 2.6(48) wait 39.6 gateConn 18521 gateNode 2404 stopDone 1 lat 0.08
+   -> car 48 conn 18521 turn 0 node 2404 u 3.9/17.2 hold 0.0 committed 0 v=0.0 vT=0.2 stop 1000000000.0 obst 1.9(126) wait 74.4 gateConn 18521 gateNode 2404 stopDone 0 lat 0.00
+   -> car 126 conn 18525 turn 0 node 2404 u 9.8/17.0 hold 0.0 committed 0 v=0.0 vT=0.2 stop 17.4 obst 3.3(124) wait 192.4 gateConn 18525 gateNode 2404 stopDone 0 lat -0.00
+   -> car 124 lane e3177 d1 i0 u 10.3/26.0 v=0.0 vT=0.2 stop 7.8 obst 3.4(61) wait 110.4 gateConn 19257 gateNode 2478 stopDone 0 lat 0.24
+   -> car 61 lane e3177 d1 i0 u 18.9/26.0 v=0.0 vT=0.2 stop 1000000000.0 obst 2.6(4) wait 112.4 gateConn 19256 gateNode 2478 stopDone 1 lat 0.00
+DEADLOCK t=357.5 car 21 at 5012.7 488.4 lane e3284 d1 i0 u 49.9/70.5 stopU 65.4 next conn 19261 turn 0 ctl 1 gateNode 2478 stopDist 13.2 obst 2.5 (body 73) sig 4
+   -> car 73 lane e3287 d1 i2 u 53.4/71.4 v=0.0 vT=0.2 stop 10.5 obst 3.3(30) wait 76.2 gateConn 19260 gateNode 2478 stopDone 0 lat -0.00
+   -> car 30 lane e3284 d-1 i0 u 21.4/78.7 v=0.0 vT=0.2 stop 1000000000.0 obst 2.1(131) wait 153.3 gateConn 19257 gateNode 2478 stopDone 0 lat -0.29
+   -> car 131 lane e3287 d1 i1 u 54.2/71.4 v=0.0 vT=0.0 stop 9.2 obst 1.7(30) wait 150.4 gateConn 19259 gateNode 2478 stopDone 0 lat 2.64
+   -> car 30 lane e3284 d-1 i0 u 21.4/78.7 v=0.0 vT=0.2 stop 1000000000.0 obst 2.1(131) wait 153.3 gateConn 19257 gateNode 2478 stopDone 0 lat -0.29
+   -> car 131 lane e3287 d1 i1 u 54.2/71.4 v=0.0 vT=0.0 stop 9.2 obst 1.7(30) wait 150.4 gateConn 19259 gateNode 2478 stopDone 0 lat 2.64
+DEADLOCK t=358.9 car 22 at 4972.5 597.3 lane e3288 d-1 i0 u 85.3/89.0 stopU 83.9 next conn 19268 turn 0 ctl 1 gateNode 2479 stopDist 1000000000.0 obst 2.5 (body 135) sig 4
+   -> car 135 conn 19268 turn 0 node 2479 u 3.7/16.8 hold 0.0 committed 0 v=0.0 vT=0.2 stop 1000000000.0 obst 1.9(85) wait 94.6 gateConn 19268 gateNode 2479 stopDone 0 lat -0.01
+   -> car 85 conn 19268 turn 0 node 2479 u 11.1/16.8 hold 0.0 committed 0 v=0.0 vT=0.2 stop 1000000000.0 obst 2.6(89) wait 141.2 gateConn 19268 gateNode 2479 stopDone 0 lat 0.03
+   -> car 89 lane e3285 d-1 i0 u 11.6/69.0 v=0.0 vT=0.2 stop 1000000000.0 obst 3.2(110) wait 100.0 gateConn 19268 gateNode 2479 stopDone 0 lat -0.24
+   -> car 110 lane e3285 d-1 i0 u 20.4/69.0 v=0.0 vT=0.2 stop 1000000000.0 obst 3.3(138) wait 101.4 gateConn 19612 gateNode 2546 stopDone 0 lat -0.45
+   -> car 138 lane e3285 d-1 i0 u 29.5/69.0 v=0.0 vT=0.2 stop 1000000000.0 obst 2.0(5) wait 179.1 gateConn 19612 gateNode 2546 stopDone 0 lat -0.44
+DEADLOCK t=359.6 car 100 at 5006.0 487.2 lane e3287 d1 i2 u 40.0/71.4 stopU 66.3 next conn 19260 turn 2 ctl 1 gateNode 2478 stopDist 24.0 obst 1.9 (body 21) sig 4
+   -> car 21 lane e3284 d1 i0 u 49.9/70.5 v=0.0 vT=0.2 stop 13.2 obst 2.5(73) wait 62.1 gateConn 19261 gateNode 2478 stopDone 0 lat -0.00
+   -> car 73 lane e3287 d1 i2 u 53.4/71.4 v=0.0 vT=0.2 stop 10.5 obst 3.3(30) wait 78.4 gateConn 19260 gateNode 2478 stopDone 0 lat -0.00
+   -> car 30 lane e3284 d-1 i0 u 21.4/78.7 v=0.0 vT=0.2 stop 1000000000.0 obst 2.1(131) wait 155.4 gateConn 19257 gateNode 2478 stopDone 0 lat 0.02
+   -> car 131 lane e3287 d1 i1 u 54.2/71.4 v=0.0 vT=0.0 stop 9.2 obst 1.9(30) wait 152.5 gateConn 19259 gateNode 2478 stopDone 0 lat 1.39
+   -> car 30 lane e3284 d-1 i0 u 21.4/78.7 v=0.0 vT=0.2 stop 1000000000.0 obst 2.1(131) wait 155.4 gateConn 19257 gateNode 2478 stopDone 0 lat 0.02
+
+==== Traffic metrics (360 s simulated, 140 cars, 120 peds, 14.00 vehicle-hours) ====
+collisions: 4 (0.29 per vehicle-hour), hard (>3000 Ns): 0 (0.00/veh-h)
+static impacts (walls/props >2500 Ns): 0, props broken: 0
+red-light violations: 0, stop-sign violations: 1
+stuck recoveries: 0, three-point turns: 7, relocalizations: 8, deadlocks (>60 s waits): 71, respawns: 143, lifted off ledges: 0
+pedestrians hit: 0
+average speed by road class (km/h):  boulevard 6.1 (1830 s)  avenue 16.7 (6018 s)  street 14.5 (33921 s)
+lane-center error (RMS, lanes, v>3 m/s): 0.188 m
+AI cost per 60 Hz tick: traffic 0.444 ms + peds 0.047 ms (avg), p50 0.502 ms, p99 0.698 ms, max 1.997 ms
+physics per 120 Hz step: 0.938 ms (140 cars)
+08:28:17 rc=0

@@ -1,0 +1,12 @@
+med0 front 14326 16 2 3 60 10
+med1 front 14412 16 2 -3 60 10
+med2 front 14222 16 2 3 60 10
+med3 front 14223 16 2 -3 60 10
+med4 front 14217 16 2 3 60 10
+med5 front 14228 16 2 -3 60 10
+med6 front 13683 16 2 3 60 10
+med7 front 35022 16 2 -3 60 10
+med8 front 13681 16 2 3 60 10
+med9 front 7005 16 2 -3 60 10
+med10 front 7084 16 2 3 60 10
+med11 front 7071 16 2 -3 60 10

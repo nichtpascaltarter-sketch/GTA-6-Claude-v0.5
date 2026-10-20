@@ -1,0 +1,75 @@
+world-life snapshot-safe
+
+FILES (all my set; full build OUT=/tmp/wl/nt4.exe sh build.sh passes, no warnings):
+- src/game/assets.cpp: the wardrobe.
+  - Classifies the roster. Adds 29 dedicated looks (night out 12, door staff 3, sportswear 8, beach cover-ups 6), built after the protagonists and kept out of charsMaleCivil/charsFemaleCivil, so mission crowds don't change.
+  - Adds wardrobeChar / wardrobeRoleChar / wardrobeActorChar / wardrobeBeachLook / wardrobeOutOfPlace.
+- src/game/population.cpp:
+  - Every ambient, venue, queue, group, bench, beach and club-door spawn now goes through the wardrobe.
+  - New venue looks: sport, tourist, outdoor, night, staff.
+  - Town venues for stores, gas stations, strip malls, motels, porches, yards, driveways, workshops, docks and the lake landing. They are laid out in about 50 ms at load and spot-checked on the first visit.
+  - A Sawgrass dawn crew.
+  - A local "lived-in" quota outside the city; open country gets half the quota.
+  - Parked-car venue props.
+  - Out-of-place recycling.
+  - Hands free at night in nightlife districts.
+  - A --popdebug census.
+- src/game/interiors_game.cpp: club dancers and patrons use LK_CLUB, VIPs LK_NIGHT, bouncers LK_DOOR.
+- src/game/transit_game.cpp: stop waiters use wardrobeRoleChar.
+- src/game/airboat_tours.cpp: airboat tour riders are sightseers, not in swimwear.
+- src/game/story_act2.cpp: Velvet Rope dancers use LK_CLUB; the Fireworks pier crowd uses LK_CIVIL.
+- src/game/weather.cpp: setImmediate settles the ground. This was the root cause of the "flooded" verge.
+- src/game/fishing.cpp: the Key Coral fishing spot is now on the marina pier and the bait shop at the landing. Both are found from the SK_MARINA site.
+- src/game/mission_util.cpp: keyCoralMarina now resolves at the marina's landing. This hunk is self-contained (see notes).
+- src/game/events.cpp: your one line, spawnActor -> wardrobeActorChar. The signature is unchanged.
+
+CHANGELOG
+- People dress for where they are, the hour and the weather. Swimwear only on the sand, in the water and on the beach front on dry days. On the streets behind the beach people wear cover-ups and summer clothes. Nobody wears swimwear in the rain away from the water.
+- After dark, nightlife districts dress for a night out: club lines, dancers and patrons, door staff in black. People there have their hands free, so no briefcases or shopping bags at 1 a.m.
+- Office clothes thin out after hours. Runners wear sportswear, sightseers wear tourist clothes, and anglers, birders and marsh hands wear outdoor clothes. Street events such as takeovers and car meets draw the same dressed-for-the-place crowd.
+- If the weather or the hour no longer suits someone's outfit, they leave while out of sight and someone dressed for it takes their place.
+- Small towns, suburbs and the countryside feel lived in:
+  - store owners and customers out front; cars at the gas pumps and in strip-mall lots; motel guests outside
+  - people on porches; yard work and neighbours chatting in front yards; family cars in driveways
+  - anglers on the docks and at the lake landing; smoke breaks at the workshops
+  - an airboat crew, rangers and early birders at the Sawgrass visitor center at dawn
+  - open country between the towns stays quiet
+- Key Coral marina: the "flooded" verge is gone. An instant weather change now settles the ground, so an earlier rain no longer leaves puddles under a clear sky. The bait shop marker (the blue cylinder) and the fishing spot moved from a residential verge to the marina itself.
+
+TESTS
+Scorecard tour at 960x540. Before = scorecard 4; after = the final runs (nt2 for stops 5-11, nt3 for 12-15). Counts are peds / vehicles in the world at the shot. CPU is ms of ai / veh / peds.
+
+Wardrobe (job 1):
+- Stop 5, beach condos, 17:30: 125/66 -> 122/65. Before, a woman in a bikini and a shirtless man in trunks were on the shopping street. After, there is a cover-up (print shirt over trunks) and no swimwear off the sand.
+- Stop 6, beach pier, 19:06: 110/55 -> 108/54. Before, there was a bikini on the promenade at sunset. After, none.
+- Stop 7, club night, 22:30: 201/46 -> 199/46. Before, three people in swimwear were on the promenade at night. After, a print shirt and jeans. The club line is in night looks and the door staff in black, with hands free.
+- Stop 8, downtown rain night: 68/66 -> 67/68. No swimwear in the rain.
+- Your events.cpp line, tested with --autoplay takeover (a street takeover at night). Before, the crowd had a bikini and pink trunks. After, a red dress and a print shirt with white trousers.
+
+Rural (job 2):
+- Stop 12, Sawgrass, 07:12: 19/7 -> 31/9 (1.6x). CPU 0.25/0.69/0.56 -> 0.36/0.92/0.53.
+- Stop 13, Grove, 17:00: 46/22 -> 80/34 (1.7x). Porches, yards and driveway cars. CPU 0.30/0.96/0.46 -> 0.48/0.79/0.69.
+- Stop 14, Lake Town, 10:30: 31/26 -> 71/38 (2.3x). Main-street stores, the docks and the landing. CPU 0.31/0.51/1.42 -> 0.79/0.34/0.83.
+- Stop 15, Fort Castell, 13:00: 32/30 -> 46/45 (1.4x). Workshop smoke breaks, stores and the gas station. CPU 0.34/0.57/0.52 -> 0.38/0.48/0.61.
+- City stops after, for comparison: 5: 0.90/1.42/4.59, 7: 1.34/0.64/5.50, 8: 0.53/1.03/1.01. Rural CPU stays at or below the city.
+- Cause of the empty rural stops: the region quota alone filled a town's main street no more than its edge of town, and nothing put people where they gather (stores, gas stations, porches, docks). The fix is the local quota plus the town venues.
+
+Marina (job 3):
+- Stop 11, Key Coral marina: 43/31 -> 41/31.
+- The verge was not flooded by water geometry. setImmediate kept the earlier rain's wetness, so the puddle mask covered lawns under a clear sky. Stops 9, 10, 11 and 13 are now dry after stop 8's rain.
+- The blue cylinder was the bait shop marker at a misplaced place.
+- A world flood scan of every marina, canal, dock and boat ramp found no water over streets or verges.
+
+Smoke run of the final build (nt4.exe, with the driveway-car guard), stop 13 Grove: 79/31, no asserts. Driveway cars still appear. The nt3 shot had shown the enter-vehicle hint (some vehicle within 4.5 m of the player); this one doesn't.
+
+Evidence sheets (before | after): /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/wl/evidence/ (stop_05 ... stop_15, takeover_crowd_before_after.png).
+
+NOTES
+- P.keyCoralMarina used to resolve on a residential street about 250 m inland; it now resolves at the end of Yacht Club Way, at the marina's landing (4087,-4026).
+  - It also feeds the tour's stop 11, the boat encounter's water candidates, and the Key Coral Villa safehouse's garage marker (curbOffset).
+  - The villa's save point and wardrobe come from its interior at (4450,-4200) and don't change.
+  - The flood and cylinder fixes don't depend on this hunk. If you prefer the old framing of stop 11, drop the mission_util hunk on its own.
+- There are no child models in the roster, so no families with kids. Dog walkers come from wildlife.cpp.
+- Stop 12 places the player in the marsh water, in both the before and after shots. That is tour placement, not mine.
+- In Grove the kerb parked-car spawner finds almost no spots: the census shows 0-4 parked of 23 wanted, because it needs a shoulder of at least 1.8 m. This predates my change. Grove's parked cars now come from the driveways.
+- CPU figures are EMA frame times on a box at load average around 15 on 4 cores, so they are noisy.

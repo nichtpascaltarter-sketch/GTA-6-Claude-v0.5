@@ -1,0 +1,12 @@
+shared copies equal HEAD 4e48029; new files absent
+src/world/sites.h d64ecce2de923a6be38289faaa13f14dccb42890 (HEAD 96adcf5)
+src/world/sites.cpp 7385624005f79e530a70bddb8279744a6281bc05 (HEAD cb9614b)
+src/world/gridcodec.h 48045818585745f3eca9c80d8c9a61f09ff065c2 (new, 1704 bytes)
+src/world/gridcodec.cpp d9d0818897ddd92a0a702df2ae7b5d591dc3aa71 (new, 11374 bytes)
+tools/terrainbake.cpp 9f1ac4aceb21ba0f5265ced70a39808551a60e7f (new, 11341 bytes)
+world/terrain/terrain.ntw c59416c89bd0dfde63c40505872e97ee1b0f035a (new, 30997 bytes)
+world/terrain/height.ntg 4e1f10f7730e8f66027b979b1b6037354fee4bce (new, 2303190 bytes)
+world/terrain/water.ntg 157f194e07939656f47f4848de4dfaacbd494492 (new, 38405 bytes)
+world/terrain/region.ntg 030f48845d45846e0d9b1a2ac20176a7b031221b (new, 37643 bytes)
+world/terrain/coast.ntg b07c108cecaf05b179b6de5ad7f93d8f003a4631 (new, 276761 bytes)
+syntax rc=0 errors=0 warnings=0

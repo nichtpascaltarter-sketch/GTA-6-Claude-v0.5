@@ -1,0 +1,13 @@
+gate ok: free 4096 MB (need 3300)
+run.sh exit=0
+data folder:
+total 40
+drwxr-xr-x  3 root root  4096 Oct 20 14:28 .
+drwxr-xr-x 18 root root  4096 Oct 20 14:28 ..
+-rw-r--r--  1 root root 26401 Oct 20 14:37 log.txt
+drwxr-xr-x  2 root root  4096 Oct 20 14:30 shadercache
+player's folder: not made
+[   0.001] Neon Tide starting (version 0.02.7-dev, commit a0c1e2f3a4b5c6d7e8f90123456789abcdef0a1b). Data dir: Z:\tmp\upd2\gdd\
+[   0.688] DXGI is Wine's builtin implementation: presenting with sync interval 0 (no vsync)
+[   1.169] Direct3D 12 device created: adapter 'NVIDIA GeForce GTX 470', VRAM 16093 MB, feature level 11_1, resource binding tier 3, resource heap tier 2, typed UAV loads yes, tearing yes, bindless UAV arrays yes, 2 frames in flight
+16:[   1.645] Updater: no update check (automated run)

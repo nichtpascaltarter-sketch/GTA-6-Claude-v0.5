@@ -1,0 +1,10 @@
+start Mon Oct 12 17:22:11 UTC 2026
+wc_dev15b build rc=0 Mon Oct 12 17:35:52 UTC 2026
+wc_dev15b run exit 0: 0 overlapping building pairs (0 of them envelope into envelope); 1 passed Mon Oct 12 17:37:20 UTC 2026
+clang scan exit 0: 0 diagnostics Mon Oct 12 17:43:43 UTC 2026
+dev15b syntax ok (0 warnings) Mon Oct 12 17:44:23 UTC 2026
+dev15b build rc=0 Mon Oct 12 18:29:32 UTC 2026
+dev15b exe ready Mon Oct 12 18:29:32 UTC 2026
+start dev15b regression Mon Oct 12 18:29:32 UTC 2026
+dev15b regression stopped: the lead signs 11b off on the static evidence Mon Oct 12 19:26:52 UTC 2026
+cq11b done Mon Oct 12 19:26:52 UTC 2026

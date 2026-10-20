@@ -1,0 +1,45 @@
+ok   rand1x1            1x1     raw        2 ->       38 bytes (1900.0%), 180/200 corruptions rejected
+ok   const1x1           1x1     raw        2 ->       33 bytes (1650.0%), 178/200 corruptions rejected
+ok   rand1x2            1x2     raw        4 ->       41 bytes (1025.0%), 185/200 corruptions rejected
+ok   const1x2           1x2     raw        4 ->       33 bytes (825.0%), 200/200 corruptions rejected
+ok   rand1x3            1x3     raw        6 ->       42 bytes (700.0%), 200/200 corruptions rejected
+ok   const1x3           1x3     raw        6 ->       34 bytes (566.7%), 105/200 corruptions rejected
+ok   rand1x4            1x4     raw        8 ->       44 bytes (550.0%), 190/200 corruptions rejected
+ok   const1x4           1x4     raw        8 ->       34 bytes (425.0%), 110/200 corruptions rejected
+ok   rand2x1            2x1     raw        4 ->       43 bytes (1075.0%), 185/200 corruptions rejected
+ok   const2x1           2x1     raw        4 ->       34 bytes (850.0%), 132/200 corruptions rejected
+ok   rand2x2            2x2     raw        8 ->       50 bytes (625.0%), 187/200 corruptions rejected
+ok   const2x2           2x2     raw        8 ->       34 bytes (425.0%), 139/200 corruptions rejected
+ok   rand2x3            2x3     raw       12 ->       57 bytes (475.0%), 199/200 corruptions rejected
+ok   const2x3           2x3     raw       12 ->       34 bytes (283.3%), 173/200 corruptions rejected
+ok   rand2x4            2x4     raw       16 ->       62 bytes (387.5%), 200/200 corruptions rejected
+ok   const2x4           2x4     raw       16 ->       34 bytes (212.5%), 178/200 corruptions rejected
+ok   rand3x1            3x1     raw        6 ->       48 bytes (800.0%), 194/200 corruptions rejected
+ok   const3x1           3x1     raw        6 ->       34 bytes (566.7%), 139/200 corruptions rejected
+ok   rand3x2            3x2     raw       12 ->       54 bytes (450.0%), 200/200 corruptions rejected
+ok   const3x2           3x2     raw       12 ->       34 bytes (283.3%), 190/200 corruptions rejected
+ok   rand3x3            3x3     raw       18 ->       61 bytes (338.9%), 194/200 corruptions rejected
+ok   const3x3           3x3     raw       18 ->       35 bytes (194.4%), 141/200 corruptions rejected
+ok   rand3x4            3x4     raw       24 ->       70 bytes (291.7%), 199/200 corruptions rejected
+ok   const3x4           3x4     raw       24 ->       35 bytes (145.8%), 143/200 corruptions rejected
+ok   rand4x1            4x1     raw        8 ->       50 bytes (625.0%), 198/200 corruptions rejected
+ok   const4x1           4x1     raw        8 ->       34 bytes (425.0%), 169/200 corruptions rejected
+ok   rand4x2            4x2     raw       16 ->       61 bytes (381.2%), 200/200 corruptions rejected
+ok   const4x2           4x2     raw       16 ->       35 bytes (218.8%), 147/200 corruptions rejected
+ok   rand4x3            4x3     raw       24 ->       73 bytes (304.2%), 197/200 corruptions rejected
+ok   const4x3           4x3     raw       24 ->       35 bytes (145.8%), 166/200 corruptions rejected
+ok   rand4x4            4x4     raw       32 ->       80 bytes (250.0%), 199/200 corruptions rejected
+ok   const4x4           4x4     raw       32 ->       35 bytes (109.4%), 189/200 corruptions rejected
+ok   rand5x1            5x1     raw       10 ->       52 bytes (520.0%), 192/200 corruptions rejected
+ok   const5x1           5x1     raw       10 ->       34 bytes (340.0%), 189/200 corruptions rejected
+ok   rand5x2            5x2     raw       20 ->       68 bytes (340.0%), 194/200 corruptions rejected
+ok   const5x2           5x2     raw       20 ->       35 bytes (175.0%), 169/200 corruptions rejected
+ok   rand5x3            5x3     raw       30 ->       81 bytes (270.0%), 199/200 corruptions rejected
+ok   const5x3           5x3     raw       30 ->       35 bytes (116.7%), 195/200 corruptions rejected
+ok   rand5x4            5x4     raw       40 ->       90 bytes (225.0%), 195/200 corruptions rejected
+ok   const5x4           5x4     raw       40 ->       36 bytes ( 90.0%), 153/200 corruptions rejected
+ok   extremes          64x64    raw     8192 ->     1228 bytes ( 15.0%), 200/200 corruptions rejected
+ok   smooth           700x500   raw   700000 ->   143900 bytes ( 20.6%), 200/200 corruptions rejected
+ok   classes          640x480   raw   307200 ->     7215 bytes (  2.3%), 200/200 corruptions rejected
+ok   rand_u8          300x200   raw    60000 ->    66619 bytes (111.0%), 200/200 corruptions rejected
+ALL OK

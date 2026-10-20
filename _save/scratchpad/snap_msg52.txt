@@ -1,0 +1,15 @@
+Stairs: a step that leaves the stairs mid-swing no longer lands on a tread fitted earlier (review fix)
+
+Animation (src/anim/animator.cpp), the fix for the review finding on PR #47:
+- A step fitted to a stair tread that then left the stairs mid-swing (the stairs no longer seen) kept its old fit, so
+  the foot could come down at the height of a tread it was no longer over. The step now drops its cached fit (landing
+  height, shift and nose overhang) and lands on the ground probed where it comes down.
+- A fit that fails also leaves nothing cached.
+
+Checks (animation agent):
+- The case is real: an instrumented build hit it 245 times across the stair harness runs (for example stepT 0.28 with
+  stairSeen 1.53 and a stale fit 0.17 m up).
+- Stair harness at 30 and 60 Hz (stops at 8 seeds, crowd, blocked, blocked with change 1, the full suite): 62 of 66
+  result files identical; the other 4 differ only by one extra ground scan, with no metric change.
+- In game, locostairs against HEAD: every summary line identical; deep-sole count and landing errors unchanged.
+- anim_test: ALL PASSED.

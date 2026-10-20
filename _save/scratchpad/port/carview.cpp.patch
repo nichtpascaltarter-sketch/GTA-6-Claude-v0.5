@@ -1,0 +1,155 @@
+--- tests/anim/carview.cpp	2026-10-01 11:36:26.533250146 +0000
++++ /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/rear/tests/anim/carview.cpp	2026-10-01 14:57:32.025284836 +0000
+@@ -5,6 +5,7 @@
+ // Usage: carview out.ppm [--model N] [--open F] [--door D] [--view side|front34|rear34|top|inside|back]
+ //                        [--w W] [--h H] [--ss N] [--yaw deg] [--pitch deg] [--dist D] [--target x,y,z] [--fov deg]
+ //                        [--info] (print the doors' metadata) [--list] (models) [--wire]
++#include <map>
+ #define PREVIEW_NO_MAIN
+ #include "preview.cpp"
+ #include "../../src/sim/vehicle_models.cpp"
+@@ -52,6 +53,8 @@
+     }
+     for (size_t i = 0; i + 2 < m.indices.size(); i += 3) {
+         u32 a = m.indices[i], b = m.indices[i + 1], c = m.indices[i + 2];
++        static const float cutZ = getenv("CARVIEW_CUTZ") ? (float)atof(getenv("CARVIEW_CUTZ")) : 1e9f;   // (a cut-away: the car above it left out)
++        if (Min(g.P[base + a].z, Min(g.P[base + b].z, g.P[base + c].z)) > cutZ) continue;
+         if ((m.verts[a].mat & 0xff) == MAT_CAR_WINDOW) {
+             g.GP.push_back(g.P[base + a]);
+             g.GP.push_back(g.P[base + b]);
+@@ -304,6 +307,11 @@
+     struct Tri { vec3 a, b, c, n; u32 mat, color; u8 src; };   // src: 0 body, 1 another door, 2 the door in use
+     std::vector<Tri> tris;
+     std::vector<std::vector<u32>> cells;
++    // the body's cabin linings (MAT_INTERIOR: wheel-house trims, floor, firewall, partitions): a point in front of
++    // one is in the cabin, whatever hard panel is behind it within the band (a wheel well's inner wall behind the
++    // wheel-house trim)
++    std::vector<Tri> soft;
++    std::vector<std::vector<u32>> softCells;
+     vec3 mn;
+     float cs = 0.05f;
+     int nx = 0, ny = 0, nz = 0;
+@@ -321,6 +329,14 @@
+     void add(const MeshData& m, quat q, vec3 pivot, bool all, u8 src = 0, int glassMode = 1) {
+         for (size_t i = 0; i + 2 < m.indices.size(); i += 3) {
+             const VtxStatic& va = m.verts[m.indices[i]];
++            if (!all && (va.mat & 0xffu) == MAT_INTERIOR) {
++                vec3 a = pivot + rotate(q, va.pos - pivot), b = pivot + rotate(q, m.verts[m.indices[i + 1]].pos - pivot),
++                     c = pivot + rotate(q, m.verts[m.indices[i + 2]].pos - pivot);
++                vec3 n = cross(b - a, c - a);
++                float l = length(n);
++                if (l > 1e-10f) soft.push_back(Tri{a, b, c, n / l, va.mat & 0xffu, va.color, src});
++                continue;
++            }
+             if (!all && !hard(va.mat, va.color)) continue;
+             if ((glassMode == 1 && glass(va.mat)) || (glassMode == 2 && !glass(va.mat))) continue;
+             vec3 a = pivot + rotate(q, va.pos - pivot), b = pivot + rotate(q, m.verts[m.indices[i + 1]].pos - pivot),
+@@ -347,6 +363,17 @@
+                 for (int y = y0; y <= y1; y++)
+                     for (int x = x0; x <= x1; x++) cells[((size_t)z * ny + y) * nx + x].push_back(t);
+         }
++        softCells.assign(soft.empty() ? 0 : (size_t)nx * ny * nz, {});
++        for (u32 t = 0; t < (u32)soft.size(); t++) {
++            const Tri& T = soft[t];
++            vec3 a = vmin(T.a, vmin(T.b, T.c)) - vec3(band), b = vmax(T.a, vmax(T.b, T.c)) + vec3(band);
++            int x0 = Max(0, (int)((a.x - mn.x) / cs)), x1 = Min(nx - 1, (int)((b.x - mn.x) / cs));
++            int y0 = Max(0, (int)((a.y - mn.y) / cs)), y1 = Min(ny - 1, (int)((b.y - mn.y) / cs));
++            int z0 = Max(0, (int)((a.z - mn.z) / cs)), z1 = Min(nz - 1, (int)((b.z - mn.z) / cs));
++            for (int z = z0; z <= z1; z++)
++                for (int y = y0; y <= y1; y++)
++                    for (int x = x0; x <= x1; x++) softCells[((size_t)z * ny + y) * nx + x].push_back(t);
++        }
+     }
+     static vec3 closest(vec3 p, vec3 a, vec3 b, vec3 c) {
+         vec3 ab = b - a, ac = c - a, ap = p - a;
+@@ -399,6 +426,29 @@
+                 if (v < -1e-3f || w < -1e-3f || v + w > 1.001f) sgn = 1.f;
+             }
+         }
++        if (best < band && sgn < 0.f && !softCells.empty()) {
++            // a lining between the point and that surface, facing the point: the point is in front of the lining
++            const Tri& T = tris[bt];
++            vec3 q = closest(p, T.a, T.b, T.c);
++            for (u32 t : softCells[((size_t)z * ny + y) * nx + x]) {
++                const Tri& S = soft[t];
++                vec3 d = q - p, e1 = S.b - S.a, e2 = S.c - S.a, h = cross(d, e2);
++                float det = dot(e1, h);
++                if (fabsf(det) < 1e-16f) continue;
++                float inv = 1.f / det;
++                vec3 sv = p - S.a;
++                float u = dot(sv, h) * inv;
++                if (u < 0.f || u > 1.f) continue;
++                vec3 qq = cross(sv, e1);
++                float v = dot(d, qq) * inv;
++                if (v < 0.f || u + v > 1.f) continue;
++                float w = dot(e2, qq) * inv;
++                if (w >= 0.f && w <= 1.f && dot(p - S.a, S.n) > 0.f) {
++                    sgn = 1.f;
++                    break;
++                }
++            }
++        }
+         if (best < band && sgn < 0.f) {
+             if (tri) *tri = bt;
+             return best;
+@@ -622,6 +672,7 @@
+     CarDoorInfo g = doorInfo(vm, seat, spot, spotYaw, true);
+     float len = carClipLength(clip, g);
+     const float wIn = enter ? Max(len - 2.74f, 0.f) : 0.f;   // (getting in: the steps to the doorway stretch everything after the pull)
++    const bool narrow = Anim::detail::carGeo(D.left ? g : Anim::detail::mirrorDoor(g)).narrow;   // (a rear door's way: carInNarrow)
+     Animator an;
+     an.init(&ch.sk, 77u);
+     an.setCharacter(ch.d);
+@@ -729,7 +780,7 @@
+                 if (vx.weights[k] > vx.weights[0]) bone = vx.bones[k];
+             float ax = p.x * side;   // out from the vehicle's centre on the door's side
+             {
+-                bool heldNow = heldPart(bone) && (enter ? (tt > 0.2f && tt < 1.2f + wIn) || (tt > 2.06f + wIn && tt < 2.52f + wIn) : true);   // (exit: every hold, and the let-go)
++                bool heldNow = heldPart(bone) && (enter ? (tt > 0.2f && tt < (narrow ? 1.86f : 1.2f) + wIn) || (tt > 2.06f + wIn && tt < 2.52f + wIn) : true);   // (exit: every hold, and the let-go; a narrow door's frame is held till sat down)
+                 int tb = -1, td = -1;
+                 float db = heldNow ? 0.f : body.depth(p, &tb), dd = heldNow ? 0.f : door.depth(p, &td);
+                 float dpt = Max(db, dd);
+@@ -1003,6 +1054,43 @@
+         }
+         for (size_t s = 0; s < vm.seats.size(); s++)
+             printf(" seat %zu (%.3f %.3f %.3f) door %d\n", s, vm.seats[s].pos.x, vm.seats[s].pos.y, vm.seats[s].pos.z, vm.seats[s].door);
++        if (getenv("CARVIEW_DOORDEPTH"))
++            for (size_t d = 0; d < vm.doors.size(); d += 2) {
++                // the door's inward reach from the hinge's x, per height band and along y (rear third / middle / front third)
++                const DoorSpec& D = vm.doors[d];
++                printf(" door %zu depth (inward of hinge x, by z): ", d);
++                for (float z0 = D.sillZ; z0 < D.roofZ; z0 += 0.1f) {
++                    float in[3] = {-1, -1, -1};
++                    for (const VtxStatic& v : D.mesh.verts) {
++                        if (v.pos.z < z0 || v.pos.z >= z0 + 0.1f) continue;
++                        float f = (v.pos.y - D.yRear) / Max(D.yFront - D.yRear, 0.1f);
++                        int k = f < 0.33f ? 0 : (f < 0.67f ? 1 : 2);
++                        in[k] = Max(in[k], (D.left ? 1.f : -1.f) * (v.pos.x - D.hinge.x));
++                    }
++                    printf("z%.2f[%.2f %.2f %.2f] ", z0, in[0], in[1], in[2]);
++                }
++                printf("\n");
++            }
++    }
++    if (const char* ds = getenv("CARVIEW_DOORSLICE")) {
++        // a door swung open: its mesh's vertices near height z, as (y, x) - the slice's extent per 2 cm of x
++        int di = 2;
++        float open = 0.95f, z = 0.5f;
++        sscanf(ds, "%d,%f,%f", &di, &open, &z);
++        if (di < 0 || di >= (int)vm.doors.size()) return 1;
++        const DoorSpec& D = vm.doors[di];
++        quat q = quatAxisAngle(D.axis, open * D.maxAngle);
++        std::map<int, std::pair<float, float>> rows;
++        for (const VtxStatic& v : D.mesh.verts) {
++            vec3 p = D.hinge + rotate(q, v.pos - D.hinge);
++            if (fabsf(p.z - z) > 0.03f) continue;
++            int k = (int)floorf(p.x / 0.02f);
++            auto it = rows.find(k);
++            if (it == rows.end()) rows[k] = {p.y, p.y};
++            else { it->second.first = Min(it->second.first, p.y); it->second.second = Max(it->second.second, p.y); }
++        }
++        for (auto& r : rows) printf("  x %.2f: y %.3f .. %.3f\n", r.first * 0.02f, r.second.first, r.second.second);
++        return 0;
+     }
+     if (getenv("CARVIEW_HEADTOP")) {
+         // the check's characters standing: how far their head's top (hair included) is over the height they are given

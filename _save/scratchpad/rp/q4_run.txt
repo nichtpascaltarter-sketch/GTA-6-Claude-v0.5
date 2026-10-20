@@ -1,0 +1,77 @@
+Audio: no output device - audio disabled
+init() -> false (expected false on Linux: null backend)
+Audio: no output device - audio disabled
+bank + first render: 9.01 s
+== SFX
+== Engines
+== Emitters
+== Radio
+  Neon Coast 88.1              Synthwave / Retro 80s    rms -18.4 dB peak 0.88  now: Vapor Signal - Crimson Heart
+  The Heat 97.3                Hip-Hop / Trap           rms -18.4 dB peak 0.92  now: Ocho Vueltas - No Sleep in Porto Sol
+  Radio Calor 101.5            Reggaeton / Latin Pop    rms -18.5 dB peak 0.95  now: Mateo Caliente - Verano Eterno
+  Pulse FM 104.8               House / EDM              rms -18.0 dB peak 0.83  now: Tidal Society - Sweat and Satellites
+  Riptide Rock 93.7            Rock                     rms -18.2 dB peak 0.77  now: The Rusty Anchors - Swamp Thunder
+  Blue Lagoon Lounge 90.9      Jazz Lounge              rms -18.0 dB peak 0.78  now: Vivian DuPree Quartet - The Humid Hour
+  Sawgrass Country 99.5        Country / Americana      rms -18.3 dB peak 0.92  now: The Swamp Cats - Sweet Tea and Sorrow (Night Mix)
+  Tidepool FM 106.1            Lo-Fi / Chillhop         rms -19.7 dB peak 0.95  now: cassette coast - blue hour
+  Palmera Public Talk 1040 AM  Talk Radio               rms -19.1 dB peak 0.92  now: 
+== Score
+  intensity 0.1 rms -27.2 dB
+  intensity 0.4 rms -20.1 dB
+  intensity 0.7 rms -18.9 dB
+  intensity 1.0 rms -18.0 dB
+== Ambience
+  city_day         rms -36.8 dB peak 0.07  <160 Hz 30%  0.5-1.6k 41%  2.2-10k  6%  >4k  2%
+  city_night       rms -40.5 dB peak 0.04  <160 Hz 32%  0.5-1.6k 38%  2.2-10k  5%  >4k  2%
+  downtown_day     rms -32.3 dB peak 0.12  <160 Hz 24%  0.5-1.6k 48%  2.2-10k  6%  >4k  3%
+  downtown_night   rms -37.2 dB peak 0.06  <160 Hz 42%  0.5-1.6k 31%  2.2-10k  4%  >4k  2%
+  port_day         rms -38.0 dB peak 0.06  <160 Hz 59%  0.5-1.6k 15%  2.2-10k  3%  >4k  2%
+  forest_day       rms -36.0 dB peak 0.16  <160 Hz 26%  0.5-1.6k 31%  2.2-10k 10%  >4k  9%
+  forest_night     rms -44.8 dB peak 0.06  <160 Hz  1%  0.5-1.6k  0%  2.2-10k 75%  >4k 73%
+  beach_day        rms -36.4 dB peak 0.08  <160 Hz 55%  0.5-1.6k  4%  2.2-10k  3%  >4k  4%
+  sawgrass_day     rms -36.4 dB peak 0.13  <160 Hz 17%  0.5-1.6k  8%  2.2-10k 54%  >4k 55%
+  sawgrass_night   rms -35.2 dB peak 0.24  <160 Hz 19%  0.5-1.6k 15%  2.2-10k 34%  >4k 18%
+  wetland_evening  rms -39.9 dB peak 0.09  <160 Hz 28%  0.5-1.6k 13%  2.2-10k  6%  >4k  6%
+  storm            rms -24.6 dB peak 0.41  <160 Hz 13%  0.5-1.6k 16%  2.2-10k 48%  >4k 24%
+  rain_open        rms -25.8 dB peak 0.31  <160 Hz 35%  0.5-1.6k 12%  2.2-10k 35%  >4k 19%
+  rain_sheltered   rms -24.0 dB peak 0.34  <160 Hz 25%  0.5-1.6k 49%  2.2-10k  9%  >4k  3%
+  rain_in_car      rms -31.9 dB peak 0.17  <160 Hz  4%  0.5-1.6k 66%  2.2-10k 12%  >4k  9%
+  rain_indoors     rms -43.5 dB peak 0.03  <160 Hz 49%  0.5-1.6k 13%  2.2-10k  0%  >4k  0%
+  underwater       rms -30.1 dB peak 0.15  <160 Hz 70%  0.5-1.6k  0%  2.2-10k  0%  >4k  0%
+  thunder 500 / 2000 / 6000 m: loud -9.9 / -10.5 / -21.4 dB, >1 kHz 6.7 / 0.0 / 0.0 %
+== Speech
+== Stress
+== Environment acoustics and gunfire
+  open     player pistol: 45-75 ms energy -21.4 dB re direct, loud -20.2 dB; NPC 30 m late/early -20.3 dB
+           zone: enclosed 0.00 canyon 0.00 cover 0.00  rtIn 1.13 rtOut 0.85 wetIn 0.00 wetOut 0.28 er 0.50 echo 0.65 flutter 0.00
+  street   player pistol: 45-75 ms energy -8.5 dB re direct, loud -18.7 dB; NPC 30 m late/early -17.6 dB
+           zone: enclosed 0.00 canyon 1.00 cover 0.00  rtIn 2.28 rtOut 1.85 wetIn 0.00 wetOut 0.88 er 0.85 echo 0.26 flutter 0.50
+  room     player pistol: 45-75 ms energy -10.7 dB re direct, loud -18.5 dB; NPC 30 m late/early -39.5 dB
+           zone: enclosed 1.00 canyon 0.00 cover 1.00  rtIn 0.53 rtOut 0.85 wetIn 0.70 wetOut 0.08 er 0.75 echo 0.00 flutter 0.10
+  tunnel   player pistol: 45-75 ms energy -5.4 dB re direct, loud -17.5 dB; NPC 30 m late/early -14.8 dB
+           zone: enclosed 1.00 canyon 0.00 cover 1.00  rtIn 3.60 rtOut 0.85 wetIn 0.95 wetOut 0.08 er 0.75 echo 0.00 flutter 0.26
+  station  player pistol: 45-75 ms energy -24.3 dB re direct, loud -20.3 dB; NPC 30 m late/early -24.0 dB
+           zone: enclosed 0.38 canyon 0.00 cover 1.00  rtIn 1.20 rtOut 0.85 wetIn 0.36 wetOut 0.20 er 0.59 echo 0.41 flutter 0.00
+  open: pistol at 170 m arrives after 0.497 s (expected 0.496)
+  street: rifle player -11.5 dB, NPC at 10 m -14.9 dB, suppressed -29.3 dB, 390 m away -32.8 dB; pistol -18.4 / suppressed -32.7 dB
+  energy above 2 kHz: near 33.2%, 390 m 0.1%
+  sniper round passing 3 m away: first arrival 0.376 s (crack), crack -29.0 dB, gap -59.9 dB, report -26.4 dB
+  occlusion (clear / behind a building / behind a low wall): engine -40.5 / -50.5 / -44.2 dB (HF 4.0 / 0.1 / 2.0 %), rifle -28.9 / -39.3 / -33.0 dB
+== Drum kits (spectral sanity)
+  kit retro80s  kick<150Hz 96%  closedHat>5k 98%  openHat>5k 99%  snare 150-10k 91%
+  kit trap      kick<150Hz 96%  closedHat>5k 98%  openHat>5k 99%  snare 150-10k 90%
+  kit boombap   kick<150Hz 94%  closedHat>5k 78%  openHat>5k 88%  snare 150-10k 99%
+  kit dembow    kick<150Hz 96%  closedHat>5k 98%  openHat>5k 99%  snare 150-10k 90%
+  kit house     kick<150Hz 97%  closedHat>5k 98%  openHat>5k 99%  snare 150-10k 90%
+  kit rock      kick<150Hz 95%  closedHat>5k 98%  openHat>5k 99%  snare 150-10k 96%
+  kit jazz      kick<150Hz 100%  closedHat>5k 100%  openHat>5k 99%  snare 150-10k 97%
+  kit country   kick<150Hz 95%  closedHat>5k 98%  openHat>5k 99%  snare 150-10k 96%
+  kit lofi      kick<150Hz 94%  closedHat>5k 95%  openHat>5k 73%  snare 150-10k 100%
+  kit score     kick<150Hz 96%  closedHat>5k 98%  openHat>5k 99%  snare 150-10k 96%
+== Block-boundary clicks
+  siren_moving             boundary max d2 0.0643 vs interior p99.9 0.0667
+== Performance
+  perf (20 engines + 8 emitters): mixer 7.82% of one core, music production (radio + score) 2.40%
+  perf (6 engines + 2 emitters): mixer 5.55% of one core, music production (radio + score) 2.46%
+
+1365 checks, 0 failures, 46.2 s

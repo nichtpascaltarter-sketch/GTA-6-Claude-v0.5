@@ -1,0 +1,37 @@
+--- a/src/anim/animator.cpp
++++ b/src/anim/animator.cpp
+@@ -593,7 +593,9 @@
+     // along it, and where the landing heel goes so that the foot stands on the one under its ball - the toes short of a
+     // riser up ahead, the heel clear of a riser behind (overhanging a nose or an edge is fine), the ball on the tread
+     const float kScanBack = 0.25f;   // (the scan starts this far behind the foot's middle where it was to land)
+-    if (walking) A.stairSeen += dt;   // (standing on stairs, they stay seen: its steps land on treads too)
++    // (seen for about 1.8 m of the way walked - at a slow walk across a landing as at a walk; standing on stairs, they stay
++    // seen: its steps land on treads too)
++    if (walking) A.stairSeen += dt * Clamp(Max(in.speed, 0.f) / 1.2f, 0.4f, 1.f);
+     if (A.scanWant && in.groundScanValid && A.scanForStep) {
+         // (a step's: kept with the world, its landing fitted to it as the step goes)
+         const int s = A.scanFoot & 1;
+@@ -613,6 +615,10 @@
+         // either way)
+         bool stepped = false, bestBall = false;
+         float bestCost = 1e9f, bestShift = 0.f, bestG = -9.f, bestRear = 9.f;
++        // (re-scanned past mid-swing with a tread already fitted: that tread unless another needs much less of a move - a
++        // fit that late cannot be reached. At a walk: from 2 to 3 m/s it fades out as the run's landing lead fades in. At
++        // a steady pace: stopping, the foot comes down short of the tread it was fitted to)
++        const float keepLand = A.scanDone[s] && swingU[s] > 0.5f ? A.stairLand[s] : -9.f;
+         for (int k0 = 0, k1; k0 < kGroundScan; k0 = k1 + 1) {
+             k1 = k0;
+             while (k1 + 1 < kGroundScan && fabsf(g[k1 + 1] - g[k1]) < 0.03f) k1++;
+@@ -631,9 +637,10 @@
+             else if (rearEdge) lo = r + mg - 0.7f * L;   // (on the forefoot: the ground under it is probed under the ball)
+             // (a tread shorter than the foot: no toes in a riser, and only if nothing else will do; down a flight, the
+             // heel's and the ball's margins share what is missing)
+-            const float uh = lo <= hi ? Clamp(uHeel, lo, hi) : (upAhead ? hi : (upBehind && frontEdge ? 0.5f * (lo + hi) : lo)),
+-                        cost = fabsf(uh - uHeel) + (lo <= hi ? 0.f : 0.1f);
++            const float uh = lo <= hi ? Clamp(uHeel, lo, hi) : (upAhead ? hi : (upBehind && frontEdge ? 0.5f * (lo + hi) : lo));
+             const float gl = g[Clamp((int)floorf((uh + L) / kGroundScanStep + 0.5f), k0, k1)];
++            const float keepCost = keepLand > -8.f && fabsf(gl - keepLand) > 0.03f ? 0.15f * (1.f - runK) * A.blendSteady : 0.f;
++            const float cost = fabsf(uh - uHeel) + (lo <= hi ? 0.f : 0.1f) + keepCost;
+             if (cost < bestCost && fabsf(uh - uHeel) <= 0.2f * scale && fabsf(gl - gFoot) < 0.4f) {
+                 bestCost = cost;
+                 bestShift = uh - uHeel;

@@ -1,0 +1,23 @@
+city snapshot-safe: batch 3 (motels, strip malls, farms, neighbourhood churches; a lighter far LOD), copied into the shared tree on top of main 6780edd and MinGW-syntax-checked there.
+
+FILES (all src/world; only these five change against 6780edd, buildings.cpp and buildmesh.cpp are byte-identical to main):
+  buildings.h, facadedetail.cpp, cellgen.cpp, blockstyle.cpp, massing.cpp
+  (blobs: @BLOBS@)
+
+CHANGELOG (player-facing)
+@CHANGELOG@
+
+TESTS (private copy b3 = batch-2 tree + these files; before = the same tree with main's world files)
+- Story regression (missiontest story): @REG@
+- Story places: resolved to the same buildings and positions as before (diner, Mari's, Rook's, Pulse FM, boatyard, river, sawgrass dock); building, interior and infill counts unchanged; worldcheck: @WC@
+- Tour stops 2-5 (--gfxstats, 960x540), draws mean/max before -> after: downtown 763/839 -> 773/847, Solaris 630/645 -> 629/646, Midtown park 462/529 -> 459/535, Sol Beach condos 748/789 -> 652/671. AI/vehicle/ped cpu within noise.
+- Far-LOD building triangles, whole map: 597 k (main before batch 1) -> 1.22 M (batches 1+2) -> 1.01 M (batch 3). Near rings at the tour stops (420 m, citylab): @TRIS@
+- Repetition (debug log metric, share of neighbours within 150 m with the same signature): 13.7% (before batch 1) -> 4.3% (batches 1+2) -> 3.9% (batch 3); form twins 14.4% -> 3.8% -> 3.2%. Key Solano 6.9%, Redland 3.9%, farmlands 4.1%.
+
+EVIDENCE ($S = the session scratchpad)
+- in-game new types: $S/city/sheets/game_b3_new_types/{motels_strips_ingame,farms_ingame}.png
+- clay before/after: $S/city/sheets/clay_new_types/{motels_strips,farms,churches,islands_1,islands_2}.png
+- tour stops 2-5 before/after: $S/city/sheets/tour_b3/tour_stops_2_5.png
+- district views (in-game, 20 views): @VIEWS@
+
+NOTE / PROPOSAL (renderer, not mine to change): at tour stop 3 the restyled tower's storefront reads darker than before because the facade shader multiplies the shop interior by the facade's glass tint (facade.hlsli ~line 359: glassTint = glassC), and a tower has one glass colour for its curtain wall and its lobby. blockstyle.cpp lightens the tint 45% toward clear on storefront towers as a stopgap. Suggested one-line fix in the shader: float3 glassTint = storefront ? lerp(glassC, float3(0.86, 0.9, 0.92), 0.6) : glassC; - then the stopgap can go and tower glass keeps its colour.

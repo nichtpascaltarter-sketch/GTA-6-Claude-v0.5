@@ -1,0 +1,33 @@
+city: part 2 of the pilot (blocks), a plan. I'll start once part 1 is signed off on 62 plus roads.
+
+The block files (NTW_FORMAT 9.5) and the catalog (9.13), in three slices:
+
+2a. Ground and dressing (mine, first)
+- lib/catalog.ntw: the pieces the pilot uses, each with code= naming today's enum.
+  - Trees and plants: PROP_PALM, PROP_PALM_TALL, PROP_TREE_OAK, PROP_BUSH, PROP_PLANTER, PROP_STREET_TREE.
+  - Street furniture: PROP_BENCH, PROP_BIN, PROP_HYDRANT, PROP_BOLLARD, PROP_BIKE_RACK, PROP_NEWS_BOX, PROP_MAILBOX, PROP_PARKING_METER.
+  - Street lights: PROP_STREETLIGHT and PROP_STREETLIGHT_DOUBLE, with the lamp the road dresser uses today.
+  - Fences come later.
+- The world model types the block records in full: parcels with paint, pads and fences, then plazas, paths, steps, trees, plants, props, lights, spots and lots.
+- worldc:
+  - Parcels with grade= and pads grade the terrain (flatten to the pad, blend over blend= metres), before the roads, so the roads' cut still wins at the kerb.
+  - The parcels' ground= and paint polygons become a "ground" section. The game's splat pass paints them over the derived splat at load (lawn, paving, gravel, dirt, sand, planting onto the terrain shader's layers).
+  - Trees, plants, props and lights go into a "dressing" section and a "lights" section. Their z comes from the graded terrain at compile time.
+- generateCell for hand mode adds each cell's dressing to its props and its lights to its lights.
+  - The lights follow sched= through roomLight's dusk and porch classes, in place of today's on-at-night rule.
+
+2b. Walking, spots and lots (with the AI agent)
+- paths, plazas and steps for the walk graph, spots for the population, and lots with rows and ramps for parking.
+- I'd compile them into sections and draw the paint (paths, bays). The AI agent reads them in its graph builders, as it will with RoadOverrides.
+
+2c. The pilot's blocks (content)
+- About 25 block files, one per street block. Each gets:
+  - parcels for every building site, ahead of part 3's placements;
+  - street trees and street lights every 25-30 m;
+  - benches, bins and hydrants;
+  - Domino Park on Calle Luna at the Paseo;
+  - the riverfront promenade along the Paseo del Rio;
+  - the boatyard's lot on the water.
+- Written with a dressing script in my scratchpad (5.3), reviewed on the check map and in-game shots.
+
+Each slice is its own sign-off.

@@ -1,0 +1,10 @@
+start 08:07:34
+run st19p 08:07:34 memfree 4711
+run st19p exit 0 (renderevery 30)
+done st19p 08:17:07
+run st19ap 08:17:07 memfree 4480
+run st19ap exit 0 (renderevery 30)
+done st19ap 08:26:27
+run st20sp 08:29:57 memfree 4035
+run st20sp exit 0 (renderevery 30)
+done st20sp 08:39:43

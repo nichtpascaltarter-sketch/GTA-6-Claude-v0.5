@@ -1,0 +1,101 @@
+Sites: 91 pads, 324 elements, 23 roads, 21 buildings requested (0.02 s)
+World map generated in 19.48 s
+Road gen: 22 interchanges
+Road network: 6284 nodes, 10030 edges, 1734 signalized; hwy 61.7 km, streets 1189.6 km (1.91 s)
+Buildings: 36321 (towers 358, midrise 2411, condo 496, deco 859, shops 4885, strip 730, houses 21906, villas 942, warehouses 1707) in 1.55 s
+Sites: 65 highway billboards
+Sites: 117 silos, 53 windmills
+Site runway 09L|27R  from (-1180, 2080) to (820, 2080) z 4.6 width 60
+Site runway 09R|27L  from (-1100, 780) to (700, 780) z 4.6 width 45
+Site terminal             at (628, 1440, 4.6)
+Site control tower        at (730, 1832, 4.6)
+Site container ship       at (4625, -800, 0.0)
+Site container ship       at (4616, -330, 0.0)
+Site port gate            at (4008, -160, 3.0)
+Site Key Coral marina     at (4039, -4035, 0.0)
+Site beach club           at (4873, -3866, 1.2)
+Site beach club           at (4808, -4183, 2.2)
+Site Solaris One          at (3350, -750, 1.4)
+Site stadium              at (3565, 445, 1.6)
+Site City Hall            at (3000, 372, 2.0)
+Site Canvas Park          at (3100, 1800, 1.7)
+Site Sol Beach Pier from (5414, 1250) to (5840, 1250) deck z 5.6
+Site Ferris wheel         at (5504, 1270, 5.6)
+Site lighthouse           at (-2206, -8000, 0.5)
+Site radio mast           at (-6744, 7248, 166.1)
+Site sugar mill           at (1430, 7500, 8.1)
+Site Rio Sol marina       at (2280, 188, 0.0)
+Site Okahatchee boat ramp at (-515, 6822, 7.7)
+Site Sawgrass tower       at (-4873, 420, 0.6)
+Sites finalized: 559 elements (0.01 s)
+Lane graph: 26691 lanes, 59937 connectors (1215569 pts), 36768 walk nodes, 53089 walk links, dead-end turning circles moved 18 / obstructed 26 (0.84 s)
+Loaded 12 collision cells
+Simulating 0.8 minutes around (2700, 750) r=200 with 100 cars, 80 peds
+LATDEV t=5.0 car 39 (Sawgrass) at 2879.0 747.5 lane 8646 u 79.0 latErr 0.91 v 3.8 vT 5.2 steer 0.22 diag e -1.15 psi -1.09 ff 0.00 st 1.56
+LATDEV t=8.2 car 26 (Sawgrass) at 2615.5 549.2 lane 7773 u 84.5 latErr -2.43 v 3.0 vT 6.8 steer -0.28 diag e 2.03 psi 1.14 ff 0.00 st -1.93
+LATDEV t=15.0 car 39 (Sawgrass) at 2895.6 725.8 lane 9019 u 24.2 latErr 2.84 v 8.6 vT 8.4 steer 0.10 diag e -2.01 psi -0.24 ff 0.00 st 0.65
+LATDEV t=19.1 car 76 (Ostgrat X5) at 2703.4 915.2 lane 8133 u 65.2 latErr -1.51 v 10.8 vT 13.6 steer -0.03 diag e -0.21 psi 0.08 ff 0.00 st -0.04
+LATDEV t=20.9 car 36 (Sawgrass) at 2702.6 893.1 lane 8132 u 43.1 latErr 0.93 v 9.9 vT 12.2 steer 0.02 diag e -0.29 psi -0.06 ff 0.00 st 0.11
+LATDEV t=31.1 car 52 (Minnow) at 2888.5 849.3 lane 8650 u 88.5 latErr -0.92 v 5.6 vT 6.9 steer -0.26 diag e -0.57 psi 0.53 ff 0.00 st -0.36
+LATDEV t=36.6 car 59 (Harbor) at 2697.0 621.9 lane 8116 u 28.1 latErr 1.32 v 3.0 vT 15.5 steer 0.02 diag e 0.09 psi -0.08 ff 0.00 st 0.04
+WATCH t=41.00 car 73 lane 8645 u 83.8/91.5 stopU 86.4 pos (2799.2 766.2) latErr -0.80 diag -0.29 0.60 0.00 -0.19 steer -0.12 next conn 17531 sig 4 v 0.0 vT 0.2 stop 0.4 obst 17.6(75) gateConn 17531 committed 0 amberGo 0 stopDone 1 mode 0 thr 0.00 brk 1.00
+WATCH t=41.10 car 73 lane 8645 u 83.8/91.5 stopU 86.4 pos (2799.2 766.2) latErr -0.80 diag -0.29 0.60 0.00 -0.19 steer -0.12 next conn 17531 sig 4 v 0.0 vT 0.2 stop 0.4 obst 18.7(75) gateConn 17531 committed 0 amberGo 0 stopDone 1 mode 0 thr 0.00 brk 1.00
+WATCH t=41.20 car 73 lane 8645 u 83.8/91.5 stopU 86.4 pos (2799.2 766.2) latErr -0.80 diag -0.29 0.60 0.00 -0.20 steer -0.13 next conn 17531 sig 4 v 0.0 vT 9.2 stop 1000000000.0 obst 19.8(75) gateConn 17531 committed 1 amberGo 0 stopDone 1 mode 0 thr 0.43 brk 0.00
+WATCH t=41.30 car 73 lane 8645 u 83.8/91.5 stopU 86.4 pos (2799.2 766.2) latErr -0.81 diag -0.29 0.60 0.00 -0.23 steer -0.14 next conn 17531 sig 4 v 0.1 vT 9.2 stop 1000000000.0 obst 20.9(75) gateConn 17531 committed 1 amberGo 0 stopDone 1 mode 0 thr 0.47 brk 0.00
+WATCH t=41.40 car 73 lane 8645 u 83.9/91.5 stopU 86.4 pos (2799.2 766.1) latErr -0.81 diag -0.29 0.60 0.00 -0.25 steer -0.16 next conn 17531 sig 4 v 0.2 vT 9.2 stop 1000000000.0 obst 22.1(75) gateConn 17531 committed 1 amberGo 0 stopDone 1 mode 0 thr 0.52 brk 0.00
+WATCH t=41.50 car 73 lane 8645 u 83.9/91.5 stopU 86.4 pos (2799.2 766.1) latErr -0.81 diag -0.28 0.60 0.00 -0.27 steer -0.17 next conn 17531 sig 4 v 0.3 vT 9.1 stop 1000000000.0 obst 23.1(75) gateConn 17531 committed 1 amberGo 0 stopDone 1 mode 0 thr 0.56 brk 0.00
+WATCH t=41.60 car 73 lane 8645 u 83.9/91.5 stopU 86.4 pos (2799.2 766.1) latErr -0.82 diag -0.28 0.60 0.00 -0.29 steer -0.19 next conn 17531 sig 4 v 0.4 vT 9.1 stop 1000000000.0 obst 24.2(75) gateConn 17531 committed 1 amberGo 0 stopDone 1 mode 0 thr 0.61 brk 0.00
+WATCH t=41.70 car 73 lane 8645 u 84.0/91.5 stopU 86.4 pos (2799.2 766.0) latErr -0.83 diag -0.28 0.61 0.00 -0.32 steer -0.20 next conn 17531 sig 4 v 0.5 vT 9.1 stop 1000000000.0 obst 25.3(75) gateConn 17531 committed 1 amberGo 0 stopDone 1 mode 0 thr 0.65 brk 0.00
+WATCH t=41.80 car 73 lane 8645 u 84.0/91.5 stopU 86.4 pos (2799.2 766.0) latErr -0.85 diag -0.28 0.61 0.00 -0.34 steer -0.22 next conn 17531 sig 4 v 0.7 vT 9.1 stop 1000000000.0 obst 26.5(75) gateConn 17531 committed 1 amberGo 0 stopDone 1 mode 0 thr 0.69 brk 0.00
+WATCH t=41.90 car 73 lane 8645 u 84.1/91.5 stopU 86.4 pos (2799.3 765.9) latErr -0.87 diag -0.29 0.62 0.00 -0.38 steer -0.24 next conn 17531 sig 4 v 1.1 vT 9.0 stop 1000000000.0 obst 27.6(75) gateConn 17531 committed 1 amberGo 0 stopDone 1 mode 0 thr 0.73 brk 0.00
+WATCH t=42.00 car 73 lane 8645 u 84.2/91.5 stopU 86.4 pos (2799.3 765.8) latErr -0.90 diag -0.31 0.63 0.00 -0.41 steer -0.26 next conn 17531 sig 4 v 1.6 vT 9.0 stop 1000000000.0 obst 28.7(75) gateConn 17531 committed 1 amberGo 0 stopDone 1 mode 0 thr 0.75 brk 0.00
+WATCH t=42.10 car 73 lane 8645 u 84.4/91.5 stopU 86.4 pos (2799.3 765.6) latErr -0.94 diag -0.35 0.64 0.00 -0.43 steer -0.28 next conn 17531 sig 4 v 2.1 vT 8.9 stop 1000000000.0 obst 29.7(75) gateConn 17531 committed 1 amberGo 0 stopDone 1 mode 0 thr 0.75 brk 0.00
+WATCH t=42.20 car 73 lane 8645 u 84.6/91.5 stopU 86.4 pos (2799.4 765.4) latErr -1.00 diag -0.39 0.66 0.00 -0.45 steer -0.29 next conn 17531 sig 4 v 2.5 vT 8.8 stop 1000000000.0 obst 30.7(75) gateConn 17531 committed 1 amberGo 0 stopDone 1 mode 0 thr 0.75 brk 0.00
+WATCH t=42.30 car 73 lane 8645 u 84.9/91.5 stopU 86.4 pos (2799.5 765.1) latErr -1.08 diag -0.45 0.68 0.00 -0.46 steer -0.30 next conn 17531 sig 4 v 3.0 vT 8.7 stop 1000000000.0 obst 31.6(75) gateConn 17531 committed 1 amberGo 0 stopDone 1 mode 0 thr 0.75 brk 0.00
+LATDEV t=42.3 car 73 (Tanuki) at 2799.5 765.0 lane 8645 u 85.0 latErr -1.10 v 3.0 vT 8.7 steer -0.30 diag e -0.46 psi 0.68 ff 0.00 st -0.47
+WATCH t=42.40 car 73 lane 8645 u 85.2/91.5 stopU 86.4 pos (2799.6 764.8) latErr -1.18 diag -0.51 0.70 0.00 -0.48 steer -0.32 next conn 17531 sig 4 v 3.4 vT 8.6 stop 1000000000.0 obst 32.5(75) gateConn 17531 committed 1 amberGo 0 stopDone 1 mode 0 thr 0.75 brk 0.00
+WATCH t=42.50 car 73 lane 8645 u 85.6/91.5 stopU 86.4 pos (2799.7 764.4) latErr -1.30 diag -0.58 0.73 0.00 -0.50 steer -0.33 next conn 17531 sig 4 v 3.9 vT 8.4 stop 1000000000.0 obst 33.4(75) gateConn 17531 committed 1 amberGo 0 stopDone 1 mode 0 thr 0.75 brk 0.00
+WATCH t=42.60 car 73 lane 8645 u 86.0/91.5 stopU 86.4 pos (2799.9 764.0) latErr -1.46 diag -0.65 0.76 0.00 -0.53 steer -0.36 next conn 17531 sig 4 v 4.4 vT 8.2 stop 1000000000.0 obst 34.2(75) gateConn 17531 committed 1 amberGo 0 stopDone 1 mode 0 thr 0.75 brk 0.00
+WATCH t=42.70 car 73 lane 8645 u 86.4/91.5 stopU 86.4 pos (2800.0 763.6) latErr -1.64 diag -0.71 0.80 0.00 -0.56 steer -0.38 next conn 17531 sig 4 v 4.8 vT 8.0 stop 1000000000.0 obst 35.0(75) gateConn 17531 committed 1 amberGo 0 stopDone 1 mode 0 thr 0.75 brk 0.00
+WATCH t=42.80 car 73 lane 8645 u 86.8/91.5 stopU 86.4 pos (2800.3 763.2) latErr -1.85 diag -0.76 0.85 0.00 -0.61 steer -0.42 next conn 17531 sig 4 v 5.1 vT 7.8 stop 1000000000.0 obst 35.7(75) gateConn 17531 committed 1 amberGo 0 stopDone 1 mode 0 thr 0.75 brk 0.00
+WATCH t=42.90 car 73 lane 8645 u 87.3/91.5 stopU 86.4 pos (2800.5 762.7) latErr -2.10 diag -0.80 0.90 0.00 -0.66 steer -0.46 next conn 17531 sig 4 v 5.5 vT 7.6 stop 1000000000.0 obst 36.5(75) gateConn 17531 committed 1 amberGo 0 stopDone 1 mode 0 thr 0.75 brk 0.00
+WATCH t=43.00 car 73 lane 8645 u 87.8/91.5 stopU 86.4 pos (2800.8 762.2) latErr -2.40 diag -0.83 0.96 0.00 -0.72 steer -0.51 next conn 17531 sig 4 v 5.9 vT 7.3 stop 1000000000.0 obst 37.2(75) gateConn 17531 committed 1 amberGo 0 stopDone 1 mode 0 thr 0.56 brk 0.00
+WATCH t=43.10 car 73 lane 8645 u 88.3/91.5 stopU 86.4 pos (2801.1 761.7) latErr -2.74 diag -0.82 0.99 0.00 -0.75 steer -0.53 next conn 17531 sig 4 v 6.1 vT 7.1 stop 1000000000.0 obst 37.9(75) gateConn 17531 committed 1 amberGo 0 stopDone 1 mode 0 thr 0.46 brk 0.00
+WATCH t=43.20 car 73 lane 8645 u 88.8/91.5 stopU 86.4 pos (2801.5 761.2) latErr -3.12 diag -1.25 0.94 0.00 -0.60 steer -0.43 next conn 17531 sig 4 v 6.3 vT 6.8 stop 1000000000.0 obst 38.6(75) gateConn 17531 committed 1 amberGo 0 stopDone 1 mode 0 thr 0.47 brk 0.00
+WATCH t=43.30 car 73 lane 8645 u 89.3/91.5 stopU 86.4 pos (2801.9 760.7) latErr -3.54 diag -2.16 0.88 0.00 -0.37 steer -0.27 next conn 17531 sig 4 v 6.6 vT 6.5 stop 1000000000.0 obst 39.3(75) gateConn 17531 committed 1 amberGo 0 stopDone 1 mode 0 thr 0.00 brk 0.00
+WATCH t=43.40 car 73 lane 8645 u 89.8/91.5 stopU 86.4 pos (2802.4 760.2) latErr -3.97 diag -2.92 0.85 0.00 -0.20 steer -0.14 next conn 17531 sig 4 v 6.5 vT 6.3 stop 1000000000.0 obst 40.0(75) gateConn 17531 committed 1 amberGo 0 stopDone 1 mode 0 thr 0.00 brk 0.00
+WATCH t=43.50 car 73 lane 8645 u 90.3/91.5 stopU 86.4 pos (2802.8 759.7) latErr -4.39 diag -3.51 0.83 0.00 -0.09 steer -0.06 next conn 17531 sig 4 v 6.5 vT 6.0 stop 1000000000.0 obst 40.7(75) gateConn 17531 committed 1 amberGo 0 stopDone 1 mode 0 thr 0.00 brk 0.08
+WATCH t=43.60 car 73 lane 8645 u 90.7/91.5 stopU 86.4 pos (2803.2 759.3) latErr -4.81 diag -4.00 0.82 0.00 -0.01 steer -0.01 next conn 17531 sig 4 v 6.3 vT 5.9 stop 1000000000.0 obst 41.5(75) gateConn 17531 committed 1 amberGo 0 stopDone 1 mode 0 thr 0.00 brk 0.07
+WATCH t=43.70 car 73 lane 8645 u 91.2/91.5 stopU 86.4 pos (2803.6 758.8) latErr -5.23 diag 4.55 0.81 0.00 -1.75 steer -1.00 next conn 17531 sig 4 v 6.2 vT 5.9 stop 1000000000.0 obst 42.2(75) gateConn 17531 committed 1 amberGo 0 stopDone 1 mode 0 thr 0.00 brk 0.00
+WATCH t=43.80 car 73 conn 17531 (turn 2 node 1479) u 0.4/15.8 pos (2804.1 758.4) latErr -5.68 diag 0.37 0.81 0.00 -0.88 steer -0.62 next - v 6.0 vT 5.9 stop 1000000000.0 obst 42.8(75) gateConn 17531 committed 0 amberGo 0 stopDone 0 mode 0 thr 0.11 brk 0.00
+WATCH t=43.90 car 73 conn 17531 (turn 2 node 1479) u 1.3/15.8 pos (2804.6 758.1) latErr -6.13 diag 0.01 0.74 0.00 -0.70 steer -0.49 next - v 5.9 vT 6.0 stop 1000000000.0 obst 42.7(75) gateConn 17531 committed 0 amberGo 0 stopDone 0 mode 0 thr 0.21 brk 0.00
+WATCH t=44.00 car 73 conn 17531 (turn 2 node 1479) u 2.4/15.8 pos (2805.0 757.7) latErr -6.54 diag -0.31 0.68 0.00 -0.55 steer -0.39 next - v 5.9 vT 6.0 stop 1000000000.0 obst 41.7(75) gateConn 17531 committed 0 amberGo 0 stopDone 0 mode 0 thr 0.21 brk 0.00
+WATCH t=44.10 car 73 conn 17531 (turn 2 node 1479) u 4.1/15.8 pos (2805.5 757.4) latErr -6.91 diag -0.55 0.63 0.00 -0.44 steer -0.31 next - v 6.0 vT 6.1 stop 1000000000.0 obst 42.6(75) gateConn 17531 committed 0 amberGo 0 stopDone 0 mode 0 thr 0.20 brk 0.00
+WATCH t=44.20 car 73 conn 17531 (turn 2 node 1479) u 5.3/15.8 pos (2806.1 757.1) latErr -7.23 diag -0.72 0.59 0.00 -0.36 steer -0.26 next - v 6.1 vT 6.2 stop 1000000000.0 obst 42.7(75) gateConn 17531 committed 0 amberGo 0 stopDone 0 mode 0 thr 0.21 brk 0.00
+WATCH t=44.30 car 73 conn 17531 (turn 2 node 1479) u 7.1/15.8 pos (2806.6 756.8) latErr -7.48 diag -0.83 0.56 0.00 -0.30 steer -0.22 next - v 6.2 vT 6.3 stop 1000000000.0 obst 42.0(75) gateConn 17531 committed 0 amberGo 0 stopDone 0 mode 0 thr 0.21 brk 0.00
+WATCH t=44.40 car 73 conn 17531 (turn 2 node 1479) u 9.7/15.8 pos (2807.2 756.5) latErr -7.63 diag -0.89 0.53 0.00 -0.26 steer -0.19 next - v 6.2 vT 6.2 stop 1000000000.0 obst 40.7(75) gateConn 17531 committed 0 amberGo 0 stopDone 0 mode 0 thr 0.00 brk 0.00
+WATCH t=44.50 car 73 conn 17531 (turn 2 node 1479) u 11.7/15.8 pos (2807.7 756.2) latErr -7.66 diag -0.91 0.50 0.00 -0.23 steer -0.17 next - v 6.2 vT 6.1 stop 1000000000.0 obst 39.9(75) gateConn 17531 committed 0 amberGo 0 stopDone 0 mode 0 thr 0.00 brk 0.00
+WATCH t=44.60 car 73 conn 17531 (turn 2 node 1479) u 14.4/15.8 pos (2808.3 756.0) latErr -7.55 diag -0.93 0.48 0.00 -0.20 steer -0.15 next - v 6.1 vT 5.9 stop 1000000000.0 obst 38.3(75) gateConn 17531 committed 0 amberGo 0 stopDone 0 mode 0 thr 0.00 brk 0.00
+WATCH t=44.70 car 73 lane 8646 u 8.8/91.5 stopU 86.4 pos (2808.8 755.7) latErr -7.33 diag -0.92 0.46 0.00 -0.19 steer -0.13 next conn 18639 sig 4 v 6.0 vT 14.6 stop 1000000000.0 obst 37.9(75) gateConn 17531 committed 0 amberGo 0 stopDone 0 mode 0 thr 0.52 brk 0.00
+WATCH t=44.80 car 73 lane 8646 u 9.4/91.5 stopU 86.4 pos (2809.4 755.5) latErr -7.07 diag -0.90 0.44 0.00 -0.18 steer -0.13 next conn 18639 sig 4 v 6.4 vT 14.6 stop 1000000000.0 obst 38.5(75) gateConn 17531 committed 0 amberGo 0 stopDone 0 mode 0 thr 0.56 brk 0.00
+WATCH t=44.90 car 73 lane 8646 u 10.0/91.5 stopU 86.4 pos (2810.0 755.2) latErr -6.81 diag -0.87 0.43 0.00 -0.18 steer -0.13 next conn 18639 sig 4 v 6.7 vT 14.6 stop 1000000000.0 obst 39.1(75) gateConn 17531 committed 0 amberGo 0 stopDone 0 mode 0 thr 0.60 brk 0.00
+WATCH t=45.00 car 73 lane 8646 u 10.6/91.5 stopU 86.4 pos (2810.6 754.9) latErr -6.54 diag -0.84 0.41 0.00 -0.18 steer -0.14 next conn 18639 sig 4 v 7.1 vT 14.6 stop 1000000000.0 obst 39.7(75) gateConn 17531 committed 0 amberGo 0 stopDone 0 mode 0 thr 0.64 brk 0.00
+WATCH t=45.10 car 73 lane 8646 u 11.3/91.5 stopU 86.4 pos (2811.3 754.7) latErr -6.28 diag -0.84 0.39 0.00 -0.17 steer -0.13 next conn 18639 sig 4 v 7.5 vT 14.6 stop 1000000000.0 obst 40.2(75) gateConn 17531 committed 0 amberGo 0 stopDone 0 mode 0 thr 0.68 brk 0.00
+WATCH t=45.20 car 73 lane 8646 u 12.0/91.5 stopU 86.4 pos (2812.0 754.4) latErr -6.02 diag -0.84 0.37 0.00 -0.16 steer -0.12 next conn 18639 sig 4 v 7.8 vT 14.6 stop 1000000000.0 obst 40.7(75) gateConn 17531 committed 0 amberGo 0 stopDone 0 mode 0 thr 0.73 brk 0.00
+COLLISION t=45.26 imp 919 at 2814.5 752.9
+   A 45: Scorch 392 v=0.2 vT=0.0 lane 8647(e2717 d-1 i0) u=83.5/91.5 lc -1 lat 0.00 nudge 0.00 obst -0.0(73) stop 1000000000.0 dummy 0
+   B 73: Tanuki v=7.9 vT=14.6 lane 8646(e2717 d1 i0) u=12.4/91.5 lc -1 lat 0.00 nudge 0.00 obst 40.9(75) stop 1000000000.0 dummy 0
+WATCH t=45.30 car 73 lane 8646 u 12.8/91.5 stopU 86.4 pos (2812.8 754.2) latErr -5.76 diag -0.96 0.34 0.00 -0.09 steer -0.07 next conn 18639 sig 4 v 8.0 vT 14.6 stop 1000000000.0 obst 41.1(75) gateConn 17531 committed 0 amberGo 0 stopDone 0 mode 0 thr 0.75 brk 0.00
+WATCH t=45.40 car 73 lane 8646 u 13.5/91.5 stopU 86.4 pos (2813.5 754.0) latErr -5.55 diag -1.35 0.30 0.00 0.04 steer 0.03 next conn 18639 sig 4 v 8.0 vT 0.0 stop 1000000000.0 obst 0.0(45) gateConn 17531 committed 0 amberGo 0 stopDone 0 mode 0 thr 0.00 brk 1.00
+LATDEV t=45.8 car 55 (Mochi 125) at 2602.5 970.8 lane 7786 u 20.8 latErr 0.92 v 7.2 vT 10.8 steer -1.00 diag e 0.00 psi 0.00 ff 0.00 st 0.00
+
+==== Traffic metrics (46 s simulated, 100 cars, 80 peds, 1.28 vehicle-hours) ====
+collisions: 1 (0.78 per vehicle-hour), hard (>3000 Ns): 0 (0.00/veh-h)
+static impacts (walls/props >2500 Ns): 0, props broken: 0
+red-light violations: 0, stop-sign violations: 0
+stuck recoveries: 0, relocalizations: 2, deadlocks (>60 s waits): 0, respawns: 43
+pedestrians hit: 0
+average speed by road class (km/h):  boulevard 7.5 (202 s)  avenue 19.6 (580 s)  street 11.9 (3496 s)
+lane-center error (RMS, lanes, v>3 m/s): 0.484 m
+AI cost per 60 Hz tick: traffic 0.199 ms + peds 0.024 ms (avg), p50 0.213 ms, p99 0.367 ms, max 0.871 ms
+physics per 120 Hz step: 0.422 ms (100 cars)

@@ -1,0 +1,6 @@
+ntw 1 places
+place mari walk=0.00,0.00 # expect id.form
+place place.ok building=cl.b014.m01 door=f0.d1 walk=0.00,0.00
+place place.no_building door=f0.d1 walk=0.00,0.00 # expect ref.form
+anchor station kind=police_station at=0.00,0.00 # expect id.form
+anchor cl.pd.station kind=police_station at=0.00,0.00

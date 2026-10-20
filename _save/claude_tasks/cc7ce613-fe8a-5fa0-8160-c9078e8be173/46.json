@@ -1,0 +1,9 @@
+{
+  "id": "46",
+  "subject": "City blocks variety between landmarks",
+  "description": "City agent stopped for the usage pause (10-06 ~16:25): batches 1-10 merged; batch 11 (garage-wing overlaps, worldcheck 2,769→0, regression 27/27) parked in $S/dev15 (tours not finished); batch 13 (rooftops, ranch/villa variety) parked in $S/dev20, untested in game; storefront back-wall gate and soft trash bags not started. See resume/city.md STOP section.",
+  "activeForm": "Varying the city blocks between landmarks",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": []
+}

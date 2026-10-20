@@ -1,0 +1,9 @@
+{
+  "id": "41",
+  "subject": "Auto-merge each verified snapshot into main (standing user request)",
+  "description": "User asked at 22:52 (going to bed) that I merge the PRs myself. Loop: verified snapshot pushed to claude/neon-tide -> open PR into main -> merge (merge commit) -> fetch main -> fast-forward claude/neon-tide -> push. Only verified snapshots (build + shaders + first-person smoke). Keep scratchpad/overnight.md as the morning summary: each merged PR, D3D12 progress, what agents finished, anything blocked.",
+  "activeForm": "Verifying snapshot 14 for the overnight merge loop",
+  "status": "in_progress",
+  "blocks": [],
+  "blockedBy": []
+}

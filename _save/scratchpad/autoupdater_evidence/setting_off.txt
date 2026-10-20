@@ -1,0 +1,18 @@
+exit=0
+[01:39:44] before: NeonTide.exe NeonTide.exe.old NeonTide.exe.pending NeonTide.exe.pending.json 
+gate ok: free 3886 MB (need 3300)
+[01:40:56] setting Off: NeonTide.exe NeonTide.exe.pending NeonTide.exe.pending.json 
+    log| [   0.001] Neon Tide starting (version 0.02.7-dev). Data dir: C:\users\root\AppData\Local\NeonTide\
+    log| [   1.919] Updater: no update check (Automatic Updates is off in Settings)
+    log| [   1.941] Updater: removed the previous version (Z:\tmp\upd\g4\NeonTide.exe.old)
+[01:41:06] setting On: NeonTide.exe 
+    log| [   0.008] Neon Tide starting (version 0.02.7-dev). Data dir: C:\users\root\AppData\Local\NeonTide\
+    log| [   0.149] Updater: installed 9.9.9 over 0.02.7-dev (Z:\tmp\upd\g4\NeonTide.exe)
+    log| [   0.242] Updater: started Z:\tmp\upd\g4\NeonTide.exe
+    log| [   0.001] Neon Tide starting (version 9.9.9). Data dir: C:\users\root\AppData\Local\NeonTide\
+    log| [   0.001] Updater: now running 9.9.9, updated from 0.02.7-dev
+    log| [   1.815] Updater: removed the previous version (Z:\tmp\upd\g4\NeonTide.exe.old)
+    log| [   1.816] Updater: checking http://127.0.0.1:8765/latest.json (running 9.9.9)
+    log| [   1.831] Updater: up to date (running 9.9.9, newest release v9.9.9)
+[01:41:06] done
+script rc=0

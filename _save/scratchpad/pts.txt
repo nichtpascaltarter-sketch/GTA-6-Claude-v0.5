@@ -1,0 +1,4 @@
+start_mari 1520 2320
+tomas_garage 1980 2710
+diner 1240 1880
+lowtide_start 1545 2330

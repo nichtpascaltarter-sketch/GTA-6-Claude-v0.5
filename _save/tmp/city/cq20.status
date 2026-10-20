@@ -1,0 +1,41 @@
+start Tue Oct  6 13:23:31 UTC 2026
+dev20 host syntax ok Tue Oct  6 13:54:15 UTC 2026
+wc_dev20 build rc=0 Tue Oct  6 13:57:07 UTC 2026
+wc_dev20 run exit 0: 0 overlapping building pairs (0 of them envelope into envelope); 1 passed Tue Oct  6 13:57:52 UTC 2026
+citylab build dev20 rc=0 Tue Oct  6 14:03:58 UTC 2026
+clay views b13 dev20 exit 0 Tue Oct  6 14:04:30 UTC 2026
+clay views b14 dev20 exit 0 Tue Oct  6 14:21:11 UTC 2026
+citylab perf dev20 done Tue Oct  6 14:21:27 UTC 2026
+citylab build dev15 rc=0 Tue Oct  6 14:23:12 UTC 2026
+clay views b13 dev15 exit 0 Tue Oct  6 14:23:39 UTC 2026
+clay views b14 dev15 exit 0 Tue Oct  6 14:24:04 UTC 2026
+citylab perf dev15 done Tue Oct  6 14:24:21 UTC 2026
+dev20 syntax ok (0 warnings) Tue Oct  6 14:24:44 UTC 2026
+stopped: far-LOD budget rework first Tue Oct  6 14:25:34 UTC 2026
+cq20b start Tue Oct  6 14:26:18 UTC 2026
+citylab build dev20b rc=0 Tue Oct  6 14:28:06 UTC 2026
+citylab perf dev20b done Tue Oct  6 14:28:23 UTC 2026
+clay views b13 dev20b exit 0 Tue Oct  6 14:28:48 UTC 2026
+cq20b paused for the triangle review Tue Oct  6 14:28:48 UTC 2026
+cq20b start (cap-only far parapets) Tue Oct  6 14:31:06 UTC 2026
+citylab build dev20c rc=0 Tue Oct  6 14:32:54 UTC 2026
+citylab perf dev20c done Tue Oct  6 14:33:10 UTC 2026
+clay views b13 dev20c exit 0 Tue Oct  6 14:33:34 UTC 2026
+cq20b paused for the triangle review Tue Oct  6 14:33:34 UTC 2026
+cq20c start Tue Oct  6 14:39:52 UTC 2026
+wc_dev20c build rc=0 Tue Oct  6 14:41:30 UTC 2026
+cq20c stopped: far copings dropped first Tue Oct  6 14:41:59 UTC 2026
+cq20d start (no far-LOD copings) Tue Oct  6 14:42:48 UTC 2026
+citylab build dev20d rc=0 Tue Oct  6 14:44:32 UTC 2026
+citylab perf dev20d done Tue Oct  6 14:44:48 UTC 2026
+clay views b13 dev20d exit 0 Tue Oct  6 14:45:10 UTC 2026
+clay views b14 dev20d exit 0 Tue Oct  6 14:45:32 UTC 2026
+wc_dev20d build rc=0 Tue Oct  6 14:47:11 UTC 2026
+wc_dev20d run exit 0: 0 overlapping building pairs (0 of them envelope into envelope); 1 passed Tue Oct  6 14:47:45 UTC 2026
+dev20 syntax ok (0 warnings) Tue Oct  6 14:48:08 UTC 2026
+dev20 build rc=0 Tue Oct  6 14:55:32 UTC 2026
+dev20 exe ready Tue Oct  6 14:55:32 UTC 2026
+waiting for memfree >= 4500 (ASan) Tue Oct  6 14:55:32 UTC 2026
+wc asan build rc=0 Tue Oct  6 15:00:22 UTC 2026
+wc asan run exit 0 (0 reports, 1 passed) Tue Oct  6 15:03:18 UTC 2026
+cq20c done (cq20d) Tue Oct  6 15:03:18 UTC 2026

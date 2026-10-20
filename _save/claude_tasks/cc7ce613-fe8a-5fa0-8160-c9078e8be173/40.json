@@ -1,0 +1,15 @@
+{
+  "id": "40",
+  "subject": "Scorecard 4: full district tour and grading",
+  "description": "Run the 16-stop district tour on the D3D12 build and grade it against Scorecard 3. Blocked on the D3D12 noise-screenshot bug: the first attempt turned to noise from stop 5. 6 good shots are kept in /tmp/tour4.",
+  "activeForm": "Re-running the Scorecard 4 tour on the fixed D3D12 build",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [
+    "28",
+    "32",
+    "34",
+    "36",
+    "42"
+  ]
+}

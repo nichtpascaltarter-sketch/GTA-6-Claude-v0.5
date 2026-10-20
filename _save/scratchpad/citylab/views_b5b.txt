@@ -1,0 +1,7 @@
+# batch 5: raised Keys houses
+raised_ks1 front 22175 18 2 4 60 10
+raised_ks2 front 22176 16 2 -4 60 10
+raised_tp1 front 23382 17 2 4 60 10
+raised_tp2 front 23405 19 2 -5 60 10
+ks_raised_air aerial -8140 -9420 150 200 38 55 10
+tp_raised_air aerial -8500 -2080 150 200 38 55 10

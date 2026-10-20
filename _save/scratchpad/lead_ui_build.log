@@ -1,0 +1,9 @@
+Embedded 35 shader files.
+In file included from src/audio/audio_all.cpp:9,
+                 from src/main.cpp:53:
+src/audio/music.cpp: In function 'void Audio::detail::music::composeHouse(Comp&)':
+src/audio/music.cpp:3170: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
+ 3170 |                 if (nb >= 8) offbeatBass(b0 + nb / 2, nb - nb / 2);
+      | 
+src/audio/music.cpp:3170: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
+-rwxr-xr-x 1 root root 9655808 Sep 30 16:56 bin/lead_ui.exe

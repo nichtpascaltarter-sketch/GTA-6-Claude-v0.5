@@ -1,0 +1,65 @@
+Street life: parking tickets, police at fender benders, couples hand in hand, proposals; faces: darker brows
+
+AI sets 3+4 (src/game: ai.cpp, ai_game.h, app.cpp, barks.cpp, events.cpp, pedai.cpp, police.cpp, traffic.cpp; peds.cpp
+gets the couple and reach blocks in animatePed):
+- Police:
+  - Parking tickets: a beat officer goes round to a parked car's windscreen, writes the ticket on the device and puts
+    it under the wiper while the partner waits on the sidewalk.
+  - Fender benders: four in ten get a unit sent from out of view. It pulls over behind with the light bar on; one
+    officer takes the drivers' details, the other waves traffic round, and the driver who was hit photographs the
+    damage.
+  - Someone down hurt: a nearby beat pair comes over. One kneels with a hand on their shoulder, the other radios for
+    EMS.
+  - Arrests:
+    - The escort waits with the prisoner at the kerb while a crewmate brings the car round.
+    - A transport held up nearby pulls over.
+    - A hand on the prisoner's head at the car door.
+    - Units only go on foot when close.
+  - Officers call out cover and flanking moves. Beat pairs chat, and greet the player.
+- Pedestrians:
+  - A word for the player walking past: a greeting by time of day, "On your left" from joggers, "Are you okay?" when
+    the player is hurt, and a reaction to the horn.
+  - Pairs walking together are overheard: a line, then the answer. One pair in two is a couple, walking hand in hand,
+    and the pass-by lean is off while they hold hands.
+  - A mutter at long red lights, and a press of the crossing button on a pole within reach.
+  - Getting lost (a look at the map on the phone, then back the way they came), and stopping to tie a shoelace.
+  - Rain: people without umbrellas hurry, some jog, and some shelter under bus stops.
+  - A proposal on the sidewalk: down on one knee with a ring while passers-by film. Usually a yes (cheers, a hug, off
+    hand in hand), now and then a no.
+  - Drivers honk at jaywalkers, who hurry on.
+- An AI hand-reach hook (PedAI::reachAt/reachT) drives the arm for the ticket under the wiper, the ring, the crossing
+  button, the hand on a shoulder, and the hand on a prisoner's head.
+
+
+Faces batch 4 (src/anim: face.cpp, hair.cpp, clothing.cpp, bodymesh.cpp; tests/anim: anim_test.cpp, preview.cpp):
+- Brows hold their colour: the skin under each brow carries the brow's colour across the brow's whole body, so brows
+  read as dark shapes instead of a few loose hairs, most at a few metres. Before, the tint sat a third of the brow's
+  height above the hairs, between two face-mesh rows 4 mm apart, so most brows got almost none of it. Two more rows
+  of the face mesh now run through the brow, so the tint follows its shape, thin brows included.
+- Hairlines and beard edges: hair and beard shells rise out of the skin at their edge instead of ending in a 1.2 mm
+  rolled lip, and where they are still thin they shade with the skin's normal. The buzz cut's hairline loses its
+  light rim and the dark line under it, and the bearded men's cheek line at night is fainter.
+- Rounder curls: coils have five sides and six stations per turn (they were four and three, which twisted into flat
+  ribbons).
+- preview.cpp gains PREVIEW_FEATSHADOW (the renderer's skin feature shadows, for the face preview tool).
+
+Checks (AI agent's autoplay runs, all rc 0, no crashes or GPU errors):
+- Arrest: transports pull over and the prisoner is in.
+- Ticket: written up twice.
+- Proposal: one yes and one no.
+- Crash scene: a unit is sent, pulls over and finishes.
+- Hurt: the beat pair comes over, then the ambulance and the medic, and the ped is up and in the ambulance.
+- Rain: 7 people under bus shelters.
+- Ped stops: warrants, a runner caught, transports.
+- Events: mugging, purse snatch, fender bender, police chase, breakdown and traffic stop.
+- Night and crowd: AI 0.3-0.9 ms.
+- Soak, 300 s across the map: traffic health all zero, and a clean shutdown.
+- Known: greetings are often drowned out by nearby phone talkers (0 in the walk-by run); this is fixed in a later
+  AI set.
+
+Checks (faces agent):
+- anim_test: all passed on 6afc8b2 plus the files. A new brow-tint check: on every test face the darkest brow skin
+  is at 0.54 of the forehead or below (on main, 2 of 10 faces were at 0.88 and 0.96).
+- Mesh triangles average 34,713 (main 34,499: the two face rows). Character build CPU within about 1% of main.
+- O2 build, and a 30-portrait Wine D3D12 run with no FATAL or vkd3d lines. Crowd perf at tour stop 7 (196 peds)
+  within noise.

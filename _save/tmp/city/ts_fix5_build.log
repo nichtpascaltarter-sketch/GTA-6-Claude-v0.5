@@ -1,0 +1,68 @@
+In file included from tools/traffic_sim.cpp:22:
+tools/../src/world/roadmesh.cpp: In function 'void World::street_dressing::dressEdge(const World::RoadNetwork&, int, const World::WorldMap&, int, int, const Profile&, const std::vector<Fixture>&, Occupancy&, World::RoadCellOutput&)':
+tools/../src/world/roadmesh.cpp:589:132: warning: unused parameter 'fx' [-Wunused-parameter]
+  589 | void dressEdge(const RoadNetwork& net, int ei, const WorldMap& map, int cx, int cy, const Profile& pf, const std::vector<Fixture>& fx, Occupancy& occ,
+      |                                                                                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~
+tools/../src/world/roadmesh.cpp: In function 'void World::buildRoadCell(const RoadNetwork&, const WorldMap&, int, int, RoadCellOutput&)':
+tools/../src/world/roadmesh.cpp:969:30: warning: variable 'cm' set but not used [-Wunused-but-set-variable]
+  969 |                         vec3 cm = lerp(a.c, b.c, tm);
+      |                              ^~
+In file included from tools/../src/world/buildings.cpp:915,
+                 from tools/traffic_sim.cpp:23:
+tools/../src/world/blockstyle.cpp: In function 'u8 World::blockstyle::roofFor(u8, u8, Rng&)':
+tools/../src/world/blockstyle.cpp:421:24: warning: unused parameter 'massing' [-Wunused-parameter]
+  421 | u8 roofFor(u8 arch, u8 massing, Rng& r) {
+      |                     ~~~^~~~~~~
+tools/../src/world/blockstyle.cpp: In member function 'void World::BuildingSet::restyleBlocks(World::WorldMap&, const World::RoadNetwork&)':
+tools/../src/world/blockstyle.cpp:1118:26: warning: enumerated and non-enumerated type in conditional expression [-Wextra]
+ 1118 |         u8 mass = nm > 0 ? ms[ar.weighted(mw, nm)].arch : MK_BOX;
+      |                   ~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tools/../src/world/blockstyle.cpp:1146:91: warning: enumerated and non-enumerated type in conditional expression [-Wextra]
+ 1146 |         b.roof = (b.roofForm == RFM_TILE_HIP) ? ROOF_HIP : (b.roofForm == RFM_METAL_GABLE ? ROOF_GABLE : b.roof);
+      |                                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~
+In file included from tools/../src/world/buildmesh.cpp:1039,
+                 from tools/traffic_sim.cpp:24:
+tools/../src/world/massing.cpp: In function 'void World::massing::emitVolume(World::buildmesh_detail::Ctx&, const World::Building&, const Env&, const Vol&, const World::FacadeGPU&, Rng&)':
+tools/../src/world/massing.cpp:473:15: warning: unused variable 'roofGray' [-Wunused-variable]
+  473 |     const u32 roofGray = packRGBA8(0.9f, 0.9f, 0.88f, 1);
+      |               ^~~~~~~~
+In file included from tools/traffic_sim.cpp:37:
+tools/../src/world/port.cpp: In function 'void World::port_mesh::container(World::sitegeo::G&, vec3, vec2, float, float, float, vec3, u32, bool, u8, u8, u32)':
+tools/../src/world/port.cpp:607:56: warning: unused parameter 'wid' [-Wunused-parameter]
+  607 | void container(G& g, vec3 c, vec2 ax, float len, float wid, float hgt, vec3 col, u32 faces, bool doorsAtPlusX, u8 sideLod = CL_MID,
+      |                                                  ~~~~~~^~~
+In file included from tools/../src/world/sitecell.cpp:12,
+                 from tools/traffic_sim.cpp:44:
+tools/../src/world/hospital.cpp: In function 'void World::hospital::genGrounds(const World::SiteElem&, World::sitegeo::G&)':
+tools/../src/world/hospital.cpp:327:69: warning: unused variable 'white' [-Wunused-variable]
+  327 |     const u32 asphalt = rgb(0.9f), conc = rgb(0.95f, 0.95f, 0.93f), white = rgb(0.95f), yellow = rgb(0.95f, 0.78f, 0.1f);
+      |                                                                     ^~~~~
+In file included from tools/../src/sim/vehicle_models.cpp:9,
+                 from tools/traffic_sim.cpp:87:
+tools/../src/sim/vehicle_cardetail.cpp: In function 'void Vehicles::detail::cabinFurniture(PMesh&, CarBody&, const CarLook&, const InteriorLayout&, float, float)':
+tools/../src/sim/vehicle_cardetail.cpp:1567:65: warning: unused parameter 'L' [-Wunused-parameter]
+ 1567 | inline void cabinFurniture(PMesh& m, CarBody& b, const CarLook& L, const InteriorLayout& I, float dw, float dz) {
+      |                                                  ~~~~~~~~~~~~~~~^
+In file included from tools/traffic_sim.cpp:119:
+tools/../src/game/lanes.cpp: In member function 'void AI::LaneGraph::build(const World::RoadNetwork&)':
+tools/../src/game/lanes.cpp:1088:99: warning: enumerated and non-enumerated type in conditional expression [-Wextra]
+ 1088 |                     addConn(ai, A.inLanes[k], pick->aj, B.outLanes[ko], pick->turn == TK_STRAIGHT ? TK_MERGE : pick->turn);
+      |                                                                         ~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~
+In file included from tools/traffic_sim.cpp:120:
+tools/../src/game/traffic_core.cpp: In function 'Vehicles::VehicleControls AI::donutControls(const Vehicles::VehicleState&, vec2, float, DonutState&)':
+tools/../src/game/traffic_core.cpp:168:17: warning: unused variable 'R0' [-Wunused-variable]
+  168 |     const float R0 = 3.3f;   // the circle a powerful car runs at full lock and full throttle
+      |                 ^~
+tools/../src/game/traffic_core.cpp: In member function 'bool AI::TrafficCore::conflictsClear(const AI::Driver&, const AI::Connector&, int, float, float, bool, float) const':
+tools/../src/game/traffic_core.cpp:813:75: warning: unused parameter 'connId' [-Wunused-parameter]
+  813 | bool TrafficCore::conflictsClear(const Driver& d, const Connector& c, int connId, float distToEntry, float v, bool permissiveOnly,
+      |                                                                       ~~~~^~~~~~
+In file included from tools/traffic_sim.cpp:28:
+tools/../src/world/sites.cpp: In instantiation of 'void World::sites_detail::forTexels(World::WorldMap&, vec2, vec2, F) [with F = carveBasin(World::WorldMap&, vec2, vec2, float, float, float)::<lambda(size_t, vec2)>]':
+tools/../src/world/sites.cpp:101:14:   required from here
+tools/../src/world/sites.cpp:90:26: warning: unused parameter 'map' [-Wunused-parameter]
+   90 | void forTexels(WorldMap& map, vec2 mn, vec2 mx, F fn) {
+      |                ~~~~~~~~~~^~~
+tools/../src/world/sites.cpp: In instantiation of 'void World::sites_detail::forTexels(World::WorldMap&, vec2, vec2, F) [with F = layoutPort(Lay&)::<lambda(size_t, vec2)>]':
+tools/../src/world/sites.cpp:683:14:   required from here
+tools/../src/world/sites.cpp:90:26: warning: unused parameter 'map' [-Wunused-parameter]

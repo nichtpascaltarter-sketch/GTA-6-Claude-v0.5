@@ -1,0 +1,35 @@
+Live cockpit, fishing, airboat tours, cemetery and churchyards, carrying poses, greetings, Act 4 unlock
+
+- Cockpit: the steering wheel is a live part turned by the driver's hands (a leather rim with thumb grips, three
+  dished spokes with switch pads and an airbag hub with the maker's roundel; thinner four-spoke truck and bus wheels;
+  a chrome six-spoke boat wheel). The hands grip each vehicle's own rim: its centre, column axis and radius go to the
+  animator. Tachometer and speedometer needles sweep over the dials of the player's vehicle; the dial faces are
+  near-black with a faint backlight, so the lit scale and the orange needles read by day.
+- Fishing: cast from piers, docks, seawalls and river banks, or from a boat that has stopped. Charge the cast, strike
+  when the float dips, then reel while keeping the line tension out of the red. Sixteen species by habitat and time
+  of day, a cooler the Palmera Angler bait shops buy, and a trophy board.
+- Sawgrass Airboat Tours: Jonah's three marsh routes (the Loop and Gator Alley by day, Night Eyes after dark), with
+  tourists to show the gators to, star ratings and a tip jar.
+- Missions: Act 4 unlocks after the ending (a title card, then Lucha's call); the pier bait shop and the airboat tours
+  in the economy; encounter fixes (a leftover result banner clears when a new encounter is seen, Scooter Snatch is a
+  camera bag throughout); mission tests for the encounters, each fishing habitat, the airboat tours and the Act 4
+  unlock.
+- World: Santa Marea Cemetery in Calle Luna (a walled city of the dead with wall vaults, a cypress avenue to the
+  chapel, family tombs, mausoleums and society tombs) and town churches with churchyards. Gates in the middle of a
+  block (cemetery, campus) join the sidewalk network, and the campus lawns and walks get a ground pad at sidewalk
+  level.
+- Crowds at named places: diners and a waiter on hotel terraces, students on the campus lawn and steps, spectators,
+  mourners, runners doing laps and strollers on park walks, filled only near the player. Autoplay "places" visits
+  them with a census at each.
+- Carrying: the holding arm is posed for its prop. A roller case trails behind the right hip, bags and briefcases
+  hang from a straight arm, a cup is held up at the waist, an open umbrella's shaft is held at the chest, and a
+  fishing rod is held up and forward. A tote or crossbody bag damps that arm's swing. A phone at the ear or a
+  cigarette takes the right hand: a coffee moves to the left hand, and cases, umbrellas, rods and boards are put away
+  meanwhile (the animator and the game share Anim::rightHandBusy). CARRY_HANDSFREE marks people whose hands stay empty.
+- Animation: paired greetings (an embrace with pats on the back, a handshake, a kiss on the cheek) sized from both
+  skeletons; the knee bends about its hinge by exactly the angle that puts the ankle on target, so feet no longer
+  slide at the start of weight shifts; animation tests for standing, driving and greetings.
+- Characters: skirts ride on the thighs in a stride and lie over the lap when seated; shoes get laces over the tongue
+  with eyelets, crossed laces and a bow; a LOD0 triangle budget for heavy outfit combinations and capped hair-card
+  density.
+- traffic_sim cases.

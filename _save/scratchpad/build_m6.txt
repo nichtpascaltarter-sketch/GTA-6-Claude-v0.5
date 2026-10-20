@@ -1,0 +1,12 @@
+In file included from src/anim/anim_all.cpp:14,
+                 from src/main.cpp:49:
+src/anim/clips.cpp: In function 'void Anim::detail::clipStanding(const AuthorCtx&, int, float, Rig&)':
+src/anim/clips.cpp:3464: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
+ 3464 |             for (int sd = 0; sd < 2; sd++) armFK(rest.arm[sd], sd, 0.03f, 0.12f, 0.2f + 0.05f * sd, 0.15f, 0.36f);
+      | 
+src/anim/clips.cpp:3464: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
+-rwxr-xr-x 1 root root 11576320 Oct  1 00:01 bin/missions2.exe
+
+real	31m44.005s
+user	3m34.643s
+sys	0m3.594s

@@ -1,0 +1,2 @@
+# tag|tree|exe|marker|build name|autoplay|env|done line   (first ready runs; read again each round)
+st20sw|st20|loco_st20l.exe|17 cm risers; traced|st20l|locoplayer|LOCO_SWONLY=1 LOCO_PLAYERLAPS=8|locoplayer done

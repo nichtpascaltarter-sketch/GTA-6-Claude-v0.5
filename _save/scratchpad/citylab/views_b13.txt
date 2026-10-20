@@ -1,0 +1,7 @@
+# batch 13 (rooftops, balconies): aerial clay views
+downtown_air aerial 3167.5 -244 648.8 210 30 60 14
+downtown_air_close aerial 3170 -250 260 210 35 60 14
+solbeach_air aerial 5000 800 700 270 30 60 17
+beach_condos aerial 5150 1000 260 270 18 50 14
+nps_roofs aerial 2620 4320 160 200 40 60 14
+calleluna_roofs aerial 1800 380 180 160 40 60 14

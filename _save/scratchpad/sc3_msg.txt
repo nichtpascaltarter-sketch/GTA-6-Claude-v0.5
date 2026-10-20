@@ -1,0 +1,10 @@
+PROGRESS: Scorecard 3 from the 16-stop district tour
+
+The wave 3 tour (Calle Luna morning to Fort Castell, with dawn fog, sunset, a night club and night rain) ran 105
+minutes under Wine without a crash. Vehicles and on-foot combat move up to 5/10 (vehicle realism pass and wakes;
+first-person gun handling with sights to the eye and IK'd hands); the other categories hold, with the tour's
+follow-ups listed: container stack detail, leafy hedges, paver scale, fading peds between the camera and the
+player, emptier port/airport/marsh stops, faces at conversation distance.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Fsx2GTrhwusdowbWY9LHRP

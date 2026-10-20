@@ -1,0 +1,9 @@
+{
+  "id": "49",
+  "subject": "Snapshots 35 (vegetation phase 3) and 36 (character shading)",
+  "description": "35 = cda29a1 + renderer phase 3 (6 blobs, tree 97f724ab, running). 36 = after 35 merges: lighting.hlsl ad2ceab2, dynamic.hlsl ea97d07d, PROGRESS.md bd82595b, msg snap_msg36.txt. After 35: tell city to drop its glass stopgap. After 36: tell faces to re-check night portraits and brow darkness; tell the night agent its base is ready.",
+  "activeForm": "Verifying and merging snapshots 35 and 36",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": []
+}

@@ -1,0 +1,9 @@
+{
+  "id": "25",
+  "subject": "Lead-run transit verification: --autoplay tram and metro",
+  "description": "Tram PASSED (rode, skipped, got off; 4 stops served, riders 5/3). Metro PASSED (boarded, rode the viaduct, alighted at Canvas District; riders 5/11). Shots in /tmp/v2_tram, /tmp/v2_metro.",
+  "activeForm": "Verifying streetcar and metro tests",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": []
+}

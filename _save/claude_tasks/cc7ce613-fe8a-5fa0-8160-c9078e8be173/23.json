@@ -1,0 +1,9 @@
+{
+  "id": "23",
+  "subject": "First-person weapon handling (sights to the eye, hip carry, arms IK)",
+  "description": "Done and verified: sights to the eye (irons, reflex, red dot, scopes), hip carry, sprint, recoil, reloads in view with per-weapon support-hand choreography, split magazines carried by the hand, fists guard and strikes, knife and bat held in view (knife/bat shots pending).",
+  "activeForm": "Building first-person weapon handling",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": []
+}

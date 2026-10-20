@@ -1,0 +1,67 @@
+city snapshot-safe: batch 5 (yards: pools that show, front fences and walls by district, back-yard fences, driveways, front walks, paved front yards, mailboxes; block houses keep their gardens; no trees on forecourts or pool decks). It is copied into the shared tree on top of main 6afc8b2 and MinGW-syntax-checked there (x86_64-w64-mingw32-g++-posix -std=c++17 -fsyntax-only -Ibuild/gen -Isrc src/main.cpp: 0 errors, 0 warnings; log /tmp/city/syntax_shared_b5.log).
+
+FILES (src/world). Four change against main (buildmesh.cpp, facadedetail.cpp, cellgen.cpp, blockstyle.cpp); buildings.h, buildings.cpp and massing.cpp are copied but byte-identical to HEAD:
+  buildings.h a2221ad7a06f731f6e6025364f0ac59bbe6a9a80 (HEAD a2221ad)
+  buildings.cpp 8eb43d427ec384706ab5a2c0ef46e671fb17f7a1 (HEAD 8eb43d4)
+  buildmesh.cpp f7d6ee6147ab788982e88f3858aaa16196b3953a (HEAD ac69f9b)
+  facadedetail.cpp 37e7bad7410586dd4d619ea8244c5070033892c9 (HEAD c08ae64)
+  cellgen.cpp a50f39b1c4ad06ba4d29f61c3e792a7ce4a1d2d0 (HEAD e157f83)
+  blockstyle.cpp 729fab999a2d3164aa2df394a98e40a22af7ffee (HEAD c4331f3)
+  massing.cpp d60313137fbc25abfe469242eaba0b6fa59e3157 (HEAD d603131)
+
+CHANGELOG (player-facing)
+- Back-yard pools show. Before, the water sat under the lawn and the ground, so from the air every pool read as a square of grass inside its deck. Now the deck stands on the yard's highest corner with a skirt down to the ground, and the lawn is cut away under it. Pools are glossy turquoise, and most are lit from below at night. They come as rectangles, with rounded ends, or (behind villas) as lap pools, some with a spa on one end. Decks are brick pavers, keystone, poured concrete or, in the Keys, wood. Pools stay in the far LOD as plain water, so the suburbs keep them from the air.
+- Front yards by district, with gaps for the driveway and the front walk:
+  - Calle Luna, the Flats, North Porto Sol and Midtown: stucco knee walls under steel rejas between capped pillars (black, white, green or bronze), low garden walls and black aluminium fences;
+  - Westbrook: mostly open lawns, some with garden walls, rejas, aluminium fences, coral rock or pickets;
+  - the Grove and the islands: coral-rock walls;
+  - the Keys, Key Solano and Ten Palms: white picket fences;
+  - the small towns: pickets, ranch rails and aluminium fences;
+  - the country: ranch rails.
+  Picket fences also stand before many Victorians and conch houses, and rejas before Mediterranean and block houses. Villas in the Grove and on the islands get coral-rock walls or tall rejas instead of the one stucco wall.
+- Back-yard fences where a house has no hedges: wood board fences, painted block walls or white vinyl, by district. They run along the back lot line and one side, with returns to the house behind the garage and a gate on the other side.
+- Driveways by district: poured concrete, brick pavers (the suburbs, Mediterranean houses, villas, the Grove), old asphalt (the older city and the towns), crushed shell and gravel (the Keys and the country).
+- Front walks from the stoop to the street: concrete, brick pavers (Mediterranean houses and villas) or stepping stones (the Keys and the Grove). A yard tree on the walk moves aside.
+- Mailboxes: the wooden post, a stucco pillar with a slot (the suburbs, the villas, and wherever a garden wall runs along the front), or a black box on a steel post in the country.
+- The lawn no longer pokes through driveways and carport floors on uneven ground.
+- Paved front yards in the older city: about a quarter of the houses in Calle Luna and the Flats, a sixth in North Porto Sol and Midtown, and a few in Westbrook have concrete or brick-paver front yards. The driveway is part of the paving, often behind a reja.
+- Block houses keep their gardens. Since batch 4 a third of them had lost their lawn, hedges and mailbox, because the window awnings used up the house's detail budget. The garden now has a budget of its own.
+- Scattered trees keep off strip-mall and gas-station forecourts, driveways, pool decks and paved front yards. On main, a palm grows up through one gas station's tile canopy.
+
+TESTS
+The build under test is /tmp/city/nt_dev7.exe: an export of 111efa9 plus exactly these files. Main has since moved to 6afc8b2 with renderer changes only (the GPU decor plants); src/world is the same in both, so the files copy straight on. The decor plants were not in this build; the batch 6 shots, on 6afc8b2, show them with the yards.
+- Story regression (missiontest story, 27 missions): 27 passed, 0 failed, identical to batch 4 mission by mission (0 changed). Log: /tmp/city/reg_dev7_log.txt.
+- Story places: resolve to the same positions as on main: diner 1350 342, Mari's 1771 358, Rook's 1566 2360, Pulse FM 3344 662, boatyard 1650 239, river 1644 140, sawgrass dock -5016 -74. Building and infill counts are unchanged (35617 buildings, 3457 back buildings, 1465 rear parking lots, 5755 yards).
+- worldcheck passed on these files ($S/wc/dev7.txt): 0 colliders or props in drivable lanes, dead ends with room, no unguarded falls, lanes match the physics ground.
+- Building triangles (citylab), batch 4 (main) -> batch 5:
+  - near ring (420 m) at tour stops 2/3/4/5: 116k/79k/223k/163k, unchanged (no houses there);
+  - far ring (2.3 km) at tour stops 2/3/4/5: 124.9k/120.5k/133.0k/49.7k -> 125.9k/121.8k/133.2k/49.7k (the far-LOD pools);
+  - whole-map far LOD: 1.054 M -> 1.070 M;
+  - near rings in the house districts: Westbrook 782k -> 864k (+10%), North Porto Sol 334k -> 358k (+7%), Key Solano 474k -> 495k (+4%), Calle Luna 446k -> 464k (+4%), Ten Palms 180k -> 183k (+2%), the Grove 480k -> 487k (+1%);
+  - per house, near LOD: +15% to +23% vertices (ranch 1,760 -> 2,147), all houses and villas +22.6%. Block houses are +46%, but most of that is their gardens coming back. Hedges and their stems are still most of a house's vertices: 1,343 of a ranch's 1,760 on main.
+- Colliders (worldcheck): 595,482 -> 644,921 (+8%; fences get one box per level stretch). Props: 418,761 -> 416,839 (scattered trees kept off paved ground).
+- Draw calls: none added. The world's static geometry is drawn one call per visible streaming cell (world_render.cpp drawGBufferVP), so the yards add triangles only. The per-view draw samples in the shot logs (--gfxstats) move with streaming (cl_reja 544 -> 528, wb_pool_air 354 -> 359) and do not measure the change. Tour stops 2, 3 and 5 have no houses nearby: their near rings are unchanged (above).
+- Yard trees: 47,247 -> 47,087 (a tree on a front walk moves aside, or goes where there is no room); inside a building footprint: 0.
+- Gardens: lawn present on 100% of houses (block houses 65.8% on main).
+- Front boundaries by district (share of houses with one of the new kinds): Calle Luna 61%, North Porto Sol 59%, the Flats 60%, Key Solano 74%, Ten Palms 72%, the small towns ~53%, the Grove 45%, Westbrook 36%. Paved front yards: 278 in North Porto Sol, 191 in the Flats, 82 in Calle Luna, 687 in Westbrook.
+- Repetition metric unchanged (2.9%): yards are not in the signature.
+
+EVIDENCE ($S = /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad)
+- In-game, main vs batch 5: $S/city/sheets/game_b5/{pools_ingame,fronts_ingame}.png (7 views, main vs batch 5); all 23 in-game batch-5 views: /tmp/city/dev7_shots (pools from the air and at night, rejas, knee walls, pickets, coral rock, paved yards, the gas canopy)
+- Clay before/after: $S/city/sheets/clay_b6/{pools_air,front_yards,front_kinds,calle_luna_flats}.png
+
+NEXT
+- Batch 6 is in testing in $S/dev9 (6afc8b2 + batches 5 and 6). It also holds what I had planned as batch 7:
+  - Keys motels with tin hip roofs and painted gallery rails;
+  - painted porch trim in town;
+  - eyebrow conch houses;
+  - side-gabled ranches and block houses;
+  - flat-roofed Mediterranean houses with a parapet and a tile pent.
+  The MinGW check passed, and nt_dev9.exe is waiting for a build slot. Its shots and the regression run after the stop-5 repeat. Clay: $S/city/sheets/clay_b7/{keys_pairs,conch_two_storey}.png and $S/city/clay_med/med.png. Debug-log repetition (citylab): 2.9% -> 2.3% overall.
+- Batch 8 is in development in $S/dev10:
+  - the bare street frontage of the towns and the older city becomes vacant lots, street parking, side yards and paved service yards (open lots only: no building added or moved);
+  - temple-front conch houses;
+  - Keys motels with a lower office end.
+  Clay: $S/city/clay_b10/{fill_street,top2}.png and $S/city/clay_b10k/keys_b8.png.
+- The batch-4 tour stop 5 repeat (main vs batch 4) started at 00:06, after this regression. I will send the numbers.
+- STILL OPEN: the storefront glass stopgap in blockstyle.cpp stays until the renderer's shader fix lands.

@@ -1,0 +1,14 @@
+knife exit 0
+[ 542.568] autoplay melee t=4.0 move 5 combo 0 block 0 dodge -1.00 stagger 0.00 takedown -1.00 target 20 health 194
+[ 644.284] autoplay melee t=5.0 move -1 combo 0 block 0 dodge -1.00 stagger 0.00 takedown -1.00 target 20 health 194
+[ 706.240] autoplay melee t=6.0 move -1 combo 0 block 1 dodge -1.00 stagger 0.00 takedown -1.00 target 2 health 194
+[ 780.057] autoplay melee t=7.0 move -1 combo 0 block 0 dodge 0.10 stagger 0.00 takedown -1.00 target 2 health 194
+[ 857.940] autoplay melee t=8.0 move -1 combo 0 block 0 dodge -1.00 stagger 0.00 takedown -1.00 target 2 health 194
+[ 948.360] autoplay melee t=9.0 move 4 combo 0 block 0 dodge -1.00 stagger 0.00 takedown -1.00 target 45 health 194
+bat exit 0
+[ 498.605] autoplay melee t=4.0 move 7 combo 0 block 0 dodge -1.00 stagger 0.00 takedown -1.00 target 1 health 188
+[ 597.819] autoplay melee t=5.0 move 7 combo 0 block 0 dodge -1.00 stagger 0.00 takedown -1.00 target 20 health 188
+[ 726.300] autoplay melee t=6.0 move -1 combo 0 block 1 dodge -1.00 stagger 0.00 takedown -1.00 target 2 health 188
+[ 815.149] autoplay melee t=7.0 move -1 combo 0 block 0 dodge 0.10 stagger 0.00 takedown -1.00 target 2 health 188
+[ 898.421] autoplay melee t=8.0 move -1 combo 0 block 0 dodge -1.00 stagger 0.00 takedown -1.00 target 2 health 188
+[ 984.161] autoplay melee t=9.0 move 6 combo 0 block 0 dodge -1.00 stagger 0.00 takedown -1.00 target 45 health 188

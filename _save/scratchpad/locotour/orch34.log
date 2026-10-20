@@ -1,0 +1,8 @@
+start 02:26:50
+run st17p 02:26:50 memfree 8140
+run st17p exit 0
+done st17p 02:54:58
+run st16ap 02:54:58 memfree 5873
+run st16ap exit 0
+done st16ap 03:22:34
+run st17s 03:22:34 memfree 5935

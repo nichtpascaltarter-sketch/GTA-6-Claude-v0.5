@@ -1,0 +1,8 @@
+start 10:07:54
+run st19ch 10:28:29 memfree 11278
+run st19ch exit 0 (renderevery 30)
+done st19ch 10:33:05
+run st19ach 10:42:40 memfree 11271
+run st19ach exit 0 (renderevery 30)
+done st19ach 10:47:22
+orch44 done 10:47:22

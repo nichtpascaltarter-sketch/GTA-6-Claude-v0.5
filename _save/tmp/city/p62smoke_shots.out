@@ -1,0 +1,74 @@
+[   0.000] Neon Tide starting (version 0.02.7-dev, commit unknown). Data dir: C:\users\root\AppData\Local\NeonTide\
+[   0.710] DXGI is Wine's builtin implementation: presenting with sync interval 0 (no vsync)
+[   1.127] Direct3D 12 device created: adapter 'NVIDIA GeForce GTX 470', VRAM 16093 MB, feature level 11_1, resource binding tier 3, resource heap tier 2, typed UAV loads yes, tearing yes, bindless UAV arrays yes, 2 frames in flight
+[   1.134] UI font 'Segoe UI Semibold' -> 'Liberation Sans'
+[   1.235] UI font 'Bahnschrift SemiBold Condensed' -> 'Liberation Sans'
+[   1.296] UI font 'Impact' -> 'Liberation Sans'
+[   1.361] Font atlas built in 0.23 s
+ALSA lib confmisc.c:855:(parse_card) cannot find card '0'
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_card_inum returned error: No such file or directory
+ALSA lib confmisc.c:422:(snd_func_concat) error evaluating strings
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_concat returned error: No such file or directory
+ALSA lib confmisc.c:1342:(snd_func_refer) error evaluating name
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5727:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2721:(snd_pcm_open_noupdate) Unknown PCM default
+ALSA lib confmisc.c:855:(parse_card) cannot find card '0'
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_card_inum returned error: No such file or directory
+ALSA lib confmisc.c:422:(snd_func_concat) error evaluating strings
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_concat returned error: No such file or directory
+ALSA lib confmisc.c:1342:(snd_func_refer) error evaluating name
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5727:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2721:(snd_pcm_open_noupdate) Unknown PCM default
+[   1.422] Audio: no output device - audio disabled
+[   1.422] Audio: no output device, continuing silently
+[   1.423] Updater: no update check (automated run)
+[   2.764] UI icon atlas: 92 icons + 13 weapons in 1335 ms
+[   4.257] Hand world: terrain and 52 road nodes, 83 edges from the exe (2613 KB, 9 sections) in 2.83 s
+[   8.289] Material library: 57 layers at 256^2
+[   8.588] Props: 83 prototypes, 43433 verts
+[  14.271] Vehicle assets: 45 models in 5.11 s
+[  65.936] Wardrobe: 29 dedicated looks (night out 12, door staff 3, sportswear 8, cover-ups 6); roster dressed for a night out 8 men / 9 women, office 9, work 6, swim 8, sport 6
+[  67.106] Character assets: 149 characters in 52.83 s
+[  67.156] Game assets built in 57.99 s
+[  67.232] Story place near (1720, 360): no building frontage found, using the street
+[  67.256] Story place near (1330, 330): no building frontage found, using the street
+[  67.272] Story place near (2200, -480): no building frontage found, using the street
+[  67.288] Story place near (1150, -620): no building frontage found, using the street
+[  67.294] Story place near (1560, 2260): no building frontage found, using the street
+[  67.295] Story place near (1250, 2650): no building frontage found, using the street
+[  67.297] Story place near (3350, 640): no building frontage found, using the street
+[  67.298] Story place near (3050, -350): no building frontage found, using the street
+[  67.299] Story place near (3700, -1000): no building frontage found, using the street
+[  67.301] Story place near (2700, 1300): no building frontage found, using the street
+[  67.302] Story place near (800, 2900): no building frontage found, using the street
+[  67.306] Story place near (3300, 3900): no building frontage found, using the street
+[  67.309] Story place near (2300, -150): no building frontage found, using the street
+[  67.310] Story place near (5100, 2000): no building frontage found, using the street
+[  67.329] Story place near (5150, -300): no building frontage found, using the street
+[  67.330] Story place near (5120, 1500): no building frontage found, using the street
+[  67.332] Story place near (4450, -4200): no building frontage found, using the street
+[  67.340] Story place near (1800, 1500): no building frontage found, using the street
+[  67.353] Story place near (2600, 700): no building frontage found, using the street
+[  67.393] Story place near (1700, -300): no building frontage found, using the street
+[  67.422] Story place near (1650, 1050): no building frontage found, using the street
+[  67.424] Story place near (800, -5400): no building frontage found, using the street
+[  67.450] Story place near (5200, 300): no building frontage found, using the street
+[  67.451] Story place near (600, 3400): no building frontage found, using the street
+[  67.452] Story place near (3528, -706): no building frontage found, using the street
+[  67.461] Story places resolved in 270.6 ms (diner 1319 330, Mari's 1720 362, Rook's 1560 2260, Pulse FM 3350 640, boatyard 1617 235, river 1644 140, sawgrass dock -5016 -74)
+[  67.462] Story place near (3160, -430): no building frontage found, using the street
+[  67.487] Story place near (1880, -140): no building frontage found, using the street
+[  67.489] Story place near (1520, 1300): no building frontage found, using the street
+[  67.506] Missions registered: 57
+[  67.562] Lane graph: 192 lanes, 397 connectors (7814 pts), 330 walk nodes, 443 walk links, dead-end turning circles moved 0 / obstructed 0 (0.06 s)
+[ 103.389] UI map: base 2560x2560 in 35752 ms, 83 roads (346 pts) in 25 ms, 30 labels in 48 ms
+[ 103.389] hudInit done in 35824 ms
+[ 103.389] Init done in 101.97 s (shaders: 0 compiled in 0.00 s)
+[ 461.405] Saved Z:\tmp\city\p62smoke\p62_aerial.bmp
+[ 546.787] Saved Z:\tmp\city\p62smoke\p62_luna_street.bmp
+[ 666.268] Saved Z:\tmp\city\p62smoke\p62_bridge_side.bmp
+[ 674.888] Shutdown complete.
+X connection to :120 broken (explicit kill or server shutdown).
+X connection to :120 broken (explicit kill or server shutdown).

@@ -1,0 +1,14 @@
+Rear doors: get in and out of the back seats through the door; rear passengers clear the wheel wells
+
+- The passenger key picks the nearest free passenger seat; standing by a rear door you get in through it: the door
+  swings wide, the right foot goes in facing ahead, you squeeze in sideways under the roof's edge holding the door's
+  frame, sit on the front of the bench, bring the left leg in, slide back and pull the door shut. Getting out is the
+  reverse: push the door wide, left leg out, squeeze out sideways, stand behind the door, step back and swing it shut.
+  NPC rear passengers get out through their door the same way.
+- Rear doors open to 80 degrees (from 70). A coupe's +2 seats behind its front doors, and rear doors narrower than
+  0.25 m (the Tanuki), keep the plain clips.
+- Rear passengers sit up to 7 cm further inboard where the wheel well rises beside them, elbows closer in, so arms and
+  hips no longer press into the wheel-house trim.
+- Clipping (carview --check, 12 four-door cars, three body sizes; frames with anything more than 2 cm into the car):
+  getting in 18.8% -> 6.8%, getting out 24.7% -> 10.0%. The narrowest openings (Minnow, Kumo) are the worst at 15-30%.
+- carview: a point in front of a cabin lining no longer counts as inside the hard panel behind it.

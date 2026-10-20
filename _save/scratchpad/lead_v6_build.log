@@ -1,0 +1,9 @@
+Embedded 35 shader files.
+In file included from src/audio/audio_all.cpp:6,
+                 from src/main.cpp:53:
+src/audio/emitters.cpp: In member function 'float Audio::detail::emit::HornCore::tick()':
+src/audio/emitters.cpp:942: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
+  942 |         if (t < 1.f) t += kInvSR;
+      | 
+src/audio/emitters.cpp:942: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
+-rwxr-xr-x 1 root root 10838016 Sep 30 21:27 bin/lead_v6.exe

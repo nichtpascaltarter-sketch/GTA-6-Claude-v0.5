@@ -1,0 +1,486 @@
+[   0.000] Neon Tide starting. Data dir: C:\users\root\AppData\Local\NeonTide\
+[   0.507] DXGI is Wine's builtin implementation: presenting with sync interval 0 (no vsync)
+[   0.869] Direct3D 12 device created: adapter 'NVIDIA GeForce GTX 470', VRAM 16093 MB, feature level 11_1, resource binding tier 3, resource heap tier 2, typed UAV loads yes, tearing yes, bindless UAV arrays yes, 2 frames in flight
+[   0.899] UI font 'Segoe UI Semibold' -> 'Liberation Sans'
+[   0.953] UI font 'Bahnschrift SemiBold Condensed' -> 'Liberation Sans'
+[   1.014] UI font 'Impact' -> 'Liberation Sans'
+[   1.070] Font atlas built in 0.17 s
+ALSA lib confmisc.c:855:(parse_card) cannot find card '0'
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_card_inum returned error: No such file or directory
+ALSA lib confmisc.c:422:(snd_func_concat) error evaluating strings
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_concat returned error: No such file or directory
+ALSA lib confmisc.c:1342:(snd_func_refer) error evaluating name
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5727:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2721:(snd_pcm_open_noupdate) Unknown PCM default
+ALSA lib confmisc.c:855:(parse_card) cannot find card '0'
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_card_inum returned error: No such file or directory
+ALSA lib confmisc.c:422:(snd_func_concat) error evaluating strings
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_concat returned error: No such file or directory
+ALSA lib confmisc.c:1342:(snd_func_refer) error evaluating name
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5727:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2721:(snd_pcm_open_noupdate) Unknown PCM default
+[   1.095] Audio: no output device - audio disabled
+[   1.095] Audio: no output device, continuing silently
+[   2.218] UI icon atlas: 92 icons + 13 weapons in 1089 ms
+[  14.454] Places: Ocean Promenade hotel row, 11 hotels at x 5365 (ground 2.4), park 681..1050
+[  14.475] Places: Porto Sol University at (1950, 3700), ground 3.3, 13 halls
+[  14.475] Places: Santa Marea Cemetery at (1600, -750), ground 3.5, 67 mourners
+[  14.476] Places: Palmera State Penitentiary at (350, 9075), ground 6.9
+[  14.476] Places: Palmera Speedway at (400, 5790), ground 6.8
+[  14.476] Places: layout 0.022 s, 5 places, 624 anchors
+[  14.476] Transit: SkyLine loop 8.60 km, 8 stations, 4299 samples; 3 ferry piers
+[  14.522] Sites: 111 pads, 613 elements, 25 roads, 53 buildings requested (0.11 s)
+[  15.667] World map generated in 14.57 s
+[  17.121] Road gen: 18 interchanges, 50 ramps (22 left out where they could not come down in time)
+[  17.946] Road gen: 1 arterial ends at a lone on/off ramp given a turnaround
+[  23.006] Road gen: junction plateaus, 489 profile points levelled (largest change 0.70 m, 6 short links ramped plateau to plateau)
+[  25.502] Road network: 6223 nodes, 9547 edges, 1690 signalized; hwy 61.7 km, streets 1165.8 km (9.83 s)
+[  30.503] Transit: 0 buildings cleared from the SkyLine corridor
+[  30.527] Places: Okahatchee Union Church at (-48, 6872) on edge 4965, 6 buildings made way, 186 graves, 19 mourners
+[  30.565] Places: Old Fort Church at (4501, 7893) on edge 4035, 4 buildings made way, 166 graves, 18 mourners
+[  30.573] Places: Tidewater General Hospital (city) at (1698, 1100) on edge 6868, 7 buildings made way
+[  30.592] Places: Midtown General (city) at (3698, 3195) on edge 9083, 15 buildings made way
+[  30.855] Places: Westbrook Hospital (community) at (-2399, 1647) on edge 5533, 4 buildings made way
+[  30.959] Places: Sol Beach Clinic (clinic) at (5172, -904) on edge 3026, 3 buildings made way
+[  30.966] Places: Harlow County Hospital (community) at (-4886, 5241) on edge 5324, 4 buildings made way
+[  30.988] Places: Okahatchee Medical (community) at (-54, 6622) on edge 4961, 7 buildings made way
+[  31.063] Places: Redland Health (clinic) at (-315, -5222) on edge 2100, 0 buildings made way
+[  31.110] Places: Fort Castell Hospital (community) at (4572, 8021) on edge 4096, 3 buildings made way
+[  31.123] Places: after the lots 0.617 s
+[  31.125] Buildings: 35617 (towers 352, midrise 2411, condo 427, deco 688, shops 4600, strip 640, houses 22192, villas 901, warehouses 1620) in 5.52 s
+[  31.128] Sites: 69 highway billboards
+[  31.129] Sites: 155 silos, 50 windmills
+[  31.130] Sites: 245 beach access paths
+[  31.159] Transit: 3 ferry piers, 1 routes, 4.24 km of water path (0.01 s)
+[  31.160] Transit: ferry pier Sol Beach  base (4836, -1250) length 90 deck 2.3 berth (4741, -1250)
+[  31.160] Transit: ferry pier Port Isle  base (4280, -1044) length 26 deck 2.3 berth (4280, -1075)
+[  31.160] Transit: ferry pier Key Coral  base (4350, -2973) length 58 deck 2.3 berth (4350, -2910)
+[  31.168] Transit: 4 bus routes, 64 stops (48 new shelters) (0.01 s); rejects class 1107 cut 1945 deck 72 road 119 avoid 0 pad 2 furn 283 stop 0
+[  31.168] Transit: bus 3   Airport      8.2 km, 17 stops, 4 buses, headway 6.3 min
+[  31.168] Transit: bus 7   Calle Luna   6.4 km, 15 stops, 3 buses, headway 6.7 min
+[  31.168] Transit: bus 9   Sol Beach    7.1 km, 14 stops, 4 buses, headway 5.4 min
+[  31.168] Transit: bus 12  Bayshore     8.3 km, 20 stops, 4 buses, headway 6.6 min
+[  31.174] Transit: Sol Beach Streetcar 6.24 km, 16 stops, 65 junctions (32 signalled, 30 stop signs), 229 poles, 4 streetcars, headway 4.9 min (0.01 s)
+[  31.174] Transit: streetcar stop Collins-Solano Ave & 46th St s    136 shelter (5191.0, 1496.1, 1.8) travel (-0.00, -1.00)
+[  31.174] Transit: streetcar stop 42nd St              s    511 shelter (5231.0, 1126.8, 1.7) travel (-0.00, -1.00)
+[  31.174] Transit: streetcar stop 38th St              s    892 shelter (5239.0, 746.9, 1.7) travel (-0.00, -1.00)
+[  31.174] Transit: streetcar stop 34th St              s   1277 shelter (5207.0, 367.8, 1.8) travel (0.00, -1.00)
+[  31.174] Transit: streetcar stop 30th St              s   1691 shelter (5239.0, -39.2, 1.9) travel (-0.00, -1.00)
+[  31.174] Transit: streetcar stop 26th St              s   2053 shelter (5231.1, -397.7, 1.8) travel (-0.30, -0.95)
+[  31.174] Transit: streetcar stop 22nd St              s   2427 shelter (5215.0, -773.2, 1.8) travel (-0.00, -1.00)
+[  31.174] Transit: streetcar stop 18th St              s   2811 shelter (5190.5, -1149.6, 1.9) travel (-0.30, -0.95)
+[  31.174] Transit: streetcar stop Ferry Terminal       s   3165 shelter (4941.9, -1174.6, 2.7) travel (0.30, 0.95)
+[  31.174] Transit: streetcar stop 21st St              s   3527 shelter (4973.4, -815.2, 2.9) travel (0.00, 1.00)
+[  31.174] Transit: streetcar stop 25th St              s   3920 shelter (4981.5, -425.5, 2.5) travel (0.30, 0.95)
+[  31.174] Transit: streetcar stop 29th St              s   4291 shelter (4997.4, -55.2, 2.0) travel (0.00, 1.00)
+[  31.175] Transit: streetcar stop 33rd St              s   4688 shelter (4965.4, 336.8, 2.5) travel (-0.00, 1.00)
+[  31.175] Transit: streetcar stop 37th St              s   5071 shelter (4997.4, 712.8, 2.7) travel (0.00, 1.00)
+[  31.175] Transit: streetcar stop 41st St              s   5443 shelter (4994.0, 1086.6, 1.9) travel (-0.30, 0.95)
+[  31.175] Transit: streetcar stop Bay Road & 46th St   s   5926 shelter (4938.0, 1561.6, 3.0) travel (-0.30, 0.95)
+[  31.175] Transit: SkyLine profile 12.9..25.4 m above the street, 274 piers (0 straddle bents) (0.04 s)
+[  31.175] Transit: station Calle Luna       s    691 at (1850, -629) rail 16.5 street 3.1 exits -1/+1
+[  31.175] Transit: station Solaris          s   1891 at (3050, -629) rail 15.0 street 1.5 exits -1/+1
+[  31.175] Transit: station Civic Center     s   3068 at (3275, 400) rail 14.9 street 1.5 exits -1/+1
+[  31.175] Transit: station Midtown          s   3868 at (3275, 1200) rail 15.0 street 1.6 exits -1/+1
+[  31.175] Transit: station Canvas District  s   4644 at (2750, 1529) rail 16.4 street 2.2 exits -1/+1
+[  31.175] Transit: station Palmetto Flats   s   5744 at (1650, 1529) rail 17.0 street 3.5 exits -1/+1
+[  31.175] Transit: station Airport          s   6567 at (979, 1300) rail 17.7 street 4.3 exits -1/+1
+[  31.175] Transit: station Westbrook        s   8067 at (979, -200) rail 17.8 street 4.4 exits -1/+1
+[  31.178] Site runway 09L|27R  from (-1180, 2080) to (820, 2080) z 4.6 width 60
+[  31.178] Site runway 09R|27L  from (-1100, 780) to (700, 780) z 4.6 width 45
+[  31.178] Site terminal             at (628, 1440, 4.6)
+[  31.178] Site control tower        at (730, 1832, 4.6)
+[  31.178] Site container ship       at (4625, -800, 0.0)
+[  31.178] Site container ship       at (4616, -330, 0.0)
+[  31.178] Site port gate            at (4008, -160, 3.0)
+[  31.178] Site Key Coral marina     at (4039, -4035, 0.0)
+[  31.178] Site beach club           at (4873, -3866, 1.2)
+[  31.178] Site beach club           at (4808, -4183, 2.2)
+[  31.178] Site Solaris One          at (3350, -750, 1.4)
+[  31.178] Site stadium              at (3565, 445, 1.6)
+[  31.178] Site City Hall            at (3000, 372, 2.0)
+[  31.178] Site Canvas Park          at (3100, 1800, 1.7)
+[  31.178] Site Sol Beach Pier from (5414, 1250) to (5840, 1250) deck z 5.6
+[  31.178] Site Ferris wheel         at (5504, 1270, 5.6)
+[  31.178] Site lighthouse           at (-2206, -8000, 0.5)
+[  31.178] Site radio mast           at (-6744, 7248, 166.1)
+[  31.178] Site sugar mill           at (1430, 7500, 8.1)
+[  31.178] Site Rio Sol marina       at (2280, 188, 0.0)
+[  31.178] Site Okahatchee boat ramp at (-515, 6822, 7.7)
+[  31.178] Site Sawgrass tower       at (-4873, 420, 0.6)
+[  31.178] Sites finalized: 1486 elements (0.05 s)
+[  31.185] Interiors: 29 planned (convenience 7, gun shops 2) in 7.3 ms
+[  31.186]   interior 'Mari's Apartment' kind 0 building 28142 at (1771.22, 359.23, 3.77) ax (1.0000, 0.0000) x -6.55..2.18 depth 11.50 ceil 3.84: 3 rooms, 3 openings, 3 doors, 3 portals, 0 npc points
+[  31.186]   interior 'Mama Lucha's' kind 2 building 26747 at (1351.86, 340.76, 4.29) ax (-1.0000, -0.0000) x -8.43..8.43 depth 16.00 ceil 4.20: 4 rooms, 5 openings, 4 doors, 5 portals, 34 npc points
+[  31.186]   interior 'Rook's Garage' kind 3 building 27288 at (1562.94, 2361.63, 4.30) ax (1.0000, 0.0000) x -9.74..9.74 depth 20.00 ceil 7.11: 3 rooms, 5 openings, 4 doors, 5 portals, 5 npc points
+[  31.186]   interior 'Dex's Trailer' kind 1 building 25527 at (1106.75, 2666.39, 4.87) ax (1.0000, 0.0000) x -17.46..17.46 depth 16.71 ceil 2.25: 3 rooms, 7 openings, 3 doors, 7 portals, 0 npc points
+[  31.186]   interior 'Police Headquarters' kind 5 building 32504 at (3167.89, -240.34, 1.86) ax (1.0000, 0.0000) x -11.84..11.84 depth 16.00 ceil 5.59: 2 rooms, 8 openings, 2 doors, 8 portals, 14 npc points
+[  31.186]   interior 'Tidewater General Hospital' kind 6 building 35599 at (1692.75, 1073.40, 3.63) ax (1.0000, 0.0000) x -9.55..9.55 depth 16.00 ceil 4.20: 2 rooms, 7 openings, 2 doors, 7 portals, 12 npc points
+[  31.186]   interior 'Palmetto Arms' kind 7 building 25538 at (988.27, 2896.06, 4.79) ax (0.0000, 1.0000) x 0.00..9.20 depth 14.00 ceil 4.20: 2 rooms, 1 openings, 2 doors, 1 portals, 3 npc points
+[  31.186]   interior 'Northside Arms' kind 7 building 32997 at (3284.62, 4017.67, 2.09) ax (0.0000, 1.0000) x -6.33..6.33 depth 14.00 ceil 4.03: 2 rooms, 4 openings, 2 doors, 4 portals, 3 npc points
+[  31.186]   interior 'Threads' kind 9 building 19677 at (5141.16, -280.63, 1.88) ax (-1.0000, 0.0000) x -5.68..8.51 depth 15.00 ceil 3.91: 2 rooms, 6 openings, 2 doors, 6 portals, 4 npc points
+[  31.186]   interior 'Port Isle Warehouse' kind 12 building 35552 at (4034.00, -820.00, 3.15) ax (-0.0000, 1.0000) x -23.22..23.22 depth 38.00 ceil 8.93: 2 rooms, 10 openings, 4 doors, 10 portals, 4 npc points
+[  31.186]   interior 'TideStop Mart' kind 8 building 26846 at (1475.59, -259.27, 4.22) ax (-1.0000, -0.0000) x -6.05..6.05 depth 17.00 ceil 4.20: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+[  31.186]   interior 'Bodega La Luna' kind 8 building 29653 at (2255.23, 540.74, 2.91) ax (-1.0000, -0.0000) x -5.95..5.95 depth 17.00 ceil 3.98: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+[  31.186]   interior 'Canvas Corner Market' kind 8 building 32545 at (3090.56, 1476.66, 2.21) ax (0.0000, 1.0000) x -7.40..7.40 depth 17.00 ceil 3.92: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+[  31.186]   interior 'Sunrise Food Mart' kind 8 building 19719 at (5227.62, 641.71, 1.78) ax (0.0000, 1.0000) x -7.96..7.96 depth 17.00 ceil 3.43: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+[  31.186]   interior 'Northside Quick Stop' kind 8 building 29914 at (2304.43, 3761.63, 3.12) ax (1.0000, 0.0000) x -6.89..6.89 depth 17.00 ceil 4.12: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+[  31.186]   interior 'Flats Food & Fuel' kind 8 building 24842 at (467.58, 3361.67, 5.21) ax (1.0000, 0.0000) x -10.79..3.60 depth 17.00 ceil 4.20: 2 rooms, 1 openings, 2 doors, 1 portals, 5 npc points
+[  31.186]   interior 'Grove Pantry' kind 8 building 1182 at (2175.54, -3113.27, 2.23) ax (0.0207, -0.9998) x -6.96..6.96 depth 17.00 ceil 2.80: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+[  31.186]   interior 'Palm Motors' kind 17 building 31294 at (2686.87, 1279.16, 2.69) ax (0.0000, 1.0000) x -9.08..12.11 depth 20.00 ceil 3.90: 2 rooms, 8 openings, 3 doors, 8 portals, 5 npc points
+[  31.186]   interior 'Tide Customs Calle Luna' kind 18 building 29601 at (2278.47, -140.75, 2.99) ax (1.0000, 0.0000) x -7.61..7.61 depth 18.00 ceil 4.17: 1 rooms, 6 openings, 2 doors, 6 portals, 3 npc points
+[  31.186]   interior 'Tide Customs Sol Beach' kind 18 building 19788 at (5127.28, 1999.35, 1.92) ax (-1.0000, 0.0000) x -8.01..8.01 depth 18.00 ceil 3.72: 1 rooms, 6 openings, 2 doors, 6 portals, 3 npc points
+[  31.186]   interior 'Sunwash Car Wash' kind 19 building 29044 at (1988.34, 1491.32, 3.44) ax (0.0000, 1.0000) x -7.41..7.41 depth 20.00 ceil 8.08: 1 rooms, 5 openings, 3 doors, 5 portals, 2 npc points
+[  31.186]   interior 'Key Coral Villa' kind 0 building 23718 at (4516.12, -4203.72, 1.64) ax (0.9992, 0.0401) x -7.21..7.21 depth 12.00 ceil 2.80: 3 rooms, 5 openings, 3 doors, 5 portals, 0 npc points
+[  31.186]   interior 'Sol Beach Condo Lobby' kind 20 building 19771 at (5114.61, 1619.32, 1.86) ax (-1.0000, 0.0000) x -5.88..5.88 depth 10.00 ceil 4.20: 2 rooms, 4 openings, 2 doors, 4 portals, 2 npc points
+[  31.187]   interior 'Sol Beach Condo' kind 21 building 19771 at (5114.61, 1619.32, 31.52) ax (-1.0000, 0.0000) x -9.80..5.88 depth 12.00 ceil 2.61: 6 rooms, 4 openings, 5 doors, 4 portals, 0 npc points
+[  31.187]   interior 'Downtown Penthouse Lobby' kind 20 building 33543 at (3511.22, -715.16, 1.71) ax (-0.0000, -1.0000) x -5.25..5.25 depth 10.00 ceil 4.20: 2 rooms, 3 openings, 2 doors, 3 portals, 2 npc points
+[  31.187]   interior 'Downtown Penthouse' kind 21 building 33543 at (3511.22, -715.16, 52.15) ax (-0.0000, -1.0000) x -10.49..10.49 depth 14.00 ceil 2.80: 6 rooms, 4 openings, 5 doors, 4 portals, 0 npc points
+[  31.187]   interior 'Club Riptide' kind 4 building -1 at (5424.10, 900.00, 1.36) ax (0.0000, -1.0000) x -55.00..17.00 depth 32.00 ceil 4.00: 4 rooms, 0 openings, 0 doors, 0 portals, 32 npc points
+[  31.187]   interior 'Solaris One' kind 10 building -1 at (3350.00, -786.00, 1.89) ax (1.0000, -0.0000) x -18.40..18.40 depth 31.00 ceil 8.30: 3 rooms, 4 openings, 4 doors, 4 portals, 17 npc points
+[  31.187]   interior 'Solaris One Penthouse' kind 11 building -1 at (3365.30, -759.93, 457.34) ax (0.5442, 0.8390) x -18.24..18.24 depth 36.48 ceil 8.20: 4 rooms, 4 openings, 1 doors, 4 portals, 15 npc points
+[  31.253] Buildings: 33925 restyled by district palettes in 66.4 ms (taxpayer 1392, 1920s block 924, med revival 774, mimo shop 1036, bodega 338, arcade 118, gallery 11, walk-up 497, mimo apts 763, med apts 530, office 60s 129, modern 372, loft 80, condo slab 134, glass condo 113, mimo hotel 97, podium condo 78, ranch 5438, bungalow 2806, med house 3406, two-storey 2417, mimo house 1933, split level 2251, conch 265, modern villa 190, streamline 176, med hotel 117, mimo motel 133, sawtooth 540, ware office 551, body shop 282, med villa 307, colonial villa 135, stilt house 73, mimo motor court 161, med motel 90, keys motel 113, motor inn 90, mission strip 199, mimo strip 186, power center 255, gambrel barn 34, pole barn 43, gable barn 24, mission church 47, board church 46, brick church 25, a-frame church 43, cbs house 3237, folk victorian 363, raised keys house 63, mobile home 149)
+[  31.471] Transit: 0 buildings cleared from the SkyLine corridor
+[  31.472] Buildings: block infill 3458 back buildings (garage rows 720, sheds 1872, back houses 866, 0 in the viaduct corridor dropped, 1210 near a street left as yards), 1465 rear parking lots, 5760 yards in 218.3 ms
+[  31.681] Transit: 0 buildings cleared from the SkyLine corridor
+[  31.685] Buildings: frontage fill 4300 gaps: 1676 vacant lots, 731 street parking lots, 649 side yards, 458 service yards, 786 left bare (213.5 ms)
+[  31.997] Buildings: repetition (neighbours within 150 m with the same style, archetype, massing, roof, height band and facade pattern): 2.0% overall, 56% of buildings without a twin; by district: Downtown Porto Sol 2.8%, Solaris 3.0%, Canvas District 0.8%, North Porto Sol 1.0%, Calle Luna 1.4%, Sol Beach 1.7%, Key Coral 4.6%, The Grove 2.0%, Palmetto Flats 1.2%, Westbrook 2.5%, Redland 3.0%, Ten Palms 1.6%, Palmera Farmlands 4.9%, Okahatchee 3.5%, Harlow 2.7%, Fort Castell 1.7%, Key Solano 2.5% (311.4 ms)
+[  35.849] Material library: 57 layers at 256^2
+[  36.245] Props: 83 prototypes, 43433 verts
+[  41.610] Vehicle assets: 45 models in 4.50 s
+[  99.697] Wardrobe: 29 dedicated looks (night out 12, door staff 3, sportswear 8, cover-ups 6); roster dressed for a night out 8 men / 9 women, office 9, work 6, swim 8, sport 6
+[ 100.417] Character assets: 149 characters in 58.81 s
+[ 100.549] Game assets built in 63.44 s
+[ 100.994] Story place near (800, -5400): no building frontage found, using the street
+[ 101.037] Story places resolved in 347.5 ms (diner 1350 342, Mari's 1771 358, Rook's 1566 2360, Pulse FM 3344 662, boatyard 1650 239, river 1644 140, sawgrass dock -5016 -74)
+[ 101.038] Missions registered: 57
+[ 105.397] Lane graph: 180 plaza walkways and 2 zebra crossings from the sites
+[ 105.416] Lane graph: 25496 lanes, 56760 connectors (1154772 pts), 40687 walk nodes, 56441 walk links, dead-end turning circles moved 22 / obstructed 0 (4.37 s)
+[ 138.991] UI map: base 2560x2560 in 33539 ms, 9547 roads (43960 pts) in 12 ms, 37 labels in 23 ms
+[ 138.991] hudInit done in 33574 ms
+[ 138.991] Init done in 137.90 s (shaders: 0 compiled in 0.00 s)
+[ 138.999] Transit: SkyLine timetable built (2.7 ms): loop 12.4 / 12.4 min, 4 trains per direction, headway 3.1 min
+[ 138.999] Transit: 9 lines published to the map
+[ 139.002] Transit: SkyLine car models registered as vehicle assets 45 / 46
+[ 139.449] Transit: 4 route bus models (destination signs) in 446 ms
+[ 139.449] Transit: 64 bus stops registered with the AI (48 lane stops added, 240 waiting spots)
+[ 139.449] Transit: 15 buses on 4 routes
+[ 139.449] Transit: Bay Ferry timetable: loop 13.2 min, 2 ferries, headway 6.6 min
+[ 139.453] Transit: Sol Ferry model registered as vehicle asset 51
+[ 139.459] Transit: streetcar modules registered as vehicle assets 52 53 54
+[ 139.460] Transit: 16 streetcar stops registered (16 curb lanes kept clear)
+[ 139.460] Transit: 4 streetcars on the 6.24 km loop, 16 stops, 65/65 junction movements found
+[ 139.512] population: venue Ocean Promenade slot 75 (mode 6) dropped at 5354.7 728.5: second spot
+[ 139.521] population: venue Ocean Promenade slot 77 (mode 6) dropped at 5354.7 809.2: second spot
+[ 139.521] population: venue Ocean Promenade slot 71 (mode 6) dropped at 5354.7 850.4: second spot
+[ 139.521] population: venue Ocean Promenade slot 80 (mode 6) dropped at 5354.7 920.7: second spot
+[ 139.523] population: venue Ocean Promenade slot 49 (mode 6) dropped at 5354.7 1046.1: second spot
+[ 139.534] population: venues laid out: 3955 (769 slots kept, 5 dropped on lanes / water / buildings; 3891 town venues with 38978 slots, checked on the first visit) | port 23 | airport 35 (rank: 3 cabs, line of 4) | sawgrass 32 | Ocean Promenade 2 | Porto Sol University 2 | Porto Sol University 5 | Santa Marea Cemetery 2 | Palmera State Penitentiary 5 | Okahatchee Union Church 2 | Old Fort Church 2 | Ocean Promenade 34 | Ocean Promenade 76 | Ocean Promenade 72 | Ocean Promenade 81 | Ocean Promenade 49 | Ocean Promenade 7 | Ocean Promenade 6 | Ocean Promenade 2 | Ocean Promenade 4 | Ocean Promenade 3 | Porto Sol University 10 | Porto Sol University 6 | Porto Sol University 11 | Porto Sol University 19 | Porto Sol University 3 | Porto Sol University 7 | Santa Marea Cemetery 25 | Santa Marea Cemetery 17 | Santa Marea Cemetery 5 | Santa Marea Cemetery 3 | Santa Marea Cemetery 5 | Santa Marea Cemetery 8 | Santa Marea Cemetery 4 | Santa Marea Cemetery 9 | Palmera State Penitentiary 9 | Palmera State Penitentiary 6 | Palmera State Penitentiary 4 | Palmera State Penitentiary 3 | Palmera State Penitentiary 1 | Palmera State Penitentiary 1 | Palmera State Penitentiary 1 | Palmera State Penitentiary 1 | Palmera State Penitentiary 1 | Palmera State Penitentiary 1 | Palmera State Penitentiary 2 | Palmera Speedway 16 | Palmera Speedway 28 | Palmera Speedway 12 | Okahatchee Union Church 22 | Old Fort Church 17 | Old Fort Church 4 | Tidewater General Hospital 3 | Tidewater General Hospital 2 | Tidewater General Hospital 3 | Midtown General 1 | Midtown General 7 | Westbrook Hospital 8 | Sol Beach Clinic 8 | Harlow County Hospital 5 | Harlow County Hospital 3 | Okahatchee Medical 8 | Redland Health 8 | Fort Castell Hospital 1 | Fort Castell Hospital 7
+[ 139.547] Stunt jumps: 0 road crests (0 candidates); ramps being placed
+[ 139.548] fishing: 9 spots (lake yes, 3 Keys docks)
+[ 140.466] Stunt ramps: 10 placed (0 over water) in 623 ms (25869 corridors tested); 10 unique stunt jumps
+[ 140.523] Wildlife: 28 species models ready (166 k triangles in the detailed LODs)
+[ 143.088] Interior 'Bodega La Luna' built: 111360 triangles, 18 lights, 14 colliders, 3 door leaves in 40.1 ms
+[ 281.817] autoplay t=2.5 pos 2713.0 763.0 2.1 state 0 health 200 veh -1 speed 0.0 | peds 112 vehicles 69 wanted 0 | cpu ms player 0.15 ai 0.76 veh 1.87 peds 3.62 | mem 2980 MB (private 0)
+[ 294.386] autoplay turntest: round 1 at t=4.0 - ped 112 at 1.5 m/s along lane 20517's sidewalk (3.5 m wide, its middle 5.6 m out)
+[ 576.854] ai: ped 95 into car 66 (seat 0) through the door: a 2.94 s clip (activity 18)
+[ 680.124] ai: ped 95 in car 66 (seat 0) after its door clip (3.0 s in PS_ENTERING)
+[ 762.370] Transit: 0.875 ms/frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[ 900.212] autoplay turntest t=24.80 corner 1 (90 deg) +0.0 s | rate -2.40 rad/s | speed 1.44 | crab 10 deg | off its line 0.66 m
+[ 903.671] autoplay turntest t=24.90 corner 1 (90 deg) +0.1 s | rate -2.40 rad/s | speed 1.50 | crab 18 deg | off its line 0.61 m
+[ 903.710] autoplay turntest t=25.00 corner 1 (90 deg) +0.2 s | rate -2.40 rad/s | speed 1.50 | crab 4 deg | off its line 0.58 m
+[ 912.600] autoplay turntest t=25.10 corner 1 (90 deg) +0.3 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line 0.54 m
+[ 919.107] autoplay turntest t=25.20 corner 1 (90 deg) +0.4 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line 0.50 m
+[ 928.820] autoplay turntest t=25.30 corner 1 (90 deg) +0.5 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line 0.46 m
+[ 928.869] autoplay turntest t=25.40 corner 1 (90 deg) +0.6 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line 0.43 m
+[ 928.923] autoplay turntest t=25.50 corner 1 (90 deg) +0.7 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line 0.39 m
+[ 928.954] autoplay turntest t=25.60 corner 1 (90 deg) +0.8 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line 0.35 m
+[ 932.415] autoplay turntest t=25.70 corner 1 (90 deg) +0.9 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line 0.32 m
+[ 932.456] autoplay turntest t=25.80 corner 1 (90 deg) +1.0 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line 0.28 m
+[ 932.498] autoplay turntest t=25.90 corner 1 (90 deg) +1.1 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line 0.24 m
+[ 932.530] autoplay turntest: round 1 corner 1 (90 deg) - most rate 2.40 rad/s over 0.8 m/s, least speed 1.44 m/s, most crab 22 deg, faced the new leg after -1.00 s, swing 0.66 m
+[ 932.535] autoplay turntest t=26.00 corner 2 (90 deg) +0.0 s | rate +2.40 rad/s | speed 1.25 | crab 15 deg | off its line -0.80 m
+[ 941.818] autoplay turntest t=26.10 corner 2 (90 deg) +0.1 s | rate +2.40 rad/s | speed 1.41 | crab 30 deg | off its line -0.73 m
+[ 951.504] autoplay turntest t=26.20 corner 2 (90 deg) +0.2 s | rate +2.40 rad/s | speed 1.50 | crab 30 deg | off its line -0.69 m
+[ 954.755] autoplay turntest t=26.30 corner 2 (90 deg) +0.3 s | rate +2.40 rad/s | speed 1.50 | crab 23 deg | off its line -0.67 m
+[ 954.790] autoplay turntest t=26.40 corner 2 (90 deg) +0.4 s | rate +2.40 rad/s | speed 1.50 | crab 9 deg | off its line -0.65 m
+[ 957.971] autoplay turntest t=26.50 corner 2 (90 deg) +0.5 s | rate +0.13 rad/s | speed 1.50 | crab 0 deg | off its line -0.63 m
+[ 958.018] autoplay turntest t=26.60 corner 2 (90 deg) +0.6 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line -0.62 m
+[ 958.068] autoplay turntest t=26.70 corner 2 (90 deg) +0.7 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line -0.60 m
+[ 958.118] autoplay turntest t=26.80 corner 2 (90 deg) +0.8 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line -0.58 m
+[ 961.120] autoplay turntest t=26.90 corner 2 (90 deg) +0.9 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line -0.57 m
+[ 961.157] autoplay turntest t=27.00 corner 2 (90 deg) +1.0 s | rate +0.00 rad/s | speed 1.50 | crab 0 deg | off its line -0.55 m
+[ 967.000] autoplay turntest t=27.10 corner 2 (90 deg) +1.1 s | rate +0.00 rad/s | speed 1.50 | crab 0 deg | off its line -0.53 m
+[ 975.947] autoplay turntest t=27.20 corner 2 (90 deg) +1.2 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line -0.51 m
+[ 984.402] autoplay turntest t=27.30 corner 2 (90 deg) +1.3 s | rate +0.00 rad/s | speed 1.50 | crab 0 deg | off its line -0.50 m
+[ 984.449] autoplay turntest t=27.40 corner 2 (90 deg) +1.4 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line -0.48 m
+[ 984.510] autoplay turntest t=27.50 corner 2 (90 deg) +1.5 s | rate +0.00 rad/s | speed 1.50 | crab 0 deg | off its line -0.46 m
+[ 984.540] autoplay turntest t=27.60 corner 2 (90 deg) +1.6 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line -0.44 m
+[ 987.300] autoplay turntest t=27.70 corner 2 (90 deg) +1.7 s | rate +0.00 rad/s | speed 1.50 | crab 0 deg | off its line -0.43 m
+[ 987.347] autoplay turntest t=27.80 corner 2 (90 deg) +1.8 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line -0.41 m
+[ 987.380] autoplay turntest t=27.90 corner 2 (90 deg) +1.9 s | rate +0.00 rad/s | speed 1.50 | crab 0 deg | off its line -0.39 m
+[ 987.406] autoplay turntest t=28.00 corner 2 (90 deg) +2.0 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line -0.38 m
+[ 996.197] autoplay turntest t=28.10 corner 2 (90 deg) +2.1 s | rate +0.00 rad/s | speed 1.50 | crab 0 deg | off its line -0.36 m
+[1005.729] autoplay turntest t=28.20 corner 2 (90 deg) +2.2 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line -0.34 m
+[1008.648] autoplay turntest t=28.30 corner 2 (90 deg) +2.3 s | rate +0.00 rad/s | speed 1.50 | crab 0 deg | off its line -0.32 m
+[1008.680] autoplay turntest t=28.40 corner 2 (90 deg) +2.4 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line -0.31 m
+[1018.636] autoplay turntest: round 1 corner 2 (90 deg) - most rate 2.40 rad/s over 0.8 m/s, least speed 1.25 m/s, most crab 30 deg, faced the new leg after 0.50 s, swing 0.80 m
+[1018.658] autoplay turntest t=29.63 corner 3 (135 deg) +0.0 s | rate +2.40 rad/s | speed 0.97 | crab 2 deg | off its line -0.52 m
+[1021.571] autoplay turntest t=29.73 corner 3 (135 deg) +0.1 s | rate +2.90 rad/s | speed 0.37 | crab 108 deg | off its line -0.50 m
+[1021.631] autoplay turntest t=29.83 corner 3 (135 deg) +0.2 s | rate +2.40 rad/s | speed 0.63 | crab 30 deg | off its line -0.45 m
+[1021.663] autoplay turntest t=29.93 corner 3 (135 deg) +0.3 s | rate +2.40 rad/s | speed 0.84 | crab 30 deg | off its line -0.38 m
+[1021.712] autoplay turntest t=30.03 corner 3 (135 deg) +0.4 s | rate +2.40 rad/s | speed 1.04 | crab 30 deg | off its line -0.30 m
+[1021.724] Wildlife: 138 animals (126 birds) in 17 groups, 15 drawn in 7 draws | update 0.270 ms, render 0.186 ms
+[1024.501] autoplay turntest t=30.13 corner 3 (135 deg) +0.5 s | rate +2.40 rad/s | speed 1.25 | crab 30 deg | off its line -0.22 m
+[1024.566] autoplay turntest t=30.23 corner 3 (135 deg) +0.6 s | rate +2.40 rad/s | speed 1.45 | crab 30 deg | off its line -0.16 m
+[1024.610] autoplay turntest t=30.33 corner 3 (135 deg) +0.7 s | rate +2.40 rad/s | speed 1.50 | crab 30 deg | off its line -0.12 m
+[1024.646] autoplay turntest t=30.43 corner 3 (135 deg) +0.8 s | rate +2.40 rad/s | speed 1.50 | crab 22 deg | off its line -0.11 m
+[1028.216] autoplay turntest t=30.53 corner 3 (135 deg) +0.9 s | rate +2.40 rad/s | speed 1.50 | crab 8 deg | off its line -0.10 m
+[1028.289] autoplay turntest t=30.63 corner 3 (135 deg) +1.0 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line -0.09 m
+[1028.330] autoplay turntest t=30.73 corner 3 (135 deg) +1.1 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line -0.08 m
+[1028.379] autoplay turntest t=30.83 corner 3 (135 deg) +1.2 s | rate +0.00 rad/s | speed 1.50 | crab 0 deg | off its line -0.07 m
+[1031.193] autoplay turntest: round 1 corner 3 (135 deg) - most rate 2.40 rad/s over 0.8 m/s, least speed 0.31 m/s, most crab 108 deg, faced the new leg after 0.97 s, swing 0.52 m
+[1031.209] autoplay turntest t=30.93 corner 4 (135 deg) +0.0 s | rate -2.40 rad/s | speed 0.97 | crab 2 deg | off its line 0.62 m
+[1031.253] autoplay turntest t=31.03 corner 4 (135 deg) +0.1 s | rate -2.56 rad/s | speed 0.45 | crab 84 deg | off its line 0.59 m
+[1031.291] autoplay turntest t=31.13 corner 4 (135 deg) +0.2 s | rate -2.40 rad/s | speed 0.68 | crab 30 deg | off its line 0.53 m
+[1031.349] autoplay turntest t=31.23 corner 4 (135 deg) +0.3 s | rate -2.40 rad/s | speed 0.91 | crab 30 deg | off its line 0.46 m
+[1034.276] autoplay turntest t=31.33 corner 4 (135 deg) +0.4 s | rate -2.40 rad/s | speed 1.13 | crab 30 deg | off its line 0.38 m
+[1034.327] autoplay turntest t=31.43 corner 4 (135 deg) +0.5 s | rate -2.40 rad/s | speed 1.35 | crab 30 deg | off its line 0.32 m
+[1034.357] autoplay turntest t=31.53 corner 4 (135 deg) +0.6 s | rate -2.40 rad/s | speed 1.50 | crab 30 deg | off its line 0.27 m
+[1034.403] autoplay turntest t=31.63 corner 4 (135 deg) +0.7 s | rate -2.40 rad/s | speed 1.50 | crab 27 deg | off its line 0.26 m
+[1037.113] autoplay turntest t=31.73 corner 4 (135 deg) +0.8 s | rate -2.40 rad/s | speed 1.50 | crab 13 deg | off its line 0.25 m
+[1037.154] autoplay turntest t=31.83 corner 4 (135 deg) +0.9 s | rate -2.09 rad/s | speed 1.50 | crab 0 deg | off its line 0.24 m
+[1037.206] autoplay turntest t=31.93 corner 4 (135 deg) +1.0 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line 0.23 m
+[1037.246] autoplay turntest t=32.03 corner 4 (135 deg) +1.1 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line 0.22 m
+[1040.807] autoplay turntest t=32.13 corner 4 (135 deg) +1.2 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line 0.21 m
+[1040.862] autoplay turntest t=32.23 corner 4 (135 deg) +1.3 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line 0.21 m
+[1040.901] autoplay turntest t=32.33 corner 4 (135 deg) +1.4 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line 0.20 m
+[1040.959] autoplay turntest t=32.43 corner 4 (135 deg) +1.5 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line 0.19 m
+[1043.886] autoplay turntest t=32.53 corner 4 (135 deg) +1.6 s | rate +0.00 rad/s | speed 1.50 | crab 0 deg | off its line 0.18 m
+[1043.936] autoplay turntest t=32.63 corner 4 (135 deg) +1.7 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line 0.18 m
+[1043.973] autoplay turntest t=32.73 corner 4 (135 deg) +1.8 s | rate +0.00 rad/s | speed 1.50 | crab 0 deg | off its line 0.17 m
+[1044.024] autoplay turntest t=32.83 corner 4 (135 deg) +1.9 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line 0.16 m
+[1047.077] autoplay turntest t=32.93 corner 4 (135 deg) +2.0 s | rate +0.00 rad/s | speed 1.50 | crab 0 deg | off its line 0.15 m
+[1047.145] autoplay turntest t=33.03 corner 4 (135 deg) +2.1 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line 0.14 m
+[1047.208] autoplay turntest t=33.13 corner 4 (135 deg) +2.2 s | rate +0.00 rad/s | speed 1.50 | crab 0 deg | off its line 0.14 m
+[1047.268] autoplay turntest t=33.23 corner 4 (135 deg) +2.3 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line 0.13 m
+[1050.122] autoplay turntest t=33.33 corner 4 (135 deg) +2.4 s | rate +0.00 rad/s | speed 1.50 | crab 0 deg | off its line 0.12 m
+[1056.888] autoplay turntest: round 1 corner 4 (135 deg) - most rate 2.40 rad/s over 0.8 m/s, least speed 0.37 m/s, most crab 84 deg, faced the new leg after 0.90 s, swing 0.62 m
+[1056.910] autoplay turntest t=34.37 corner 5 (180 deg) +0.0 s | rate +2.40 rad/s | speed 0.97 | crab 3 deg | off its line -0.04 m
+[1056.949] autoplay turntest t=34.47 corner 5 (180 deg) +0.1 s | rate +3.89 rad/s | speed 0.12 | crab 0 deg | off its line -0.04 m
+[1060.037] autoplay turntest t=34.57 corner 5 (180 deg) +0.2 s | rate +3.89 rad/s | speed 0.12 | crab 0 deg | off its line -0.04 m
+[1060.083] autoplay turntest t=34.67 corner 5 (180 deg) +0.3 s | rate +3.50 rad/s | speed 0.32 | crab 112 deg | off its line -0.04 m
+[1060.132] autoplay turntest t=34.77 corner 5 (180 deg) +0.4 s | rate +2.40 rad/s | speed 0.61 | crab 30 deg | off its line -0.00 m
+[1060.187] autoplay turntest t=34.87 corner 5 (180 deg) +0.5 s | rate +2.40 rad/s | speed 0.83 | crab 30 deg | off its line 0.06 m
+[1062.843] autoplay turntest t=34.97 corner 5 (180 deg) +0.6 s | rate +2.40 rad/s | speed 1.05 | crab 30 deg | off its line 0.13 m
+[1062.875] autoplay turntest t=35.07 corner 5 (180 deg) +0.7 s | rate +2.40 rad/s | speed 1.28 | crab 30 deg | off its line 0.19 m
+[1062.958] autoplay turntest t=35.17 corner 5 (180 deg) +0.8 s | rate +2.40 rad/s | speed 1.50 | crab 30 deg | off its line 0.23 m
+[1062.995] autoplay turntest t=35.27 corner 5 (180 deg) +0.9 s | rate +2.40 rad/s | speed 1.50 | crab 30 deg | off its line 0.24 m
+[1066.001] autoplay turntest t=35.37 corner 5 (180 deg) +1.0 s | rate +2.40 rad/s | speed 1.50 | crab 18 deg | off its line 0.23 m
+[1066.038] autoplay turntest t=35.47 corner 5 (180 deg) +1.1 s | rate +2.40 rad/s | speed 1.50 | crab 4 deg | off its line 0.23 m
+[1066.085] autoplay turntest t=35.57 corner 5 (180 deg) +1.2 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line 0.22 m
+[1066.133] autoplay turntest t=35.67 corner 5 (180 deg) +1.3 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line 0.21 m
+[1069.198] autoplay turntest t=35.77 corner 5 (180 deg) +1.4 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line 0.20 m
+[1069.229] autoplay turntest t=35.87 corner 5 (180 deg) +1.5 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line 0.19 m
+[1069.271] autoplay turntest t=35.97 corner 5 (180 deg) +1.6 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line 0.19 m
+[1069.310] autoplay turntest t=36.07 corner 5 (180 deg) +1.7 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line 0.18 m
+[1072.372] autoplay turntest t=36.17 corner 5 (180 deg) +1.8 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line 0.17 m
+[1072.433] autoplay turntest t=36.27 corner 5 (180 deg) +1.9 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line 0.16 m
+[1072.504] autoplay turntest t=36.37 corner 5 (180 deg) +2.0 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line 0.15 m
+[1072.562] autoplay turntest t=36.47 corner 5 (180 deg) +2.1 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line 0.15 m
+[1075.465] autoplay turntest t=36.57 corner 5 (180 deg) +2.2 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line 0.14 m
+[1075.491] autoplay turntest t=36.67 corner 5 (180 deg) +2.3 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line 0.13 m
+[1075.531] autoplay turntest t=36.77 corner 5 (180 deg) +2.4 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line 0.12 m
+[1084.746] autoplay turntest: round 1 corner 5 (180 deg) - most rate 2.40 rad/s over 0.8 m/s, least speed 0.12 m/s, most crab 112 deg, faced the new leg after 1.10 s, swing 0.24 m
+[1084.751] autoplay turntest t=37.80 corner 6 (180 deg) +0.0 s | rate +2.40 rad/s | speed 0.97 | crab 3 deg | off its line -0.04 m
+[1084.802] autoplay turntest t=37.90 corner 6 (180 deg) +0.1 s | rate +3.89 rad/s | speed 0.12 | crab 0 deg | off its line -0.04 m
+[1084.830] autoplay turntest t=38.00 corner 6 (180 deg) +0.2 s | rate +3.89 rad/s | speed 0.12 | crab 0 deg | off its line -0.04 m
+[1087.749] autoplay turntest t=38.10 corner 6 (180 deg) +0.3 s | rate +3.50 rad/s | speed 0.32 | crab 112 deg | off its line -0.04 m
+[1087.793] autoplay turntest t=38.20 corner 6 (180 deg) +0.4 s | rate +2.40 rad/s | speed 0.61 | crab 30 deg | off its line -0.00 m
+[1087.833] autoplay turntest t=38.30 corner 6 (180 deg) +0.5 s | rate +2.40 rad/s | speed 0.83 | crab 30 deg | off its line 0.06 m
+[1087.868] autoplay turntest t=38.40 corner 6 (180 deg) +0.6 s | rate +2.40 rad/s | speed 1.05 | crab 30 deg | off its line 0.13 m
+[1091.321] autoplay turntest t=38.50 corner 6 (180 deg) +0.7 s | rate +2.40 rad/s | speed 1.28 | crab 30 deg | off its line 0.19 m
+[1091.368] autoplay turntest t=38.60 corner 6 (180 deg) +0.8 s | rate +2.40 rad/s | speed 1.50 | crab 30 deg | off its line 0.23 m
+[1091.415] autoplay turntest t=38.70 corner 6 (180 deg) +0.9 s | rate +2.40 rad/s | speed 1.50 | crab 30 deg | off its line 0.24 m
+[1091.463] autoplay turntest t=38.80 corner 6 (180 deg) +1.0 s | rate +2.40 rad/s | speed 1.50 | crab 18 deg | off its line 0.23 m
+[1094.585] autoplay turntest t=38.90 corner 6 (180 deg) +1.1 s | rate +2.40 rad/s | speed 1.50 | crab 4 deg | off its line 0.23 m
+[1094.613] autoplay turntest t=39.00 corner 6 (180 deg) +1.2 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line 0.22 m
+[1094.664] autoplay turntest t=39.10 corner 6 (180 deg) +1.3 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line 0.21 m
+[1094.706] autoplay turntest t=39.20 corner 6 (180 deg) +1.4 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line 0.20 m
+[1098.033] autoplay turntest t=39.30 corner 6 (180 deg) +1.5 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line 0.19 m
+[1098.067] autoplay turntest t=39.40 corner 6 (180 deg) +1.6 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line 0.19 m
+[1098.133] autoplay turntest t=39.50 corner 6 (180 deg) +1.7 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line 0.18 m
+[1098.205] autoplay turntest t=39.60 corner 6 (180 deg) +1.8 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line 0.17 m
+[1101.361] autoplay turntest t=39.70 corner 6 (180 deg) +1.9 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line 0.16 m
+[1101.389] autoplay turntest t=39.80 corner 6 (180 deg) +2.0 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line 0.15 m
+[1101.432] autoplay turntest t=39.90 corner 6 (180 deg) +2.1 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line 0.15 m
+[1101.467] autoplay turntest t=40.00 corner 6 (180 deg) +2.2 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line 0.14 m
+[1101.467] Transit: 0.074 ms/frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[1104.917] autoplay turntest t=40.10 corner 6 (180 deg) +2.3 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line 0.13 m
+[1104.962] autoplay turntest t=40.20 corner 6 (180 deg) +2.4 s | rate -0.00 rad/s | speed 1.50 | crab 0 deg | off its line 0.12 m
+[1117.211] autoplay turntest: round 1 corner 6 (180 deg) - most rate 2.40 rad/s over 0.8 m/s, least speed 0.12 m/s, most crab 112 deg, faced the new leg after 1.10 s, swing 0.24 m
+[1117.212] autoplay turntest: round 1 done at t=41.7 (37.7 s)
+[1139.028] ai: ped 85 into car 62 (seat 0) through the door: a 3.08 s clip (activity 18)
+[1164.268] ai: ped 85 in car 62 (seat 0) after its door clip (3.1 s in PS_ENTERING)
+[1250.563] ai: ped 48 into car 36 (seat 0) through the door: a 2.96 s clip (activity 18)
+[1253.605] Transit: 0.071 ms/frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[1256.079] Wildlife: 138 animals (126 birds) in 17 groups, 30 drawn in 7 draws | update 0.215 ms, render 0.215 ms
+[1290.689] autoplay t=61.5 pos 2713.0 763.0 2.1 state 0 health 200 veh -1 speed 0.0 | peds 112 vehicles 69 wanted 0 | cpu ms player 0.13 ai 0.67 veh 1.13 peds 2.10 | mem 2996 MB (private 0)
+[1296.272] ai: ped 48 in car 36 (seat 0) after its door clip (3.0 s in PS_ENTERING)
+[1350.910] autoplay turntest: round 2 at t=70.0 - ped 87 at 1.0 m/s along lane 20517's sidewalk (3.5 m wide, its middle 5.6 m out)
+[1592.470] Transit: 0.080 ms/frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[1619.152] autoplay turntest t=81.03 corner 1 (90 deg) +0.0 s | rate -8.00 rad/s | speed 0.39 | crab 41 deg | off its line 0.79 m
+[1624.703] autoplay turntest t=81.13 corner 1 (90 deg) +0.1 s | rate -0.20 rad/s | speed 0.07 | crab 0 deg | off its line 0.78 m
+[1636.323] autoplay turntest t=81.23 corner 1 (90 deg) +0.2 s | rate -3.84 rad/s | speed 0.22 | crab 0 deg | off its line 0.80 m
+[1639.193] autoplay turntest t=81.33 corner 1 (90 deg) +0.3 s | rate -2.53 rad/s | speed 0.44 | crab 81 deg | off its line 0.83 m
+[1639.267] autoplay turntest t=81.43 corner 1 (90 deg) +0.4 s | rate -2.40 rad/s | speed 0.58 | crab 30 deg | off its line 0.88 m
+[1639.301] autoplay turntest t=81.53 corner 1 (90 deg) +0.5 s | rate -2.40 rad/s | speed 0.70 | crab 39 deg | off its line 0.95 m
+[1639.354] autoplay turntest t=81.63 corner 1 (90 deg) +0.6 s | rate -2.40 rad/s | speed 0.83 | crab 30 deg | off its line 1.03 m
+[1642.565] autoplay turntest t=81.73 corner 1 (90 deg) +0.7 s | rate -2.40 rad/s | speed 0.95 | crab 30 deg | off its line 1.11 m
+[1642.633] autoplay turntest t=81.83 corner 1 (90 deg) +0.8 s | rate -2.40 rad/s | speed 1.00 | crab 30 deg | off its line 1.20 m
+[1642.684] autoplay turntest t=81.93 corner 1 (90 deg) +0.9 s | rate -2.40 rad/s | speed 1.00 | crab 25 deg | off its line 1.28 m
+[1642.746] autoplay turntest t=82.03 corner 1 (90 deg) +1.0 s | rate +2.40 rad/s | speed 0.54 | crab 1 deg | off its line 1.35 m
+[1651.667] autoplay turntest t=82.13 corner 1 (90 deg) +1.1 s | rate +2.40 rad/s | speed 0.53 | crab 36 deg | off its line 1.39 m
+[1660.396] autoplay turntest t=82.23 corner 1 (90 deg) +1.2 s | rate +2.40 rad/s | speed 0.67 | crab 30 deg | off its line 1.45 m
+[1663.569] autoplay turntest t=82.33 corner 1 (90 deg) +1.3 s | rate +2.40 rad/s | speed 0.81 | crab 30 deg | off its line 1.50 m
+[1663.617] autoplay turntest t=82.43 corner 1 (90 deg) +1.4 s | rate +2.40 rad/s | speed 0.95 | crab 30 deg | off its line 1.54 m
+[1666.460] autoplay turntest t=82.53 corner 1 (90 deg) +1.5 s | rate +2.40 rad/s | speed 1.00 | crab 30 deg | off its line 1.56 m
+[1666.520] autoplay turntest t=82.63 corner 1 (90 deg) +1.6 s | rate +2.40 rad/s | speed 1.00 | crab 23 deg | off its line 1.57 m
+[1666.545] autoplay turntest t=82.73 corner 1 (90 deg) +1.7 s | rate +2.40 rad/s | speed 1.00 | crab 9 deg | off its line 1.58 m
+[1666.588] autoplay turntest t=82.83 corner 1 (90 deg) +1.8 s | rate +0.07 rad/s | speed 1.00 | crab 0 deg | off its line 1.58 m
+[1670.016] autoplay turntest t=82.93 corner 1 (90 deg) +1.9 s | rate -0.00 rad/s | speed 1.00 | crab 0 deg | off its line 1.58 m
+[1670.078] autoplay turntest t=83.03 corner 1 (90 deg) +2.0 s | rate -0.00 rad/s | speed 1.00 | crab 0 deg | off its line 1.59 m
+[1675.938] autoplay turntest t=83.13 corner 1 (90 deg) +2.1 s | rate -0.00 rad/s | speed 1.00 | crab 0 deg | off its line 1.59 m
+[1688.483] autoplay turntest t=83.23 corner 1 (90 deg) +2.2 s | rate -0.00 rad/s | speed 1.00 | crab 0 deg | off its line 1.60 m
+[1691.586] autoplay turntest t=83.33 corner 1 (90 deg) +2.3 s | rate -0.00 rad/s | speed 1.00 | crab 0 deg | off its line 1.60 m
+[1691.635] autoplay turntest t=83.43 corner 1 (90 deg) +2.4 s | rate -0.00 rad/s | speed 1.00 | crab 0 deg | off its line 1.61 m
+[1720.670] autoplay turntest: round 2 corner 1 (90 deg) - most rate 2.40 rad/s over 0.8 m/s, least speed 0.07 m/s, most crab 104 deg, faced the new leg after 0.20 s, swing 1.61 m
+[1720.675] autoplay turntest t=84.73 corner 2 (90 deg) +0.0 s | rate +2.40 rad/s | speed 0.96 | crab 17 deg | off its line -0.54 m
+[1720.719] autoplay turntest t=84.83 corner 2 (90 deg) +0.1 s | rate +2.40 rad/s | speed 1.00 | crab 14 deg | off its line -0.53 m
+[1723.806] autoplay turntest t=84.93 corner 2 (90 deg) +0.2 s | rate +2.40 rad/s | speed 1.00 | crab 1 deg | off its line -0.52 m
+[1723.853] autoplay turntest t=85.03 corner 2 (90 deg) +0.3 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line -0.51 m
+[1729.753] autoplay turntest t=85.13 corner 2 (90 deg) +0.4 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line -0.50 m
+[1740.957] autoplay turntest t=85.23 corner 2 (90 deg) +0.5 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line -0.49 m
+[1743.521] autoplay turntest t=85.33 corner 2 (90 deg) +0.6 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line -0.49 m
+[1743.594] autoplay turntest t=85.43 corner 2 (90 deg) +0.7 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line -0.48 m
+[1743.655] autoplay turntest t=85.53 corner 2 (90 deg) +0.8 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line -0.47 m
+[1743.714] autoplay turntest t=85.63 corner 2 (90 deg) +0.9 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line -0.46 m
+[1746.499] autoplay turntest t=85.73 corner 2 (90 deg) +1.0 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line -0.45 m
+[1746.568] autoplay turntest t=85.83 corner 2 (90 deg) +1.1 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line -0.45 m
+[1746.607] autoplay turntest t=85.93 corner 2 (90 deg) +1.2 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line -0.44 m
+[1746.692] autoplay turntest t=86.03 corner 2 (90 deg) +1.3 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line -0.43 m
+[1752.740] autoplay turntest t=86.13 corner 2 (90 deg) +1.4 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line -0.42 m
+[1765.268] autoplay turntest t=86.23 corner 2 (90 deg) +1.5 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line -0.41 m
+[1768.150] autoplay turntest t=86.33 corner 2 (90 deg) +1.6 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line -0.41 m
+[1768.187] autoplay turntest t=86.43 corner 2 (90 deg) +1.7 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line -0.40 m
+[1771.011] autoplay turntest t=86.53 corner 2 (90 deg) +1.8 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line -0.39 m
+[1771.067] autoplay turntest t=86.63 corner 2 (90 deg) +1.9 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line -0.38 m
+[1771.115] autoplay turntest t=86.73 corner 2 (90 deg) +2.0 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line -0.37 m
+[1771.201] autoplay turntest t=86.83 corner 2 (90 deg) +2.1 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line -0.37 m
+[1774.483] autoplay turntest t=86.93 corner 2 (90 deg) +2.2 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line -0.36 m
+[1774.560] autoplay turntest t=87.03 corner 2 (90 deg) +2.3 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line -0.35 m
+[1780.784] autoplay turntest t=87.13 corner 2 (90 deg) +2.4 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line -0.34 m
+[1853.827] Wildlife: 138 animals (126 birds) in 17 groups, 14 drawn in 6 draws | update 0.269 ms, render 0.212 ms
+[1872.148] autoplay turntest: round 2 corner 2 (90 deg) - most rate 2.40 rad/s over 0.8 m/s, least speed 0.96 m/s, most crab 24 deg, faced the new leg after 0.23 s, swing 0.54 m
+[1872.155] autoplay turntest t=90.60 corner 3 (135 deg) +0.0 s | rate +2.40 rad/s | speed 0.47 | crab 1 deg | off its line -0.56 m
+[1872.188] autoplay turntest t=90.70 corner 3 (135 deg) +0.1 s | rate +3.25 rad/s | speed 0.32 | crab 103 deg | off its line -0.55 m
+[1872.238] autoplay turntest t=90.80 corner 3 (135 deg) +0.2 s | rate +2.40 rad/s | speed 0.50 | crab 50 deg | off its line -0.52 m
+[1875.196] autoplay turntest t=90.90 corner 3 (135 deg) +0.3 s | rate +2.40 rad/s | speed 0.65 | crab 30 deg | off its line -0.47 m
+[1875.235] autoplay turntest t=91.00 corner 3 (135 deg) +0.4 s | rate +2.40 rad/s | speed 0.79 | crab 30 deg | off its line -0.41 m
+[1881.117] autoplay turntest t=91.10 corner 3 (135 deg) +0.5 s | rate +2.40 rad/s | speed 0.94 | crab 30 deg | off its line -0.36 m
+[1889.552] autoplay turntest t=91.20 corner 3 (135 deg) +0.6 s | rate +2.40 rad/s | speed 1.00 | crab 30 deg | off its line -0.32 m
+[1895.531] autoplay turntest t=91.30 corner 3 (135 deg) +0.7 s | rate +2.40 rad/s | speed 1.00 | crab 24 deg | off its line -0.30 m
+[1895.562] autoplay turntest t=91.40 corner 3 (135 deg) +0.8 s | rate +2.40 rad/s | speed 1.00 | crab 10 deg | off its line -0.29 m
+[1895.610] autoplay turntest t=91.50 corner 3 (135 deg) +0.9 s | rate +0.68 rad/s | speed 1.00 | crab 0 deg | off its line -0.27 m
+[1895.651] autoplay turntest t=91.60 corner 3 (135 deg) +1.0 s | rate -0.00 rad/s | speed 1.00 | crab 0 deg | off its line -0.25 m
+[1898.668] autoplay turntest t=91.70 corner 3 (135 deg) +1.1 s | rate -0.00 rad/s | speed 1.00 | crab 0 deg | off its line -0.24 m
+[1898.715] autoplay turntest t=91.80 corner 3 (135 deg) +1.2 s | rate -0.00 rad/s | speed 1.00 | crab 0 deg | off its line -0.22 m
+[1898.771] autoplay turntest t=91.90 corner 3 (135 deg) +1.3 s | rate -0.00 rad/s | speed 1.00 | crab 0 deg | off its line -0.20 m
+[1898.822] autoplay turntest t=92.00 corner 3 (135 deg) +1.4 s | rate -0.00 rad/s | speed 1.00 | crab 0 deg | off its line -0.19 m
+[1904.824] autoplay turntest t=92.10 corner 3 (135 deg) +1.5 s | rate -0.00 rad/s | speed 1.00 | crab 0 deg | off its line -0.17 m
+[1913.202] autoplay turntest t=92.20 corner 3 (135 deg) +1.6 s | rate -0.00 rad/s | speed 1.00 | crab 0 deg | off its line -0.15 m
+[1915.896] autoplay turntest: round 2 corner 3 (135 deg) - most rate 2.40 rad/s over 0.8 m/s, least speed 0.19 m/s, most crab 103 deg, faced the new leg after 0.93 s, swing 0.56 m
+[1918.540] autoplay turntest t=92.27 corner 4 (135 deg) +0.0 s | rate -2.40 rad/s | speed 0.48 | crab 5 deg | off its line 0.70 m
+[1918.591] autoplay turntest t=92.37 corner 4 (135 deg) +0.1 s | rate -2.81 rad/s | speed 0.39 | crab 98 deg | off its line 0.69 m
+[1918.639] autoplay turntest t=92.47 corner 4 (135 deg) +0.2 s | rate -2.40 rad/s | speed 0.56 | crab 30 deg | off its line 0.66 m
+[1921.106] autoplay turntest t=92.57 corner 4 (135 deg) +0.3 s | rate -2.40 rad/s | speed 0.71 | crab 30 deg | off its line 0.61 m
+[1921.155] autoplay turntest t=92.67 corner 4 (135 deg) +0.4 s | rate -2.40 rad/s | speed 0.86 | crab 30 deg | off its line 0.56 m
+[1921.208] autoplay turntest t=92.77 corner 4 (135 deg) +0.5 s | rate -2.40 rad/s | speed 1.00 | crab 30 deg | off its line 0.52 m
+[1921.271] autoplay turntest t=92.87 corner 4 (135 deg) +0.6 s | rate -2.40 rad/s | speed 1.00 | crab 30 deg | off its line 0.50 m
+[1924.143] autoplay turntest t=92.97 corner 4 (135 deg) +0.7 s | rate -2.40 rad/s | speed 1.00 | crab 17 deg | off its line 0.49 m
+[1924.199] autoplay turntest t=93.07 corner 4 (135 deg) +0.8 s | rate -2.40 rad/s | speed 1.00 | crab 3 deg | off its line 0.48 m
+[1935.278] autoplay turntest t=93.17 corner 4 (135 deg) +0.9 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line 0.47 m
+[1944.333] autoplay turntest t=93.27 corner 4 (135 deg) +1.0 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line 0.46 m
+[1944.398] autoplay turntest t=93.37 corner 4 (135 deg) +1.1 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line 0.45 m
+[1944.455] autoplay turntest t=93.47 corner 4 (135 deg) +1.2 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line 0.44 m
+[1944.510] autoplay turntest t=93.57 corner 4 (135 deg) +1.3 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line 0.43 m
+[1947.649] autoplay turntest t=93.67 corner 4 (135 deg) +1.4 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line 0.42 m
+[1947.695] autoplay turntest t=93.77 corner 4 (135 deg) +1.5 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line 0.41 m
+[1947.729] autoplay turntest t=93.87 corner 4 (135 deg) +1.6 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line 0.40 m
+[1947.780] autoplay turntest t=93.97 corner 4 (135 deg) +1.7 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line 0.39 m
+[1947.833] autoplay turntest t=94.07 corner 4 (135 deg) +1.8 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line 0.38 m
+[1950.731] autoplay turntest t=94.17 corner 4 (135 deg) +1.9 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line 0.37 m
+[1950.763] autoplay turntest t=94.27 corner 4 (135 deg) +2.0 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line 0.36 m
+[1950.807] autoplay turntest t=94.37 corner 4 (135 deg) +2.1 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line 0.35 m
+[1950.854] autoplay turntest t=94.47 corner 4 (135 deg) +2.2 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line 0.34 m
+[1954.070] autoplay turntest t=94.57 corner 4 (135 deg) +2.3 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line 0.34 m
+[1954.119] autoplay turntest t=94.67 corner 4 (135 deg) +2.4 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line 0.33 m
+[1972.876] autoplay turntest: round 2 corner 4 (135 deg) - most rate 2.40 rad/s over 0.8 m/s, least speed 0.27 m/s, most crab 103 deg, faced the new leg after 0.83 s, swing 0.70 m
+[1972.897] autoplay turntest t=97.20 corner 5 (180 deg) +0.0 s | rate +2.40 rad/s | speed 0.47 | crab 1 deg | off its line -0.08 m
+[1975.899] autoplay turntest t=97.30 corner 5 (180 deg) +0.1 s | rate +4.00 rad/s | speed 0.08 | crab 0 deg | off its line -0.08 m
+[1975.957] autoplay turntest t=97.40 corner 5 (180 deg) +0.2 s | rate +4.00 rad/s | speed 0.08 | crab 0 deg | off its line -0.08 m
+[1976.012] autoplay turntest t=97.50 corner 5 (180 deg) +0.3 s | rate +3.39 rad/s | speed 0.30 | crab 0 deg | off its line -0.08 m
+[1976.056] autoplay turntest t=97.60 corner 5 (180 deg) +0.4 s | rate +2.40 rad/s | speed 0.49 | crab 56 deg | off its line -0.07 m
+[1979.106] autoplay turntest t=97.70 corner 5 (180 deg) +0.5 s | rate +2.40 rad/s | speed 0.65 | crab 30 deg | off its line -0.02 m
+[1979.156] autoplay turntest t=97.80 corner 5 (180 deg) +0.6 s | rate +2.40 rad/s | speed 0.80 | crab 30 deg | off its line 0.02 m
+[1979.207] autoplay turntest t=97.90 corner 5 (180 deg) +0.7 s | rate +2.40 rad/s | speed 0.95 | crab 30 deg | off its line 0.06 m
+[1979.256] autoplay turntest t=98.00 corner 5 (180 deg) +0.8 s | rate +2.40 rad/s | speed 1.00 | crab 30 deg | off its line 0.08 m
+[1982.214] autoplay turntest t=98.10 corner 5 (180 deg) +0.9 s | rate +2.40 rad/s | speed 1.00 | crab 23 deg | off its line 0.08 m
+[1982.246] autoplay turntest t=98.20 corner 5 (180 deg) +1.0 s | rate +2.40 rad/s | speed 1.00 | crab 9 deg | off its line 0.07 m
+[1982.300] autoplay turntest t=98.30 corner 5 (180 deg) +1.1 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line 0.07 m
+[1982.352] autoplay turntest t=98.40 corner 5 (180 deg) +1.2 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line 0.07 m
+[1985.222] autoplay turntest t=98.50 corner 5 (180 deg) +1.3 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line 0.07 m
+[1985.281] autoplay turntest t=98.60 corner 5 (180 deg) +1.4 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line 0.07 m
+[1985.346] autoplay turntest t=98.70 corner 5 (180 deg) +1.5 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line 0.07 m
+[1985.390] autoplay turntest t=98.80 corner 5 (180 deg) +1.6 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line 0.06 m
+[1988.380] autoplay turntest t=98.90 corner 5 (180 deg) +1.7 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line 0.06 m
+[1988.419] autoplay turntest t=99.00 corner 5 (180 deg) +1.8 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line 0.06 m
+[1988.453] autoplay turntest t=99.10 corner 5 (180 deg) +1.9 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line 0.06 m
+[1988.481] autoplay turntest t=99.20 corner 5 (180 deg) +2.0 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line 0.06 m
+[1991.196] autoplay turntest t=99.30 corner 5 (180 deg) +2.1 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line 0.06 m
+[1991.240] autoplay turntest t=99.40 corner 5 (180 deg) +2.2 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line 0.06 m
+[1991.284] autoplay turntest t=99.50 corner 5 (180 deg) +2.3 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line 0.05 m
+[1991.313] autoplay turntest t=99.60 corner 5 (180 deg) +2.4 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line 0.05 m
+[1994.336] Transit: 0.115 ms/frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[2009.999] autoplay turntest: round 2 corner 5 (180 deg) - most rate 2.40 rad/s over 0.8 m/s, least speed 0.08 m/s, most crab 99 deg, faced the new leg after 1.03 s, swing 0.08 m
+[2010.019] autoplay turntest t=101.93 corner 6 (180 deg) +0.0 s | rate +2.40 rad/s | speed 0.47 | crab 1 deg | off its line -0.02 m
+[2010.082] autoplay turntest t=102.03 corner 6 (180 deg) +0.1 s | rate +4.00 rad/s | speed 0.08 | crab 0 deg | off its line -0.01 m
+[2013.016] autoplay turntest t=102.13 corner 6 (180 deg) +0.2 s | rate +4.00 rad/s | speed 0.08 | crab 0 deg | off its line -0.01 m
+[2013.096] autoplay turntest t=102.23 corner 6 (180 deg) +0.3 s | rate +3.72 rad/s | speed 0.24 | crab 0 deg | off its line -0.01 m
+[2013.157] autoplay turntest t=102.33 corner 6 (180 deg) +0.4 s | rate +2.44 rad/s | speed 0.45 | crab 75 deg | off its line -0.01 m
+[2013.236] autoplay turntest t=102.43 corner 6 (180 deg) +0.5 s | rate +2.40 rad/s | speed 0.61 | crab 30 deg | off its line 0.03 m
+[2016.149] autoplay turntest t=102.53 corner 6 (180 deg) +0.6 s | rate +2.40 rad/s | speed 0.76 | crab 30 deg | off its line 0.08 m
+[2016.195] autoplay turntest t=102.63 corner 6 (180 deg) +0.7 s | rate +2.40 rad/s | speed 0.91 | crab 30 deg | off its line 0.12 m
+[2016.227] autoplay turntest t=102.73 corner 6 (180 deg) +0.8 s | rate +2.40 rad/s | speed 1.00 | crab 30 deg | off its line 0.14 m
+[2016.278] autoplay turntest t=102.83 corner 6 (180 deg) +0.9 s | rate +2.40 rad/s | speed 1.00 | crab 26 deg | off its line 0.14 m
+[2018.788] autoplay turntest t=102.93 corner 6 (180 deg) +1.0 s | rate +2.40 rad/s | speed 1.00 | crab 12 deg | off its line 0.14 m
+[2018.831] autoplay turntest t=103.03 corner 6 (180 deg) +1.1 s | rate +1.54 rad/s | speed 1.00 | crab 0 deg | off its line 0.13 m
+[2018.858] autoplay turntest t=103.13 corner 6 (180 deg) +1.2 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line 0.13 m
+[2018.900] autoplay turntest t=103.23 corner 6 (180 deg) +1.3 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line 0.13 m
+[2021.737] autoplay turntest t=103.33 corner 6 (180 deg) +1.4 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line 0.12 m
+[2021.804] autoplay turntest t=103.43 corner 6 (180 deg) +1.5 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line 0.12 m
+[2021.845] autoplay turntest t=103.53 corner 6 (180 deg) +1.6 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line 0.12 m
+[2021.903] autoplay turntest t=103.63 corner 6 (180 deg) +1.7 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line 0.11 m
+[2024.816] autoplay turntest t=103.73 corner 6 (180 deg) +1.8 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line 0.11 m
+[2024.876] autoplay turntest t=103.83 corner 6 (180 deg) +1.9 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line 0.11 m
+[2024.910] autoplay turntest t=103.93 corner 6 (180 deg) +2.0 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line 0.11 m
+[2024.962] autoplay turntest t=104.03 corner 6 (180 deg) +2.1 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line 0.10 m
+[2028.108] autoplay turntest t=104.13 corner 6 (180 deg) +2.2 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line 0.10 m
+[2028.157] autoplay turntest t=104.23 corner 6 (180 deg) +2.3 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line 0.10 m
+[2028.199] autoplay turntest t=104.33 corner 6 (180 deg) +2.4 s | rate +0.00 rad/s | speed 1.00 | crab 0 deg | off its line 0.09 m
+[2046.161] autoplay turntest: round 2 corner 6 (180 deg) - most rate 2.40 rad/s over 0.8 m/s, least speed 0.08 m/s, most crab 103 deg, faced the new leg after 1.07 s, swing 0.14 m
+[2046.166] autoplay turntest: round 2 done at t=106.6 (36.6 s)
+[2051.946] ai: ped 93 into car 37 (seat 0) through the door: a 2.92 s clip (activity 18)
+[2074.231] ai: ped 93 in car 37 (seat 0) after its door clip (2.9 s in PS_ENTERING)

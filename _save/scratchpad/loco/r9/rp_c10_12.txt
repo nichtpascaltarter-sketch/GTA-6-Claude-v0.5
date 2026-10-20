@@ -1,0 +1,16 @@
+replay: ped 12, 1605 frames, t 8.033 - 61.499
+M replay.steps                                    273.000
+M replay.slide_cm_step_mean                         0.711
+M replay.slide_cm_step_p90                          1.368
+M replay.slide_cm_step_max                         11.589
+M replay.pivot_deg_step_mean                        6.104
+M replay.pivot_deg_step_max                        97.282
+M replay.slide_cm_total_per_person                 32.970
+M replay.pivot_deg_total_per_person               279.851
+M replay.lowest_sole_mm                            -0.157
+M replay.planted_float_frames                       6.000
+M replay.planted_float_max_mm                      53.582
+M replay.scuffs                                    39.000
+time 0.3 s
+animator 4.944 us per update over 9630 updates
+ground scans 0 (one per 0 updates)

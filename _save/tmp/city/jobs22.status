@@ -1,0 +1,24 @@
+waiting for batch 11's tours Mon Oct 12 13:40:01 UTC 2026
+waiting for batch 11's tours Mon Oct 12 13:41:20 UTC 2026
+dev20_shots_log.txt rc=0: 16 files, 0 segfaults Mon Oct 12 16:15:08 UTC 2026
+dev20_before_shots_log.txt rc=0: 16 files, 0 segfaults Mon Oct 12 17:06:13 UTC 2026
+jobs22 stopped before the HQ step: batch 11b first Mon Oct 12 17:21:04 UTC 2026
+jobs22b waiting for cq11b Mon Oct 12 17:38:26 UTC 2026
+jobs22b (with the item 3 views) waiting for cq11b Mon Oct 12 19:07:41 UTC 2026
+jobs22c start Mon Oct 12 19:28:36 UTC 2026
+dev20_hq_log.txt rc=0: 3 files, 0 segfaults Mon Oct 12 20:55:53 UTC 2026
+dev20_hq_before_log.txt rc=137: 0 files, 0 segfaults Mon Oct 12 21:23:10 UTC 2026
+dev20_item3_log.txt rc=0: 9 files, 0 segfaults Mon Oct 12 22:12:33 UTC 2026
+dev20_item3_before_log.txt rc=0: 9 files, 0 segfaults Mon Oct 12 22:34:57 UTC 2026
+start dev20b regression Mon Oct 12 22:34:57 UTC 2026
+dev20b regression done: 20 passed, 0 segfaults Mon Oct 12 23:14:44 UTC 2026
+start tour 2-5 (dev20b) Mon Oct 12 23:14:44 UTC 2026
+dev20b regression OOM-killed at mission 21 (signal): retried in jobs22d Mon Oct 12 23:15:37 UTC 2026
+start tour 13 (dev20b) Tue Oct 13 00:30:58 UTC 2026
+start tour 13 (dev15, before) Tue Oct 13 01:10:00 UTC 2026
+jobs22 done Tue Oct 13 01:34:42 UTC 2026
+dev20_hq_before (try 1) rc=137: 2 files Tue Oct 13 02:18:29 UTC 2026
+dev20_hq_before (try 2) rc=137: 2 files Tue Oct 13 02:51:15 UTC 2026
+dev20b regression (try 1): 27 passed, 0 killed; SUMMARY: 27 passed, 0 failed Tue Oct 13 03:41:36 UTC 2026
+holding new games until 03:55 or /tmp/city/go Tue Oct 13 03:41:36 UTC 2026
+jobs22e done (hold over; the grove_street HQ before retry dropped) Tue Oct 13 03:55:10 UTC 2026

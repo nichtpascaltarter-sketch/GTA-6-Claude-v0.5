@@ -1,0 +1,91 @@
+Embedded 35 shader files.
+In file included from src/audio/audio_all.cpp:13,
+                 from src/main.cpp:43:
+src/audio/wasapi.cpp: In member function 'virtual HRESULT Audio::detail::wasapi::NotifyClient::OnDefaultDeviceChanged(EDataFlow, ERole, LPCWSTR)':
+src/audio/wasapi.cpp:53: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
+   53 |         if (flow == eRender && role == eConsole) defaultChanged.store(true);
+      | 
+src/audio/wasapi.cpp:53: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
+In file included from src/game/../game/game.h:12,
+                 from src/game/../game/gameworld.h:4,
+                 from src/game/../game/assets.cpp:2,
+                 from src/game/../game/game_all.cpp:3,
+                 from src/game/app.cpp:14,
+                 from src/main.cpp:55:
+src/game/../game/../anim/character.h: At global scope:
+src/game/../game/../anim/character.h:9: error: multiple definition of 'enum Anim::Bone'
+    9 | enum Bone : u8 {
+      | 
+In file included from src/anim/anim_all.cpp:2,
+                 from src/main.cpp:39:
+src/anim/character.h:9:6: note: previous definition here
+    9 | enum Bone : u8 {
+      |      ^~~~
+src/game/../game/../anim/character.h:26: error: redefinition of 'struct Anim::Skeleton'
+   26 | struct Skeleton {
+      | 
+src/anim/character.h:25:8: note: previous definition of 'struct Anim::Skeleton'
+   25 | 
+      |        ^       
+src/game/../game/../anim/character.h:36: error: redefinition of 'struct Anim::Pose'
+   36 | struct Pose {
+      | 
+src/anim/character.h:35:8: note: previous definition of 'struct Anim::Pose'
+   35 | // A pose: local rotations (relative to bind) + root translation. Blending is done on this representation.
+      |        ^~~~
+src/game/../game/../anim/character.h:41: error: multiple definition of 'enum Anim::Gender'
+   41 | enum Gender : u8 { MALE = 0, FEMALE = 1 };
+      | 
+src/anim/character.h:40:6: note: previous definition here
+   40 | 
+      |      ^     
+src/game/../game/../anim/character.h:43: error: redefinition of 'struct Anim::CharacterDesc'
+   43 | struct CharacterDesc {
+      | 
+src/anim/character.h:42:8: note: previous definition of 'struct Anim::CharacterDesc'
+   42 | 
+      |        ^            
+src/game/../game/../anim/character.h:59: error: default argument given for parameter 2 of 'Anim::CharacterDesc Anim::randomCharacter(u32, int)' [-fpermissive]
+   59 | CharacterDesc randomCharacter(u32 seed, int role = 0);
+      | 
+In file included from src/anim/anim_all.cpp:11:
+src/anim/character.cpp:96:15: note: previous specification in 'Anim::CharacterDesc Anim::randomCharacter(u32, int)' here
+   96 | CharacterDesc randomCharacter(u32 seed, int role) {
+      |               ^~~~~~~~~~~~~~~
+src/game/../game/../anim/character.h:65: error: default argument given for parameter 4 of 'void Anim::buildCharacterMeshLods(const CharacterDesc&, const Skeleton&, SkinnedMeshData*, int)' [-fpermissive]
+   65 | void buildCharacterMeshLods(const CharacterDesc& d, const Skeleton& skel, SkinnedMeshData* out, int lodCount = 3);
+      | 
+src/anim/character.cpp:590:6: note: previous specification in 'void Anim::buildCharacterMeshLods(const CharacterDesc&, const Skeleton&, SkinnedMeshData*, int)' here
+  590 | void buildCharacterMeshLods(const CharacterDesc& d, const Skeleton& skel, SkinnedMeshData* out, int lodCount) {
+      |      ^~~~~~~~~~~~~~~~~~~~~~
+src/game/../game/../anim/character.h:68: error: multiple definition of 'enum Anim::Clip'
+   68 | enum Clip : u16 {
+      | 
+src/anim/character.h:67:6: note: previous definition here
+   67 | 
+      |      ^   
+src/game/../game/../anim/character.h:88: error: redefinition of 'struct Anim::ClipInfo'
+   88 | struct ClipInfo {
+      | 
+src/anim/character.h:87:8: note: previous definition of 'struct Anim::ClipInfo'
+   87 | 
+      |        ^       
+src/game/../game/../anim/character.h:96: error: default argument given for parameter 5 of 'void Anim::sampleClip(const Skeleton&, Clip, float, Pose&, u32)' [-fpermissive]
+   96 | void sampleClip(const Skeleton& skel, Clip c, float t, Pose& out, u32 variationSeed = 0);
+      | 
+In file included from src/anim/anim_all.cpp:14:
+src/anim/clips.cpp:3162:6: note: previous specification in 'void Anim::sampleClip(const Skeleton&, Clip, float, Pose&, u32)' here
+ 3162 | void sampleClip(const Skeleton& skel, Clip c, float t, Pose& out, u32 variationSeed) {
+      |      ^~~~~~~~~~
+src/game/../game/../anim/character.h:121: error: redefinition of 'struct Anim::AnimInput'
+  121 | struct AnimInput {
+      | 
+src/anim/character.h:120:8: note: previous definition of 'struct Anim::AnimInput'
+  120 | // High level animation state machine driven by gameplay each frame.
+      |        ^~~~~~~~~
+src/game/../game/../anim/character.h:155: error: redefinition of 'struct Anim::Animator'
+  155 | struct Animator {
+      | 
+src/anim/character.h:152:8: note: previous definition of 'struct Anim::Animator'
+  152 |     vec3 groundNormal = vec3(0, 0, 1);  // terrain normal under the ped in its model space (feet align to slopes)
+      |        ^~~~~~~~

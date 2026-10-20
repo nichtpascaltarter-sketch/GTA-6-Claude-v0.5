@@ -1,0 +1,297 @@
+[   0.018] Neon Tide starting. Data dir: C:\users\root\AppData\Local\NeonTide\
+[   0.349] D3D11 device created: feature level b100, adapter 'NVIDIA GeForce GTX 470', VRAM 16094 MB
+[   0.375] UI font 'Segoe UI Semibold' -> 'Liberation Sans'
+[   0.445] UI font 'Bahnschrift SemiBold Condensed' -> 'Liberation Sans'
+[   0.545] UI font 'Impact' -> 'Liberation Sans'
+[   0.639] Font atlas built in 0.27 s
+[   0.691] Audio: no output device - audio disabled
+[   0.691] Audio: no output device, continuing silently
+[   1.887] UI icon atlas: 91 icons + 13 weapons in 1156 ms
+[  24.376] Places: Ocean Promenade hotel row, 11 hotels at x 5365 (ground 2.4), park 681..1050
+[  24.441] Places: Porto Sol University at (1950, 3700), ground 3.3, 11 halls
+[  24.441] Places: layout 0.065 s, 2 places, 442 anchors
+[  24.442] Transit: SkyLine loop 8.60 km, 8 stations, 4299 samples; 3 ferry piers
+[  24.526] Sites: 103 pads, 569 elements, 23 roads, 43 buildings requested (0.15 s)
+[  26.182] World map generated in 25.49 s
+[  28.002] Road gen: 18 interchanges, 50 ramps (22 left out where they could not come down in time)
+[  29.272] Road gen: 1 arterial ends at a lone on/off ramp given a turnaround
+[  35.953] Road gen: junction plateaus, 487 profile points levelled (largest change 0.70 m, 6 short links ramped plateau to plateau)
+[  40.881] Road network: 6220 nodes, 9547 edges, 1690 signalized; hwy 61.7 km, streets 1166.0 km (14.66 s)
+[  50.736] Transit: 0 buildings cleared from the SkyLine corridor
+[  50.754] Buildings: 35619 (towers 365, midrise 2370, condo 430, deco 692, shops 4587, strip 645, houses 22049, villas 897, warehouses 1638) in 9.63 s
+[  50.756] Sites: 71 highway billboards
+[  50.772] Sites: 149 silos, 48 windmills
+[  50.774] Sites: 245 beach access paths
+[  50.905] Transit: 3 ferry piers, 1 routes, 4.24 km of water path (0.04 s)
+[  50.945] Transit: ferry pier Sol Beach  base (4836, -1250) length 90 deck 2.3 berth (4741, -1250)
+[  50.945] Transit: ferry pier Port Isle  base (4280, -1044) length 26 deck 2.3 berth (4280, -1075)
+[  50.945] Transit: ferry pier Key Coral  base (4350, -2973) length 58 deck 2.3 berth (4350, -2910)
+[  50.992] Transit: 4 bus routes, 64 stops (50 new shelters) (0.05 s); rejects class 1118 cut 1966 deck 84 road 119 avoid 0 pad 0 furn 261 stop 0
+[  51.008] Transit: bus 3   Airport      8.2 km, 17 stops, 4 buses, headway 6.3 min
+[  51.008] Transit: bus 7   Calle Luna   6.4 km, 15 stops, 3 buses, headway 6.7 min
+[  51.009] Transit: bus 9   Sol Beach    7.1 km, 14 stops, 4 buses, headway 5.4 min
+[  51.009] Transit: bus 12  Bayshore     8.3 km, 20 stops, 4 buses, headway 6.6 min
+[  51.027] Transit: Sol Beach Streetcar 6.24 km, 16 stops, 65 junctions (32 signalled, 30 stop signs), 229 poles, 4 streetcars, headway 4.9 min (0.02 s)
+[  51.037] Transit: streetcar stop Collins-Solano Ave & 46th St s    136 shelter (5191.0, 1496.1, 1.8) travel (-0.00, -1.00)
+[  51.037] Transit: streetcar stop 42nd St              s    511 shelter (5231.0, 1126.8, 1.7) travel (-0.00, -1.00)
+[  51.037] Transit: streetcar stop 38th St              s    892 shelter (5239.0, 746.9, 1.7) travel (-0.00, -1.00)
+[  51.037] Transit: streetcar stop 34th St              s   1277 shelter (5207.0, 367.8, 1.8) travel (0.00, -1.00)
+[  51.041] Transit: streetcar stop 30th St              s   1691 shelter (5239.0, -39.2, 1.9) travel (-0.00, -1.00)
+[  51.041] Transit: streetcar stop 26th St              s   2053 shelter (5231.1, -397.7, 1.8) travel (-0.30, -0.95)
+[  51.045] Transit: streetcar stop 22nd St              s   2427 shelter (5215.0, -773.2, 1.8) travel (-0.00, -1.00)
+[  51.045] Transit: streetcar stop 18th St              s   2811 shelter (5190.5, -1149.6, 1.9) travel (-0.30, -0.95)
+[  51.045] Transit: streetcar stop Ferry Terminal       s   3165 shelter (4941.9, -1174.6, 2.7) travel (0.30, 0.95)
+[  51.045] Transit: streetcar stop 21st St              s   3527 shelter (4973.4, -815.2, 2.9) travel (0.00, 1.00)
+[  51.045] Transit: streetcar stop 25th St              s   3920 shelter (4981.5, -425.5, 2.5) travel (0.30, 0.95)
+[  51.045] Transit: streetcar stop 29th St              s   4291 shelter (4997.4, -55.2, 2.0) travel (0.00, 1.00)
+[  51.045] Transit: streetcar stop 33rd St              s   4688 shelter (4965.4, 336.8, 2.5) travel (-0.00, 1.00)
+[  51.045] Transit: streetcar stop 37th St              s   5071 shelter (4997.4, 712.8, 2.7) travel (0.00, 1.00)
+[  51.045] Transit: streetcar stop 41st St              s   5443 shelter (4994.0, 1086.6, 1.9) travel (-0.30, 0.95)
+[  51.045] Transit: streetcar stop Bay Road & 46th St   s   5926 shelter (4938.0, 1561.6, 3.0) travel (-0.30, 0.95)
+[  51.045] Transit: SkyLine profile 12.9..25.4 m above the street, 274 piers (0 straddle bents) (0.27 s)
+[  51.045] Transit: station Calle Luna       s    691 at (1850, -629) rail 16.5 street 3.1 exits -1/+1
+[  51.045] Transit: station Solaris          s   1891 at (3050, -629) rail 15.0 street 1.5 exits -1/+1
+[  51.045] Transit: station Civic Center     s   3068 at (3275, 400) rail 14.9 street 1.5 exits -1/+1
+[  51.045] Transit: station Midtown          s   3868 at (3275, 1200) rail 15.0 street 1.6 exits -1/+1
+[  51.045] Transit: station Canvas District  s   4644 at (2750, 1529) rail 16.4 street 2.2 exits -1/+1
+[  51.045] Transit: station Palmetto Flats   s   5744 at (1650, 1529) rail 17.0 street 3.5 exits -1/+1
+[  51.045] Transit: station Airport          s   6567 at (979, 1300) rail 17.7 street 4.3 exits -1/+1
+[  51.045] Transit: station Westbrook        s   8067 at (979, -200) rail 17.8 street 4.4 exits -1/+1
+[  51.103] Site runway 09L|27R  from (-1180, 2080) to (820, 2080) z 4.6 width 60
+[  51.104] Site runway 09R|27L  from (-1100, 780) to (700, 780) z 4.6 width 45
+[  51.104] Site terminal             at (628, 1440, 4.6)
+[  51.104] Site control tower        at (730, 1832, 4.6)
+[  51.104] Site container ship       at (4625, -800, 0.0)
+[  51.104] Site container ship       at (4616, -330, 0.0)
+[  51.104] Site port gate            at (4008, -160, 3.0)
+[  51.104] Site Key Coral marina     at (4039, -4035, 0.0)
+[  51.104] Site beach club           at (4873, -3866, 1.2)
+[  51.104] Site beach club           at (4808, -4183, 2.2)
+[  51.104] Site Solaris One          at (3350, -750, 1.4)
+[  51.104] Site stadium              at (3565, 445, 1.6)
+[  51.104] Site City Hall            at (3000, 372, 2.0)
+[  51.104] Site Canvas Park          at (3100, 1800, 1.7)
+[  51.104] Site Sol Beach Pier from (5414, 1250) to (5840, 1250) deck z 5.6
+[  51.104] Site Ferris wheel         at (5504, 1270, 5.6)
+[  51.104] Site lighthouse           at (-2206, -8000, 0.5)
+[  51.104] Site radio mast           at (-6744, 7248, 166.1)
+[  51.104] Site sugar mill           at (1430, 7500, 8.1)
+[  51.104] Site Rio Sol marina       at (2280, 188, 0.0)
+[  51.104] Site Okahatchee boat ramp at (-515, 6822, 7.7)
+[  51.104] Site Sawgrass tower       at (-4873, 420, 0.6)
+[  51.104] Sites finalized: 1406 elements (0.35 s)
+[  51.142] Interiors: 29 planned (convenience 7, gun shops 2) in 38.4 ms
+[  51.143]   interior 'Mari's Apartment' kind 0 building 28226 at (1752.63, 359.28, 3.79) ax (1.0000, 0.0000) x -6.26..6.26 depth 11.50 ceil 3.57: 3 rooms, 5 openings, 3 doors, 5 portals, 0 npc points
+[  51.143]   interior 'Mama Lucha's' kind 2 building 26778 at (1351.86, 340.76, 4.29) ax (-1.0000, -0.0000) x -8.43..8.43 depth 16.00 ceil 4.20: 4 rooms, 5 openings, 4 doors, 5 portals, 34 npc points
+[  51.143]   interior 'Rook's Garage' kind 3 building 27338 at (1560.94, 2361.69, 4.30) ax (1.0000, 0.0000) x -8.20..8.20 depth 20.00 ceil 7.78: 3 rooms, 5 openings, 4 doors, 5 portals, 5 npc points
+[  51.143]   interior 'Dex's Trailer' kind 1 building 25558 at (1106.75, 2666.39, 4.87) ax (1.0000, 0.0000) x -17.46..17.46 depth 16.71 ceil 2.25: 3 rooms, 7 openings, 3 doors, 7 portals, 0 npc points
+[  51.143]   interior 'Police Headquarters' kind 5 building 32530 at (3167.89, -440.34, 1.86) ax (1.0000, 0.0000) x -11.84..11.84 depth 16.00 ceil 5.59: 2 rooms, 8 openings, 2 doors, 8 portals, 14 npc points
+[  51.143]   interior 'Tidewater General Hospital' kind 6 building 27659 at (1717.98, 1070.94, 3.56) ax (1.0000, 0.0000) x -10.50..7.50 depth 16.00 ceil 3.56: 2 rooms, 7 openings, 2 doors, 7 portals, 12 npc points
+[  51.143]   interior 'Palmetto Arms' kind 7 building 25569 at (988.27, 2896.06, 4.79) ax (0.0000, 1.0000) x 0.00..9.20 depth 14.00 ceil 4.20: 2 rooms, 1 openings, 2 doors, 1 portals, 3 npc points
+[  51.143]   interior 'Northside Arms' kind 7 building 33370 at (3388.36, 4007.48, 1.91) ax (0.0000, 1.0000) x -5.89..5.89 depth 14.00 ceil 4.20: 2 rooms, 4 openings, 2 doors, 4 portals, 3 npc points
+[  51.143]   interior 'Threads' kind 9 building 19683 at (5141.16, -280.63, 1.88) ax (-1.0000, 0.0000) x -5.68..8.51 depth 15.00 ceil 3.91: 2 rooms, 6 openings, 2 doors, 6 portals, 4 npc points
+[  51.143]   interior 'Port Isle Warehouse' kind 12 building 35582 at (4034.00, -820.00, 3.15) ax (-0.0000, 1.0000) x -23.22..23.22 depth 38.00 ceil 8.93: 2 rooms, 10 openings, 4 doors, 10 portals, 4 npc points
+[  51.143]   interior 'TideStop Mart' kind 8 building 26877 at (1475.59, -259.27, 4.22) ax (-1.0000, -0.0000) x -6.05..6.05 depth 17.00 ceil 4.20: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+[  51.143]   interior 'Bodega La Luna' kind 8 building 29713 at (2247.08, 540.77, 2.92) ax (-1.0000, -0.0000) x -6.12..6.12 depth 17.00 ceil 4.20: 2 rooms, 4 openings, 2 doors, 4 portals, 5 npc points
+[  51.143]   interior 'Canvas Corner Market' kind 8 building 32141 at (2981.21, 1600.48, 2.24) ax (0.0000, 1.0000) x -7.35..7.35 depth 17.00 ceil 4.20: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+[  51.143]   interior 'Sunrise Food Mart' kind 8 building 19725 at (5227.62, 641.71, 1.78) ax (0.0000, 1.0000) x -7.96..7.96 depth 17.00 ceil 3.43: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+[  51.143]   interior 'Northside Quick Stop' kind 8 building 29962 at (2352.71, 3761.67, 3.08) ax (1.0000, 0.0000) x -8.53..5.12 depth 17.00 ceil 4.20: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+[  51.143]   interior 'Flats Food & Fuel' kind 8 building 24873 at (467.58, 3361.67, 5.21) ax (1.0000, 0.0000) x -10.79..3.60 depth 17.00 ceil 4.20: 2 rooms, 1 openings, 2 doors, 1 portals, 5 npc points
+[  51.143]   interior 'Grove Pantry' kind 8 building 1182 at (2175.56, -3114.24, 2.23) ax (0.0207, -0.9998) x -6.96..6.96 depth 17.00 ceil 2.80: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+[  51.143]   interior 'Palm Motors' kind 17 building 31076 at (2590.57, 1280.36, 2.81) ax (0.0000, 1.0000) x -13.43..9.59 depth 20.00 ceil 4.16: 2 rooms, 7 openings, 3 doors, 7 portals, 6 npc points
+[  51.143]   interior 'Tide Customs Calle Luna' kind 18 building 29661 at (2269.45, -140.71, 3.01) ax (1.0000, 0.0000) x -8.37..8.37 depth 18.00 ceil 4.01: 1 rooms, 7 openings, 2 doors, 7 portals, 3 npc points
+[  51.143]   interior 'Tide Customs Sol Beach' kind 18 building 19794 at (5127.28, 1999.35, 1.92) ax (-1.0000, 0.0000) x -8.01..8.01 depth 18.00 ceil 3.72: 1 rooms, 6 openings, 2 doors, 6 portals, 3 npc points
+[  51.143]   interior 'Sunwash Car Wash' kind 19 building 28427 at (1779.00, 1386.32, 3.58) ax (0.0000, 1.0000) x -6.12..9.18 depth 20.00 ceil 4.36: 1 rooms, 6 openings, 3 doors, 6 portals, 2 npc points
+[  51.143]   interior 'Key Coral Villa' kind 0 building 23749 at (4515.96, -4203.72, 1.64) ax (0.9992, 0.0401) x -7.21..7.21 depth 12.00 ceil 2.80: 3 rooms, 5 openings, 3 doors, 5 portals, 0 npc points
+[  51.143]   interior 'Sol Beach Condo Lobby' kind 20 building 19777 at (5114.61, 1619.32, 1.86) ax (-1.0000, 0.0000) x -5.88..5.88 depth 10.00 ceil 4.20: 2 rooms, 4 openings, 2 doors, 4 portals, 2 npc points
+[  51.145]   interior 'Sol Beach Condo' kind 21 building 19777 at (5114.61, 1619.32, 31.52) ax (-1.0000, 0.0000) x -9.80..5.88 depth 12.00 ceil 2.61: 6 rooms, 4 openings, 5 doors, 4 portals, 0 npc points
+[  51.145]   interior 'Downtown Penthouse Lobby' kind 20 building 33689 at (3620.47, -803.35, 1.79) ax (-0.0000, -1.0000) x -5.04..5.04 depth 10.00 ceil 4.20: 2 rooms, 3 openings, 2 doors, 3 portals, 2 npc points
+[  51.145]   interior 'Downtown Penthouse' kind 21 building 33689 at (3620.47, -803.35, 67.14) ax (-0.0000, -1.0000) x -10.07..10.07 depth 14.00 ceil 2.71: 6 rooms, 4 openings, 5 doors, 4 portals, 0 npc points
+[  51.145]   interior 'Club Riptide' kind 4 building -1 at (5424.10, 900.00, 1.36) ax (0.0000, -1.0000) x -55.00..17.00 depth 32.00 ceil 4.00: 4 rooms, 0 openings, 0 doors, 0 portals, 32 npc points
+[  51.145]   interior 'Solaris One' kind 10 building -1 at (3350.00, -786.00, 1.89) ax (1.0000, -0.0000) x -18.40..18.40 depth 31.00 ceil 8.30: 3 rooms, 4 openings, 4 doors, 4 portals, 17 npc points
+[  51.145]   interior 'Solaris One Penthouse' kind 11 building -1 at (3365.30, -759.93, 457.34) ax (0.5442, 0.8390) x -18.24..18.24 depth 36.48 ceil 8.20: 4 rooms, 4 openings, 1 doors, 4 portals, 15 npc points
+[  51.361] Material library: 57 layers at 256^2
+[  51.409] Props: 71 prototypes, 34282 verts
+[  62.306] Vehicle assets: 45 models in 9.69 s
+[ 137.351] Character assets: 114 characters in 75.04 s
+[ 137.382] Game assets built in 84.77 s
+[ 137.504] Story place near (800, -5400): no building frontage found, using the street
+[ 137.531] Story places resolved in 138.3 ms (diner 1350 342, Mari's 1754 358, Rook's 1564 2360, Pulse FM 3344 662, boatyard 1650 239, river 1644 140, sawgrass dock -5016 -74)
+[ 137.534] Missions registered: 56
+[ 139.705] Lane graph: 10 plaza walkways and 2 zebra crossings from the sites
+[ 139.706] Lane graph: 25496 lanes, 56782 connectors (1155138 pts), 40553 walk nodes, 56275 walk links, dead-end turning circles moved 22 / obstructed 0 (2.16 s)
+[ 141.292] UI map: base 2560x2560 in 1421 ms, 9547 roads (43960 pts) in 36 ms, 30 labels in 129 ms
+[ 141.292] hudInit done in 1586 ms
+[ 141.293] Init done in 140.60 s (shaders: 0 compiled in 0.00 s)
+[ 141.338] Transit: SkyLine timetable built (42.2 ms): loop 12.4 / 12.4 min, 4 trains per direction, headway 3.1 min
+[ 141.341] Transit: 9 lines published to the map
+[ 141.342] Transit: SkyLine car models registered as vehicle assets 45 / 46
+[ 142.229] Transit: 4 route bus models (destination signs) in 885 ms
+[ 142.233] Transit: 64 bus stops registered with the AI (50 lane stops added, 242 waiting spots)
+[ 142.234] Transit: 15 buses on 4 routes
+[ 142.234] Transit: Bay Ferry timetable: loop 13.2 min, 2 ferries, headway 6.6 min
+[ 142.236] Transit: Sol Ferry model registered as vehicle asset 51
+[ 142.243] Transit: streetcar modules registered as vehicle assets 52 53 54
+[ 142.245] Transit: 16 streetcar stops registered (16 curb lanes kept clear)
+[ 142.245] Transit: 4 streetcars on the 6.24 km loop, 16 stops, 65/65 junction movements found
+[ 142.357] population: venues laid out: 3 (77 slots kept, 0 dropped on lanes / water / buildings) | port 23 | airport 35 (rank: 3 cabs, line of 4) | sawgrass 19
+[ 142.377] Stunt jumps: 0 road crests (0 candidates); ramps being placed
+[ 150.303] Interior 'Mari's Apartment' built: 15974 triangles, 12 lights, 25 colliders, 3 door leaves in 153.7 ms
+[ 150.305] Interior 'Mama Lucha's' built: 36586 triangles, 26 lights, 68 colliders, 5 door leaves in 25.3 ms
+[ 150.305] Stunt ramps: 10 placed (0 over water) in 2101 ms (25869 corridors tested); 10 unique stunt jumps
+[ 150.376] Wildlife: 28 species models ready (166 k triangles in the detailed LODs)
+[ 151.250] Interior 'Bodega La Luna' built: 103814 triangles, 18 lights, 14 colliders, 3 door leaves in 501.5 ms
+[ 151.258] Interior 'Tide Customs Calle Luna' built: 11208 triangles, 13 lights, 24 colliders, 2 door leaves in 1.0 ms
+[ 153.407] Interior 'Palm Motors' built: 17586 triangles, 33 lights, 27 colliders, 4 door leaves in 57.8 ms
+[ 153.586] Interior 'Canvas Corner Market' built: 135620 triangles, 22 lights, 15 colliders, 3 door leaves in 204.6 ms
+[ 155.102] encounter test: Scooter Snatch staged at 3016 1599
+[ 155.102] [missiontest] enc_snatch_b t=4.7: staged (Scooter Snatch, steering toward outcome 2) after 2.0 s of streaming
+[ 155.117] [missiontest] enc_snatch_b t=0.1: stage -2 -> 0
+[ 155.276] [missiontest] enc_snatch_b t=0.9: screenshot Z:\tmp\story2\enc\enc_snatch_b_00_stage0.bmp
+[ 161.071] [missiontest] enc_snatch_b t=1.1: stage 0 -> 1
+[ 161.237] [missiontest] enc_snatch_b t=1.9: screenshot Z:\tmp\story2\enc\enc_snatch_b_01_stage1.bmp
+[ 175.822] Wildlife: 114 animals (106 birds) in 14 groups, 82 drawn in 13 draws | update 0.121 ms, render 0.043 ms
+[ 178.063] [missiontest] enc_snatch_b t=31.1: stage 1 -> 2
+[ 178.087] [missiontest] enc_snatch_b t=31.1: stage 2 -> 3
+[ 178.253] [missiontest] enc_snatch_b t=31.9: stage 3 -> 4
+[ 178.507] [missiontest] enc_snatch_b t=32.7: screenshot Z:\tmp\story2\enc\enc_snatch_b_02_stage4.bmp
+[ 184.370] encounter: Scooter Snatch ended with outcome 2 after 33 s
+[ 184.377] [missiontest] enc_snatch_b t=32.8: PASSED - outcome 2
+[ 184.381] [missiontest] enc_snatch_b t=32.8: screenshot Z:\tmp\story2\enc\enc_snatch_b_03_passed.bmp
+[ 190.008] Transit: 1.573 ms/frame avg, 1 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[ 196.213] Interior 'Bodega La Luna' built: 103814 triangles, 18 lights, 14 colliders, 3 door leaves in 255.8 ms
+[ 196.900] encounter test: Stick-up staged at 2247 542
+[ 196.909] [missiontest] enc_stickup_b t=1.8: staged (Stick-up, steering toward outcome 2) after 1.4 s of streaming
+[ 196.929] [missiontest] enc_stickup_b t=0.1: stage -2 -> 0
+[ 197.187] [missiontest] enc_stickup_b t=0.9: screenshot Z:\tmp\story2\enc\enc_stickup_b_00_stage0.bmp
+[ 203.758] [missiontest] enc_stickup_b t=1.1: stage 0 -> 1
+[ 204.034] [missiontest] enc_stickup_b t=1.9: screenshot Z:\tmp\story2\enc\enc_stickup_b_01_stage1.bmp
+[ 210.391] [missiontest] enc_stickup_b t=3.8: stage 1 -> 2
+[ 210.665] [missiontest] enc_stickup_b t=4.6: screenshot Z:\tmp\story2\enc\enc_stickup_b_02_stage2.bmp
+[ 216.410] [missiontest] enc_stickup_b t=5.9: stage 2 -> 5
+[ 216.578] [missiontest] enc_stickup_b t=6.7: screenshot Z:\tmp\story2\enc\enc_stickup_b_03_stage5.bmp
+[ 222.054] [missiontest] enc_stickup_b t=7.0: stage 5 -> 3
+[ 222.291] [missiontest] enc_stickup_b t=7.7: stage 3 -> 4
+[ 222.524] [missiontest] enc_stickup_b t=8.5: screenshot Z:\tmp\story2\enc\enc_stickup_b_04_stage4.bmp
+[ 230.259] encounter: Stick-up ended with outcome 2 after 9 s
+[ 230.274] [missiontest] enc_stickup_b t=8.7: PASSED - outcome 2
+[ 230.274] [missiontest] enc_stickup_b t=8.7: screenshot Z:\tmp\story2\enc\enc_stickup_b_05_passed.bmp
+[ 237.978] Interior 'Northside Quick Stop' built: 139745 triangles, 22 lights, 17 colliders, 3 door leaves in 445.9 ms
+[ 241.009] encounter test: Runaway Bride staged at 2626 4261
+[ 241.009] [missiontest] enc_bride_b t=5.0: staged (Runaway Bride, steering toward outcome 2) after 4.2 s of streaming
+[ 241.038] [missiontest] enc_bride_b t=0.1: stage -2 -> 0
+[ 241.481] [missiontest] enc_bride_b t=0.9: screenshot Z:\tmp\story2\enc\enc_bride_b_00_stage0.bmp
+[ 248.040] Wildlife: 57 animals (53 birds) in 7 groups, 9 drawn in 3 draws | update 0.095 ms, render 0.046 ms
+[ 254.112] [missiontest] enc_bride_b t=2.6: stage 0 -> 1
+[ 254.144] [missiontest] enc_bride_b t=2.7: stage 1 -> 2
+[ 254.353] [missiontest] enc_bride_b t=3.5: screenshot Z:\tmp\story2\enc\enc_bride_b_01_stage2.bmp
+[ 259.897] encounter: Runaway Bride ended with outcome 2 after 4 s
+[ 259.897] [missiontest] enc_bride_b t=3.9: PASSED - outcome 2
+[ 259.897] [missiontest] enc_bride_b t=3.9: screenshot Z:\tmp\story2\enc\enc_bride_b_02_passed.bmp
+[ 263.890] encounter test: Thumb Out staged at 853 -5464
+[ 263.890] [missiontest] enc_hitchhiker_b t=6.9: staged (Thumb Out, steering toward outcome 2) after 3.2 s of streaming
+[ 267.288] [missiontest] enc_hitchhiker_b t=0.1: stage -2 -> 0
+[ 267.385] [missiontest] enc_hitchhiker_b t=0.9: screenshot Z:\tmp\story2\enc\enc_hitchhiker_b_00_stage0.bmp
+[ 271.833] [missiontest] enc_hitchhiker_b t=2.3: stage 0 -> 1
+[ 271.845] [missiontest] enc_hitchhiker_b t=2.3: stage 1 -> 2
+[ 272.202] [missiontest] enc_hitchhiker_b t=3.1: screenshot Z:\tmp\story2\enc\enc_hitchhiker_b_01_stage2.bmp
+[ 275.813] [missiontest] enc_hitchhiker_b t=3.5: stage 2 -> 3
+[ 276.331] Interior 'Grove Pantry' built: 133434 triangles, 22 lights, 17 colliders, 3 door leaves in 237.3 ms
+[ 276.581] [missiontest] enc_hitchhiker_b t=4.3: screenshot Z:\tmp\story2\enc\enc_hitchhiker_b_02_stage3.bmp
+[ 284.043] encounter: Thumb Out ended with outcome 2 after 7 s
+[ 284.043] [missiontest] enc_hitchhiker_b t=7.1: PASSED - outcome 2
+[ 284.043] [missiontest] enc_hitchhiker_b t=7.1: screenshot Z:\tmp\story2\enc\enc_hitchhiker_b_03_passed.bmp
+[ 292.794] Transit: 0.086 ms/frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[ 299.719] encounter test: Crash Landing staged at 1956 -3554
+[ 299.738] [missiontest] enc_getaway_b t=0.5: staged (Crash Landing, steering toward outcome 2) after 0.2 s of streaming
+[ 299.768] [missiontest] enc_getaway_b t=0.1: stage -2 -> 0
+[ 300.119] [missiontest] enc_getaway_b t=0.9: screenshot Z:\tmp\story2\enc\enc_getaway_b_00_stage0.bmp
+[ 306.439] police unit 8: around at 1865 -3706, 184 m from the suspect (lane 2012, attempt 0, suspect 0.0 m/s)
+[ 307.386] encounter: Crash Landing ended with outcome 2 after 3 s
+[ 307.387] [missiontest] enc_getaway_b t=3.1: PASSED - outcome 2
+[ 307.388] [missiontest] enc_getaway_b t=3.1: screenshot Z:\tmp\story2\enc\enc_getaway_b_01_passed.bmp
+[ 314.754] Interior 'Palm Motors' built: 17586 triangles, 33 lights, 27 colliders, 4 door leaves in 35.4 ms
+[ 314.929] Interior 'Bodega La Luna' built: 103814 triangles, 18 lights, 14 colliders, 3 door leaves in 172.2 ms
+[ 315.924] Wildlife: 2 animals (0 birds) in 2 groups, 28 drawn in 5 draws | update 0.018 ms, render 0.057 ms
+[ 316.706] encounter test: Red Light Challenge staged at 2571 646
+[ 316.707] [missiontest] enc_challenge_b t=4.7: staged (Red Light Challenge, steering toward outcome 2) after 2.2 s of streaming
+[ 316.740] [missiontest] enc_challenge_b t=0.1: stage -2 -> 0
+[ 317.081] [missiontest] enc_challenge_b t=0.9: screenshot Z:\tmp\story2\enc\enc_challenge_b_00_stage0.bmp
+[ 317.094] [missiontest] enc_challenge_b t=0.9: stage 0 -> 1
+[ 324.128] [missiontest] enc_challenge_b t=1.7: screenshot Z:\tmp\story2\enc\enc_challenge_b_01_stage1.bmp
+[ 330.888] [missiontest] enc_challenge_b t=2.0: stage 1 -> 2
+[ 331.086] [missiontest] enc_challenge_b t=2.8: screenshot Z:\tmp\story2\enc\enc_challenge_b_02_stage2.bmp
+[ 338.044] [missiontest] enc_challenge_b t=5.1: stage 2 -> 3
+[ 338.297] [missiontest] enc_challenge_b t=5.9: screenshot Z:\tmp\story2\enc\enc_challenge_b_03_stage3.bmp
+[ 354.505] encounter: Red Light Challenge ended with outcome 2 after 22 s
+[ 354.514] [missiontest] enc_challenge_b t=21.8: PASSED - outcome 2
+[ 354.514] [missiontest] enc_challenge_b t=21.8: screenshot Z:\tmp\story2\enc\enc_challenge_b_04_passed.bmp
+[ 362.042] encounter test: Hot Seat staged at 3397 667
+[ 362.049] [missiontest] enc_carjack_b t=1.4: staged (Hot Seat, steering toward outcome 2) after 0.8 s of streaming
+[ 362.063] [missiontest] enc_carjack_b t=0.1: stage -2 -> 0
+[ 362.084] [missiontest] enc_carjack_b t=0.1: stage 0 -> 1
+[ 362.308] [missiontest] enc_carjack_b t=0.9: screenshot Z:\tmp\story2\enc\enc_carjack_b_00_stage1.bmp
+[ 367.562] encounter: Hot Seat over without the player after 3 s
+[ 367.565] [missiontest] enc_carjack_b t=2.9: FAILED - ended without the player
+[ 367.565] [missiontest] enc_carjack_b t=2.9: screenshot Z:\tmp\story2\enc\enc_carjack_b_01_failed.bmp
+[ 372.142] Transit: 0.089 ms/frame avg, 1 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[ 372.177] Wildlife: 40 animals (39 birds) in 4 groups, 4 drawn in 2 draws | update 0.065 ms, render 0.047 ms
+[ 377.874] Interior 'Police Headquarters' built: 19990 triangles, 25 lights, 25 colliders, 3 door leaves in 8.5 ms
+[ 377.901] Interior 'Downtown Penthouse Lobby' built: 6128 triangles, 6 lights, 11 colliders, 4 door leaves in 0.7 ms
+[ 377.902] Interior 'Downtown Penthouse' built: 22324 triangles, 25 lights, 47 colliders, 7 door leaves in 22.3 ms
+[ 377.941] Interior 'Solaris One Penthouse' built: 50468 triangles, 33 lights, 53 colliders, 2 door leaves in 18.5 ms
+[ 378.062] Interior 'Solaris One' built: 29672 triangles, 33 lights, 52 colliders, 6 door leaves in 57.6 ms
+[ 380.029] encounter test: Cash in Transit staged at 3404 -842
+[ 380.029] [missiontest] enc_armored_b t=2.7: staged (Cash in Transit, steering toward outcome 2) after 2.3 s of streaming
+[ 380.034] [missiontest] enc_armored_b t=0.1: stage -2 -> 0
+[ 380.073] [missiontest] enc_armored_b t=0.1: stage 0 -> 1
+[ 380.361] [missiontest] enc_armored_b t=0.9: screenshot Z:\tmp\story2\enc\enc_armored_b_00_stage1.bmp
+[ 390.002] [missiontest] enc_armored_b t=14.1: stage 1 -> 2
+[ 390.220] [missiontest] enc_armored_b t=14.9: screenshot Z:\tmp\story2\enc\enc_armored_b_01_stage2.bmp
+[ 395.819] encounter: Cash in Transit ended with outcome 2 after 16 s
+[ 395.830] [missiontest] enc_armored_b t=15.7: PASSED - outcome 2
+[ 395.830] [missiontest] enc_armored_b t=15.7: screenshot Z:\tmp\story2\enc\enc_armored_b_02_passed.bmp
+[ 395.848] Interior 'Port Isle Warehouse' built: 68852 triangles, 13 lights, 235 colliders, 4 door leaves in 11.1 ms
+[ 410.317] Interior 'Key Coral Villa' built: 16170 triangles, 12 lights, 27 colliders, 3 door leaves in 21.9 ms
+[ 411.223] encounter test: Adrift staged at 4041 -4037
+[ 411.223] [missiontest] enc_boat_b t=3.9: staged (Adrift, steering toward outcome 2) after 1.1 s of streaming
+[ 411.230] [missiontest] enc_boat_b t=0.1: stage -2 -> 0
+[ 411.540] [missiontest] enc_boat_b t=0.9: screenshot Z:\tmp\story2\enc\enc_boat_b_00_stage0.bmp
+[ 416.894] [missiontest] enc_boat_b t=1.1: stage 0 -> 1
+[ 417.089] [missiontest] enc_boat_b t=1.9: screenshot Z:\tmp\story2\enc\enc_boat_b_01_stage1.bmp
+[ 422.207] [missiontest] enc_boat_b t=2.2: stage 1 -> 2
+[ 422.392] [missiontest] enc_boat_b t=3.0: screenshot Z:\tmp\story2\enc\enc_boat_b_02_stage2.bmp
+[ 427.119] encounter: Adrift ended with outcome 2 after 3 s
+[ 427.137] [missiontest] enc_boat_b t=3.3: PASSED - outcome 2
+[ 427.149] [missiontest] enc_boat_b t=3.3: screenshot Z:\tmp\story2\enc\enc_boat_b_03_passed.bmp
+[ 427.426] Interior 'Mari's Apartment' built: 15974 triangles, 12 lights, 25 colliders, 3 door leaves in 11.8 ms
+[ 427.444] Interior 'Mama Lucha's' built: 36586 triangles, 26 lights, 68 colliders, 5 door leaves in 3.3 ms
+[ 427.665] Interior 'TideStop Mart' built: 110618 triangles, 18 lights, 14 colliders, 3 door leaves in 150.6 ms
+[ 427.694] Interior 'Tide Customs Calle Luna' built: 11208 triangles, 13 lights, 24 colliders, 2 door leaves in 1.2 ms
+[ 428.610] Wildlife: 6 animals (6 birds) in 1 groups, 7 drawn in 1 draws | update 0.045 ms, render 0.072 ms
+[ 429.277] Interior 'Sunrise Food Mart' built: 141940 triangles, 22 lights, 17 colliders, 3 door leaves in 236.8 ms
+[ 431.808] encounter test: Flashbulbs staged at 5186 213
+[ 431.808] [missiontest] enc_paparazzi_b t=6.9: staged (Flashbulbs, steering toward outcome 2) after 3.0 s of streaming
+[ 437.008] [missiontest] enc_paparazzi_b t=0.1: stage -2 -> 0
+[ 437.154] [missiontest] enc_paparazzi_b t=0.9: screenshot Z:\tmp\story2\enc\enc_paparazzi_b_00_stage0.bmp
+[ 437.171] [missiontest] enc_paparazzi_b t=0.9: stage 0 -> 1
+[ 437.180] Interior 'Threads' built: 34538 triangles, 20 lights, 28 colliders, 3 door leaves in 4.6 ms
+[ 443.288] [missiontest] enc_paparazzi_b t=1.7: screenshot Z:\tmp\story2\enc\enc_paparazzi_b_01_stage1.bmp
+[ 449.301] [missiontest] enc_paparazzi_b t=2.0: stage 1 -> 2
+[ 449.372] Transit: 0.066 ms/frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[ 455.611] [missiontest] enc_paparazzi_b t=2.8: screenshot Z:\tmp\story2\enc\enc_paparazzi_b_02_stage2.bmp
+[ 463.084] encounter: Flashbulbs ended with outcome 2 after 6 s
+[ 463.084] [missiontest] enc_paparazzi_b t=6.1: PASSED - outcome 2
+[ 463.084] [missiontest] enc_paparazzi_b t=6.1: screenshot Z:\tmp\story2\enc\enc_paparazzi_b_03_passed.bmp
+[ 470.130] [missiontest] SUMMARY: 9 passed, 1 failed
+[ 470.147] [missiontest]   enc_snatch_b: passed (outcome 2, 33 s)
+[ 470.147] [missiontest]   enc_stickup_b: passed (outcome 2, 9 s)
+[ 470.147] [missiontest]   enc_bride_b: passed (outcome 2, 4 s)
+[ 470.147] [missiontest]   enc_hitchhiker_b: passed (outcome 2, 7 s)
+[ 470.147] [missiontest]   enc_getaway_b: passed (outcome 2, 3 s)
+[ 470.147] [missiontest]   enc_challenge_b: passed (outcome 2, 22 s)
+[ 470.147] [missiontest]   enc_carjack_b: FAILED (ended without the player, 3 s)
+[ 470.147] [missiontest]   enc_armored_b: passed (outcome 2, 16 s)
+[ 470.147] [missiontest]   enc_boat_b: passed (outcome 2, 3 s)
+[ 470.147] [missiontest]   enc_paparazzi_b: passed (outcome 2, 6 s)
+[ 481.119] Shutdown complete.

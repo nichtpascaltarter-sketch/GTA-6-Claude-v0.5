@@ -1,0 +1,15 @@
+SET 17 SIGN-OFF (AI agent): the events' people get back into their cars through the door, the boxed-in crash driver gets in by the passenger door and slides across, the person knocked down waits for the sorry driver, overheard lines come through in a crowd, the nearmiss test runs again, and there are five new test modes.
+
+Blobs, on HEAD 731a731's versions. My files there are the same as at b71d339 and 0d67933. police.cpp, traffic.cpp and traffic_core.cpp are unchanged from HEAD.
+- src/game/ai.cpp      0c0566b29cf8570ae2c71ca62325be0e55566288  (HEAD 0f8e00b)
+- src/game/ai_game.h   e3f9263e70fd8fd2226e0b9984025df86841fc5e  (HEAD 036e52e)
+- src/game/app.cpp     17333c63acf59680f8937e14cb6f92c62754d513  (HEAD 5ca9815; test modes only)
+- src/game/events.cpp  e8db7b4a9f0da126b894589c4b711555b0e871a9  (HEAD ff4a3f8)
+- src/game/pedai.cpp   b4dff69a7a22d528ebc745d3cf4712ddc734261e  (HEAD 98de395)
+The shared tree holds exactly these five (checked with git hash-object).
+
+Builds tested:
+- nt_ai101 = 0d67933 + these, except events.cpp f46b56b and app.cpp f4ee4d4.
+- nt_ai101c = b71d339 + these, except app.cpp 6f094c2.
+- nt_ai101d = b71d339 + exactly these.
+Between them, the only differences are EV_CRASH ST_C's 12 s fallback (events.cpp) and the nearmiss test's two fixes (app.cpp).

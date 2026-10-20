@@ -1,0 +1,10 @@
+shared copies equal HEAD 1a83e24 (worldtypes.h 63a9e6e3 already in)
+src/world/sitegeo.cpp cd6ce52ae5ac71e5ef9e13c0738c09d364e50862 (HEAD 2afd2c8)
+src/world/landmarks.cpp 8a4afa65b42873aa73d7ec46d72b4523686cc361 (HEAD cb2b991)
+src/world/leisure.cpp 4dbe20317122ffb96ef868987d57b3a7a811b187 (HEAD 8a227dd)
+src/world/airport.cpp 2666684d4236f0a74d3af41220da16928bf6c14c (HEAD 1a1015d)
+src/world/port.cpp 448b93b2d0396347b844081f4de908d3f68ca54b (HEAD 2a32ccc)
+src/world/rural.cpp 832aa0d89975db6884d907be42204d3d7cb059c0 (HEAD 630c3da)
+src/world/buildmesh.cpp 610a2aa4a50aec373c86de24f721c7fc20b81093 (HEAD 46cfe87)
+src/world/worldtypes.h 63a9e6e3f61166ae61a4c7e5a69e3402a5be6554 (HEAD 21d26d2), already in the shared tree
+syntax rc=0 errors=0 warnings=0

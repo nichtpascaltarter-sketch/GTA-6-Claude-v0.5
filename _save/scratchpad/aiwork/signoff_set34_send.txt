@@ -1,0 +1,88 @@
+AI snapshot-safe, sets 3+4 (on top of set 2 = the AI files of HEAD 6afc8b2, unchanged since e28a7db). Tested on nt_ai62 (+ walkby/hurt on nt_ai72).
+
+Blobs (written with git hash-object -w; `git cat-file -p <blob> > src/game/<file>`):
+  35c2fc53f5bf7c586731355e45b93b74b74f7127 src/game/ai.cpp
+  c90c542dd9b0c95df82aac212c7a37d227d5275e src/game/ai_game.h
+  4c298485ded5b1324a2d008c5911ffff5513be9b src/game/app.cpp
+  5a3007e60d2cf5e6a2ce1d752c0f6a833270e619 src/game/barks.cpp
+  be8d137de5e0387c173cd89072a0c173be9855e3 src/game/events.cpp
+  512c93d607c59e6558fcd8de5e694bd868776a99 src/game/pedai.cpp
+  f2ca4c37ae936d70584add1905d86fec9fe8e191 src/game/police.cpp
+  95afe419a3e2b6fbb64f2e0f0cbcc77cbdc498ac src/game/traffic.cpp
+Unchanged from HEAD: ai_core.h, gameworld.h, pednav.cpp, traffic_core.cpp, lanes.cpp, game.h, wildlife.cpp/.h
+(Wildlife::leashHand comes with sets 5+6). Since 716ef64 (set 2) HEAD moved only peds.cpp/game.h, so these replace
+HEAD's files cleanly (every line they drop is one they extend).
+peds.cpp: the couple block and the reach block you saved (ai_hand_blocks_v093.txt), before the foot IK line, couple
+first - nothing else. game.h: nothing.
+
+
+Police:
+- Parking tickets (police_ticket). A beat officer comes past a car parked at the kerb and writes it up: round to the windscreen, a look at it, the ticket on the device, then a hand under the wiper while the partner waits on the sidewalk. Now and then the owner comes hurrying over and protests. The officer answers ("Take it up with the city") and goes. The owner then takes the ticket off, reads it, grumbles and drives off.
+- Fender benders (police_scene, PT_SCENE). Four crashes in ten get a unit, sent from out of view up the same street. It pulls over behind with the light bar on. One officer takes the drivers' details (a few questions, then the device); the other stands at the back of the car waving traffic round. Then they get back in and drive off. The driver who was hit photographs the damage.
+- Someone down hurt: a beat pair nearby comes over. The lead kneels with a hand on the shoulder; the partner radios for EMS.
+- Arrests:
+  - The escort waits with the prisoner on the kerb while a crewmate brings the car round.
+  - A transport held up within 60 m pulls over after 12 s.
+  - The officer's hand goes on the prisoner's head at the car door.
+  - Units go on foot only within 45 m (or after 8 s crawling within 75 m).
+  - No witness statement after a warrant turns up at a stop.
+- Stop and statement walk-ups go round obstacles and log when they give up.
+- Officers call out cover and flanking moves. Beat pairs chat, and greet the player ("Sir.").
+Pedestrians:
+- A word for the player walking past (greetings by time of day, "On your left" from joggers, "Are you okay?" when the player is hurt) and a reaction to the player's horn.
+- Pairs walking together are overheard, with one line and the other's answer. One pair in two is a couple: hand in hand
+  while they walk (pedai.cpp PedAI::handWith; the couple block for peds.cpp).
+- A mutter at long red lights. A press of the crossing button on a pole within reach.
+- Getting lost: a look at the map on the phone, then back the way they came. Stopping to tie a shoelace.
+- Rain: those without umbrellas hurry, four in ten jog. Some shelter under bus stops until it eases, and a few remark on it.
+- A proposal event: down on one knee with the ring, passers-by filming. Usually a yes (cheers, the hug, off hand in hand), now and then a no.
+- Drivers honk at jaywalkers ("Use the crosswalk!"), who hurry on.
+- More walk-round users: owners walking to their cars, cowering dashes, the hurrying ticket owner, the ticket officer and partner.
+The reach hook: PedAI::reachAt / reachT plus a peds.cpp block (below). Used for the ticket under the wiper, the ring, the crossing button, the helper's hand on the shoulder, the traffic-stop officer's hand on the roof, and the hand on the prisoner's head.
+Tests: ticket, proposal, crashscene, rain and night modes; the hurt test now has a beat pair; the pedstop camera follows a new stop. New census counters.
+
+Results (nt_ai62 unless noted; all rc=0, no crash, no GPU errors):
+- life (200 s): fine; couples hand in hand appear; their hands still had a gap then - found since: the animation agent's
+  pass-by lean treated the companion as a passer; the couple block's passWeight = 0 fixes it (nt_ai73: a clasp).
+- arrest (260 s): stage 3 now completes at t=165.4. Stage 1: the transport pulled over 44 m out, the prisoner in 86 s
+  after the cuffs, the statement 29 s. Stage 3: a unit sent from 183 m, the prisoner in 33 s, the statement 30 s.
+- ticket (150 s): written up at 19 s and 15 s; no owner came in the test (fixed in sets 5+6: a worker can be the owner,
+  rushing owners only for cars with room to pull out, and a log line when nobody comes).
+- proposal (150 s): a yes (2 watching) and a no (4 watching); the ring, the kneel, the cheers, off hand in hand.
+- crashscene (150 s): unit 71 sent from 144 m, pulled over 25 m back, the crew out (details / waving traffic round),
+  done by t=82. (The test camera was blocked by an arcade: fixed in the sets 5+6 app.cpp.)
+- rain (90 s): 7 under bus shelters, umbrellas out, the dash for cover and remarks.
+- hurt: on nt_ai62 the victim was one of the quarter who get up again; rerun on nt_ai72 (victim chosen to stay down):
+  ped 99 knocked down 3 m from the player at t=6, down hurt (writhing, "Help me... please...") from t=10; the beat
+  pair 20 m off came over at once (cop aid 1: the lead kneeling, the partner on the radio - "Dispatch, I need EMS at my
+  location, one down."), a crowd gathered; the ambulance sent from 185 m pulled up 25 m off at t=57, the medic saw to
+  them (t=63-73), up at t=73 and walked to the ambulance, in by t=95.
+- walkby (nt_ai72, 150 s): greetings 0, "are you okay?" 0. Cause (seen in the shots): phone talkers near the player said
+  a line at every free moment (BK_PHONE_CHAT was tried every frame), holding the street's bark slot, so the hellos were
+  dropped - and the dropped one used up the pass. Fixed in set 8 (phone lines once per 5 s, a drowned-out greeting
+  retried within the pass; the walkby test forces a word for every close pass to check the path).
+- pedstop (240 s): three stops - let go after 27 s; a warrant (cuffed, a transport sent from 165 m out of view,
+  pulled over 22 m off, the prisoner in 58 s after the cuffs); a runner (caught by the partner, cuffed, the transport on
+  patrol turned round from 102 m, in 51 s after the cuffs), a witness statement (30 s), and a parking ticket written by
+  the first pair in between. Census: stops 3 (warrants 1, runs 1), custody 2, transports 2. One thing seen in the
+  shots: a prisoner caught on a corner sat waiting on the zebra stripes - fixed in sets 7-9 (walked to the kerb first).
+- events (240 s): six forced one after another - a mugging, a purse snatch (the thief running across a crossing), a
+  fender bender (both drivers out), a police chase, a breakdown (smoke, people round it), a traffic stop; all staged and
+  run through, events 6, no crash.
+- night (200 s, the downtown corner at 23:00, nothing forced): a quiet street - a few people out, a pair walking with
+  an overheard line ("We should've taken the car."), 3 ambient events, a greeting, 3 lost, 3 cars driven off; AI 0.3-0.5 ms.
+- crowd (28.5 s, four stops): beach afternoon 45 on foot within 70 m, downtown lunch 49, club night 80 (32 at the
+  venues: queues, door staff; 7 dancing, 10 talking, a couple hand in hand), park evening 40 (2 meets); AI 0.77 ms.
+- soak (300 s, driving across the map): traffic health all zero (stuck > 30 s 0, blocked > 45 s 0, waits > 90 s 0,
+  unsticks / respawns / unhung 0), AI 0.2-0.9 ms, clean shutdown.
+
+Next (not part of this graft):
+- Sets 5+6 on nt_ai74 (built 20:56; its 10 runs are queued now - the alarm run is done and fine). It carries
+  Wildlife::leashHand: wildlife.cpp f066727401fbb94c54ffd8ed005415d46036f3cd / wildlife.h c938d5b47e96be03c996b07ef88db115fbe32f89,
+  both = HEAD + 12 additive lines (graft text comes with that sign-off, in case wildlife moves first), and one more
+  peds.cpp block (the in-car look: drivers' heads turned to a scene they slow past).
+- Sets 7-9 on nt_ai77 (built 23:22; contains everything): riding along, the AI look hook (glances along the road at the
+  kerb, down the street for the bus, up at the police helicopter), staggered starts at lights, greetings fixed, "step
+  back, please", bus-stop small talk, reactions to the player knocked flat, drivers who hit the player stopping to see,
+  prisoners off the crossing. Its look block replaces the sets 5+6 one.
+- If one graft of sets 5-9 from nt_ai77 suits you better (after its runs), say so and I'll send just that sign-off.

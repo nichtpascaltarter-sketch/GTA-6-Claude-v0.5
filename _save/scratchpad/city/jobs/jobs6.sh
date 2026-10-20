@@ -1,0 +1,13 @@
+#!/bin/sh
+# my Wine runs (after jobs5): the story regressions, baseline then batch 2
+cd /home/user/GTA-6-Claude-v0.5
+L=/tmp/wine_city/drive_c/users/root/AppData/Local/NeonTide/log.txt
+st() { echo "$1 $(date)" >> /tmp/city/jobs3.status; }
+while ! grep -q "jobs5 done" /tmp/city/jobs3.status 2>/dev/null; do sleep 20; done
+st "start base2 regression"
+TIMEOUT=6000 EXE=/tmp/city/nt_base2.exe WINEPREFIX=/tmp/wine_city nice -n 6 tools/run.sh --play --missiontest story --renderevery 300 --width 960 --height 540 --shotdir 'Z:\tmp\city\reg_base2\' > /tmp/city/reg_base2.out 2>&1
+cp $L /tmp/city/reg_base2_log.txt
+st "start b2 regression"
+TIMEOUT=6000 EXE=/tmp/city/nt_b2.exe WINEPREFIX=/tmp/wine_city nice -n 6 tools/run.sh --play --missiontest story --renderevery 300 --width 960 --height 540 --shotdir 'Z:\tmp\city\reg_b2\' > /tmp/city/reg_b2.out 2>&1
+cp $L /tmp/city/reg_b2_log.txt
+st "jobs6 done"

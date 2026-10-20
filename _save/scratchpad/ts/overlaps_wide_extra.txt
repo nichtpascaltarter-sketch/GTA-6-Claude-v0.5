@@ -1,0 +1,16 @@
+# --overlaps with a wider test (carriageways overlapping by 1 m or more, run 02:31 with the since-reverted wide build): pairs NOT in the strict 31-pair list,
+# normal highway/ramp gores (classes 0/7 sharing a node, 19 pairs) left out
+overlap  324 m from (-2959, 2833): edge 1874 (Almeria Boulevard, cls 4, 1/1 lanes, nodes 1387-1062) and edge 1953 (Levee Road, cls 5, 1/1 lanes, nodes 1388-1062)
+overlap   64 m from (3885, 3169): edge 275 (Bayshore Boulevard, cls 1, 3/3 lanes, nodes 278-281) and edge 9244 (9th Avenue, cls 2, 2/2 lanes, nodes 280-283)
+overlap   64 m from (3785, 1769): edge 245 (Bayshore Boulevard, cls 1, 3/3 lanes, nodes 246-125) and edge 9181 (10th Avenue, cls 3, 1/1 lanes, nodes 248-123)
+overlap   64 m from (3785, 1669): edge 242 (Bayshore Boulevard, cls 1, 3/3 lanes, nodes 243-246) and edge 9180 (10th Avenue, cls 3, 1/1 lanes, nodes 245-248)
+overlap   64 m from (3715, -431): edge 187 (Bayshore Boulevard, cls 1, 3/3 lanes, nodes 178-181) and edge 9132 (11th Avenue, cls 3, 1/1 lanes, nodes 179-182)
+overlap   64 m from (3715, -331): edge 190 (Bayshore Boulevard, cls 1, 3/3 lanes, nodes 181-184) and edge 9133 (11th Avenue, cls 3, 1/1 lanes, nodes 182-185)
+overlap   52 m from (3715, -231): edge 193 (Bayshore Boulevard, cls 1, 3/3 lanes, nodes 184-187) and edge 9134 (11th Avenue, cls 3, 1/1 lanes, nodes 185-188)
+overlap   48 m from (3613, -1428): edge 158 (Bayshore Boulevard, cls 1, 3/3 lanes, nodes 121-150) and edge 9008 (Bougainvillea Boulevard, cls 1, 3/3 lanes, nodes 119-151)
+overlap   44 m from (3782, 1588): edge 239 (Bayshore Boulevard, cls 1, 3/3 lanes, nodes 240-243) and edge 9179 (10th Avenue, cls 3, 1/1 lanes, nodes 242-245)
+overlap   32 m from (3879, 3103): edge 272 (Bayshore Boulevard, cls 1, 3/3 lanes, nodes 275-278) and edge 9243 (9th Avenue, cls 2, 2/2 lanes, nodes 277-280)
+overlap   24 m from (4800, 7263): edge 3525 (County Road 830, cls 5, 1/1 lanes, nodes 2726-2685) and edge 4129 (Guava Main Street, cls 2, 2/2 lanes, nodes 2685-2724)
+overlap   24 m from (3800, 1973): edge 248 (10th Avenue, cls 3, 1/1 lanes, nodes 124-250) and edge 250 (Bayshore Boulevard, cls 1, 3/3 lanes, nodes 124-253)
+overlap   20 m from (4797, 8840): edge 4429 (Majestic Street, cls 3, 1/1 lanes, nodes 3202-3185) and edge 4433 (County Road 830, cls 5, 1/1 lanes, nodes 3202-3207)
+overlap   20 m from (4395, 8337): edge 4150 (Guava Main Street, cls 2, 2/2 lanes, nodes 3070-3038) and edge 4152 (Farm Track, cls 6, 1/1 lanes, nodes 3070-3072)

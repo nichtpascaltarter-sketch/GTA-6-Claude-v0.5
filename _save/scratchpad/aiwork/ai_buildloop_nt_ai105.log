@@ -1,0 +1,11 @@
+worldc: terrain 2560x2560 at 8 m, 2 water levels, 93 outlines, 7 channels
+worldc: 1 file(s) -> build/gen/world.bin (2669552 bytes, 6 sections) and build/gen/world.rc
+In file included from src/game/../game/game_all.cpp:61,
+                 from src/game/app.cpp:14,
+                 from src/main.cpp:76:
+src/game/../game/gameworld.cpp: In member function 'void Game::GameWorld::newGame()':
+src/game/../game/gameworld.cpp:139: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
+  139 |     if (model < 0) model = findVehicleModel(Vehicles::VC_SEDAN, 1);
+      | 
+src/game/../game/gameworld.cpp:139: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
+-rwxr-xr-x 1 root root 16184320 Oct 20 09:19 bin/nt_ai105.exe

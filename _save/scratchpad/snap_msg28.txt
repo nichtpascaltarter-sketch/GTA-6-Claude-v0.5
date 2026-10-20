@@ -1,0 +1,28 @@
+Faces batch 3: beards wrap the jaw, softer side hairlines, age at the temples, skin undertones; a cheaper passing check
+
+Faces (the faces agent's batch 3: face.cpp, hair.cpp, character.cpp and the anim tests)
+- Beards: the back edge now follows the jaw from the sideburn round the angle of the jaw, instead of stopping in a
+  vertical cut in front of the ear, so a full beard no longer reads as a block in profile.
+  - The cheek line and the back edge wander a few millimetres.
+  - Under the jaw the beard thins out over the last rows instead of ending in a shelf.
+  - Stubble and the shaved shadow follow the same outline, so Dex's stubble wraps his jaw.
+- Hairlines:
+  - The hairline curve runs smoothly through its control points, with no more kink at the temple in profile.
+  - Women get short curved sideburns instead of a man's V-shaped one.
+  - Hair over the ears drops to the ear smoothly from the temple.
+- Age: the temples hollow behind the eye socket's rim, more on lean faces.
+- Skin: each person gets their own undertone at the same depth of skin (rosier, more olive or golden), a hue shift of
+  a few percent at constant brightness.
+- Lips: the lower lip's border blends softly into the skin, with no dark outline groove.
+- Tests:
+  - anim_test ALL PASSED on 8ee5699 plus these files. FaceShape now also checks that a full beard wraps the angle
+    of the jaw; batch-2 code fails it.
+  - The faces agent's O2 build and a 30-portrait Wine D3D12 run were clean.
+  - Mesh size and build time are unchanged.
+
+Animation: the close-pass check (peds.cpp, animatePed) runs every other frame, half the people at a time. The
+animator eases the passing weight, so the last answer stands in between. Passing behaviour is unchanged in game:
+64 body-language events (60 before) and the same arm clearance.
+
+tools/memfree.sh: reserves 4000 MB for the lead's 1080p showcase renders (showcase.exe), which peak near 3.6 GB on the
+ultra preset.

@@ -1,0 +1,7 @@
+INWALL switchback_tight.up_1.0 p2 run 122 t2.733 foot 0 | heel -0.01  5.33 +158.5 ball  0.18  5.34 +160.9 toe  0.24  5.34 +161.7 | root -0.16  5.02 z1.62 v 2.68 yaw -127.6 tr -4.94 | age 0.03
+INWALL switchback_tight.up_1.0 p2 run 122 t2.767 foot 0 | heel -0.01  5.33 +159.7 ball  0.18  5.34 +161.0 toe  0.24  5.34 +161.5 | root -0.11  5.03 z1.62 v 1.56 yaw -135.9 tr -4.38 | age 0.07
+INWALL switchback_tight.up_1.0 p2 run 122 t2.800 foot 0 | heel -0.01  5.33 +162.0 ball  0.18  5.34 +163.3 toe  0.24  5.34 +163.8 | root -0.05  5.02 z1.62 v 1.71 yaw -141.0 tr -2.66 | age 0.10
+INWALL switchback_tight.up_1.0 p2 run 122 t2.833 foot 0 | heel -0.01  5.33 +162.0 ball  0.18  5.34 +163.3 toe  0.24  5.34 +163.8 | root  0.00  4.99 z1.62 v 1.89 yaw -145.6 tr -2.40 | age 0.13
+INWALL switchback_tight.up_1.0 p2 run 122 t2.867 foot 0 | heel -0.01  5.33 +162.0 ball  0.18  5.34 +162.4 toe  0.25  5.34 +162.9 | root  0.06  4.96 z1.62 v 2.08 yaw -150.0 tr -2.29 | age 0.17
+INWALL switchback_tight.up_1.0 p2 run 122 t2.900 foot 0 | heel -0.01  5.33 +164.0 ball  0.18  5.34 +162.0 toe  0.25  5.34 +162.5 | root  0.12  4.91 z1.62 v 2.30 yaw -154.1 tr -2.16 | age 0.20
+INWALL switchback_tight.up_1.0 p2 run 122 t2.933 foot 0 | heel -0.00  5.33 +167.1 ball  0.18  5.34 +162.0 toe  0.26  5.34 +162.3 | root  0.18  4.85 z1.62 v 2.51 yaw -158.0 tr -2.03 | age 0.23

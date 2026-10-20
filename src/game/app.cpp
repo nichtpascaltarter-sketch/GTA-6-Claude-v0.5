@@ -274,10 +274,7 @@ struct App {
         menuCamT = 0.f;
         env.timeOfDay = 18.4f;
 #ifdef HAVE_GAME_UI
-        // the very first start sets the game up before the main menu (leaving the page saves settings.ini, so it shows
-        // once); test runs go straight to the main menu
-        menu.screen = firstStart && !Updater::isAutomatedRun() ? UI::MENU_SETUP : UI::MENU_MAIN;
-        firstStart = false;
+        menu.screen = UI::MENU_MAIN;
         menu.cursor = 0;
         menu.canContinue = newestSlot() >= 0;
 #endif
@@ -7171,7 +7168,6 @@ struct App {
         UI::applyUiSettings(s);   // subtitle size/backing/speaker colours, HUD scale, reticle, reduced HUD flashing, UI colour-blind matrix
     }
 
-    bool firstStart = false;   // no settings.ini when the game started: the main menu opens on the setup page first
     // %LOCALAPPDATA%\NeonTide\settings.ini: readable key=value text; unknown or missing keys keep their defaults
     std::string settingsPath() { return Platform::userDataDir() + "settings.ini"; }
     void saveSettings() {
@@ -7183,7 +7179,6 @@ struct App {
     }
     void loadSettings() {
         FILE* f = fopen(settingsPath().c_str(), "rb");
-        firstStart = !f;
         if (f) {
             std::string text;
             char buf[4096];

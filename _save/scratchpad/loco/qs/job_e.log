@@ -1,0 +1,16 @@
+differs: r9/vm_c13b_fs_p0_30.txt
+differs: r9/vm_c13b_fs_p2_60.txt
+differs: r9/pl_lm_c13b_s_1.55_30.txt
+differs: r9/pl_lm_c13b_s_1.55_60.txt
+differs: r9/pl_lm_c13b_s_4.1_30.txt
+differs: r9/pl_lm_c13b_s_4.1_60.txt
+differs: r9/pl_lm_c13b_sb_1.55_60.txt
+differs: r9/pl_lm_c13b_sb_6.9_30.txt
+differs: r9/pl_lm_c13b_sb_6.9_60.txt
+differs: r9/run_c13b_3.0.txt
+differs: r9/run_c13b_3.0_30.txt
+differs: r9/run_c13b_5.0.txt
+differs: r9/run_c13b_5.0_30.txt
+differs: r9/run_c13b_7.0_30.txt
+c13b vs c13 (vm / pl / run): differing files 14
+job_e done

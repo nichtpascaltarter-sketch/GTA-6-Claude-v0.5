@@ -1,0 +1,29 @@
+Lips are rose instead of coral, and aviation warning lights flash in step with their red lamps
+
+Faces batch 10 (src/anim/face.cpp; tests/anim/anim_test.cpp):
+- Lips were the skin's colour made redder, so they kept its yellow and read salmon or coral at conversation distance.
+  Now they are a rose that suits each skin tone (rose-pink on fair skin, muted rose-brown on medium and deep skin):
+  darker and redder than the skin round them and 5-7 b* less yellow, as measured on real lips.
+- Older people's lips fade towards the skin round them, and their vermilion border softens with age.
+- The corners of the mouth are a little darker, so they read as the corners of a mouth.
+- Everyone's lips change, the protagonists' included. Shapes, lip sync and expressions are unchanged; only vertex
+  colours change (identical triangle counts).
+- anim_test gains LipColour: on twelve faces, each also built 40 years older, the lower lip must be redder, less
+  yellow and (on light and medium skin) darker than the chin, and the older build's lips at least 10% less red.
+
+Aviation beacon sync (city batch 17: src/world/worldtypes.h, sitegeo.cpp, landmarks.cpp, leisure.cpp, airport.cpp,
+port.cpp, rural.cpp, buildmesh.cpp; night renderer: src/render/world_render.cpp, renderer.cpp):
+- Each aviation light (LightInstance type 4) carries its lamp's blink phase (new u8 phase, sizeof unchanged), and the
+  renderer blinks the light on the lamp's own pattern-1 timing, so the light it casts and the red lamp switch together.
+- Each structure flashes as one: Solaris One's spire, the port cranes' boom tips and apexes, the radio mast's levels
+  and the sugar mill's stacks. The radio mast and the sugar mill move from the slow blink to the standard rate.
+- With Reduce Flashing on, the light pulses gently in step with the lamp's slow pulse instead of blinking.
+
+Checks:
+- Faces agent: anim_test ALL PASSED (LipColour fails on the old lips: 20 failures). Wine D3D12, 40 portrait shots
+  each before and after, 0 FATAL / vkd3d lines; lower lip against the chin, b*: -1.6..+1.7 before -> -5.3..-7.3 after.
+  Per-frame cost unchanged.
+- City agent: worldcheck: 154 aviation lights; all 97 with a pattern-1 lamp within 1.6 m share its phase (0 out of
+  step); 0 overlapping buildings. Story regression 27/27. Tours: draws unchanged within noise. clang MSVC-safety
+  scan over src/world: 0 diagnostics.
+- Night agent: --gfxselftest 0 failures, 0 debug-layer errors; a night aerial renders as before; day unaffected.

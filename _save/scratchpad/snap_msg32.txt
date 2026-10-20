@@ -1,0 +1,38 @@
+Yards: back-yard pools that show, front fences and walls by district, driveways, front walks and mailboxes
+
+City batch 5 (src/world: buildmesh.cpp, facadedetail.cpp, cellgen.cpp, blockstyle.cpp):
+- Back-yard pools show. The deck stands on the yard's highest corner with a skirt down to the ground, and the lawn
+  is cut away under it. Before, the water sat under the lawn, so from the air a pool read as grass inside its deck.
+  - Pools are glossy turquoise, and most are lit from below at night.
+  - Shapes: rectangles, rounded ends, and lap pools behind villas, some with a spa.
+  - Decks: brick pavers, keystone, poured concrete, or wood in the Keys.
+  - Pools stay in the far LOD as plain water.
+- Front yards by district, with gaps for the driveway and the front walk:
+  - Calle Luna, the Flats, North Porto Sol and Midtown: stucco knee walls under steel rejas, garden walls and
+    aluminium fences;
+  - Westbrook: mostly open lawns;
+  - the Grove and the islands: coral-rock walls;
+  - the Keys, Key Solano and Ten Palms: white pickets;
+  - the towns and the country: pickets and ranch rails.
+- Back-yard fences where a house has no hedges: wood boards, painted block walls or white vinyl, with a gate.
+- Driveways by district: concrete, brick pavers, old asphalt, crushed shell or gravel.
+- Front walks from the stoop to the street (a yard tree on the walk moves aside).
+- Mailboxes: a wooden post, a stucco pillar, or a box on a steel post in the country.
+- Paved front yards (concrete or pavers) on about a quarter of the houses in Calle Luna and the Flats.
+- The lawn no longer pokes through driveways and carport floors on uneven ground.
+- Fixes two batch-4 bugs:
+  - Block houses keep their gardens. A third of them had lost their lawn, hedges and mailbox to the window awnings'
+    detail budget; the garden now has its own.
+  - Scattered trees keep off forecourts, driveways, pool decks and paved yards. On main, a palm grew through a gas
+    station's canopy.
+
+Checks:
+- Story regression: 27 of 27 missions pass, the same as batch 4. Story places resolve to the same positions, and
+  building counts are unchanged.
+- worldcheck: no colliders or props in drivable lanes, and no unguarded falls.
+- Triangles:
+  - Near rings in the house districts: +1% to +10% (Westbrook +10%). The city tour stops have no houses and are
+    unchanged.
+  - Whole-map far LOD: 1.054 M -> 1.070 M.
+  - No draw calls are added.
+- Colliders: +8% (fences).

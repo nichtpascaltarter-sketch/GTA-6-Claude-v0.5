@@ -1,0 +1,198 @@
+clip library bake: 223.1 ms
+bind pose: max skinning deviation 3.7e-09
+poseFromModelSpace: round trip error 7.4e-07
+IK: worst end-effector error 0.00000 m
+  fast joint: clip jump_start bone 8 t=0.050 36.8 rad/s
+  fast joint: clip jump_start bone 12 t=0.050 36.8 rad/s
+  fast joint: clip jump_start bone 8 t=0.067 36.8 rad/s
+  fast joint: clip jump_start bone 12 t=0.067 36.8 rad/s
+  fast joint: clip punch_r bone 13 t=0.184 47.5 rad/s
+  fast joint: clip punch_r bone 13 t=0.201 43.9 rad/s
+  fast joint: clip exit_car_l bone 12 t=0.617 38.9 rad/s
+  fast joint: clip exit_car_l bone 12 t=0.633 38.9 rad/s
+  fast joint: clip exit_car_r bone 8 t=0.617 36.2 rad/s
+  fast joint: clip exit_car_r bone 8 t=0.633 36.2 rad/s
+  fast joint: clip exit_car_r bone 8 t=0.650 35.2 rad/s
+  fast joint: clip exit_car_r bone 10 t=0.650 30.3 rad/s
+  fast joint: clip exit_car_r bone 8 t=0.667 35.2 rad/s
+  fast joint: clip exit_car_r bone 10 t=0.667 30.3 rad/s
+  fast joint: clip bat_swing bone 10 t=0.457 34.8 rad/s
+  fast joint: clip bat_swing bone 14 t=0.457 32.7 rad/s
+  fast joint: clip bat_swing bone 9 t=0.593 30.7 rad/s
+  fast joint: clip bat_swing bone 10 t=0.593 30.9 rad/s
+  fast joint: clip bat_swing bone 10 t=0.745 35.0 rad/s
+  fast joint: clip bat_swing bone 9 t=0.762 39.9 rad/s
+  fast joint: clip bat_swing bone 10 t=0.762 49.9 rad/s
+  fast joint: clip bat_overhead bone 8 t=0.583 54.3 rad/s
+  fast joint: clip bat_overhead bone 10 t=0.583 44.1 rad/s
+  fast joint: clip bat_overhead bone 8 t=0.600 54.3 rad/s
+  fast joint: clip bat_overhead bone 10 t=0.600 44.1 rad/s
+  fast joint: clip bat_overhead bone 10 t=0.950 33.7 rad/s
+  fast joint: clip bat_overhead bone 10 t=0.967 33.7 rad/s
+  fast joint: clip bat_overhead bone 10 t=0.983 35.3 rad/s
+  fast joint: clip bat_overhead bone 10 t=1.000 35.3 rad/s
+  fast joint: clip knife_slash bone 14 t=0.150 34.2 rad/s
+  fast joint: clip knife_slash bone 14 t=0.167 34.2 rad/s
+  fast joint: clip takedown_attacker bone 8 t=0.250 31.6 rad/s
+  fast joint: clip takedown_attacker bone 10 t=0.250 33.0 rad/s
+  fast joint: clip takedown_attacker bone 8 t=0.267 31.6 rad/s
+  fast joint: clip takedown_attacker bone 10 t=0.267 33.0 rad/s
+  fast joint: clip takedown_attacker bone 12 t=2.517 33.3 rad/s
+  fast joint: clip takedown_attacker bone 12 t=2.533 33.3 rad/s
+clips: worst loop seam 0.0014 (flee), fastest joint 54.3 rad/s (bat_overhead)
+gait walk         speed 1.4: lowest foot point 0.016, max ankle 0.251, mean stance slide 0.06 m/s
+gait jog          speed 3.0: lowest foot point 0.014, max ankle 0.310, mean stance slide 0.14 m/s
+gait run          speed 5.0: lowest foot point 0.012, max ankle 0.427, mean stance slide 0.21 m/s
+gait sprint       speed 7.0: lowest foot point 0.006, max ankle 0.543, mean stance slide 0.37 m/s
+gait walk_back    speed 1.2: lowest foot point 0.015, max ankle 0.153, mean stance slide 0.03 m/s
+gait strafe_l     speed 1.3: lowest foot point 0.014, max ankle 0.145, mean stance slide 0.03 m/s
+gait strafe_r     speed 1.3: lowest foot point 0.014, max ankle 0.145, mean stance slide 0.04 m/s
+gait crouch_walk  speed 1.0: lowest foot point 0.015, max ankle 0.172, mean stance slide 0.04 m/s
+  gait seed  12 M age 0.30 style 2 v 0.9: cadence  96.0 (83-109) step 0.56 m, skate mean 0.002 p95 0.005 max 0.383 m/s, lowest -0.000, hand-thigh 0.028
+  gait seed  12 M age 0.30 style 2 v 1.2: cadence 105.3 (96-126) step 0.68 m, skate mean 0.003 p95 0.035 max 0.083 m/s, lowest -0.000, hand-thigh 0.031
+  gait seed  12 M age 0.30 style 2 v 1.4: cadence 113.1 (104-136) step 0.74 m, skate mean 0.001 p95 0.005 max 0.030 m/s, lowest -0.000, hand-thigh 0.028
+  gait seed  12 M age 0.30 style 2 v 1.7: cadence 126.0 (114-150) step 0.81 m, skate mean 0.002 p95 0.006 max 0.092 m/s, lowest -0.000, hand-thigh 0.023
+  gait seed  12 M age 0.30 style 2 v 2.0: cadence 136.5 (124-163) step 0.88 m, skate mean 0.005 p95 0.008 max 0.386 m/s, lowest -0.000, hand-thigh 0.017
+  gait seed  12 M age 0.30 style 2 v 2.4: cadence 158.6 (145-172) step 0.91 m, skate mean 0.002 p95 0.009 max 0.043 m/s, lowest -0.000, hand-thigh 0.045
+  gait seed  12 M age 0.30 style 2 v 3.0: cadence 166.7 (150-178) step 1.08 m, skate mean 0.002 p95 0.011 max 0.033 m/s, lowest -0.000, hand-thigh 0.049
+  gait seed  12 M age 0.30 style 2 v 5.0: cadence 185.9 (162-195) step 1.61 m, skate mean 0.003 p95 0.009 max 0.066 m/s, lowest -0.000, hand-thigh 0.040
+  gait seed  12 M age 0.30 style 2 v 7.0: cadence 204.7 (178-218) step 2.05 m, skate mean 0.003 p95 0.007 max 0.158 m/s, lowest -0.000, hand-thigh 0.023
+  gait seed  45 F age 0.25 style 4 v 0.9: cadence  90.5 (85-112) step 0.60 m, skate mean 0.002 p95 0.004 max 0.440 m/s, lowest -0.000, hand-thigh 0.013
+  gait seed  45 F age 0.25 style 4 v 1.2: cadence  99.5 (99-130) step 0.72 m, skate mean 0.001 p95 0.004 max 0.128 m/s, lowest -0.000, hand-thigh 0.015
+  gait seed  45 F age 0.25 style 4 v 1.4: cadence 106.9 (106-140) step 0.79 m, skate mean 0.002 p95 0.005 max 0.144 m/s, lowest -0.000, hand-thigh 0.013
+  gait seed  45 F age 0.25 style 4 v 1.7: cadence 118.0 (117-154) step 0.86 m, skate mean 0.001 p95 0.005 max 0.132 m/s, lowest -0.000, hand-thigh 0.009
+  gait seed  45 F age 0.25 style 4 v 2.0: cadence 129.7 (127-167) step 0.93 m, skate mean 0.004 p95 0.005 max 0.328 m/s, lowest -0.000, hand-thigh 0.012
+  gait seed  45 F age 0.25 style 4 v 2.4: cadence 160.7 (145-172) step 0.90 m, skate mean 0.002 p95 0.008 max 0.109 m/s, lowest -0.000, hand-thigh 0.057
+  gait seed  45 F age 0.25 style 4 v 3.0: cadence 168.2 (150-178) step 1.07 m, skate mean 0.002 p95 0.008 max 0.107 m/s, lowest -0.000, hand-thigh 0.054
+  gait seed  45 F age 0.25 style 4 v 5.0: cadence 189.5 (162-195) step 1.58 m, skate mean 0.001 p95 0.006 max 0.014 m/s, lowest -0.000, hand-thigh 0.038
+  gait seed  45 F age 0.25 style 4 v 7.0: cadence 208.7 (178-218) step 2.01 m, skate mean 0.002 p95 0.008 max 0.060 m/s, lowest -0.000, hand-thigh 0.028
+  gait seed  77 M age 0.40 style 2 v 0.9: cadence  99.4 (85-112) step 0.54 m, skate mean 0.002 p95 0.004 max 0.433 m/s, lowest -0.000, hand-thigh 0.040
+  gait seed  77 M age 0.40 style 2 v 1.2: cadence 109.6 (98-130) step 0.66 m, skate mean 0.002 p95 0.005 max 0.105 m/s, lowest -0.000, hand-thigh 0.043
+  gait seed  77 M age 0.40 style 2 v 1.4: cadence 118.3 (106-140) step 0.71 m, skate mean 0.003 p95 0.006 max 0.148 m/s, lowest -0.000, hand-thigh 0.041
+  gait seed  77 M age 0.40 style 2 v 1.7: cadence 130.6 (117-154) step 0.78 m, skate mean 0.004 p95 0.006 max 0.367 m/s, lowest -0.000, hand-thigh 0.036
+  gait seed  77 M age 0.40 style 2 v 2.0: cadence 142.6 (127-167) step 0.84 m, skate mean 0.003 p95 0.006 max 0.293 m/s, lowest -0.000, hand-thigh 0.028
+  gait seed  77 M age 0.40 style 2 v 2.4: cadence 165.3 (145-172) step 0.87 m, skate mean 0.002 p95 0.008 max 0.117 m/s, lowest -0.000, hand-thigh 0.043
+  gait seed  77 M age 0.40 style 2 v 3.0: cadence 173.1 (150-178) step 1.04 m, skate mean 0.004 p95 0.014 max 0.132 m/s, lowest -0.000, hand-thigh 0.036
+  gait seed  77 M age 0.40 style 2 v 5.0: cadence 194.1 (162-195) step 1.55 m, skate mean 0.004 p95 0.008 max 0.150 m/s, lowest -0.000, hand-thigh 0.019
+  gait seed  77 M age 0.40 style 2 v 7.0: cadence 212.7 (178-218) step 1.97 m, skate mean 0.017 p95 0.008 max 0.902 m/s, lowest -0.000, hand-thigh 0.009
+  gait seed  91 F age 0.92 style 3 v 0.9: cadence 104.3 (82-108) step 0.52 m, skate mean 0.000 p95 0.003 max 0.009 m/s, lowest -0.000, hand-thigh 0.029
+  gait seed  91 F age 0.92 style 3 v 1.2: cadence 114.9 (95-125) step 0.63 m, skate mean 0.000 p95 0.004 max 0.009 m/s, lowest -0.000, hand-thigh 0.034
+  gait seed  91 F age 0.92 style 3 v 1.4: cadence 123.5 (102-134) step 0.68 m, skate mean 0.000 p95 0.004 max 0.010 m/s, lowest -0.000, hand-thigh 0.032
+  gait seed  91 F age 0.92 style 3 v 1.7: cadence 137.1 (113-148) step 0.74 m, skate mean 0.001 p95 0.005 max 0.009 m/s, lowest -0.000, hand-thigh 0.025
+  gait seed  91 F age 0.92 style 3 v 2.0: cadence 146.9 (122-161) step 0.82 m, skate mean 0.001 p95 0.005 max 0.059 m/s, lowest -0.000, hand-thigh 0.019
+  gait seed  91 F age 0.92 style 3 v 2.4: cadence 156.5 (145-172) step 0.92 m, skate mean 0.001 p95 0.008 max 0.012 m/s, lowest -0.000, hand-thigh 0.063
+  gait seed  91 F age 0.92 style 3 v 3.0: cadence 164.4 (150-178) step 1.10 m, skate mean 0.002 p95 0.009 max 0.034 m/s, lowest -0.000, hand-thigh 0.067
+  gait seed  91 F age 0.92 style 3 v 5.0: cadence 185.0 (162-195) step 1.62 m, skate mean 0.004 p95 0.011 max 0.143 m/s, lowest -0.000, hand-thigh 0.046
+  gait seed  91 F age 0.92 style 3 v 7.0: cadence 203.5 (178-218) step 2.06 m, skate mean 0.009 p95 0.009 max 0.281 m/s, lowest -0.000, hand-thigh 0.033
+  gait seed 140 M age 0.10 style 0 v 0.9: cadence  94.3 (84-110) step 0.57 m, skate mean 0.004 p95 0.004 max 0.827 m/s, lowest -0.000, hand-thigh 0.034
+  gait seed 140 M age 0.10 style 0 v 1.2: cadence 104.0 (97-127) step 0.69 m, skate mean 0.000 p95 0.004 max 0.009 m/s, lowest -0.000, hand-thigh 0.033
+  gait seed 140 M age 0.10 style 0 v 1.4: cadence 111.3 (104-137) step 0.75 m, skate mean 0.000 p95 0.004 max 0.009 m/s, lowest -0.000, hand-thigh 0.030
+  gait seed 140 M age 0.10 style 0 v 1.7: cadence 123.5 (115-151) step 0.83 m, skate mean 0.001 p95 0.006 max 0.009 m/s, lowest -0.000, hand-thigh 0.025
+  gait seed 140 M age 0.10 style 0 v 2.0: cadence 135.5 (125-164) step 0.89 m, skate mean 0.001 p95 0.004 max 0.009 m/s, lowest -0.000, hand-thigh 0.016
+  gait seed 140 M age 0.10 style 0 v 2.4: cadence 158.6 (145-172) step 0.91 m, skate mean 0.009 p95 0.008 max 0.617 m/s, lowest -0.000, hand-thigh 0.046
+  gait seed 140 M age 0.10 style 0 v 3.0: cadence 165.9 (150-178) step 1.09 m, skate mean 0.002 p95 0.009 max 0.090 m/s, lowest -0.000, hand-thigh 0.045
+  gait seed 140 M age 0.10 style 0 v 5.0: cadence 186.2 (162-195) step 1.61 m, skate mean 0.001 p95 0.008 max 0.009 m/s, lowest -0.000, hand-thigh 0.027
+  gait seed 140 M age 0.10 style 0 v 7.0: cadence 204.7 (178-218) step 2.05 m, skate mean 0.006 p95 0.009 max 0.170 m/s, lowest -0.000, hand-thigh 0.018
+  gait seed 166 M age 0.50 style 4 v 0.9: cadence  90.9 (85-112) step 0.59 m, skate mean 0.001 p95 0.004 max 0.038 m/s, lowest -0.000, hand-thigh 0.083
+  gait seed 166 M age 0.50 style 4 v 1.2: cadence  99.5 (98-129) step 0.72 m, skate mean 0.001 p95 0.005 max 0.113 m/s, lowest -0.000, hand-thigh 0.089
+  gait seed 166 M age 0.50 style 4 v 1.4: cadence 106.9 (106-139) step 0.79 m, skate mean 0.001 p95 0.006 max 0.082 m/s, lowest -0.000, hand-thigh 0.086
+  gait seed 166 M age 0.50 style 4 v 1.7: cadence 118.7 (116-153) step 0.86 m, skate mean 0.002 p95 0.006 max 0.136 m/s, lowest -0.000, hand-thigh 0.080
+  gait seed 166 M age 0.50 style 4 v 2.0: cadence 130.3 (126-166) step 0.92 m, skate mean 0.002 p95 0.005 max 0.275 m/s, lowest -0.000, hand-thigh 0.068
+  gait seed 166 M age 0.50 style 4 v 2.4: cadence 161.2 (145-172) step 0.89 m, skate mean 0.001 p95 0.008 max 0.034 m/s, lowest -0.000, hand-thigh 0.049
+  gait seed 166 M age 0.50 style 4 v 3.0: cadence 169.0 (150-178) step 1.07 m, skate mean 0.003 p95 0.011 max 0.074 m/s, lowest -0.000, hand-thigh 0.038
+  gait seed 166 M age 0.50 style 4 v 5.0: cadence 189.5 (162-195) step 1.58 m, skate mean 0.000 p95 0.001 max 0.002 m/s, lowest -0.000, hand-thigh 0.021
+  gait seed 166 M age 0.50 style 4 v 7.0: cadence 208.7 (178-218) step 2.01 m, skate mean 0.004 p95 0.008 max 0.186 m/s, lowest -0.000, hand-thigh 0.013
+locomotion: stance skate mean <= 0.009 m/s (p95 0.035) up to 5 m/s, lowest sole point -0.000 m, knee behind the leg line 0.000 m, elbow hyperextension 0.000 rad, hand-thigh clearance 0.009 m, knee-knee 0.216 m, cadence in range 54/54
+stops and turns: planted feet after a stop 0.0000 m/s mean (worst frame 0.0 mm), final fore-aft foot offset 0.08 m; turning on the spot: planted feet 0.0007 m/s mean (worst frame 1.2 mm), at least 9 steps for 4.8 rad
+directions at 1.2 m/s, planted-foot skate mean (m/s): right 0.001 left 0.001 back 0.000 fwd-right 0.001 back-left 0.000; shins at least 0.137 m apart
+standing (10 people x 120 s): 141 weight shifts, 76 settling steps, 60 postures, 47 fidgets; phone 6 arms crossed 25 pockets 13 hip 7 behind 4 clasp 5 watch 0 scratch 5 tug 3 chin 5 yawn 0 stretch 3 tap 16 rock 2 neck roll 13
+  planted feet 0.0000 m/s mean (worst frame 2.0 mm), lowest sole point -0.000 m, knee behind the leg line 0.000 m, elbow hyperextension 0.000 rad, palm-body clearance -0.010 m (in the pockets -0.023); weight shifts in step between people |r| 0.15; breathing 13.0-17.2 /min at rest, one person 16.0 -> 30.0 just after a 20 s run -> 18.0 a minute later
+  palm-body clearance by posture / fidget (m): none 0.020 phone 0.090 arms crossed 0.028 pockets -0.023 hip -0.010 behind -0.005 clasp 0.048 scratch 0.014 tug 0.020 chin 0.016 stretch 0.024 tap -0.007 rock 0.033 neck roll -0.001
+greetings: hug palms 0.086 m behind the partner's chest joint (min), -0.007 .. 0.019 m from its skin, heads 0.255 m apart; handshake palms 0.031 m apart, cheek kiss heads 0.199 m apart, feet at least 0.064 m apart
+gaze: 105 deg switch: eyes 28 deg ahead of the head at 0.1 s, head 24% of its turn at 0.1 s, 102% at 0.6 s, eyes 2.9 deg off once settled; 20 deg switch: eyes 2.2 deg off after 0.1 s; target behind: head turn <= 1.35 rad (with the chest), eyes <= 0.55 rad; glances in 2 min: incurious 8, curious 19
+impacts: flinch peaks (neck against the pelvis): front light 3.5 cm back light 3.5 cm left 5.3 cm right 5.3 cm belly 5.9 cm head 1.5 cm; along the push >= 1.00, belly folds forwards 0.059 m, head / trunk 1.4, left after 2 s 0.0000 m
+impacts: arm hit flings the hand 0.186 m along the push; leg hit drops the pelvis 0.020 m, moves the knee 0.063 m
+impacts: walking through light hits, planted feet 0.0004 m/s
+impacts: stagger (4 directions) carries the body at least 0.61 m along the push in at least 4 steps, steady after 1.27 s, planted feet 0.0000 m/s
+impacts: limp (right leg) stance hurt / good 0.77, planted feet 0.0014 m/s
+impacts: wounded stance: head 0.046 m lower, chest 0.031 m further forward
+impacts: a hand on the wound (each wound standing / walking / crouched / lying): palm at most 0.013 m off (thigh R walking)
+impacts: bracing to fall (4 directions): after 0.2 s weight 1.00, a hand at least 0.27 m out along the fall
+impacts: lying hurt: lowest joint surface -0.024 m, highest joint 0.47 m
+male sit_drive: hip (0.00 0.00 0.50)
+   hands L (-0.19 0.50 1.00) R (0.19 0.50 1.00); chest y -0.09, shoulder z 1.00
+male sit_passenger: hip (0.00 0.00 0.50)
+male death_front   t=1.60: pelvis (0.00 -0.32 0.11) chest z 0.09 head (0.00 -0.95 0.16) face (0.16 0.20 0.97) lowest joint 0.00
+male death_back    t=1.60: pelvis (0.00 0.36 0.10) chest z 0.14 head (0.00 1.00 0.17) face (-0.93 0.37 0.00) lowest joint 0.00
+male get_up_front  t=0.00: pelvis (0.00 -0.00 0.10) chest z 0.14 head (-0.00 0.64 0.17) face (0.93 0.37 0.00) lowest joint -0.00
+male get_up_back   t=0.00: pelvis (0.00 -0.00 0.11) chest z 0.09 head (0.00 -0.63 0.16) face (0.00 0.20 0.98) lowest joint 0.00
+male sunbathe      t=6.00: pelvis (0.00 -0.00 0.11) chest z 0.09 head (0.00 -0.63 0.16) face (-0.10 0.39 0.92) lowest joint 0.00
+female sit_drive: hip (0.00 -0.00 0.50)
+   hands L (-0.16 0.48 0.94) R (0.16 0.48 0.94); chest y -0.06, shoulder z 0.94
+female sit_passenger: hip (0.00 -0.00 0.50)
+female death_front   t=1.60: pelvis (0.00 -0.29 0.09) chest z 0.10 head (0.00 -0.84 0.20) face (0.16 0.20 0.97) lowest joint 0.00
+female death_back    t=1.60: pelvis (0.00 0.33 0.09) chest z 0.09 head (-0.00 0.90 0.08) face (-0.93 0.37 0.00) lowest joint -0.01
+   lowest bone 68
+female get_up_front  t=0.00: pelvis (0.00 -0.00 0.09) chest z 0.09 head (0.00 0.57 0.08) face (0.93 0.37 0.00) lowest joint -0.03
+female get_up_back   t=0.00: pelvis (0.00 -0.00 0.09) chest z 0.10 head (0.00 -0.55 0.20) face (0.00 0.20 0.98) lowest joint 0.00
+female sunbathe      t=6.00: pelvis (0.00 -0.00 0.09) chest z 0.10 head (0.00 -0.55 0.20) face (-0.10 0.39 0.92) lowest joint 0.00
+animator: stress update 8.75 us, walking update 8.23 us (cheap 2.69 us), computeMatrices 5.87 us
+  driver 1: h 1.75 arm 0.584 shoulder (0.19 0.00 0.98) hand (0.04 0.55 1.08) reach 0.579
+  driver 2: h 1.72 arm 0.567 shoulder (0.19 0.01 0.97) hand (0.04 0.55 1.08) reach 0.567
+  driver 3: h 1.85 arm 0.610 shoulder (0.20 -0.00 1.02) hand (0.04 0.55 1.08) reach 0.580
+  driver 4: h 1.75 arm 0.577 shoulder (0.18 0.01 0.97) hand (0.04 0.55 1.08) reach 0.573
+  driver 5: h 1.77 arm 0.591 shoulder (0.20 0.01 0.98) hand (0.04 0.55 1.08) reach 0.573
+  driver 6: h 1.80 arm 0.603 shoulder (0.18 -0.00 1.01) hand (0.04 0.55 1.08) reach 0.578
+  driver 7: h 1.70 arm 0.562 shoulder (0.17 0.00 0.98) hand (0.04 0.54 1.08) reach 0.562
+  driver 8: h 1.71 arm 0.575 shoulder (0.18 0.00 0.97) hand (0.04 0.55 1.08) reach 0.575
+  driver 9: h 1.71 arm 0.566 shoulder (0.19 0.00 0.98) hand (0.04 0.54 1.08) reach 0.565
+  driver 10: h 1.79 arm 0.592 shoulder (0.19 0.00 1.00) hand (0.04 0.55 1.08) reach 0.575
+  driver 11: h 1.56 arm 0.511 shoulder (0.16 0.02 0.92) hand (0.05 0.50 1.07) reach 0.511
+  driver 12: h 1.85 arm 0.618 shoulder (0.20 0.01 1.01) hand (0.04 0.55 1.08) reach 0.573
+driving: worst wrist distance from the wheel rim path 0.098 m
+takedown: forearm to victim neck 0.085 m
+bat grip: worst left fist distance from the handle 0.007 m
+takedown (1.95 m attacker, 1.58 m victim): forearm to throat 0.038 m
+visemes: mouth opening sil 0.012 aa 0.028; U lips forward 0.011 / 0.006 m, width 0.049 -> 0.020
+derived bones: forearm roll = half the hand twist, fists close
+lods: build (full + LOD1 + LOD2) avg 242.8 ms
+faces: 14 characters, LOD build avg 284.1 ms
+face shape: eye-region normals worst 69 deg (mean <= 13.8), brow >= 3.9 mm above the fold, corneas >= 2.9 mm behind the brow, beard shell <= 1.8 mm over the skin by the lips
+mesh: 32 characters, tris avg 34471 (min 31685, max 36000), build avg 147.3 ms
+  clip seed 7000 role 0 top 13 bottom 4 outer -1 bag -1 w 0.55: stand/walk 12/0/15  run 8/0/61  sit 4/0/34 (poke / collapse / crossings)
+  clip seed 7977 role 0 top 1 bottom 9 outer -1 bag -1 w 0.48: stand/walk 2/2/45  run 21/2/26  sit 0/0/28 (poke / collapse / crossings)
+  clip seed 7131 role 1 top 7 bottom 7 outer -1 bag -1 w 0.17: stand/walk 6/0/8  run 4/0/6  sit 2/0/0 (poke / collapse / crossings)
+  clip seed 8108 role 1 top 7 bottom 7 outer -1 bag -1 w 0.53: stand/walk 12/0/16  run 8/0/12  sit 4/0/29 (poke / collapse / crossings)
+  clip seed 7262 role 2 top 16 bottom 8 outer -1 bag -1 w 0.26: stand/walk 12/0/11  run 13/2/59  sit 4/0/0 (poke / collapse / crossings)
+  clip seed 8239 role 2 top 1 bottom 8 outer -1 bag -1 w 0.55: stand/walk 10/0/76  run 5/7/48  sit 1/0/32 (poke / collapse / crossings)
+  clip seed 7393 role 3 top 6 bottom 3 outer -1 bag -1 w 0.29: stand/walk 24/0/16  run 20/2/30  sit 8/0/1 (poke / collapse / crossings)
+  clip seed 8370 role 3 top 6 bottom 3 outer -1 bag -1 w 0.22: stand/walk 6/0/13  run 4/0/25  sit 2/0/0 (poke / collapse / crossings)
+  clip seed 7524 role 4 top 10 bottom 6 outer -1 bag -1 w 0.44: stand/walk 17/1/76  run 15/1/84  sit 12/0/46 (poke / collapse / crossings)
+  clip seed 8501 role 4 top 1 bottom 5 outer -1 bag -1 w 0.53: stand/walk 8/0/24  run 4/0/5  sit 2/0/3 (poke / collapse / crossings)
+  clip seed 7655 role 5 top 9 bottom 0 outer -1 bag -1 w 0.57: stand/walk 0/0/12  run 0/0/8  sit 0/0/26 (poke / collapse / crossings)
+  clip seed 8632 role 5 top 9 bottom 10 outer -1 bag -1 w 0.43: stand/walk 0/0/0  run 0/0/0  sit 0/0/0 (poke / collapse / crossings)
+  clip seed 7786 role 6 top 8 bottom 10 outer -1 bag -1 w 0.46: stand/walk 6/0/14  run 4/0/13  sit 2/0/28 (poke / collapse / crossings)
+  clip seed 8763 role 6 top 8 bottom 10 outer -1 bag -1 w 0.24: stand/walk 6/0/13  run 4/0/10  sit 2/0/29 (poke / collapse / crossings)
+  clip seed 8100 role 0 top 0 bottom 0 outer 0 bag -1 w 0.14: stand/walk 0/0/5  run 12/0/17  sit 0/0/25 (poke / collapse / crossings)
+  clip seed 8117 role 0 top 0 bottom 0 outer 1 bag -1 w 0.30: stand/walk 6/0/0  run 8/0/17  sit 2/0/0 (poke / collapse / crossings)
+  clip seed 8134 role 0 top 13 bottom 0 outer 2 bag -1 w 0.24: stand/walk 15/0/6  run 13/1/19  sit 5/0/29 (poke / collapse / crossings)
+  clip seed 8151 role 0 top 0 bottom 0 outer 3 bag -1 w 0.36: stand/walk 0/0/3  run 13/0/24  sit 0/0/0 (poke / collapse / crossings)
+  clip seed 8168 role 0 top 1 bottom 0 outer 4 bag -1 w 0.49: stand/walk 20/0/24  run 16/1/22  sit 0/0/5 (poke / collapse / crossings)
+  clip seed 8185 role 0 top 4 bottom 0 outer 5 bag -1 w 0.34: stand/walk 12/0/14  run 27/0/40  sit 4/0/29 (poke / collapse / crossings)
+  clip seed 8300 role 0 top 0 bottom 1 outer -1 bag 0 w 1.00: stand/walk 7/5/14  run 8/4/31  sit 3/0/4 (poke / collapse / crossings)
+  clip seed 8329 role 0 top 0 bottom 1 outer -1 bag 1 w 0.43: stand/walk 0/0/3  run 0/0/2  sit 0/0/29 (poke / collapse / crossings)
+  clip seed 8358 role 0 top 0 bottom 1 outer -1 bag 2 w 0.47: stand/walk 3/0/0  run 17/0/30  sit 1/0/0 (poke / collapse / crossings)
+  clip seed 8500 role 0 top 0 bottom 4 outer -1 bag -1 w 0.55: stand/walk 15/0/6  run 10/0/10  sit 5/0/28 (poke / collapse / crossings)
+  clip seed 8553 role 0 top 0 bottom 4 outer -1 bag -1 w 0.64: stand/walk 0/0/0  run 0/0/38  sit 0/0/0 (poke / collapse / crossings)
+  clip seed 8606 role 0 top 12 bottom 4 outer -1 bag -1 w 0.14: stand/walk 0/6/0  run 0/4/17  sit 0/2/1 (poke / collapse / crossings)
+  clip seed 8659 role 0 top 12 bottom 4 outer -1 bag -1 w 0.31: stand/walk 0/0/21  run 0/0/17  sit 1/0/33 (poke / collapse / crossings)
+  clip seed 8700 role 0 top 0 bottom 0 outer -1 bag -1 w 0.95: stand/walk 0/1/5  run 9/1/36  sit 0/0/2 (poke / collapse / crossings)
+  clip seed 8771 role 3 top 0 bottom 3 outer -1 bag -1 w 0.95: stand/walk 0/1/6  run 0/0/19  sit 0/3/34 (poke / collapse / crossings)
+  clip seed 8842 role 0 top 4 bottom 0 outer -1 bag -1 w 0.95: stand/walk 9/0/16  run 25/0/107  sit 3/0/32 (poke / collapse / crossings)
+  clip seed 9901 role 4 top 10 bottom 6 outer -1 bag -1 w 0.74: stand/walk 3/0/51  run 7/1/40  sit 2/0/12 (poke / collapse / crossings)
+  clip seed 9902 role 2 top 1 bottom 8 outer -1 bag -1 w 0.48: stand/walk 14/0/78  run 9/4/56  sit 2/0/49 (poke / collapse / crossings)
+  clip seed 9903 role 7 top 17 bottom 10 outer -1 bag -1 w 0.34: stand/walk 11/0/10  run 5/2/31  sit 4/0/1 (poke / collapse / crossings)
+clothing clip, standing / walking: 734652 cloth vertex tests, poke-through 0.032% (worst 22.8 mm), collapse 0.002% (worst 22.8 mm), 6.1 skin triangles through cloth per pose
+clothing clip, running: 489768 cloth vertex tests, poke-through 0.059% (worst 22.8 mm), collapse 0.007% (worst 29.3 mm), 14.5 skin triangles through cloth per pose
+clothing clip, sitting: 244884 cloth vertex tests, poke-through 0.031% (worst 13.2 mm), collapse 0.002% (worst 24.9 mm), 17.2 skin triangles through cloth per pose
+ALL PASSED (0 failures)

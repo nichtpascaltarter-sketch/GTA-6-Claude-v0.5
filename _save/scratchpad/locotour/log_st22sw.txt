@@ -1,0 +1,715 @@
+[   0.001] Neon Tide starting (version 0.02.7-dev). Data dir: C:\users\root\AppData\Local\NeonTide\
+[   0.820] DXGI is Wine's builtin implementation: presenting with sync interval 0 (no vsync)
+[   1.278] Direct3D 12 device created: adapter 'NVIDIA GeForce GTX 470', VRAM 16093 MB, feature level 11_1, resource binding tier 3, resource heap tier 2, typed UAV loads yes, tearing yes, bindless UAV arrays yes, 2 frames in flight
+[   1.292] UI font 'Segoe UI Semibold' -> 'Liberation Sans'
+[   1.338] UI font 'Bahnschrift SemiBold Condensed' -> 'Liberation Sans'
+[   1.385] UI font 'Impact' -> 'Liberation Sans'
+[   1.443] Font atlas built in 0.15 s
+[   1.512] Audio: no output device - audio disabled
+[   1.512] Audio: no output device, continuing silently
+[   1.513] Updater: no update check (automated run)
+[   2.347] UI icon atlas: 92 icons + 13 weapons in 784 ms
+[  11.655] Places: Ocean Promenade hotel row, 11 hotels at x 5365 (ground 2.4), park 681..1050
+[  11.655] Places: Porto Sol University at (1950, 3700), ground 3.3, 13 halls
+[  11.655] Places: Santa Marea Cemetery at (1600, -750), ground 3.5, 67 mourners
+[  11.655] Places: Palmera State Penitentiary at (350, 9075), ground 6.9
+[  11.655] Places: Palmera Speedway at (400, 5790), ground 6.8
+[  11.655] Places: layout 0.001 s, 5 places, 624 anchors
+[  11.656] Transit: SkyLine loop 8.60 km, 8 stations, 4299 samples; 3 ferry piers
+[  11.662] Sites: 111 pads, 613 elements, 25 roads, 53 buildings requested (0.01 s)
+[  12.566] World map generated in 11.05 s
+[  13.430] Road gen: 18 interchanges, 50 ramps (22 left out where they could not come down in time)
+[  13.830] Road gen: 1 arterial ends at a lone on/off ramp given a turnaround
+[  16.751] Road gen: junction plateaus, 489 profile points levelled (largest change 0.70 m, 6 short links ramped plateau to plateau)
+[  18.207] Road network: 6223 nodes, 9547 edges, 1690 signalized; hwy 61.7 km, streets 1165.8 km (5.64 s)
+[  21.552] Transit: 0 buildings cleared from the SkyLine corridor
+[  21.560] Places: Okahatchee Union Church at (-48, 6872) on edge 4965, 6 buildings made way, 186 graves, 19 mourners
+[  21.577] Places: Old Fort Church at (4501, 7893) on edge 4035, 4 buildings made way, 166 graves, 18 mourners
+[  21.578] Places: Tidewater General Hospital (city) at (1698, 1100) on edge 6868, 7 buildings made way
+[  21.584] Places: Midtown General (city) at (3698, 3195) on edge 9083, 15 buildings made way
+[  21.715] Places: Westbrook Hospital (community) at (-2399, 1647) on edge 5533, 4 buildings made way
+[  21.776] Places: Sol Beach Clinic (clinic) at (5172, -904) on edge 3026, 3 buildings made way
+[  21.781] Places: Harlow County Hospital (community) at (-4886, 5241) on edge 5324, 4 buildings made way
+[  21.785] Places: Okahatchee Medical (community) at (-54, 6622) on edge 4961, 7 buildings made way
+[  21.810] Places: Redland Health (clinic) at (-315, -5222) on edge 2100, 0 buildings made way
+[  21.857] Places: Fort Castell Hospital (community) at (4572, 8021) on edge 4096, 3 buildings made way
+[  21.869] Places: after the lots 0.317 s
+[  21.871] Buildings: 35617 (towers 352, midrise 2411, condo 427, deco 688, shops 4600, strip 640, houses 22192, villas 901, warehouses 1620) in 3.62 s
+[  21.878] Sites: 69 highway billboards
+[  21.879] Sites: 155 silos, 50 windmills
+[  21.881] Sites: 245 beach access paths
+[  21.924] Transit: 3 ferry piers, 1 routes, 4.24 km of water path (0.01 s)
+[  21.925] Transit: ferry pier Sol Beach  base (4836, -1250) length 90 deck 2.3 berth (4741, -1250)
+[  21.925] Transit: ferry pier Port Isle  base (4280, -1044) length 26 deck 2.3 berth (4280, -1075)
+[  21.925] Transit: ferry pier Key Coral  base (4350, -2973) length 58 deck 2.3 berth (4350, -2910)
+[  21.933] Transit: 4 bus routes, 64 stops (48 new shelters) (0.01 s); rejects class 1107 cut 1945 deck 72 road 119 avoid 0 pad 2 furn 283 stop 0
+[  21.933] Transit: bus 3   Airport      8.2 km, 17 stops, 4 buses, headway 6.3 min
+[  21.933] Transit: bus 7   Calle Luna   6.4 km, 15 stops, 3 buses, headway 6.7 min
+[  21.933] Transit: bus 9   Sol Beach    7.1 km, 14 stops, 4 buses, headway 5.4 min
+[  21.933] Transit: bus 12  Bayshore     8.3 km, 20 stops, 4 buses, headway 6.6 min
+[  21.938] Transit: Sol Beach Streetcar 6.24 km, 16 stops, 65 junctions (32 signalled, 30 stop signs), 229 poles, 4 streetcars, headway 4.9 min (0.01 s)
+[  21.938] Transit: streetcar stop Collins-Solano Ave & 46th St s    136 shelter (5191.0, 1496.1, 1.8) travel (-0.00, -1.00)
+[  21.938] Transit: streetcar stop 42nd St              s    511 shelter (5231.0, 1126.8, 1.7) travel (-0.00, -1.00)
+[  21.938] Transit: streetcar stop 38th St              s    892 shelter (5239.0, 746.9, 1.7) travel (-0.00, -1.00)
+[  21.938] Transit: streetcar stop 34th St              s   1277 shelter (5207.0, 367.8, 1.8) travel (0.00, -1.00)
+[  21.938] Transit: streetcar stop 30th St              s   1691 shelter (5239.0, -39.2, 1.9) travel (-0.00, -1.00)
+[  21.939] Transit: streetcar stop 26th St              s   2053 shelter (5231.1, -397.7, 1.8) travel (-0.30, -0.95)
+[  21.939] Transit: streetcar stop 22nd St              s   2427 shelter (5215.0, -773.2, 1.8) travel (-0.00, -1.00)
+[  21.939] Transit: streetcar stop 18th St              s   2811 shelter (5190.5, -1149.6, 1.9) travel (-0.30, -0.95)
+[  21.939] Transit: streetcar stop Ferry Terminal       s   3165 shelter (4941.9, -1174.6, 2.7) travel (0.30, 0.95)
+[  21.939] Transit: streetcar stop 21st St              s   3527 shelter (4973.4, -815.2, 2.9) travel (0.00, 1.00)
+[  21.939] Transit: streetcar stop 25th St              s   3920 shelter (4981.5, -425.5, 2.5) travel (0.30, 0.95)
+[  21.939] Transit: streetcar stop 29th St              s   4291 shelter (4997.4, -55.2, 2.0) travel (0.00, 1.00)
+[  21.939] Transit: streetcar stop 33rd St              s   4688 shelter (4965.4, 336.8, 2.5) travel (-0.00, 1.00)
+[  21.939] Transit: streetcar stop 37th St              s   5071 shelter (4997.4, 712.8, 2.7) travel (0.00, 1.00)
+[  21.939] Transit: streetcar stop 41st St              s   5443 shelter (4994.0, 1086.6, 1.9) travel (-0.30, 0.95)
+[  21.939] Transit: streetcar stop Bay Road & 46th St   s   5926 shelter (4938.0, 1561.6, 3.0) travel (-0.30, 0.95)
+[  21.939] Transit: SkyLine profile 12.9..25.4 m above the street, 274 piers (0 straddle bents) (0.06 s)
+[  21.939] Transit: station Calle Luna       s    691 at (1850, -629) rail 16.5 street 3.1 exits -1/+1
+[  21.939] Transit: station Solaris          s   1891 at (3050, -629) rail 15.0 street 1.5 exits -1/+1
+[  21.939] Transit: station Civic Center     s   3068 at (3275, 400) rail 14.9 street 1.5 exits -1/+1
+[  21.939] Transit: station Midtown          s   3868 at (3275, 1200) rail 15.0 street 1.6 exits -1/+1
+[  21.939] Transit: station Canvas District  s   4644 at (2750, 1529) rail 16.4 street 2.2 exits -1/+1
+[  21.939] Transit: station Palmetto Flats   s   5744 at (1650, 1529) rail 17.0 street 3.5 exits -1/+1
+[  21.939] Transit: station Airport          s   6567 at (979, 1300) rail 17.7 street 4.3 exits -1/+1
+[  21.939] Transit: station Westbrook        s   8067 at (979, -200) rail 17.8 street 4.4 exits -1/+1
+[  21.942] Site runway 09L|27R  from (-1180, 2080) to (820, 2080) z 4.6 width 60
+[  21.942] Site runway 09R|27L  from (-1100, 780) to (700, 780) z 4.6 width 45
+[  21.942] Site terminal             at (628, 1440, 4.6)
+[  21.942] Site control tower        at (730, 1832, 4.6)
+[  21.942] Site container ship       at (4625, -800, 0.0)
+[  21.942] Site container ship       at (4616, -330, 0.0)
+[  21.942] Site port gate            at (4008, -160, 3.0)
+[  21.942] Site Key Coral marina     at (4039, -4035, 0.0)
+[  21.942] Site beach club           at (4873, -3866, 1.2)
+[  21.942] Site beach club           at (4808, -4183, 2.2)
+[  21.942] Site Solaris One          at (3350, -750, 1.4)
+[  21.942] Site stadium              at (3565, 445, 1.6)
+[  21.942] Site City Hall            at (3000, 372, 2.0)
+[  21.942] Site Canvas Park          at (3100, 1800, 1.7)
+[  21.942] Site Sol Beach Pier from (5414, 1250) to (5840, 1250) deck z 5.6
+[  21.942] Site Ferris wheel         at (5504, 1270, 5.6)
+[  21.942] Site lighthouse           at (-2206, -8000, 0.5)
+[  21.942] Site radio mast           at (-6744, 7248, 166.1)
+[  21.942] Site sugar mill           at (1430, 7500, 8.1)
+[  21.942] Site Rio Sol marina       at (2280, 188, 0.0)
+[  21.942] Site Okahatchee boat ramp at (-515, 6822, 7.7)
+[  21.942] Site Sawgrass tower       at (-4873, 420, 0.6)
+[  21.942] Sites finalized: 1486 elements (0.07 s)
+[  21.949] Interiors: 29 planned (convenience 7, gun shops 2) in 6.5 ms
+[  21.949]   interior 'Mari's Apartment' kind 0 building 28142 at (1771.22, 359.23, 3.77) ax (1.0000, 0.0000) x -6.55..2.18 depth 11.50 ceil 3.84: 3 rooms, 3 openings, 3 doors, 3 portals, 0 npc points
+[  21.949]   interior 'Mama Lucha's' kind 2 building 26747 at (1351.86, 340.76, 4.29) ax (-1.0000, -0.0000) x -8.43..8.43 depth 16.00 ceil 4.20: 4 rooms, 5 openings, 4 doors, 5 portals, 34 npc points
+[  21.949]   interior 'Rook's Garage' kind 3 building 27288 at (1562.94, 2361.63, 4.30) ax (1.0000, 0.0000) x -9.74..9.74 depth 20.00 ceil 7.11: 3 rooms, 5 openings, 4 doors, 5 portals, 5 npc points
+[  21.949]   interior 'Dex's Trailer' kind 1 building 25527 at (1106.75, 2666.39, 4.87) ax (1.0000, 0.0000) x -17.46..17.46 depth 16.71 ceil 2.25: 3 rooms, 7 openings, 3 doors, 7 portals, 0 npc points
+[  21.949]   interior 'Police Headquarters' kind 5 building 32504 at (3167.89, -240.34, 1.86) ax (1.0000, 0.0000) x -11.84..11.84 depth 16.00 ceil 5.59: 2 rooms, 8 openings, 2 doors, 8 portals, 14 npc points
+[  21.949]   interior 'Tidewater General Hospital' kind 6 building 35599 at (1692.75, 1073.40, 3.63) ax (1.0000, 0.0000) x -9.55..9.55 depth 16.00 ceil 4.20: 2 rooms, 7 openings, 2 doors, 7 portals, 12 npc points
+[  21.949]   interior 'Palmetto Arms' kind 7 building 25538 at (988.27, 2896.06, 4.79) ax (0.0000, 1.0000) x 0.00..9.20 depth 14.00 ceil 4.20: 2 rooms, 1 openings, 2 doors, 1 portals, 3 npc points
+[  21.949]   interior 'Northside Arms' kind 7 building 32997 at (3284.62, 4017.67, 2.09) ax (0.0000, 1.0000) x -6.33..6.33 depth 14.00 ceil 4.03: 2 rooms, 4 openings, 2 doors, 4 portals, 3 npc points
+[  21.949]   interior 'Threads' kind 9 building 19677 at (5141.16, -280.63, 1.88) ax (-1.0000, 0.0000) x -5.68..8.51 depth 15.00 ceil 3.91: 2 rooms, 6 openings, 2 doors, 6 portals, 4 npc points
+[  21.949]   interior 'Port Isle Warehouse' kind 12 building 35552 at (4034.00, -820.00, 3.15) ax (-0.0000, 1.0000) x -23.22..23.22 depth 38.00 ceil 8.93: 2 rooms, 10 openings, 4 doors, 10 portals, 4 npc points
+[  21.949]   interior 'TideStop Mart' kind 8 building 26846 at (1475.59, -259.27, 4.22) ax (-1.0000, -0.0000) x -6.05..6.05 depth 17.00 ceil 4.20: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+[  21.949]   interior 'Bodega La Luna' kind 8 building 29653 at (2255.23, 540.74, 2.91) ax (-1.0000, -0.0000) x -5.95..5.95 depth 17.00 ceil 3.98: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+[  21.949]   interior 'Canvas Corner Market' kind 8 building 32545 at (3090.56, 1476.66, 2.21) ax (0.0000, 1.0000) x -7.40..7.40 depth 17.00 ceil 3.92: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+[  21.949]   interior 'Sunrise Food Mart' kind 8 building 19719 at (5227.62, 641.71, 1.78) ax (0.0000, 1.0000) x -7.96..7.96 depth 17.00 ceil 3.43: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+[  21.949]   interior 'Northside Quick Stop' kind 8 building 29914 at (2304.43, 3761.63, 3.12) ax (1.0000, 0.0000) x -6.89..6.89 depth 17.00 ceil 4.12: 2 rooms, 6 openings, 2 doors, 6 portals, 5 npc points
+[  21.949]   interior 'Flats Food & Fuel' kind 8 building 24842 at (467.58, 3361.67, 5.21) ax (1.0000, 0.0000) x -10.79..3.60 depth 17.00 ceil 4.20: 2 rooms, 1 openings, 2 doors, 1 portals, 5 npc points
+[  21.949]   interior 'Grove Pantry' kind 8 building 1182 at (2175.54, -3113.27, 2.23) ax (0.0207, -0.9998) x -6.96..6.96 depth 17.00 ceil 2.80: 2 rooms, 5 openings, 2 doors, 5 portals, 5 npc points
+[  21.949]   interior 'Palm Motors' kind 17 building 31294 at (2686.87, 1279.16, 2.69) ax (0.0000, 1.0000) x -9.08..12.11 depth 20.00 ceil 3.90: 2 rooms, 8 openings, 3 doors, 8 portals, 5 npc points
+[  21.949]   interior 'Tide Customs Calle Luna' kind 18 building 29601 at (2278.47, -140.75, 2.99) ax (1.0000, 0.0000) x -7.61..7.61 depth 18.00 ceil 4.17: 1 rooms, 6 openings, 2 doors, 6 portals, 3 npc points
+[  21.949]   interior 'Tide Customs Sol Beach' kind 18 building 19788 at (5127.28, 1999.35, 1.92) ax (-1.0000, 0.0000) x -8.01..8.01 depth 18.00 ceil 3.72: 1 rooms, 6 openings, 2 doors, 6 portals, 3 npc points
+[  21.949]   interior 'Sunwash Car Wash' kind 19 building 29044 at (1988.34, 1491.32, 3.44) ax (0.0000, 1.0000) x -7.41..7.41 depth 20.00 ceil 8.08: 1 rooms, 5 openings, 3 doors, 5 portals, 2 npc points
+[  21.949]   interior 'Key Coral Villa' kind 0 building 23718 at (4516.12, -4203.72, 1.64) ax (0.9992, 0.0401) x -7.21..7.21 depth 12.00 ceil 2.80: 3 rooms, 5 openings, 3 doors, 5 portals, 0 npc points
+[  21.949]   interior 'Sol Beach Condo Lobby' kind 20 building 19771 at (5114.61, 1619.32, 1.86) ax (-1.0000, 0.0000) x -5.88..5.88 depth 10.00 ceil 4.20: 2 rooms, 4 openings, 2 doors, 4 portals, 2 npc points
+[  21.949]   interior 'Sol Beach Condo' kind 21 building 19771 at (5114.61, 1619.32, 31.52) ax (-1.0000, 0.0000) x -9.80..5.88 depth 12.00 ceil 2.61: 6 rooms, 4 openings, 5 doors, 4 portals, 0 npc points
+[  21.949]   interior 'Downtown Penthouse Lobby' kind 20 building 33543 at (3511.22, -715.16, 1.71) ax (-0.0000, -1.0000) x -5.25..5.25 depth 10.00 ceil 4.20: 2 rooms, 3 openings, 2 doors, 3 portals, 2 npc points
+[  21.950]   interior 'Downtown Penthouse' kind 21 building 33543 at (3511.22, -715.16, 52.15) ax (-0.0000, -1.0000) x -10.49..10.49 depth 14.00 ceil 2.80: 6 rooms, 4 openings, 5 doors, 4 portals, 0 npc points
+[  21.950]   interior 'Club Riptide' kind 4 building -1 at (5424.10, 900.00, 1.36) ax (0.0000, -1.0000) x -55.00..17.00 depth 32.00 ceil 4.00: 4 rooms, 0 openings, 0 doors, 0 portals, 32 npc points
+[  21.950]   interior 'Solaris One' kind 10 building -1 at (3350.00, -786.00, 1.89) ax (1.0000, -0.0000) x -18.40..18.40 depth 31.00 ceil 8.30: 3 rooms, 4 openings, 4 doors, 4 portals, 17 npc points
+[  21.950]   interior 'Solaris One Penthouse' kind 11 building -1 at (3365.30, -759.93, 457.34) ax (0.5442, 0.8390) x -18.24..18.24 depth 36.48 ceil 8.20: 4 rooms, 4 openings, 1 doors, 4 portals, 15 npc points
+[  22.105] Buildings: 33925 restyled by district palettes in 155.4 ms (taxpayer 1392, 1920s block 924, med revival 774, mimo shop 1036, bodega 338, arcade 118, gallery 11, walk-up 497, mimo apts 763, med apts 530, office 60s 129, modern 372, loft 80, condo slab 134, glass condo 113, mimo hotel 97, podium condo 78, ranch 5438, bungalow 2806, med house 3406, two-storey 2417, mimo house 1933, split level 2251, conch 265, modern villa 190, streamline 176, med hotel 117, mimo motel 133, sawtooth 540, ware office 551, body shop 282, med villa 307, colonial villa 135, stilt house 73, mimo motor court 161, med motel 90, keys motel 113, motor inn 90, mission strip 199, mimo strip 186, power center 255, gambrel barn 34, pole barn 43, gable barn 24, mission church 47, board church 46, brick church 25, a-frame church 43, cbs house 3237, folk victorian 363, raised keys house 63, mobile home 149)
+[  22.353] Transit: 0 buildings cleared from the SkyLine corridor
+[  22.354] Buildings: block infill 3458 back buildings (garage rows 720, sheds 1872, back houses 866, 0 in the viaduct corridor dropped, 1210 near a street left as yards), 1465 rear parking lots, 5760 yards in 248.3 ms
+[  22.535] Transit: 0 buildings cleared from the SkyLine corridor
+[  22.536] Buildings: frontage fill 4300 gaps: 1676 vacant lots, 731 street parking lots, 649 side yards, 458 service yards, 786 left bare (181.7 ms)
+[  22.591] Buildings: repetition (neighbours within 150 m with the same style, archetype, massing, roof, height band and facade pattern): 2.0% overall, 56% of buildings without a twin; by district: Downtown Porto Sol 2.8%, Solaris 3.0%, Canvas District 0.8%, North Porto Sol 1.0%, Calle Luna 1.4%, Sol Beach 1.7%, Key Coral 4.6%, The Grove 2.0%, Palmetto Flats 1.2%, Westbrook 2.5%, Redland 3.0%, Ten Palms 1.6%, Palmera Farmlands 4.9%, Okahatchee 3.5%, Harlow 2.7%, Fort Castell 1.7%, Key Solano 2.5% (54.7 ms)
+[  25.911] Material library: 57 layers at 256^2
+[  26.233] Props: 83 prototypes, 43433 verts
+[  29.755] Vehicle assets: 45 models in 2.77 s
+[  61.722] Wardrobe: 29 dedicated looks (night out 12, door staff 3, sportswear 8, cover-ups 6); roster dressed for a night out 8 men / 9 women, office 9, work 6, swim 8, sport 6
+[  62.283] Character assets: 149 characters in 32.52 s
+[  62.345] Game assets built in 35.36 s
+[  62.653] Story place near (800, -5400): no building frontage found, using the street
+[  62.661] Story places resolved in 230.4 ms (diner 1350 342, Mari's 1771 358, Rook's 1566 2360, Pulse FM 3344 662, boatyard 1650 239, river 1644 140, sawgrass dock -5016 -74)
+[  62.662] Missions registered: 57
+[  65.365] Lane graph: 180 plaza walkways and 2 zebra crossings from the sites
+[  65.368] Lane graph: 25496 lanes, 56760 connectors (1154772 pts), 40687 walk nodes, 56441 walk links, dead-end turning circles moved 22 / obstructed 0 (2.70 s)
+[  98.881] UI map: base 2560x2560 in 33461 ms, 9547 roads (43960 pts) in 8 ms, 37 labels in 30 ms
+[  98.881] hudInit done in 33500 ms
+[  98.881] Init done in 97.37 s (shaders: 0 compiled in 0.00 s)
+[  98.890] Transit: SkyLine timetable built (5.6 ms): loop 12.4 / 12.4 min, 4 trains per direction, headway 3.1 min
+[  98.895] Transit: 9 lines published to the map
+[  98.897] Transit: SkyLine car models registered as vehicle assets 45 / 46
+[  99.470] Transit: 4 route bus models (destination signs) in 572 ms
+[  99.470] Transit: 64 bus stops registered with the AI (48 lane stops added, 240 waiting spots)
+[  99.470] Transit: 15 buses on 4 routes
+[  99.470] Transit: Bay Ferry timetable: loop 13.2 min, 2 ferries, headway 6.6 min
+[  99.472] Transit: Sol Ferry model registered as vehicle asset 51
+[  99.476] Transit: streetcar modules registered as vehicle assets 52 53 54
+[  99.477] Transit: 16 streetcar stops registered (16 curb lanes kept clear)
+[  99.477] Transit: 4 streetcars on the 6.24 km loop, 16 stops, 65/65 junction movements found
+[  99.487] Stunt jumps: 0 road crests (0 candidates); ramps being placed
+[  99.489] fishing: 9 spots (lake yes, 3 Keys docks)
+[ 101.153] Stunt ramps: 10 placed (0 over water) in 1250 ms (25869 corridors tested); 10 unique stunt jumps
+[ 101.258] Wildlife: 28 species models ready (166 k triangles in the detailed LODs)
+[ 104.546] Interior 'TideStop Mart' built: 110618 triangles, 18 lights, 14 colliders, 3 door leaves in 63.0 ms
+[ 104.547] Interior 'Tide Customs Calle Luna' built: 11390 triangles, 11 lights, 15 colliders, 2 door leaves in 1.2 ms
+[ 118.670] locoplayer: switchback at 1855.9 -638.0 3.04, flights along 1.00 0.00 (23 boxes, 17 cm risers; traced)
+[ 118.670] locoplayer: station Calle Luna, stair top 1815.4 -638.0 17.6, foot 1848.1 -638.0 3.1, 32.7 m long
+[ 151.329] locoplayer seg 0: switchback up run, 3.1 s, 11.0 m, 3.52 m/s
+[ 209.389] locoplayer seg 1: switchback down run, 3.2 s, 11.1 m, 3.52 m/s
+[ 254.429] locoplayer seg 2: switchback up sprint, 2.2 s, 11.1 m, 4.97 m/s
+[ 260.085] Transit: 1.074 ms/frame avg, 1 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[ 264.642] locoplayer trace 1: switchback down sprint foot 1, seg 3
+[ 264.642] locoplayer trace 1 f-13: pl1 hd0 st-1.00 age0.07 land-9.00 scan1 | heel  0.83  1.43  +16.3 ball  0.86  1.26   +0.0 toe  0.87  1.19   +0.3 | root  0.78  1.65 z2.04 yaw+168 v4.92 | probe  0.87  1.42 +0.00
+[ 264.642] locoplayer trace 1 f-12: pl1 hd0 st-1.00 age0.10 land-9.00 scan0 | heel  0.83  1.43  +16.6 ball  0.86  1.26   +0.0 toe  0.87  1.19   +0.2 | root  0.76  1.48 z2.04 yaw+168 v5.25 | probe  0.88  1.43 +0.00
+[ 264.642] locoplayer trace 1 f-11: pl1 hd0 st-1.00 age0.13 land-9.00 scan1 | heel  0.83  1.43  +18.0 ball  0.86  1.26   +0.0 toe  0.87  1.19   +0.1 | root  0.74  1.29 z2.21 yaw+169 v5.60 | probe  0.89  1.44 -0.17
+[ 264.642] locoplayer trace 1 f-10: pl1 hd0 st-1.00 age0.17 land-9.00 scan1 | heel  0.83  1.42  +23.6 ball  0.86  1.26   +0.2 toe  0.87  1.18   +0.0 | root  0.71  1.10 z2.38 yaw+170 v5.96 | probe  0.89  1.45 -0.34
+[ 264.643] locoplayer trace 1 f- 9: pl1 hd0 st-1.00 age0.20 land-9.00 scan1 | heel  0.84  1.41  +26.5 ball  0.86  1.26   +0.5 toe  0.88  1.17   +0.0 | root  0.68  0.89 z2.38 yaw+172 v6.33 | probe  0.71 -0.52 +0.45
+[ 264.643] locoplayer trace 1 f- 8: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel  0.84  1.41  +87.8 ball  0.86  1.26  +61.8 toe  0.88  1.18  +60.6 | root  0.65  0.67 z2.55 yaw+173 v6.68 | probe  0.87  1.40 -0.34
+[ 264.643] locoplayer trace 1 f- 7: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel  0.71  1.03  +61.4 ball  0.73  0.87  +53.2 toe  0.74  0.81  +34.2 | root  0.63  0.44 z2.72 yaw+175 v6.90 | probe  0.64 -0.95 +0.34
+[ 264.643] locoplayer trace 1 f- 6: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel  0.64  0.62  +69.3 ball  0.65  0.46  +45.3 toe  0.65  0.39  +43.0 | root  0.61  0.21 z2.89 yaw+176 v6.90 | probe  0.65  0.62 -0.34
+[ 264.643] locoplayer trace 1 f- 5: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel  0.58  0.21  +33.7 ball  0.58  0.04  +28.1 toe  0.58 -0.02   +9.0 | root  0.60 -0.02 z3.06 yaw+177 v6.90 | probe  0.55 -1.35 +0.00
+[ 264.643] locoplayer trace 1 f- 4: pl0 hd0 st-1.00 age0.00 land-0.17 scan1 | heel  0.60  0.28  +28.0 ball  0.62  0.46  +30.0 toe  0.62  0.53  +30.8 | root  0.55  0.06 z2.89 yaw  +0 v5.87 | probe  0.61  0.43 -0.17
+[ 264.643] locoplayer trace 1 f- 3: pl0 hd0 st-1.00 age0.00 land-0.17 scan1 | heel  0.60  0.44  +24.8 ball  0.62  0.62  +43.8 toe  0.62  0.69  +44.5 | root  0.55  0.27 z2.89 yaw  +0 v6.23 | probe  0.60  0.24 +0.00
+[ 264.643] locoplayer trace 1 f- 2: pl1 hd0 st-1.00 age0.03 land-9.00 scan1 | heel  0.60  0.55   +0.0 ball  0.61  0.73  +17.9 toe  0.62  0.80  +18.3 | root  0.55  0.49 z2.72 yaw  +0 v6.60 | probe  0.61  0.42 +0.00
+[ 264.643] locoplayer trace 1 f- 1: pl1 hd0 st-1.00 age0.07 land-9.00 scan1 | heel  0.60  0.55   -6.3 ball  0.61  0.73  +10.7 toe  0.62  0.80  +10.7 | root  0.55  0.72 z2.55 yaw  +0 v6.90 | probe  0.61  0.41 +0.17
+[ 264.643] locoplayer trace 1 f- 0: pl1 hd0 st-1.00 age0.10 land-9.00 scan1 | heel  0.60  0.55  -16.9 ball  0.61  0.73   +0.0 toe  0.62  0.80   +0.0 | root  0.55  0.95 z2.38 yaw  +0 v6.90 | probe  0.61  0.41 +0.34
+[ 264.643] locoplayer deep switchback down sprint foot 1: h -16.9 b   0.0 t   0.0 cm | v 6.90 | age0.10 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.187
+[ 305.632] locoplayer seg 3: switchback down sprint, 2.2 s, 11.1 m, 4.97 m/s
+[ 350.807] locoplayer trace 2: switchback up run foot 0, seg 4
+[ 350.808] locoplayer trace 2 f-13: pl1 hd0 st-1.00 age0.07 land-9.00 scan1 | heel -0.19  2.89   -2.1 ball -0.04  2.99   -1.6 toe  0.01  3.03   -1.4 | root -0.12  2.72 z1.53 yaw -94 v3.72 | probe -0.30  2.82 +0.00
+[ 350.808] locoplayer trace 2 f-12: pl1 hd0 st-1.00 age0.10 land-9.00 scan1 | heel -0.21  2.94   +0.0 ball -0.04  2.99   +0.5 toe  0.02  3.01   +0.7 | root -0.03  2.80 z1.53 yaw-118 v3.53 | probe -0.27  2.83 +0.00
+[ 350.809] locoplayer trace 2 f-11: pl1 hd0 st-1.00 age0.13 land-9.00 scan1 | heel -0.22  2.96   +1.2 ball -0.04  2.99   +0.0 toe  0.03  3.00   +0.3 | root  0.05  2.86 z1.53 yaw-132 v3.32 | probe -0.24  2.86 +0.00
+[ 350.809] locoplayer trace 2 f-10: pl1 hd0 st-1.00 age0.17 land-9.00 scan1 | heel -0.22  2.97   +4.1 ball -0.04  2.99   +0.0 toe  0.03  3.00   +0.3 | root  0.14  2.92 z1.53 yaw-144 v3.10 | probe -0.22  2.87 +0.00
+[ 350.810] locoplayer trace 2 f- 9: pl1 hd0 st-1.00 age0.20 land-9.00 scan1 | heel -0.21  2.99   +4.6 ball -0.04  2.99   +0.0 toe  0.04  2.99   +0.2 | root  0.23  2.96 z1.53 yaw-154 v2.87 | probe -0.21  2.89 +0.00
+[ 350.810] locoplayer trace 2 f- 8: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel -0.21  3.00   +8.7 ball -0.04  2.99   +4.8 toe  0.04  2.99   +4.5 | root  0.31  2.99 z1.53 yaw-161 v2.65 | probe  1.33  2.82 -0.45
+[ 350.810] locoplayer trace 2 f- 7: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel  0.07  3.10  +12.3 ball  0.24  3.05   +8.8 toe  0.31  3.03   +8.2 | root  0.39  3.01 z1.53 yaw-167 v2.44 | probe  0.21  3.08 +0.00
+[ 350.810] locoplayer trace 2 f- 6: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel  0.33  3.14  +15.2 ball  0.50  3.07  +12.1 toe  0.56  3.04  +11.5 | root  0.46  3.02 z1.53 yaw-172 v2.25 | probe  1.12  2.94 -0.45
+[ 350.810] locoplayer trace 2 f- 5: pl0 hd0 st-1.00 age0.00 land 0.00 scan1 | heel  0.51  3.19  +14.8 ball  0.66  3.11  +12.2 toe  0.73  3.08  +12.0 | root  0.53  3.02 z1.53 yaw-176 v2.09 | probe  0.66  3.16 +0.00
+[ 350.810] locoplayer trace 2 f- 4: pl0 hd0 st-1.00 age0.00 land 0.00 scan0 | heel  0.67  3.15  +11.4 ball  0.82  3.05  +10.5 toe  0.88  3.02  +10.9 | root  0.60  3.00 z1.53 yaw-179 v1.97 | probe  1.01  2.95 +0.00
+[ 350.811] locoplayer trace 2 f- 3: pl0 hd0 st-1.00 age0.00 land 0.00 scan0 | heel  0.82  3.08   +6.9 ball  0.96  2.98   +9.5 toe  1.01  2.94  +10.4 | root  0.66  2.98 z1.53 yaw+178 v1.90 | probe  0.97  3.01 +0.00
+[ 350.811] locoplayer trace 2 f- 2: pl0 hd0 st-1.00 age0.00 land 0.00 scan1 | heel  0.91  2.99   +4.7 ball  1.04  2.88   +8.2 toe  1.09  2.84   +9.4 | root  0.71  2.94 z1.53 yaw+175 v1.88 | probe  1.01  2.89 +0.00
+[ 350.812] locoplayer trace 2 f- 1: pl0 hd0 st-1.00 age0.00 land 0.00 scan0 | heel  0.97  2.89   +2.4 ball  1.10  2.77 +160.3 toe  1.15  2.73 +161.9 | root  0.75  2.90 z1.53 yaw+173 v1.91 | probe  1.11  2.79 -0.45
+[ 350.812] locoplayer trace 2 f- 0: pl1 hd0 st-1.00 age0.03 land-9.00 scan0 | heel  0.98  2.80   +0.2 ball  1.10  2.68 +157.8 toe  1.15  2.63 +159.3 | root  0.79  2.84 z1.53 yaw+170 v2.00 | probe  1.01  2.81 +0.00
+[ 355.809] locoplayer seg 4: switchback up run, 3.1 s, 11.0 m, 3.52 m/s
+[ 365.508] Wildlife: 117 animals (109 birds) in 14 groups, 49 drawn in 12 draws | update 0.163 ms, render 0.230 ms
+[ 432.149] locoplayer seg 5: switchback down run, 3.2 s, 11.1 m, 3.52 m/s
+[ 485.145] locoplayer seg 6: switchback up sprint, 2.2 s, 11.1 m, 4.97 m/s
+[ 492.232] locoplayer trace 3: switchback down sprint foot 1, seg 7
+[ 492.232] locoplayer trace 3 f-13: pl1 hd0 st-1.00 age0.07 land-9.00 scan1 | heel  0.83  1.43  +16.3 ball  0.86  1.26   +0.0 toe  0.87  1.19   +0.3 | root  0.78  1.65 z2.04 yaw+168 v4.92 | probe  0.87  1.42 +0.00
+[ 492.232] locoplayer trace 3 f-12: pl1 hd0 st-1.00 age0.10 land-9.00 scan0 | heel  0.83  1.43  +16.6 ball  0.86  1.26   +0.0 toe  0.87  1.19   +0.2 | root  0.76  1.48 z2.04 yaw+168 v5.25 | probe  0.88  1.43 +0.00
+[ 492.232] locoplayer trace 3 f-11: pl1 hd0 st-1.00 age0.13 land-9.00 scan1 | heel  0.83  1.43  +18.0 ball  0.86  1.26   +0.0 toe  0.87  1.19   +0.1 | root  0.74  1.29 z2.21 yaw+169 v5.60 | probe  0.89  1.44 -0.17
+[ 492.232] locoplayer trace 3 f-10: pl1 hd0 st-1.00 age0.17 land-9.00 scan1 | heel  0.83  1.42  +23.6 ball  0.86  1.26   +0.2 toe  0.87  1.18   +0.0 | root  0.71  1.10 z2.38 yaw+170 v5.96 | probe  0.89  1.45 -0.34
+[ 492.232] locoplayer trace 3 f- 9: pl1 hd0 st-1.00 age0.20 land-9.00 scan1 | heel  0.84  1.41  +26.5 ball  0.86  1.26   +0.5 toe  0.88  1.17   +0.0 | root  0.68  0.89 z2.38 yaw+172 v6.33 | probe  0.71 -0.52 +0.45
+[ 492.232] locoplayer trace 3 f- 8: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel  0.84  1.41  +87.8 ball  0.86  1.26  +61.8 toe  0.88  1.18  +60.6 | root  0.65  0.67 z2.55 yaw+173 v6.68 | probe  0.87  1.40 -0.34
+[ 492.232] locoplayer trace 3 f- 7: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel  0.71  1.03  +61.4 ball  0.73  0.87  +53.2 toe  0.74  0.81  +34.2 | root  0.63  0.44 z2.72 yaw+175 v6.90 | probe  0.64 -0.95 +0.34
+[ 492.232] locoplayer trace 3 f- 6: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel  0.64  0.62  +69.3 ball  0.65  0.46  +45.3 toe  0.65  0.39  +43.0 | root  0.61  0.21 z2.89 yaw+176 v6.90 | probe  0.65  0.62 -0.34
+[ 492.232] locoplayer trace 3 f- 5: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel  0.58  0.21  +33.7 ball  0.58  0.04  +28.1 toe  0.58 -0.02   +9.0 | root  0.60 -0.02 z3.06 yaw+177 v6.90 | probe  0.55 -1.35 +0.00
+[ 492.232] locoplayer trace 3 f- 4: pl0 hd0 st-1.00 age0.00 land-0.17 scan1 | heel  0.60  0.28  +28.0 ball  0.62  0.46  +30.0 toe  0.62  0.53  +30.8 | root  0.55  0.06 z2.89 yaw  +0 v5.87 | probe  0.61  0.43 -0.17
+[ 492.232] locoplayer trace 3 f- 3: pl0 hd0 st-1.00 age0.00 land-0.17 scan1 | heel  0.60  0.44  +24.8 ball  0.62  0.62  +43.8 toe  0.62  0.69  +44.5 | root  0.55  0.27 z2.89 yaw  +0 v6.23 | probe  0.60  0.24 +0.00
+[ 492.232] locoplayer trace 3 f- 2: pl1 hd0 st-1.00 age0.03 land-9.00 scan1 | heel  0.60  0.55   +0.0 ball  0.61  0.73  +17.9 toe  0.62  0.80  +18.3 | root  0.55  0.49 z2.72 yaw  +0 v6.60 | probe  0.61  0.42 +0.00
+[ 492.232] locoplayer trace 3 f- 1: pl1 hd0 st-1.00 age0.07 land-9.00 scan1 | heel  0.60  0.55   -6.3 ball  0.61  0.73  +10.7 toe  0.62  0.80  +10.7 | root  0.55  0.72 z2.55 yaw  +0 v6.90 | probe  0.61  0.41 +0.17
+[ 492.232] locoplayer trace 3 f- 0: pl1 hd0 st-1.00 age0.10 land-9.00 scan1 | heel  0.60  0.55  -16.9 ball  0.61  0.73   +0.0 toe  0.62  0.80   +0.0 | root  0.55  0.95 z2.38 yaw  +0 v6.90 | probe  0.61  0.41 +0.34
+[ 492.232] locoplayer deep switchback down sprint foot 1: h -16.9 b   0.0 t   0.0 cm | v 6.90 | age0.10 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.140
+[ 492.249] Transit: 0.066 ms/frame avg, 1 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[ 526.625] locoplayer seg 7: switchback down sprint, 2.2 s, 11.1 m, 4.97 m/s
+[ 559.734] locoplayer trace 4: switchback up run foot 0, seg 8
+[ 559.734] locoplayer trace 4 f-13: pl1 hd0 st-1.00 age0.07 land-9.00 scan1 | heel -0.19  2.89   -2.1 ball -0.04  2.99   -1.6 toe  0.01  3.03   -1.4 | root -0.12  2.72 z1.53 yaw -94 v3.72 | probe -0.30  2.82 +0.00
+[ 559.734] locoplayer trace 4 f-12: pl1 hd0 st-1.00 age0.10 land-9.00 scan1 | heel -0.21  2.94   +0.0 ball -0.04  2.99   +0.5 toe  0.02  3.01   +0.7 | root -0.03  2.80 z1.53 yaw-118 v3.53 | probe -0.27  2.83 +0.00
+[ 559.735] locoplayer trace 4 f-11: pl1 hd0 st-1.00 age0.13 land-9.00 scan1 | heel -0.22  2.96   +1.2 ball -0.04  2.99   +0.0 toe  0.03  3.00   +0.3 | root  0.05  2.86 z1.53 yaw-132 v3.32 | probe -0.24  2.86 +0.00
+[ 559.735] locoplayer trace 4 f-10: pl1 hd0 st-1.00 age0.17 land-9.00 scan1 | heel -0.22  2.97   +4.1 ball -0.04  2.99   +0.0 toe  0.03  3.00   +0.3 | root  0.14  2.92 z1.53 yaw-144 v3.10 | probe -0.22  2.87 +0.00
+[ 559.735] locoplayer trace 4 f- 9: pl1 hd0 st-1.00 age0.20 land-9.00 scan1 | heel -0.21  2.99   +4.6 ball -0.04  2.99   +0.0 toe  0.04  2.99   +0.2 | root  0.23  2.96 z1.53 yaw-154 v2.87 | probe -0.21  2.89 +0.00
+[ 559.735] locoplayer trace 4 f- 8: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel -0.21  3.00   +8.7 ball -0.04  2.99   +4.8 toe  0.04  2.99   +4.5 | root  0.31  2.99 z1.53 yaw-161 v2.65 | probe  1.31  2.83 -0.45
+[ 559.735] locoplayer trace 4 f- 7: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel  0.07  3.10  +12.3 ball  0.24  3.05   +8.8 toe  0.31  3.03   +8.2 | root  0.39  3.01 z1.53 yaw-167 v2.44 | probe  0.21  3.08 +0.00
+[ 559.735] locoplayer trace 4 f- 6: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel  0.33  3.14  +15.2 ball  0.50  3.07  +12.1 toe  0.56  3.04  +11.5 | root  0.46  3.02 z1.53 yaw-172 v2.25 | probe  1.09  2.95 +0.00
+[ 559.735] locoplayer trace 4 f- 5: pl0 hd0 st-1.00 age0.00 land 0.00 scan1 | heel  0.52  3.17  +14.8 ball  0.68  3.09  +12.2 toe  0.74  3.06  +12.0 | root  0.53  3.02 z1.53 yaw-176 v2.09 | probe  0.67  3.14 +0.00
+[ 559.735] locoplayer trace 4 f- 4: pl0 hd0 st-1.00 age0.00 land 0.00 scan0 | heel  0.70  3.14  +11.4 ball  0.86  3.05  +10.5 toe  0.91  3.01  +10.9 | root  0.60  3.00 z1.53 yaw-179 v1.97 | probe  1.01  2.96 +0.00
+[ 559.735] locoplayer trace 4 f- 3: pl0 hd0 st-1.00 age0.00 land 0.00 scan0 | heel  0.85  3.08   +6.9 ball  1.00  2.98   +9.5 toe  1.05  2.94  +10.4 | root  0.66  2.98 z1.53 yaw+178 v1.90 | probe  1.01  3.01 +0.00
+[ 559.735] locoplayer trace 4 f- 2: pl0 hd0 st-1.00 age0.00 land 0.00 scan0 | heel  0.95  3.00   +4.7 ball  1.08  2.89   +8.2 toe  1.13  2.84 +163.3 | root  0.71  2.94 z1.53 yaw+175 v1.88 | probe  1.02  2.92 +0.00
+[ 559.735] locoplayer trace 4 f- 1: pl0 hd0 st-1.00 age0.00 land 0.00 scan0 | heel  1.02  2.90   +2.4 ball  1.15  2.78 +160.4 toe  1.19  2.74 +161.9 | root  0.75  2.90 z1.53 yaw+173 v1.91 | probe  1.15  2.80 -0.45
+[ 559.735] locoplayer trace 4 f- 0: pl1 hd0 st-1.00 age0.03 land-9.00 scan0 | heel  1.02  2.81   +0.2 ball  1.14  2.69 +157.8 toe  1.19  2.64 +159.3 | root  0.79  2.84 z1.53 yaw+170 v2.00 | probe  1.05  2.81 +0.00
+[ 563.048] locoplayer seg 8: switchback up run, 3.1 s, 11.0 m, 3.52 m/s
+[ 627.539] locoplayer seg 9: switchback down run, 3.2 s, 11.1 m, 3.52 m/s
+[ 666.368] locoplayer seg 10: switchback up sprint, 2.2 s, 11.1 m, 4.97 m/s
+[ 673.479] locoplayer trace 5: switchback down sprint foot 1, seg 11
+[ 673.479] locoplayer trace 5 f-13: pl1 hd0 st-1.00 age0.07 land-9.00 scan1 | heel  0.83  1.43  +16.3 ball  0.86  1.26   +0.0 toe  0.87  1.19   +0.3 | root  0.78  1.65 z2.04 yaw+168 v4.92 | probe  0.87  1.42 +0.00
+[ 673.479] locoplayer trace 5 f-12: pl1 hd0 st-1.00 age0.10 land-9.00 scan0 | heel  0.83  1.43  +16.6 ball  0.86  1.26   +0.0 toe  0.87  1.19   +0.2 | root  0.76  1.48 z2.04 yaw+168 v5.25 | probe  0.88  1.43 +0.00
+[ 673.479] locoplayer trace 5 f-11: pl1 hd0 st-1.00 age0.13 land-9.00 scan1 | heel  0.83  1.43  +18.0 ball  0.86  1.26   +0.0 toe  0.87  1.19   +0.1 | root  0.74  1.29 z2.21 yaw+169 v5.60 | probe  0.89  1.44 -0.17
+[ 673.481] locoplayer trace 5 f-10: pl1 hd0 st-1.00 age0.17 land-9.00 scan1 | heel  0.83  1.42  +23.6 ball  0.86  1.26   +0.2 toe  0.87  1.18   +0.0 | root  0.71  1.10 z2.38 yaw+170 v5.96 | probe  0.89  1.45 -0.34
+[ 673.481] locoplayer trace 5 f- 9: pl1 hd0 st-1.00 age0.20 land-9.00 scan1 | heel  0.84  1.41  +26.5 ball  0.86  1.26   +0.5 toe  0.88  1.17   +0.0 | root  0.68  0.89 z2.38 yaw+172 v6.33 | probe  0.71 -0.52 +0.45
+[ 673.482] locoplayer trace 5 f- 8: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel  0.84  1.41  +87.8 ball  0.86  1.26  +61.8 toe  0.88  1.18  +60.6 | root  0.65  0.67 z2.55 yaw+173 v6.68 | probe  0.87  1.40 -0.34
+[ 673.482] locoplayer trace 5 f- 7: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel  0.71  1.03  +61.4 ball  0.73  0.87  +53.2 toe  0.74  0.81  +34.2 | root  0.63  0.44 z2.72 yaw+175 v6.90 | probe  0.64 -0.95 +0.34
+[ 673.482] locoplayer trace 5 f- 6: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel  0.64  0.62  +69.3 ball  0.65  0.46  +45.3 toe  0.65  0.39  +43.0 | root  0.61  0.21 z2.89 yaw+176 v6.90 | probe  0.65  0.62 -0.34
+[ 673.482] locoplayer trace 5 f- 5: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel  0.58  0.21  +33.7 ball  0.58  0.04  +28.1 toe  0.58 -0.02   +9.0 | root  0.60 -0.02 z3.06 yaw+177 v6.90 | probe  0.55 -1.35 +0.00
+[ 673.482] locoplayer trace 5 f- 4: pl0 hd0 st-1.00 age0.00 land-0.17 scan1 | heel  0.60  0.28  +28.0 ball  0.62  0.46  +30.0 toe  0.62  0.53  +30.8 | root  0.55  0.06 z2.89 yaw  +0 v5.87 | probe  0.61  0.43 -0.17
+[ 673.482] locoplayer trace 5 f- 3: pl0 hd0 st-1.00 age0.00 land-0.17 scan1 | heel  0.60  0.44  +24.8 ball  0.62  0.62  +43.8 toe  0.62  0.69  +44.5 | root  0.55  0.27 z2.89 yaw  +0 v6.23 | probe  0.60  0.24 +0.00
+[ 673.483] locoplayer trace 5 f- 2: pl1 hd0 st-1.00 age0.03 land-9.00 scan1 | heel  0.60  0.55   +0.0 ball  0.61  0.73  +17.9 toe  0.62  0.80  +18.3 | root  0.55  0.49 z2.72 yaw  +0 v6.60 | probe  0.61  0.42 +0.00
+[ 673.483] locoplayer trace 5 f- 1: pl1 hd0 st-1.00 age0.07 land-9.00 scan1 | heel  0.60  0.55   -6.3 ball  0.61  0.73  +10.7 toe  0.62  0.80  +10.7 | root  0.55  0.72 z2.55 yaw  +0 v6.90 | probe  0.61  0.41 +0.17
+[ 673.483] locoplayer trace 5 f- 0: pl1 hd0 st-1.00 age0.10 land-9.00 scan1 | heel  0.60  0.55  -16.9 ball  0.61  0.73   +0.0 toe  0.62  0.80   +0.0 | root  0.55  0.95 z2.38 yaw  +0 v6.90 | probe  0.61  0.41 +0.34
+[ 673.483] locoplayer deep switchback down sprint foot 1: h -16.9 b   0.0 t   0.0 cm | v 6.90 | age0.10 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.129
+[ 700.022] Transit: 0.071 ms/frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[ 703.048] Wildlife: 117 animals (109 birds) in 14 groups, 68 drawn in 12 draws | update 0.139 ms, render 0.239 ms
+[ 703.146] locoplayer seg 11: switchback down sprint, 2.2 s, 11.1 m, 4.97 m/s
+[ 738.195] locoplayer trace 6: switchback up run foot 0, seg 12
+[ 738.195] locoplayer trace 6 f-13: pl1 hd0 st-1.00 age0.07 land-9.00 scan1 | heel -0.19  2.89   -2.1 ball -0.04  2.99   -1.6 toe  0.01  3.03   -1.4 | root -0.12  2.72 z1.53 yaw -94 v3.72 | probe -0.30  2.82 +0.00
+[ 738.195] locoplayer trace 6 f-12: pl1 hd0 st-1.00 age0.10 land-9.00 scan1 | heel -0.21  2.94   +0.0 ball -0.04  2.99   +0.5 toe  0.02  3.01   +0.7 | root -0.03  2.80 z1.53 yaw-118 v3.53 | probe -0.27  2.83 +0.00
+[ 738.195] locoplayer trace 6 f-11: pl1 hd0 st-1.00 age0.13 land-9.00 scan1 | heel -0.22  2.96   +1.2 ball -0.04  2.99   +0.0 toe  0.03  3.00   +0.3 | root  0.05  2.86 z1.53 yaw-132 v3.32 | probe -0.24  2.86 +0.00
+[ 738.195] locoplayer trace 6 f-10: pl1 hd0 st-1.00 age0.17 land-9.00 scan1 | heel -0.22  2.97   +4.1 ball -0.04  2.99   +0.0 toe  0.03  3.00   +0.3 | root  0.14  2.92 z1.53 yaw-144 v3.10 | probe -0.22  2.87 +0.00
+[ 738.195] locoplayer trace 6 f- 9: pl1 hd0 st-1.00 age0.20 land-9.00 scan1 | heel -0.21  2.99   +4.6 ball -0.04  2.99   +0.0 toe  0.04  2.99   +0.2 | root  0.23  2.96 z1.53 yaw-154 v2.87 | probe -0.21  2.89 +0.00
+[ 738.195] locoplayer trace 6 f- 8: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel -0.21  3.00   +8.7 ball -0.04  2.99   +4.8 toe  0.04  2.99   +4.5 | root  0.31  2.99 z1.53 yaw-161 v2.65 | probe  1.31  2.83 -0.45
+[ 738.195] locoplayer trace 6 f- 7: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel  0.07  3.10  +12.3 ball  0.24  3.05   +8.8 toe  0.31  3.03   +8.2 | root  0.39  3.01 z1.53 yaw-167 v2.44 | probe  0.21  3.08 +0.00
+[ 738.195] locoplayer trace 6 f- 6: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel  0.33  3.14  +15.2 ball  0.50  3.07  +12.1 toe  0.56  3.04  +11.5 | root  0.46  3.02 z1.53 yaw-172 v2.25 | probe  1.09  2.95 +0.00
+[ 738.195] locoplayer trace 6 f- 5: pl0 hd0 st-1.00 age0.00 land 0.00 scan1 | heel  0.52  3.17  +14.8 ball  0.68  3.09  +12.2 toe  0.74  3.05  +12.0 | root  0.53  3.02 z1.53 yaw-176 v2.09 | probe  0.67  3.14 +0.00
+[ 738.195] locoplayer trace 6 f- 4: pl0 hd0 st-1.00 age0.00 land 0.00 scan0 | heel  0.70  3.14  +11.4 ball  0.86  3.05  +10.5 toe  0.92  3.01  +10.9 | root  0.60  3.00 z1.53 yaw-179 v1.97 | probe  1.00  2.97 +0.00
+[ 738.195] locoplayer trace 6 f- 3: pl0 hd0 st-1.00 age0.00 land 0.00 scan0 | heel  0.86  3.08   +6.9 ball  1.00  2.97   +9.5 toe  1.05  2.94  +10.4 | root  0.66  2.98 z1.53 yaw+178 v1.90 | probe  1.01  3.01 +0.00
+[ 738.196] locoplayer trace 6 f- 2: pl0 hd0 st-1.00 age0.00 land 0.00 scan0 | heel  0.95  3.00   +4.7 ball  1.09  2.88   +8.2 toe  1.14  2.84 +163.3 | root  0.71  2.94 z1.53 yaw+175 v1.88 | probe  1.01  2.93 +0.00
+[ 738.196] locoplayer trace 6 f- 1: pl0 hd0 st-1.00 age0.00 land 0.00 scan0 | heel  1.02  2.90   +2.4 ball  1.15  2.78 +160.4 toe  1.20  2.74 +161.9 | root  0.75  2.90 z1.53 yaw+173 v1.91 | probe  1.15  2.80 -0.45
+[ 738.196] locoplayer trace 6 f- 0: pl1 hd0 st-1.00 age0.03 land-9.00 scan0 | heel  1.02  2.81   +0.2 ball  1.14  2.68 +157.8 toe  1.19  2.64 +159.3 | root  0.79  2.84 z1.53 yaw+170 v2.00 | probe  1.05  2.81 +0.00
+[ 741.353] locoplayer seg 12: switchback up run, 3.1 s, 11.0 m, 3.52 m/s
+[ 779.331] locoplayer trace 7: switchback down run foot 0, seg 13
+[ 779.335] locoplayer trace 7 f-13: pl1 hd0 st-1.00 age0.10 land-9.00 scan1 | heel  0.11  2.75   +0.0 ball -0.07  2.77   +0.5 toe -0.13  2.78   +0.6 | root  0.04  2.82 z1.53 yaw+119 v3.40 | probe  0.09  2.69 +0.00
+[ 779.335] locoplayer trace 7 f-12: pl1 hd0 st-1.00 age0.13 land-9.00 scan1 | heel  0.11  2.75   +1.5 ball -0.07  2.77   +0.0 toe -0.14  2.78   +0.3 | root -0.04  2.88 z1.53 yaw+132 v3.20 | probe  0.08  2.69 +0.00
+[ 779.335] locoplayer trace 7 f-11: pl1 hd0 st-1.00 age0.17 land-9.00 scan1 | heel  0.11  2.76   +4.5 ball -0.07  2.77   +0.0 toe -0.14  2.78   +0.2 | root -0.13  2.94 z1.53 yaw+143 v2.99 | probe  0.07  2.69 +0.00
+[ 779.335] locoplayer trace 7 f-10: pl1 hd0 st-1.00 age0.20 land-9.00 scan1 | heel  0.10  2.78   +4.9 ball -0.07  2.77   +0.0 toe -0.15  2.77   +0.1 | root -0.21  2.98 z1.53 yaw+153 v2.77 | probe  0.07  2.70 +0.00
+[ 779.335] locoplayer trace 7 f- 9: pl1 hd0 st-1.00 age0.23 land-9.00 scan0 | heel  0.11  2.80   +4.7 ball -0.07  2.78   +0.4 toe -0.14  2.77   +0.0 | root -0.29  3.00 z1.53 yaw+160 v2.56 | probe  0.07  2.72 +0.00
+[ 779.335] locoplayer trace 7 f- 8: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel  0.11  2.81   +9.4 ball -0.07  2.78   +5.9 toe -0.14  2.77   +5.2 | root -0.37  3.02 z1.53 yaw+166 v2.37 | probe -1.10  2.68 +0.00
+[ 779.335] locoplayer trace 7 f- 7: pl0 hd0 st-1.00 age0.00 land 0.00 scan1 | heel -0.16  2.91  +13.4 ball -0.33  2.85   +9.9 toe -0.39  2.83   +9.1 | root -0.44  3.02 z1.53 yaw+171 v2.20 | probe -0.33  2.88 +0.00
+[ 779.335] locoplayer trace 7 f- 6: pl0 hd0 st-1.00 age0.00 land 0.00 scan0 | heel -0.40  2.94  +13.8 ball -0.56  2.86  +10.7 toe -0.62  2.82  +10.5 | root -0.51  3.02 z1.53 yaw+175 v2.05 | probe -1.03  2.71 +0.00
+[ 779.336] locoplayer trace 7 f- 5: pl0 hd0 st-1.00 age0.00 land 0.00 scan1 | heel -0.61  2.93  +11.4 ball -0.76  2.83   +9.6 toe -0.81  2.79   +9.9 | root -0.57  3.00 z1.53 yaw+178 v1.96 | probe -0.77  2.87 +0.00
+[ 779.336] locoplayer trace 7 f- 4: pl0 hd0 st-1.00 age0.00 land 0.00 scan0 | heel -0.77  2.89   +6.7 ball -0.90  2.77   +8.9 toe -0.95  2.73   +9.7 | root -0.63  2.97 z1.53 yaw-179 v1.91 | probe -0.98  2.71 +0.00
+[ 779.336] locoplayer trace 7 f- 3: pl0 hd0 st-1.00 age0.00 land 0.00 scan0 | heel -0.87  2.82   +4.8 ball -0.99  2.69   +7.8 toe -1.04  2.64   +9.0 | root -0.68  2.93 z1.53 yaw-177 v1.91 | probe -1.01  2.72 +0.00
+[ 779.336] locoplayer trace 7 f- 2: pl0 hd0 st-1.00 age0.00 land 0.00 scan0 | heel -0.93  2.71   +3.1 ball -1.05  2.58   +7.1 toe -1.09  2.53   +8.5 | root -0.72  2.89 z1.53 yaw-174 v1.97 | probe -0.96  2.68 +0.00
+[ 779.336] locoplayer trace 7 f- 1: pl1 hd0 st-1.00 age0.03 land-9.00 scan0 | heel -0.95  2.61   +0.1 ball -1.06  2.48   +4.6 toe -1.10  2.43   +6.3 | root -0.76  2.83 z1.53 yaw-172 v2.08 | probe -0.98  2.61 +0.00
+[ 779.336] locoplayer trace 7 f- 0: pl1 hd0 st-1.00 age0.07 land-9.00 scan1 | heel -0.95  2.61   +0.1 ball -1.06  2.47   +2.0 toe -1.10  2.42 +155.9 | root -0.79  2.76 z1.53 yaw-170 v2.22 | probe -0.99  2.62 +0.00
+[ 802.537] locoplayer trace 8: switchback down run foot 1, seg 13
+[ 802.537] locoplayer trace 8 f-13: pl1 hd0 st-1.00 age0.20 land-9.00 scan0 | heel -0.60  3.19   +5.5 ball -0.75  3.12   +0.0 toe -0.82  3.08   +0.3 | root -0.68  2.93 z1.53 yaw-177 v1.91 | probe -0.61  3.19 +0.00
+[ 802.537] locoplayer trace 8 f-12: pl1 hd0 st-1.00 age0.23 land-9.00 scan0 | heel -0.61  3.19   +7.5 ball -0.75  3.12   +0.0 toe -0.82  3.08   +0.1 | root -0.72  2.89 z1.53 yaw-174 v1.97 | probe -0.62  3.20 +0.00
+[ 802.537] locoplayer trace 8 f-11: pl0 hd0 st-1.00 age0.00 land-9.00 scan0 | heel -0.61  3.19  +12.2 ball -0.75  3.12   +3.3 toe -0.82  3.08   +2.7 | root -0.76  2.83 z1.53 yaw-172 v2.08 | probe -1.16  1.84 -0.45
+[ 802.537] locoplayer trace 8 f-10: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel -0.64  3.17  +17.2 ball -0.77  3.08   +7.8 toe -0.83  3.04   +6.6 | root -0.79  2.76 z1.53 yaw-170 v2.22 | probe -0.73  3.05 +0.00
+[ 802.537] locoplayer trace 8 f- 9: pl0 hd0 st-1.00 age0.00 land-0.34 scan1 | heel -0.76  3.05  +13.7 ball -0.88  2.94   +6.9 toe -0.94  2.89   +5.5 | root -0.80  2.68 z1.53 yaw-168 v2.32 | probe -0.70  1.88 -0.34
+[ 802.537] locoplayer trace 8 f- 8: pl0 hd0 st-1.00 age0.00 land-0.34 scan1 | heel -0.84  2.82  +13.8 ball -0.95  2.69   +9.6 toe -1.00  2.63   +8.3 | root -0.79  2.59 z1.53 yaw-167 v2.65 | probe -0.84  2.91 +0.00
+[ 802.537] locoplayer trace 8 f- 7: pl0 hd0 st-1.00 age0.00 land-0.34 scan1 | heel -0.86  2.59  +13.3 ball -0.96  2.45  +11.4 toe -1.00  2.39  +10.7 | root -0.78  2.49 z1.53 yaw-167 v2.99 | probe -0.83  1.76 -0.34
+[ 802.537] locoplayer trace 8 f- 6: pl0 hd0 st-1.00 age0.00 land-0.34 scan0 | heel -0.86  2.38   +9.9 ball -0.94  2.22  +26.6 toe -0.97  2.16  +26.6 | root -0.77  2.38 z1.53 yaw-168 v3.34 | probe -0.87  2.48 +0.00
+[ 802.537] locoplayer trace 8 f- 5: pl0 hd0 st-1.00 age0.00 land-0.34 scan1 | heel -0.82  2.16  +23.7 ball -0.90  1.99  +24.7 toe -0.92  1.93  +42.1 | root -0.74  2.26 z1.53 yaw-169 v3.69 | probe -0.80  1.71 -0.34
+[ 802.537] locoplayer trace 8 f- 4: pl0 hd0 st-1.00 age0.00 land-0.17 scan1 | heel -0.78  1.97  +20.2 ball -0.84  1.80  +38.9 toe -0.87  1.73  +39.6 | root -0.72  2.13 z1.36 yaw-170 v4.06 | probe -0.80  2.10 +0.00
+[ 802.537] locoplayer trace 8 f- 3: pl0 hd0 st-1.00 age0.00 land-0.17 scan0 | heel -0.74  1.82  +23.5 ball -0.80  1.65  +42.3 toe -0.82  1.59  +43.0 | root -0.70  1.99 z1.36 yaw-171 v4.10 | probe -0.75  1.64 -0.34
+[ 802.537] locoplayer trace 8 f- 2: pl1 hd0 st-1.00 age0.03 land-9.00 scan1 | heel -0.72  1.75   +0.0 ball -0.77  1.58  +17.8 toe -0.78  1.52  +18.1 | root -0.68  1.86 z1.19 yaw-172 v4.10 | probe -0.76  1.80 +0.00
+[ 802.538] locoplayer trace 8 f- 1: pl1 hd0 st-1.00 age0.07 land-9.00 scan1 | heel -0.72  1.75   -6.2 ball -0.77  1.58  +10.7 toe -0.78  1.52  +10.7 | root -0.67  1.72 z1.19 yaw-173 v4.10 | probe -0.76  1.80 +0.00
+[ 802.538] locoplayer trace 8 f- 0: pl1 hd0 st-1.00 age0.10 land-9.00 scan1 | heel -0.72  1.75  -17.0 ball -0.77  1.58   +0.0 toe -0.78  1.52   +0.0 | root -0.65  1.59 z1.02 yaw-174 v4.10 | probe -0.76  1.80 +0.17
+[ 802.538] locoplayer deep switchback down run foot 1: h -17.0 b   0.0 t   0.0 cm | v 4.10 | age0.10 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.130
+[ 802.543] locoplayer deep switchback down run foot 1: h -15.9 b   0.0 t   0.0 cm | v 4.10 | age0.13 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.130
+[ 802.572] locoplayer trace 9: switchback down run foot 0, seg 13
+[ 802.573] locoplayer trace 9 f-13: pl1 hd0 st-1.00 age0.17 land-9.00 scan1 | heel -0.95  2.61   +0.0 ball -1.06  2.47   +0.5 toe -1.10  2.42 +153.9 | root -0.78  2.49 z1.53 yaw-167 v2.99 | probe -1.02  2.64 +0.00
+[ 802.573] locoplayer trace 9 f-12: pl1 hd0 st-1.00 age0.20 land-9.00 scan0 | heel -0.95  2.61   +1.7 ball -1.06  2.47   +0.0 toe -1.11  2.42 +153.3 | root -0.77  2.38 z1.53 yaw-168 v3.34 | probe -1.03  2.65 +0.00
+[ 802.573] locoplayer trace 9 f-11: pl0 hd0 st 0.00 age0.00 land-9.00 scan1 | heel -0.96  2.61   +5.5 ball -1.06  2.47   +0.1 toe -1.11  2.41 +153.3 | root -0.74  2.26 z1.53 yaw-169 v3.69 | probe -0.66  2.39 +0.00
+[ 802.573] locoplayer trace 9 f-10: pl0 hd0 st 0.15 age0.00 land-9.00 scan1 | heel -0.94  2.59   +9.9 ball -1.04  2.46   +2.7 toe -1.09  2.40   +2.4 | root -0.72  2.13 z1.36 yaw-170 v4.06 | probe -0.63  2.54 +0.17
+[ 802.573] locoplayer trace 9 f- 9: pl0 hd0 st 0.29 age0.00 land-9.00 scan0 | heel -0.87  2.56  +14.9 ball -0.96  2.42   +7.5 toe -1.01  2.36   +6.7 | root -0.70  1.99 z1.36 yaw-171 v4.10 | probe -0.58  2.48 +0.17
+[ 802.573] locoplayer trace 9 f- 8: pl0 hd0 st 0.44 age0.00 land-9.00 scan1 | heel -0.79  2.43  +21.4 ball -0.87  2.29  +14.5 toe -0.91  2.22  +30.1 | root -0.68  1.86 z1.19 yaw-172 v4.10 | probe -0.59  2.25 +0.34
+[ 802.573] locoplayer trace 9 f- 7: pl0 hd0 st 0.59 age0.00 land-9.00 scan1 | heel -0.72  2.12  +41.7 ball -0.79  1.96  +35.8 toe -0.81  1.90  +51.1 | root -0.67  1.72 z1.19 yaw-173 v4.10 | probe -0.62  1.90 +0.00
+[ 802.573] locoplayer trace 9 f- 6: pl0 hd0 st 0.74 age0.00 land-9.00 scan1 | heel -0.64  1.77  +57.0 ball -0.69  1.60  +69.7 toe -0.70  1.53  +68.1 | root -0.65  1.59 z1.02 yaw-174 v4.10 | probe -0.60  1.65 +0.00
+[ 802.573] locoplayer trace 9 f- 5: pl0 hd0 st 0.88 age0.00 land-9.00 scan0 | heel -0.59  1.63  +68.3 ball -0.62  1.46  +65.7 toe -0.64  1.39  +81.7 | root -0.64  1.45 z1.02 yaw-175 v4.10 | probe -0.60  1.65 +0.00
+[ 802.573] locoplayer trace 9 f- 4: pl1 hd0 st-1.00 age0.03 land-9.00 scan0 | heel -0.58  1.60   +6.4 ball -0.61  1.42   +5.6 toe -0.62  1.35  +22.3 | root -0.63  1.31 z0.85 yaw-175 v4.10 | probe -0.60  1.65 +0.17
+[ 802.573] locoplayer trace 9 f- 3: pl0 hd0 st-1.00 age0.00 land-9.00 scan0 | heel -0.58  1.60  +56.0 ball -0.61  1.42  +56.7 toe -0.62  1.35  +73.9 | root -0.62  1.18 z0.85 yaw-176 v4.10 | probe -0.53  0.53 -0.45
+[ 802.573] locoplayer trace 9 f- 2: pl0 hd0 st-1.00 age0.00 land-9.00 scan0 | heel -0.54  1.17  +20.6 ball -0.55  0.99  +39.4 toe -0.56  0.93  +40.0 | root -0.61  1.04 z0.68 yaw-176 v4.10 | probe -0.54  1.07 +0.00
+[ 802.573] locoplayer trace 9 f- 1: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel -0.52  0.88  +13.6 ball -0.52  0.71  +32.8 toe -0.52  0.64  +33.6 | root -0.60  0.91 z0.68 yaw-177 v4.10 | probe -0.50  0.50 -0.34
+[ 802.574] locoplayer trace 9 f- 0: pl1 hd0 st-1.00 age0.03 land-9.00 scan1 | heel -0.51  0.80  +28.7 ball -0.52  0.62  +30.9 toe -0.52  0.55  +48.7 | root -0.60  0.77 z0.51 yaw-177 v4.10 | probe -0.52  0.84 +0.17
+[ 805.581] locoplayer seg 13: switchback down run, 3.2 s, 11.1 m, 3.52 m/s
+[ 835.626] locoplayer bigslide switchback up sprint foot 0: 15.6 cm over 5 frames | planted 0 stepT -1.00
+[ 843.096] locoplayer trace 10: switchback up sprint foot 0, seg 14
+[ 843.099] locoplayer trace 10 f-13: pl0 hd0 st-1.00 age0.00 land 0.51 scan1 | heel -0.13  3.20  +64.7 ball  0.01  3.15  +56.1 toe  0.08  3.12  +54.4 | root  0.19  2.85 z1.53 yaw-149 v3.40 | probe -0.06  3.14 +0.00
+[ 843.100] locoplayer trace 10 f-12: pl0 hd0 st-1.00 age0.00 land 0.68 scan1 | heel  0.07  3.07  +65.5 ball  0.21  2.99  +58.2 toe  0.27  2.96  +56.2 | root  0.28  2.77 z1.53 yaw-155 v3.61 | probe  0.83  1.47 +0.45
+[ 843.100] locoplayer trace 10 f-11: pl0 hd0 st-1.00 age0.00 land 0.68 scan1 | heel  0.28  2.89  +67.9 ball  0.42  2.79  +62.3 toe  0.47  2.75  +60.4 | root  0.38  2.69 z1.53 yaw-162 v3.79 | probe  0.36  2.83 +0.00
+[ 843.100] locoplayer trace 10 f-10: pl0 hd0 st-1.00 age0.00 land 0.68 scan0 | heel  0.48  2.66  +65.1 ball  0.61  2.54  +61.5 toe  0.66  2.49  +60.1 | root  0.47  2.59 z1.53 yaw-168 v3.95 | probe  0.95  1.44 +0.45
+[ 843.100] locoplayer trace 10 f- 9: pl0 hd0 st-1.00 age0.00 land 0.68 scan0 | heel  0.67  2.42  +65.4 ball  0.78  2.28  +63.8 toe  0.82  2.22  +46.2 | root  0.55  2.49 z1.53 yaw-176 v4.08 | probe  0.76  2.37 +0.00
+[ 843.100] locoplayer trace 10 f- 8: pl0 hd0 st-1.00 age0.00 land 0.68 scan1 | heel  0.82  2.17  +56.8 ball  0.92  2.02  +56.7 toe  0.96  1.97  +56.8 | root  0.63  2.37 z1.53 yaw+180 v4.20 | probe  1.08  1.48 +0.45
+[ 843.101] locoplayer trace 10 f- 7: pl0 hd0 st-1.00 age0.00 land 0.51 scan1 | heel  0.92  2.11  +44.2 ball  1.01  1.96  +28.8 toe  1.04  1.90  +29.5 | root  0.70  2.25 z1.53 yaw+176 v4.32 | probe  0.99  2.05 +0.17
+[ 843.101] locoplayer trace 10 f- 6: pl0 hd0 st-1.00 age0.00 land 0.34 scan1 | heel  1.00  1.95  +25.5 ball  1.08  1.79  +28.2 toe  1.11  1.73 +216.8 | root  0.76  2.11 z1.70 yaw+172 v4.44 | probe  1.01  1.78 +0.17
+[ 843.101] locoplayer trace 10 f- 5: pl0 hd0 st-1.00 age0.00 land 0.34 scan1 | heel  0.97  1.77  +22.7 ball  1.03  1.60   +8.6 toe  1.06  1.54   +9.8 | root  0.80  1.97 z1.70 yaw+169 v4.28 | probe  0.98  1.69 +0.17
+[ 843.101] locoplayer trace 10 f- 4: pl0 hd0 st-1.00 age0.00 land 0.17 scan1 | heel  0.91  1.67   +0.9 ball  0.97  1.50   +3.6 toe  0.99  1.44   +4.6 | root  0.79  1.82 z1.87 yaw+167 v4.59 | probe  0.95  1.58 +0.17
+[ 843.101] locoplayer trace 10 f- 3: pl1 hd0 st-1.00 age0.03 land-9.00 scan1 | heel  0.86  1.64   -0.7 ball  0.91  1.47   +0.0 toe  0.93  1.40   +0.3 | root  0.78  1.65 z2.04 yaw+168 v4.92 | probe  0.92  1.63 +0.00
+[ 843.102] locoplayer trace 10 f- 2: pl1 hd0 st-1.00 age0.07 land-9.00 scan0 | heel  0.86  1.64   -0.5 ball  0.91  1.47   +0.0 toe  0.93  1.40   +0.2 | root  0.76  1.48 z2.04 yaw+168 v5.25 | probe  0.93  1.64 +0.00
+[ 843.102] locoplayer trace 10 f- 1: pl1 hd0 st-1.00 age0.10 land-9.00 scan1 | heel  0.86  1.64   +0.9 ball  0.91  1.47   +0.0 toe  0.93  1.40   +0.1 | root  0.74  1.29 z2.21 yaw+169 v5.60 | probe  0.94  1.65 -0.17
+[ 843.102] locoplayer trace 10 f- 0: pl1 hd0 st-1.00 age0.13 land-9.00 scan1 | heel  0.86  1.63   +6.4 ball  0.91  1.47   +0.1 toe  0.93  1.39  -17.0 | root  0.71  1.10 z2.38 yaw+170 v5.96 | probe  0.75 -0.31 +0.45
+[ 843.102] locoplayer deep switchback up sprint foot 0: h   6.4 b   0.1 t -17.0 cm | v 5.96 | age0.13 ballProbe 1 stairLand -9.00 stepT -1.00 lead 0.131
+[ 843.114] locoplayer deep switchback up sprint foot 0: h  14.0 b   5.0 t -12.5 cm | v 6.33 | age0.17 ballProbe 1 stairLand -9.00 stepT -1.00 lead 0.131
+[ 846.998] locoplayer seg 14: switchback up sprint, 2.2 s, 11.1 m, 4.97 m/s
+[ 854.277] locoplayer trace 11: switchback down sprint foot 0, seg 15
+[ 854.279] locoplayer trace 11 f-13: pl1 hd0 st-1.00 age0.03 land-9.00 scan1 | heel  0.86  1.64   -0.7 ball  0.91  1.47   +0.0 toe  0.93  1.40   +0.3 | root  0.78  1.65 z2.04 yaw+168 v4.92 | probe  0.92  1.63 +0.00
+[ 854.283] locoplayer trace 11 f-12: pl1 hd0 st-1.00 age0.07 land-9.00 scan0 | heel  0.86  1.64   -0.5 ball  0.91  1.47   +0.0 toe  0.93  1.40   +0.2 | root  0.76  1.48 z2.04 yaw+168 v5.25 | probe  0.93  1.64 +0.00
+[ 854.283] locoplayer trace 11 f-11: pl1 hd0 st-1.00 age0.10 land-9.00 scan1 | heel  0.86  1.64   +0.9 ball  0.91  1.47   +0.0 toe  0.93  1.40   +0.1 | root  0.74  1.29 z2.21 yaw+169 v5.60 | probe  0.94  1.65 -0.17
+[ 854.284] locoplayer trace 11 f-10: pl1 hd0 st-1.00 age0.13 land-9.00 scan1 | heel  0.86  1.63   +6.4 ball  0.91  1.47   +0.1 toe  0.93  1.39  -17.0 | root  0.71  1.10 z2.38 yaw+170 v5.96 | probe  0.75 -0.31 +0.45
+[ 854.284] locoplayer trace 11 f- 9: pl1 hd0 st-1.00 age0.17 land-9.00 scan1 | heel  0.86  1.57  +14.0 ball  0.90  1.42   +5.0 toe  0.93  1.34  -12.5 | root  0.68  0.89 z2.38 yaw+172 v6.33 | probe  0.96  1.67 -0.34
+[ 854.284] locoplayer trace 11 f- 8: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel  0.84  1.45  +80.4 ball  0.89  1.31  +54.4 toe  0.91  1.23  +53.1 | root  0.65  0.67 z2.55 yaw+173 v6.68 | probe  0.70 -0.71 +0.45
+[ 854.284] locoplayer trace 11 f- 7: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel  0.77  1.17  +93.7 ball  0.82  1.01  +68.4 toe  0.83  0.95  +66.3 | root  0.63  0.44 z2.72 yaw+175 v6.90 | probe  0.81  1.17 -0.45
+[ 854.284] locoplayer trace 11 f- 6: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel  0.71  0.71  +62.7 ball  0.75  0.55  +38.6 toe  0.76  0.48  +36.3 | root  0.61  0.21 z2.89 yaw+176 v6.90 | probe  0.67 -1.17 +0.17
+[ 854.284] locoplayer trace 11 f- 5: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel  0.67  0.26  +38.8 ball  0.70  0.09  +33.1 toe  0.71  0.03  +31.0 | root  0.60 -0.02 z3.06 yaw+177 v6.90 | probe  0.69  0.26 -0.17
+[ 854.284] locoplayer trace 11 f- 4: pl0 hd0 st-1.00 age0.00 land-0.17 scan1 | heel  0.50  0.29  +28.0 ball  0.48  0.47  +30.0 toe  0.48  0.53  +30.8 | root  0.55  0.06 z2.89 yaw  +0 v5.87 | probe  0.49  0.42 -0.17
+[ 854.285] locoplayer trace 11 f- 3: pl0 hd0 st-1.00 age0.00 land-0.17 scan1 | heel  0.50  0.39  +24.8 ball  0.49  0.57  +43.8 toe  0.48  0.63  +44.5 | root  0.55  0.27 z2.89 yaw  +0 v6.23 | probe  0.50  0.18 +0.00
+[ 854.285] locoplayer trace 11 f- 2: pl1 hd0 st-1.00 age0.03 land-9.00 scan1 | heel  0.51  0.50   +0.0 ball  0.49  0.68  +17.9 toe  0.49  0.74  +18.3 | root  0.55  0.49 z2.72 yaw  +0 v6.60 | probe  0.50  0.37 +0.00
+[ 854.285] locoplayer trace 11 f- 1: pl1 hd0 st-1.00 age0.07 land-9.00 scan1 | heel  0.51  0.50   -6.3 ball  0.49  0.68  +10.7 toe  0.49  0.74  +10.7 | root  0.55  0.72 z2.55 yaw  +0 v6.90 | probe  0.50  0.36 +0.17
+[ 854.285] locoplayer trace 11 f- 0: pl1 hd0 st-1.00 age0.10 land-9.00 scan1 | heel  0.51  0.50  -16.9 ball  0.49  0.68   +0.0 toe  0.49  0.74   +0.0 | root  0.55  0.95 z2.38 yaw  +0 v6.90 | probe  0.50  0.36 +0.34
+[ 854.285] locoplayer deep switchback down sprint foot 0: h -16.9 b   0.0 t   0.0 cm | v 6.90 | age0.10 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.126
+[ 885.023] locoplayer seg 15: switchback down sprint, 2.2 s, 11.1 m, 4.97 m/s
+[ 885.090] Transit: 0.107 ms/frame avg, 0 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[ 913.616] locoplayer seg 16: switchback up run, 3.1 s, 11.0 m, 3.52 m/s
+[ 946.260] locoplayer trace 12: switchback down run foot 0, seg 17
+[ 946.261] locoplayer trace 12 f-13: pl1 hd0 st-1.00 age0.10 land-9.00 scan1 | heel  0.11  2.75   +0.0 ball -0.07  2.77   +0.5 toe -0.13  2.78   +0.6 | root  0.04  2.82 z1.53 yaw+119 v3.40 | probe  0.09  2.69 +0.00
+[ 946.261] locoplayer trace 12 f-12: pl1 hd0 st-1.00 age0.13 land-9.00 scan1 | heel  0.11  2.75   +1.5 ball -0.07  2.77   +0.0 toe -0.14  2.78   +0.3 | root -0.04  2.88 z1.53 yaw+132 v3.20 | probe  0.08  2.69 +0.00
+[ 946.261] locoplayer trace 12 f-11: pl1 hd0 st-1.00 age0.17 land-9.00 scan1 | heel  0.11  2.76   +4.5 ball -0.07  2.77   +0.0 toe -0.14  2.78   +0.2 | root -0.13  2.94 z1.53 yaw+143 v2.99 | probe  0.07  2.69 +0.00
+[ 946.261] locoplayer trace 12 f-10: pl1 hd0 st-1.00 age0.20 land-9.00 scan1 | heel  0.10  2.78   +4.9 ball -0.07  2.77   +0.0 toe -0.15  2.77   +0.1 | root -0.21  2.98 z1.53 yaw+153 v2.77 | probe  0.07  2.70 +0.00
+[ 946.262] locoplayer trace 12 f- 9: pl1 hd0 st-1.00 age0.23 land-9.00 scan0 | heel  0.11  2.80   +4.7 ball -0.07  2.78   +0.4 toe -0.14  2.77   +0.0 | root -0.29  3.00 z1.53 yaw+160 v2.56 | probe  0.07  2.72 +0.00
+[ 946.262] locoplayer trace 12 f- 8: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel  0.11  2.81   +9.4 ball -0.07  2.78   +5.9 toe -0.14  2.77   +5.2 | root -0.37  3.02 z1.53 yaw+166 v2.37 | probe -1.10  2.68 +0.00
+[ 946.262] locoplayer trace 12 f- 7: pl0 hd0 st-1.00 age0.00 land 0.00 scan1 | heel -0.16  2.91  +13.4 ball -0.33  2.85   +9.9 toe -0.39  2.83   +9.1 | root -0.44  3.02 z1.53 yaw+171 v2.20 | probe -0.33  2.88 +0.00
+[ 946.262] locoplayer trace 12 f- 6: pl0 hd0 st-1.00 age0.00 land 0.00 scan0 | heel -0.40  2.94  +13.8 ball -0.56  2.86  +10.7 toe -0.62  2.82  +10.5 | root -0.51  3.02 z1.53 yaw+175 v2.05 | probe -1.03  2.71 +0.00
+[ 946.263] locoplayer trace 12 f- 5: pl0 hd0 st-1.00 age0.00 land 0.00 scan1 | heel -0.61  2.93  +11.4 ball -0.76  2.83   +9.6 toe -0.81  2.79   +9.9 | root -0.57  3.00 z1.53 yaw+178 v1.96 | probe -0.77  2.87 +0.00
+[ 946.263] locoplayer trace 12 f- 4: pl0 hd0 st-1.00 age0.00 land 0.00 scan0 | heel -0.77  2.89   +6.7 ball -0.90  2.77   +8.9 toe -0.95  2.73   +9.7 | root -0.63  2.97 z1.53 yaw-179 v1.91 | probe -0.98  2.72 +0.00
+[ 946.263] locoplayer trace 12 f- 3: pl0 hd0 st-1.00 age0.00 land 0.00 scan0 | heel -0.87  2.82   +4.8 ball -0.99  2.69   +7.8 toe -1.04  2.64   +9.0 | root -0.68  2.93 z1.53 yaw-177 v1.91 | probe -1.01  2.72 +0.00
+[ 946.264] locoplayer trace 12 f- 2: pl0 hd0 st-1.00 age0.00 land 0.00 scan0 | heel -0.93  2.71   +3.1 ball -1.05  2.58   +7.1 toe -1.09  2.53   +8.5 | root -0.72  2.89 z1.53 yaw-174 v1.97 | probe -0.96  2.68 +0.00
+[ 946.264] locoplayer trace 12 f- 1: pl1 hd0 st-1.00 age0.03 land-9.00 scan0 | heel -0.95  2.61   +0.1 ball -1.06  2.48   +4.6 toe -1.10  2.43   +6.3 | root -0.76  2.83 z1.53 yaw-172 v2.08 | probe -0.98  2.61 +0.00
+[ 946.264] locoplayer trace 12 f- 0: pl1 hd0 st-1.00 age0.07 land-9.00 scan1 | heel -0.95  2.61   +0.1 ball -1.06  2.47   +2.0 toe -1.10  2.42 +155.9 | root -0.79  2.76 z1.53 yaw-170 v2.22 | probe -0.99  2.62 +0.00
+[ 946.361] locoplayer trace 13: switchback down run foot 1, seg 17
+[ 946.361] locoplayer trace 13 f-13: pl1 hd0 st-1.00 age0.20 land-9.00 scan0 | heel -0.60  3.19   +5.5 ball -0.75  3.12   +0.0 toe -0.82  3.08   +0.3 | root -0.68  2.93 z1.53 yaw-177 v1.91 | probe -0.61  3.19 +0.00
+[ 946.361] locoplayer trace 13 f-12: pl1 hd0 st-1.00 age0.23 land-9.00 scan0 | heel -0.61  3.19   +7.5 ball -0.75  3.12   +0.0 toe -0.82  3.08   +0.1 | root -0.72  2.89 z1.53 yaw-174 v1.97 | probe -0.62  3.20 +0.00
+[ 946.362] locoplayer trace 13 f-11: pl0 hd0 st-1.00 age0.00 land-9.00 scan0 | heel -0.61  3.19  +12.2 ball -0.75  3.12   +3.3 toe -0.82  3.08   +2.7 | root -0.76  2.83 z1.53 yaw-172 v2.08 | probe -1.15  1.84 -0.45
+[ 946.362] locoplayer trace 13 f-10: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel -0.64  3.17  +17.2 ball -0.77  3.08   +7.8 toe -0.83  3.04   +6.6 | root -0.79  2.76 z1.53 yaw-170 v2.22 | probe -0.73  3.05 +0.00
+[ 946.362] locoplayer trace 13 f- 9: pl0 hd0 st-1.00 age0.00 land-0.34 scan1 | heel -0.76  3.05  +13.7 ball -0.88  2.94   +6.9 toe -0.94  2.89   +5.5 | root -0.80  2.68 z1.53 yaw-168 v2.32 | probe -0.70  1.88 -0.34
+[ 946.362] locoplayer trace 13 f- 8: pl0 hd0 st-1.00 age0.00 land-0.34 scan1 | heel -0.84  2.82  +13.8 ball -0.95  2.69   +9.6 toe -1.00  2.63   +8.3 | root -0.79  2.59 z1.53 yaw-167 v2.65 | probe -0.84  2.91 +0.00
+[ 946.363] locoplayer trace 13 f- 7: pl0 hd0 st-1.00 age0.00 land-0.34 scan1 | heel -0.86  2.59  +13.3 ball -0.96  2.45  +11.4 toe -1.00  2.39  +10.7 | root -0.78  2.49 z1.53 yaw-167 v2.99 | probe -0.83  1.76 -0.34
+[ 946.363] locoplayer trace 13 f- 6: pl0 hd0 st-1.00 age0.00 land-0.34 scan0 | heel -0.86  2.38   +9.9 ball -0.94  2.22  +26.6 toe -0.97  2.16  +26.6 | root -0.77  2.38 z1.53 yaw-168 v3.34 | probe -0.87  2.48 +0.00
+[ 946.364] locoplayer trace 13 f- 5: pl0 hd0 st-1.00 age0.00 land-0.34 scan1 | heel -0.82  2.16  +23.7 ball -0.90  1.99  +24.7 toe -0.92  1.93  +42.1 | root -0.74  2.26 z1.53 yaw-169 v3.69 | probe -0.80  1.71 -0.34
+[ 946.364] locoplayer trace 13 f- 4: pl0 hd0 st-1.00 age0.00 land-0.17 scan1 | heel -0.78  1.97  +20.2 ball -0.84  1.80  +38.9 toe -0.87  1.73  +39.6 | root -0.72  2.13 z1.36 yaw-170 v4.06 | probe -0.80  2.10 +0.00
+[ 946.364] locoplayer trace 13 f- 3: pl0 hd0 st-1.00 age0.00 land-0.17 scan1 | heel -0.74  1.82  +23.5 ball -0.80  1.65  +42.3 toe -0.82  1.59  +43.0 | root -0.70  1.99 z1.36 yaw-171 v4.10 | probe -0.75  1.64 -0.34
+[ 946.364] locoplayer trace 13 f- 2: pl1 hd0 st-1.00 age0.03 land-9.00 scan1 | heel -0.72  1.75   +0.0 ball -0.77  1.58  +17.8 toe -0.78  1.52  +18.1 | root -0.68  1.86 z1.19 yaw-172 v4.10 | probe -0.76  1.80 +0.00
+[ 946.365] locoplayer trace 13 f- 1: pl1 hd0 st-1.00 age0.07 land-9.00 scan1 | heel -0.72  1.75   -6.2 ball -0.77  1.58  +10.7 toe -0.78  1.52  +10.7 | root -0.67  1.72 z1.19 yaw-173 v4.10 | probe -0.76  1.80 +0.00
+[ 946.365] locoplayer trace 13 f- 0: pl1 hd0 st-1.00 age0.10 land-9.00 scan1 | heel -0.72  1.75  -17.0 ball -0.77  1.58   +0.0 toe -0.78  1.52   +0.0 | root -0.65  1.59 z1.02 yaw-174 v4.10 | probe -0.76  1.80 +0.17
+[ 946.365] locoplayer deep switchback down run foot 1: h -17.0 b   0.0 t   0.0 cm | v 4.10 | age0.10 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.129
+[ 946.375] locoplayer deep switchback down run foot 1: h -15.9 b   0.0 t   0.0 cm | v 4.10 | age0.13 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.129
+[ 946.439] locoplayer trace 14: switchback down run foot 0, seg 17
+[ 946.440] locoplayer trace 14 f-13: pl1 hd0 st-1.00 age0.17 land-9.00 scan1 | heel -0.95  2.61   +0.0 ball -1.06  2.47   +0.5 toe -1.10  2.42 +153.9 | root -0.78  2.49 z1.53 yaw-167 v2.99 | probe -1.02  2.64 +0.00
+[ 946.440] locoplayer trace 14 f-12: pl1 hd0 st-1.00 age0.20 land-9.00 scan0 | heel -0.95  2.61   +1.7 ball -1.06  2.47   +0.0 toe -1.11  2.42 +153.3 | root -0.77  2.38 z1.53 yaw-168 v3.34 | probe -1.03  2.65 +0.00
+[ 946.440] locoplayer trace 14 f-11: pl0 hd0 st 0.00 age0.00 land-9.00 scan1 | heel -0.96  2.61   +5.5 ball -1.06  2.47   +0.1 toe -1.11  2.41 +153.3 | root -0.74  2.26 z1.53 yaw-169 v3.69 | probe -0.65  2.32 +0.00
+[ 946.440] locoplayer trace 14 f-10: pl0 hd0 st 0.15 age0.00 land-9.00 scan1 | heel -0.94  2.59   +9.9 ball -1.04  2.46   +2.7 toe -1.09  2.40   +2.4 | root -0.72  2.13 z1.36 yaw-170 v4.06 | probe -0.64  2.56 +0.17
+[ 946.440] locoplayer trace 14 f- 9: pl0 hd0 st 0.29 age0.00 land-9.00 scan1 | heel -0.87  2.56  +14.9 ball -0.96  2.43   +7.5 toe -1.01  2.36   +6.7 | root -0.70  1.99 z1.36 yaw-171 v4.10 | probe -0.58  2.49 +0.17
+[ 946.441] locoplayer trace 14 f- 8: pl0 hd0 st 0.44 age0.00 land-9.00 scan1 | heel -0.80  2.40  +21.4 ball -0.88  2.26  +14.5 toe -0.92  2.20  +30.1 | root -0.68  1.86 z1.19 yaw-172 v4.10 | probe -0.62  2.19 +0.17
+[ 946.441] locoplayer trace 14 f- 7: pl0 hd0 st 0.59 age0.00 land-9.00 scan1 | heel -0.72  2.14  +41.7 ball -0.78  1.98  +35.8 toe -0.81  1.92  +51.1 | root -0.67  1.72 z1.19 yaw-173 v4.10 | probe -0.61  1.93 +0.00
+[ 946.441] locoplayer trace 14 f- 6: pl0 hd0 st 0.74 age0.00 land-9.00 scan1 | heel -0.65  1.75  +57.0 ball -0.69  1.58  +69.7 toe -0.71  1.52  +68.1 | root -0.65  1.59 z1.02 yaw-174 v4.10 | probe -0.61  1.63 +0.00
+[ 946.441] locoplayer trace 14 f- 5: pl0 hd0 st 0.88 age0.00 land-9.00 scan0 | heel -0.59  1.62  +68.3 ball -0.63  1.44  +65.7 toe -0.64  1.38  +81.7 | root -0.64  1.45 z1.02 yaw-175 v4.10 | probe -0.61  1.63 +0.00
+[ 946.441] locoplayer trace 14 f- 4: pl1 hd0 st-1.00 age0.03 land-9.00 scan0 | heel -0.58  1.58   +6.4 ball -0.61  1.40   +5.6 toe -0.62  1.34  +22.3 | root -0.63  1.31 z0.85 yaw-175 v4.10 | probe -0.61  1.63 +0.17
+[ 946.444] locoplayer trace 14 f- 3: pl0 hd0 st-1.00 age0.00 land-9.00 scan0 | heel -0.58  1.58  +56.0 ball -0.61  1.40  +56.7 toe -0.62  1.34  +73.9 | root -0.62  1.18 z0.85 yaw-176 v4.10 | probe -0.54  0.53 -0.45
+[ 946.445] locoplayer trace 14 f- 2: pl0 hd0 st-1.00 age0.00 land-9.00 scan0 | heel -0.54  1.16  +20.6 ball -0.56  0.98  +39.4 toe -0.56  0.92  +40.0 | root -0.61  1.04 z0.68 yaw-176 v4.10 | probe -0.55  1.06 +0.00
+[ 946.445] locoplayer trace 14 f- 1: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel -0.52  0.88  +13.6 ball -0.52  0.70  +32.8 toe -0.53  0.63  +33.6 | root -0.60  0.91 z0.68 yaw-177 v4.10 | probe -0.50  0.49 -0.34
+[ 946.445] locoplayer trace 14 f- 0: pl1 hd0 st-1.00 age0.03 land-9.00 scan1 | heel -0.52  0.79  +28.7 ball -0.52  0.61  +30.9 toe -0.52  0.54  +48.7 | root -0.60  0.77 z0.51 yaw-177 v4.10 | probe -0.52  0.84 +0.00
+[ 953.297] locoplayer seg 17: switchback down run, 3.2 s, 11.1 m, 3.52 m/s
+[ 960.029] Wildlife: 117 animals (109 birds) in 14 groups, 67 drawn in 11 draws | update 0.250 ms, render 0.249 ms
+[ 979.587] locoplayer bigslide switchback up sprint foot 0: 15.6 cm over 5 frames | planted 0 stepT -1.00
+[ 979.779] locoplayer trace 15: switchback up sprint foot 0, seg 18
+[ 979.779] locoplayer trace 15 f-13: pl0 hd0 st-1.00 age0.00 land 0.51 scan1 | heel -0.13  3.20  +64.7 ball  0.01  3.15  +56.1 toe  0.08  3.12  +54.4 | root  0.19  2.85 z1.53 yaw-149 v3.40 | probe -0.06  3.14 +0.00
+[ 979.779] locoplayer trace 15 f-12: pl0 hd0 st-1.00 age0.00 land 0.68 scan1 | heel  0.07  3.07  +65.5 ball  0.21  2.99  +58.2 toe  0.27  2.96  +56.2 | root  0.28  2.77 z1.53 yaw-155 v3.61 | probe  0.83  1.46 +0.45
+[ 979.780] locoplayer trace 15 f-11: pl0 hd0 st-1.00 age0.00 land 0.68 scan1 | heel  0.28  2.89  +67.9 ball  0.42  2.79  +62.3 toe  0.47  2.75  +60.4 | root  0.38  2.69 z1.53 yaw-162 v3.79 | probe  0.36  2.83 +0.00
+[ 979.780] locoplayer trace 15 f-10: pl0 hd0 st-1.00 age0.00 land 0.68 scan0 | heel  0.48  2.66  +65.1 ball  0.61  2.54  +61.5 toe  0.66  2.49  +60.1 | root  0.47  2.59 z1.53 yaw-168 v3.95 | probe  0.95  1.44 +0.45
+[ 979.780] locoplayer trace 15 f- 9: pl0 hd0 st-1.00 age0.00 land 0.68 scan0 | heel  0.67  2.42  +65.4 ball  0.78  2.28  +63.8 toe  0.82  2.22  +46.2 | root  0.55  2.49 z1.53 yaw-176 v4.08 | probe  0.76  2.37 +0.00
+[ 979.780] locoplayer trace 15 f- 8: pl0 hd0 st-1.00 age0.00 land 0.68 scan1 | heel  0.82  2.17  +56.8 ball  0.92  2.02  +56.7 toe  0.96  1.97  +56.8 | root  0.63  2.37 z1.53 yaw+180 v4.20 | probe  1.08  1.47 +0.45
+[ 979.780] locoplayer trace 15 f- 7: pl0 hd0 st-1.00 age0.00 land 0.51 scan1 | heel  0.92  2.11  +44.2 ball  1.01  1.96  +28.8 toe  1.04  1.90  +29.5 | root  0.70  2.25 z1.53 yaw+176 v4.32 | probe  0.99  2.05 +0.17
+[ 979.781] locoplayer trace 15 f- 6: pl0 hd0 st-1.00 age0.00 land 0.34 scan1 | heel  1.00  1.95  +25.5 ball  1.08  1.79  +28.2 toe  1.11  1.73 +216.8 | root  0.76  2.11 z1.70 yaw+172 v4.44 | probe  1.01  1.78 +0.17
+[ 979.781] locoplayer trace 15 f- 5: pl0 hd0 st-1.00 age0.00 land 0.34 scan1 | heel  0.97  1.77  +22.7 ball  1.03  1.60   +8.6 toe  1.06  1.54   +9.8 | root  0.80  1.97 z1.70 yaw+169 v4.28 | probe  0.98  1.69 +0.17
+[ 979.781] locoplayer trace 15 f- 4: pl0 hd0 st-1.00 age0.00 land 0.17 scan1 | heel  0.91  1.67   +0.9 ball  0.97  1.50   +3.6 toe  0.99  1.44   +4.6 | root  0.79  1.82 z1.87 yaw+167 v4.59 | probe  0.95  1.58 +0.17
+[ 979.781] locoplayer trace 15 f- 3: pl1 hd0 st-1.00 age0.03 land-9.00 scan1 | heel  0.86  1.64   -0.7 ball  0.91  1.47   +0.0 toe  0.93  1.40   +0.3 | root  0.78  1.65 z2.04 yaw+168 v4.92 | probe  0.92  1.63 +0.00
+[ 979.781] locoplayer trace 15 f- 2: pl1 hd0 st-1.00 age0.07 land-9.00 scan0 | heel  0.86  1.64   -0.5 ball  0.91  1.47   +0.0 toe  0.93  1.40   +0.2 | root  0.76  1.48 z2.04 yaw+168 v5.25 | probe  0.93  1.64 +0.00
+[ 979.782] locoplayer trace 15 f- 1: pl1 hd0 st-1.00 age0.10 land-9.00 scan1 | heel  0.86  1.64   +0.9 ball  0.91  1.47   +0.0 toe  0.93  1.40   +0.1 | root  0.74  1.29 z2.21 yaw+169 v5.60 | probe  0.94  1.65 -0.17
+[ 979.782] locoplayer trace 15 f- 0: pl1 hd0 st-1.00 age0.13 land-9.00 scan1 | heel  0.86  1.63   +6.4 ball  0.91  1.47   +0.1 toe  0.93  1.39  -17.0 | root  0.71  1.10 z2.38 yaw+170 v5.96 | probe  0.75 -0.31 +0.45
+[ 979.782] locoplayer deep switchback up sprint foot 0: h   6.4 b   0.1 t -17.0 cm | v 5.96 | age0.13 ballProbe 1 stairLand -9.00 stepT -1.00 lead 0.130
+[ 979.792] locoplayer deep switchback up sprint foot 0: h  14.0 b   5.0 t -12.5 cm | v 6.33 | age0.17 ballProbe 1 stairLand -9.00 stepT -1.00 lead 0.130
+[ 987.358] locoplayer seg 18: switchback up sprint, 2.2 s, 11.1 m, 4.97 m/s
+[1000.461] locoplayer trace 16: switchback down sprint foot 0, seg 19
+[1000.461] locoplayer trace 16 f-13: pl1 hd0 st-1.00 age0.03 land-9.00 scan1 | heel  0.86  1.64   -0.7 ball  0.91  1.47   +0.0 toe  0.93  1.40   +0.3 | root  0.78  1.65 z2.04 yaw+168 v4.92 | probe  0.92  1.63 +0.00
+[1000.461] locoplayer trace 16 f-12: pl1 hd0 st-1.00 age0.07 land-9.00 scan0 | heel  0.86  1.64   -0.5 ball  0.91  1.47   +0.0 toe  0.93  1.40   +0.2 | root  0.76  1.48 z2.04 yaw+168 v5.25 | probe  0.93  1.64 +0.00
+[1000.461] locoplayer trace 16 f-11: pl1 hd0 st-1.00 age0.10 land-9.00 scan1 | heel  0.86  1.64   +0.9 ball  0.91  1.47   +0.0 toe  0.93  1.40   +0.1 | root  0.74  1.29 z2.21 yaw+169 v5.60 | probe  0.94  1.65 -0.17
+[1000.461] locoplayer trace 16 f-10: pl1 hd0 st-1.00 age0.13 land-9.00 scan1 | heel  0.86  1.63   +6.4 ball  0.91  1.47   +0.1 toe  0.93  1.39  -17.0 | root  0.71  1.10 z2.38 yaw+170 v5.96 | probe  0.75 -0.31 +0.45
+[1000.461] locoplayer trace 16 f- 9: pl1 hd0 st-1.00 age0.17 land-9.00 scan1 | heel  0.86  1.57  +14.0 ball  0.90  1.42   +5.0 toe  0.93  1.34  -12.5 | root  0.68  0.89 z2.38 yaw+172 v6.33 | probe  0.96  1.67 -0.34
+[1000.461] locoplayer trace 16 f- 8: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel  0.84  1.45  +80.4 ball  0.89  1.31  +54.4 toe  0.91  1.23  +53.1 | root  0.65  0.67 z2.55 yaw+173 v6.68 | probe  0.70 -0.71 +0.45
+[1000.461] locoplayer trace 16 f- 7: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel  0.77  1.17  +93.7 ball  0.82  1.01  +68.4 toe  0.83  0.95  +66.3 | root  0.63  0.44 z2.72 yaw+175 v6.90 | probe  0.81  1.17 -0.45
+[1000.461] locoplayer trace 16 f- 6: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel  0.71  0.71  +62.7 ball  0.75  0.55  +38.6 toe  0.76  0.48  +36.3 | root  0.61  0.21 z2.89 yaw+176 v6.90 | probe  0.67 -1.17 +0.17
+[1000.461] locoplayer trace 16 f- 5: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel  0.67  0.26  +38.8 ball  0.70  0.09  +33.1 toe  0.71  0.03  +31.0 | root  0.60 -0.02 z3.06 yaw+177 v6.90 | probe  0.69  0.26 -0.17
+[1000.461] locoplayer trace 16 f- 4: pl0 hd0 st-1.00 age0.00 land-0.17 scan1 | heel  0.50  0.29  +28.0 ball  0.48  0.47  +30.0 toe  0.48  0.53  +30.8 | root  0.55  0.06 z2.89 yaw  +0 v5.87 | probe  0.49  0.42 -0.17
+[1000.461] locoplayer trace 16 f- 3: pl0 hd0 st-1.00 age0.00 land-0.17 scan1 | heel  0.50  0.39  +24.8 ball  0.49  0.57  +43.8 toe  0.48  0.63  +44.5 | root  0.55  0.27 z2.89 yaw  +0 v6.23 | probe  0.50  0.18 +0.00
+[1000.461] locoplayer trace 16 f- 2: pl1 hd0 st-1.00 age0.03 land-9.00 scan1 | heel  0.51  0.50   +0.0 ball  0.49  0.68  +17.9 toe  0.49  0.74  +18.3 | root  0.55  0.49 z2.72 yaw  +0 v6.60 | probe  0.50  0.37 +0.00
+[1000.461] locoplayer trace 16 f- 1: pl1 hd0 st-1.00 age0.07 land-9.00 scan1 | heel  0.51  0.50   -6.3 ball  0.49  0.68  +10.7 toe  0.49  0.74  +10.7 | root  0.55  0.72 z2.55 yaw  +0 v6.90 | probe  0.50  0.36 +0.17
+[1000.461] locoplayer trace 16 f- 0: pl1 hd0 st-1.00 age0.10 land-9.00 scan1 | heel  0.51  0.50  -16.9 ball  0.49  0.68   +0.0 toe  0.49  0.74   +0.0 | root  0.55  0.95 z2.38 yaw  +0 v6.90 | probe  0.50  0.36 +0.34
+[1000.461] locoplayer deep switchback down sprint foot 0: h -16.9 b   0.0 t   0.0 cm | v 6.90 | age0.10 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.126
+[1013.464] locoplayer seg 19: switchback down sprint, 2.2 s, 11.1 m, 4.97 m/s
+[1020.834] Transit: 0.083 ms/frame avg, 1 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[1046.272] locoplayer seg 20: switchback up run, 3.1 s, 11.0 m, 3.52 m/s
+[1073.992] locoplayer trace 17: switchback down run foot 0, seg 21
+[1073.992] locoplayer trace 17 f-13: pl1 hd0 st-1.00 age0.10 land-9.00 scan1 | heel  0.11  2.75   +0.0 ball -0.07  2.77   +0.5 toe -0.13  2.78   +0.6 | root  0.04  2.82 z1.53 yaw+119 v3.40 | probe  0.09  2.69 +0.00
+[1073.992] locoplayer trace 17 f-12: pl1 hd0 st-1.00 age0.13 land-9.00 scan1 | heel  0.11  2.75   +1.5 ball -0.07  2.77   +0.0 toe -0.14  2.78   +0.3 | root -0.04  2.88 z1.53 yaw+132 v3.20 | probe  0.08  2.69 +0.00
+[1073.992] locoplayer trace 17 f-11: pl1 hd0 st-1.00 age0.17 land-9.00 scan1 | heel  0.11  2.76   +4.5 ball -0.07  2.77   +0.0 toe -0.14  2.78   +0.2 | root -0.13  2.94 z1.53 yaw+143 v2.99 | probe  0.07  2.69 +0.00
+[1073.992] locoplayer trace 17 f-10: pl1 hd0 st-1.00 age0.20 land-9.00 scan1 | heel  0.10  2.78   +4.9 ball -0.07  2.77   +0.0 toe -0.15  2.77   +0.1 | root -0.21  2.98 z1.53 yaw+153 v2.77 | probe  0.07  2.70 +0.00
+[1073.992] locoplayer trace 17 f- 9: pl1 hd0 st-1.00 age0.23 land-9.00 scan0 | heel  0.11  2.80   +4.7 ball -0.07  2.78   +0.4 toe -0.14  2.77   +0.0 | root -0.29  3.00 z1.53 yaw+160 v2.56 | probe  0.07  2.72 +0.00
+[1073.992] locoplayer trace 17 f- 8: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel  0.11  2.81   +9.4 ball -0.07  2.78   +5.9 toe -0.14  2.77   +5.2 | root -0.37  3.02 z1.53 yaw+166 v2.37 | probe -1.10  2.68 +0.00
+[1073.992] locoplayer trace 17 f- 7: pl0 hd0 st-1.00 age0.00 land 0.00 scan1 | heel -0.16  2.91  +13.4 ball -0.33  2.85   +9.9 toe -0.39  2.83   +9.1 | root -0.44  3.02 z1.53 yaw+171 v2.20 | probe -0.33  2.88 +0.00
+[1073.992] locoplayer trace 17 f- 6: pl0 hd0 st-1.00 age0.00 land 0.00 scan0 | heel -0.40  2.94  +13.8 ball -0.56  2.86  +10.7 toe -0.62  2.82  +10.5 | root -0.51  3.02 z1.53 yaw+175 v2.05 | probe -1.03  2.72 +0.00
+[1073.992] locoplayer trace 17 f- 5: pl0 hd0 st-1.00 age0.00 land 0.00 scan1 | heel -0.61  2.93  +11.4 ball -0.76  2.83   +9.6 toe -0.81  2.79   +9.9 | root -0.57  3.00 z1.53 yaw+178 v1.96 | probe -0.77  2.87 +0.00
+[1073.992] locoplayer trace 17 f- 4: pl0 hd0 st-1.00 age0.00 land 0.00 scan0 | heel -0.77  2.89   +6.7 ball -0.90  2.77   +8.9 toe -0.95  2.73   +9.7 | root -0.63  2.97 z1.53 yaw-179 v1.91 | probe -0.98  2.72 +0.00
+[1073.992] locoplayer trace 17 f- 3: pl0 hd0 st-1.00 age0.00 land 0.00 scan0 | heel -0.87  2.82   +4.8 ball -0.99  2.69   +7.8 toe -1.04  2.64   +9.0 | root -0.68  2.93 z1.53 yaw-177 v1.91 | probe -1.01  2.72 +0.00
+[1073.993] locoplayer trace 17 f- 2: pl0 hd0 st-1.00 age0.00 land 0.00 scan0 | heel -0.93  2.71   +3.1 ball -1.05  2.58   +7.1 toe -1.09  2.53   +8.5 | root -0.72  2.89 z1.53 yaw-174 v1.97 | probe -0.96  2.68 +0.00
+[1073.993] locoplayer trace 17 f- 1: pl1 hd0 st-1.00 age0.03 land-9.00 scan0 | heel -0.95  2.61   +0.1 ball -1.06  2.48   +4.6 toe -1.10  2.43   +6.3 | root -0.76  2.83 z1.53 yaw-172 v2.08 | probe -0.98  2.61 +0.00
+[1073.993] locoplayer trace 17 f- 0: pl1 hd0 st-1.00 age0.07 land-9.00 scan1 | heel -0.95  2.61   +0.1 ball -1.06  2.47   +2.0 toe -1.10  2.42 +155.9 | root -0.79  2.76 z1.53 yaw-170 v2.22 | probe -0.99  2.62 +0.00
+[1074.081] locoplayer trace 18: switchback down run foot 1, seg 21
+[1074.081] locoplayer trace 18 f-13: pl1 hd0 st-1.00 age0.20 land-9.00 scan0 | heel -0.60  3.19   +5.5 ball -0.75  3.12   +0.0 toe -0.82  3.08   +0.3 | root -0.68  2.93 z1.53 yaw-177 v1.91 | probe -0.61  3.19 +0.00
+[1074.081] locoplayer trace 18 f-12: pl1 hd0 st-1.00 age0.23 land-9.00 scan0 | heel -0.61  3.19   +7.5 ball -0.75  3.12   +0.0 toe -0.82  3.08   +0.1 | root -0.72  2.89 z1.53 yaw-174 v1.97 | probe -0.62  3.20 +0.00
+[1074.081] locoplayer trace 18 f-11: pl0 hd0 st-1.00 age0.00 land-9.00 scan0 | heel -0.61  3.19  +12.2 ball -0.75  3.12   +3.3 toe -0.82  3.08   +2.7 | root -0.76  2.83 z1.53 yaw-172 v2.08 | probe -1.15  1.84 -0.45
+[1074.081] locoplayer trace 18 f-10: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel -0.64  3.17  +17.2 ball -0.77  3.08   +7.8 toe -0.83  3.04   +6.6 | root -0.79  2.76 z1.53 yaw-170 v2.22 | probe -0.73  3.05 +0.00
+[1074.081] locoplayer trace 18 f- 9: pl0 hd0 st-1.00 age0.00 land-0.34 scan1 | heel -0.76  3.05  +13.7 ball -0.88  2.94   +6.9 toe -0.94  2.89   +5.5 | root -0.80  2.68 z1.53 yaw-168 v2.32 | probe -0.70  1.88 -0.34
+[1074.081] locoplayer trace 18 f- 8: pl0 hd0 st-1.00 age0.00 land-0.34 scan1 | heel -0.84  2.82  +13.8 ball -0.95  2.69   +9.6 toe -1.00  2.63   +8.3 | root -0.79  2.59 z1.53 yaw-167 v2.65 | probe -0.84  2.91 +0.00
+[1074.081] locoplayer trace 18 f- 7: pl0 hd0 st-1.00 age0.00 land-0.34 scan1 | heel -0.86  2.59  +13.3 ball -0.96  2.45  +11.4 toe -1.00  2.39  +10.7 | root -0.78  2.49 z1.53 yaw-167 v2.99 | probe -0.83  1.76 -0.34
+[1074.081] locoplayer trace 18 f- 6: pl0 hd0 st-1.00 age0.00 land-0.34 scan0 | heel -0.86  2.38   +9.9 ball -0.94  2.22  +26.6 toe -0.97  2.16  +26.6 | root -0.77  2.38 z1.53 yaw-168 v3.34 | probe -0.87  2.48 +0.00
+[1074.082] locoplayer trace 18 f- 5: pl0 hd0 st-1.00 age0.00 land-0.34 scan1 | heel -0.82  2.16  +23.7 ball -0.90  1.99  +24.7 toe -0.92  1.93  +42.1 | root -0.74  2.26 z1.53 yaw-169 v3.69 | probe -0.80  1.71 -0.34
+[1074.082] locoplayer trace 18 f- 4: pl0 hd0 st-1.00 age0.00 land-0.17 scan1 | heel -0.78  1.97  +20.2 ball -0.84  1.80  +38.9 toe -0.87  1.73  +39.6 | root -0.72  2.13 z1.36 yaw-170 v4.06 | probe -0.80  2.10 +0.00
+[1074.082] locoplayer trace 18 f- 3: pl0 hd0 st-1.00 age0.00 land-0.17 scan1 | heel -0.74  1.82  +23.5 ball -0.80  1.65  +42.3 toe -0.82  1.59  +43.0 | root -0.70  1.99 z1.36 yaw-171 v4.10 | probe -0.75  1.64 -0.34
+[1074.082] locoplayer trace 18 f- 2: pl1 hd0 st-1.00 age0.03 land-9.00 scan1 | heel -0.72  1.75   +0.0 ball -0.77  1.58  +17.8 toe -0.78  1.52  +18.1 | root -0.68  1.86 z1.19 yaw-172 v4.10 | probe -0.76  1.80 +0.00
+[1074.082] locoplayer trace 18 f- 1: pl1 hd0 st-1.00 age0.07 land-9.00 scan1 | heel -0.72  1.75   -6.2 ball -0.77  1.58  +10.7 toe -0.78  1.52  +10.7 | root -0.67  1.72 z1.19 yaw-173 v4.10 | probe -0.76  1.80 +0.00
+[1074.082] locoplayer trace 18 f- 0: pl1 hd0 st-1.00 age0.10 land-9.00 scan1 | heel -0.72  1.75  -17.0 ball -0.77  1.58   +0.0 toe -0.78  1.52   +0.0 | root -0.65  1.59 z1.02 yaw-174 v4.10 | probe -0.76  1.80 +0.17
+[1074.082] locoplayer deep switchback down run foot 1: h -17.0 b   0.0 t   0.0 cm | v 4.10 | age0.10 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.129
+[1074.097] locoplayer deep switchback down run foot 1: h -15.9 b   0.0 t   0.0 cm | v 4.10 | age0.13 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.129
+[1081.313] locoplayer trace 19: switchback down run foot 0, seg 21
+[1081.313] locoplayer trace 19 f-13: pl1 hd0 st-1.00 age0.17 land-9.00 scan1 | heel -0.95  2.61   +0.0 ball -1.06  2.47   +0.5 toe -1.10  2.42 +153.9 | root -0.78  2.49 z1.53 yaw-167 v2.99 | probe -1.02  2.64 +0.00
+[1081.313] locoplayer trace 19 f-12: pl1 hd0 st-1.00 age0.20 land-9.00 scan0 | heel -0.95  2.61   +1.7 ball -1.06  2.47   +0.0 toe -1.11  2.42 +153.3 | root -0.77  2.38 z1.53 yaw-168 v3.34 | probe -1.03  2.65 +0.00
+[1081.313] locoplayer trace 19 f-11: pl0 hd0 st 0.00 age0.00 land-9.00 scan1 | heel -0.96  2.61   +5.5 ball -1.06  2.47   +0.1 toe -1.11  2.41 +153.3 | root -0.74  2.26 z1.53 yaw-169 v3.69 | probe -0.65  2.32 +0.00
+[1081.313] locoplayer trace 19 f-10: pl0 hd0 st 0.15 age0.00 land-9.00 scan1 | heel -0.94  2.59   +9.9 ball -1.04  2.46   +2.7 toe -1.09  2.40   +2.4 | root -0.72  2.13 z1.36 yaw-170 v4.06 | probe -0.64  2.56 +0.17
+[1081.313] locoplayer trace 19 f- 9: pl0 hd0 st 0.29 age0.00 land-9.00 scan1 | heel -0.87  2.56  +14.9 ball -0.96  2.43   +7.5 toe -1.01  2.36   +6.7 | root -0.70  1.99 z1.36 yaw-171 v4.10 | probe -0.58  2.49 +0.17
+[1081.313] locoplayer trace 19 f- 8: pl0 hd0 st 0.44 age0.00 land-9.00 scan1 | heel -0.80  2.40  +21.4 ball -0.88  2.26  +14.5 toe -0.92  2.20  +30.1 | root -0.68  1.86 z1.19 yaw-172 v4.10 | probe -0.62  2.19 +0.17
+[1081.313] locoplayer trace 19 f- 7: pl0 hd0 st 0.59 age0.00 land-9.00 scan1 | heel -0.72  2.14  +41.7 ball -0.78  1.98  +35.8 toe -0.81  1.92  +51.1 | root -0.67  1.72 z1.19 yaw-173 v4.10 | probe -0.61  1.93 +0.00
+[1081.313] locoplayer trace 19 f- 6: pl0 hd0 st 0.74 age0.00 land-9.00 scan1 | heel -0.65  1.75  +57.0 ball -0.69  1.58  +69.7 toe -0.71  1.52  +68.1 | root -0.65  1.59 z1.02 yaw-174 v4.10 | probe -0.61  1.63 +0.00
+[1081.313] locoplayer trace 19 f- 5: pl0 hd0 st 0.88 age0.00 land-9.00 scan0 | heel -0.59  1.62  +68.3 ball -0.63  1.44  +65.7 toe -0.64  1.38  +81.7 | root -0.64  1.45 z1.02 yaw-175 v4.10 | probe -0.61  1.63 +0.00
+[1081.313] locoplayer trace 19 f- 4: pl1 hd0 st-1.00 age0.03 land-9.00 scan0 | heel -0.58  1.58   +6.4 ball -0.61  1.40   +5.6 toe -0.62  1.34  +22.3 | root -0.63  1.31 z0.85 yaw-175 v4.10 | probe -0.61  1.63 +0.17
+[1081.313] locoplayer trace 19 f- 3: pl0 hd0 st-1.00 age0.00 land-9.00 scan0 | heel -0.58  1.58  +56.0 ball -0.61  1.40  +56.7 toe -0.62  1.34  +73.9 | root -0.62  1.18 z0.85 yaw-176 v4.10 | probe -0.54  0.53 -0.45
+[1081.313] locoplayer trace 19 f- 2: pl0 hd0 st-1.00 age0.00 land-9.00 scan0 | heel -0.54  1.16  +20.6 ball -0.56  0.98  +39.4 toe -0.56  0.92  +40.0 | root -0.61  1.04 z0.68 yaw-176 v4.10 | probe -0.55  1.06 +0.00
+[1081.314] locoplayer trace 19 f- 1: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel -0.52  0.88  +13.6 ball -0.52  0.70  +32.8 toe -0.53  0.63  +33.6 | root -0.60  0.91 z0.68 yaw-177 v4.10 | probe -0.50  0.49 -0.34
+[1081.314] locoplayer trace 19 f- 0: pl1 hd0 st-1.00 age0.03 land-9.00 scan1 | heel -0.52  0.79  +28.7 ball -0.52  0.61  +30.9 toe -0.52  0.54  +48.7 | root -0.60  0.77 z0.51 yaw-177 v4.10 | probe -0.52  0.84 +0.00
+[1081.732] locoplayer seg 21: switchback down run, 3.2 s, 11.1 m, 3.52 m/s
+[1108.155] locoplayer bigslide switchback up sprint foot 0: 15.6 cm over 5 frames | planted 0 stepT -1.00
+[1108.300] locoplayer trace 20: switchback up sprint foot 0, seg 22
+[1108.300] locoplayer trace 20 f-13: pl0 hd0 st-1.00 age0.00 land 0.51 scan1 | heel -0.13  3.20  +64.7 ball  0.01  3.15  +56.1 toe  0.08  3.12  +54.4 | root  0.19  2.85 z1.53 yaw-149 v3.40 | probe -0.06  3.14 +0.00
+[1108.301] locoplayer trace 20 f-12: pl0 hd0 st-1.00 age0.00 land 0.68 scan1 | heel  0.07  3.07  +65.5 ball  0.21  2.99  +58.2 toe  0.27  2.96  +56.2 | root  0.28  2.77 z1.53 yaw-155 v3.61 | probe  0.83  1.46 +0.45
+[1108.301] locoplayer trace 20 f-11: pl0 hd0 st-1.00 age0.00 land 0.68 scan1 | heel  0.28  2.89  +67.9 ball  0.42  2.79  +62.3 toe  0.47  2.75  +60.4 | root  0.38  2.69 z1.53 yaw-162 v3.79 | probe  0.36  2.83 +0.00
+[1108.301] locoplayer trace 20 f-10: pl0 hd0 st-1.00 age0.00 land 0.68 scan0 | heel  0.48  2.66  +65.1 ball  0.61  2.54  +61.5 toe  0.66  2.49  +60.1 | root  0.47  2.59 z1.53 yaw-168 v3.95 | probe  0.95  1.44 +0.45
+[1108.301] locoplayer trace 20 f- 9: pl0 hd0 st-1.00 age0.00 land 0.68 scan0 | heel  0.67  2.42  +65.4 ball  0.78  2.28  +63.8 toe  0.82  2.22  +46.2 | root  0.55  2.49 z1.53 yaw-176 v4.08 | probe  0.76  2.37 +0.00
+[1108.301] locoplayer trace 20 f- 8: pl0 hd0 st-1.00 age0.00 land 0.68 scan1 | heel  0.82  2.17  +56.8 ball  0.92  2.02  +56.7 toe  0.96  1.97  +56.8 | root  0.63  2.37 z1.53 yaw+180 v4.20 | probe  1.08  1.47 +0.45
+[1108.301] locoplayer trace 20 f- 7: pl0 hd0 st-1.00 age0.00 land 0.51 scan1 | heel  0.92  2.11  +44.2 ball  1.01  1.96  +28.8 toe  1.04  1.90  +29.5 | root  0.70  2.25 z1.53 yaw+176 v4.32 | probe  0.99  2.05 +0.17
+[1108.301] locoplayer trace 20 f- 6: pl0 hd0 st-1.00 age0.00 land 0.34 scan1 | heel  1.00  1.95  +25.5 ball  1.08  1.79  +28.2 toe  1.11  1.73 +216.8 | root  0.76  2.11 z1.70 yaw+172 v4.44 | probe  1.01  1.78 +0.17
+[1108.301] locoplayer trace 20 f- 5: pl0 hd0 st-1.00 age0.00 land 0.34 scan1 | heel  0.97  1.77  +22.7 ball  1.03  1.60   +8.6 toe  1.06  1.54   +9.8 | root  0.80  1.97 z1.70 yaw+169 v4.28 | probe  0.98  1.69 +0.17
+[1108.301] locoplayer trace 20 f- 4: pl0 hd0 st-1.00 age0.00 land 0.17 scan1 | heel  0.91  1.67   +0.9 ball  0.97  1.50   +3.6 toe  0.99  1.44   +4.6 | root  0.79  1.82 z1.87 yaw+167 v4.59 | probe  0.95  1.58 +0.17
+[1108.301] locoplayer trace 20 f- 3: pl1 hd0 st-1.00 age0.03 land-9.00 scan1 | heel  0.86  1.64   -0.7 ball  0.91  1.47   +0.0 toe  0.93  1.40   +0.3 | root  0.78  1.65 z2.04 yaw+168 v4.92 | probe  0.92  1.63 +0.00
+[1108.301] locoplayer trace 20 f- 2: pl1 hd0 st-1.00 age0.07 land-9.00 scan0 | heel  0.86  1.64   -0.5 ball  0.91  1.47   +0.0 toe  0.93  1.40   +0.2 | root  0.76  1.48 z2.04 yaw+168 v5.25 | probe  0.93  1.64 +0.00
+[1108.301] locoplayer trace 20 f- 1: pl1 hd0 st-1.00 age0.10 land-9.00 scan1 | heel  0.86  1.64   +0.9 ball  0.91  1.47   +0.0 toe  0.93  1.40   +0.1 | root  0.74  1.29 z2.21 yaw+169 v5.60 | probe  0.94  1.65 -0.17
+[1108.301] locoplayer trace 20 f- 0: pl1 hd0 st-1.00 age0.13 land-9.00 scan1 | heel  0.86  1.63   +6.4 ball  0.91  1.47   +0.1 toe  0.93  1.39  -17.0 | root  0.71  1.10 z2.38 yaw+170 v5.96 | probe  0.75 -0.31 +0.45
+[1108.301] locoplayer deep switchback up sprint foot 0: h   6.4 b   0.1 t -17.0 cm | v 5.96 | age0.13 ballProbe 1 stairLand -9.00 stepT -1.00 lead 0.130
+[1108.314] locoplayer deep switchback up sprint foot 0: h  14.0 b   5.0 t -12.5 cm | v 6.33 | age0.17 ballProbe 1 stairLand -9.00 stepT -1.00 lead 0.130
+[1117.385] locoplayer seg 22: switchback up sprint, 2.2 s, 11.1 m, 4.97 m/s
+[1131.176] locoplayer trace 21: switchback down sprint foot 0, seg 23
+[1131.177] locoplayer trace 21 f-13: pl1 hd0 st-1.00 age0.03 land-9.00 scan1 | heel  0.86  1.64   -0.7 ball  0.91  1.47   +0.0 toe  0.93  1.40   +0.3 | root  0.78  1.65 z2.04 yaw+168 v4.92 | probe  0.92  1.63 +0.00
+[1131.177] locoplayer trace 21 f-12: pl1 hd0 st-1.00 age0.07 land-9.00 scan0 | heel  0.86  1.64   -0.5 ball  0.91  1.47   +0.0 toe  0.93  1.40   +0.2 | root  0.76  1.48 z2.04 yaw+168 v5.25 | probe  0.93  1.64 +0.00
+[1131.177] locoplayer trace 21 f-11: pl1 hd0 st-1.00 age0.10 land-9.00 scan1 | heel  0.86  1.64   +0.9 ball  0.91  1.47   +0.0 toe  0.93  1.40   +0.1 | root  0.74  1.29 z2.21 yaw+169 v5.60 | probe  0.94  1.65 -0.17
+[1131.177] locoplayer trace 21 f-10: pl1 hd0 st-1.00 age0.13 land-9.00 scan1 | heel  0.86  1.63   +6.4 ball  0.91  1.47   +0.1 toe  0.93  1.39  -17.0 | root  0.71  1.10 z2.38 yaw+170 v5.96 | probe  0.75 -0.31 +0.45
+[1131.177] locoplayer trace 21 f- 9: pl1 hd0 st-1.00 age0.17 land-9.00 scan1 | heel  0.86  1.57  +14.0 ball  0.90  1.42   +5.0 toe  0.93  1.34  -12.5 | root  0.68  0.89 z2.38 yaw+172 v6.33 | probe  0.96  1.67 -0.34
+[1131.177] locoplayer trace 21 f- 8: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel  0.84  1.45  +80.4 ball  0.89  1.31  +54.4 toe  0.91  1.23  +53.1 | root  0.65  0.67 z2.55 yaw+173 v6.68 | probe  0.70 -0.71 +0.45
+[1131.178] locoplayer trace 21 f- 7: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel  0.77  1.17  +93.7 ball  0.82  1.01  +68.4 toe  0.83  0.95  +66.3 | root  0.63  0.44 z2.72 yaw+175 v6.90 | probe  0.81  1.17 -0.45
+[1131.178] locoplayer trace 21 f- 6: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel  0.71  0.71  +62.7 ball  0.75  0.55  +38.6 toe  0.76  0.48  +36.3 | root  0.61  0.21 z2.89 yaw+176 v6.90 | probe  0.67 -1.17 +0.17
+[1131.178] locoplayer trace 21 f- 5: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel  0.67  0.26  +38.8 ball  0.70  0.09  +33.1 toe  0.71  0.03  +31.0 | root  0.60 -0.02 z3.06 yaw+177 v6.90 | probe  0.69  0.26 -0.17
+[1131.178] locoplayer trace 21 f- 4: pl0 hd0 st-1.00 age0.00 land-0.17 scan1 | heel  0.50  0.29  +28.0 ball  0.48  0.47  +30.0 toe  0.48  0.53  +30.8 | root  0.55  0.06 z2.89 yaw  +0 v5.87 | probe  0.49  0.42 -0.17
+[1131.178] locoplayer trace 21 f- 3: pl0 hd0 st-1.00 age0.00 land-0.17 scan1 | heel  0.50  0.39  +24.8 ball  0.49  0.57  +43.8 toe  0.48  0.63  +44.5 | root  0.55  0.27 z2.89 yaw  +0 v6.23 | probe  0.50  0.18 +0.00
+[1131.179] locoplayer trace 21 f- 2: pl1 hd0 st-1.00 age0.03 land-9.00 scan1 | heel  0.51  0.50   +0.0 ball  0.49  0.68  +17.9 toe  0.49  0.74  +18.3 | root  0.55  0.49 z2.72 yaw  +0 v6.60 | probe  0.50  0.37 +0.00
+[1131.179] locoplayer trace 21 f- 1: pl1 hd0 st-1.00 age0.07 land-9.00 scan1 | heel  0.51  0.50   -6.3 ball  0.49  0.68  +10.7 toe  0.49  0.74  +10.7 | root  0.55  0.72 z2.55 yaw  +0 v6.90 | probe  0.50  0.36 +0.17
+[1131.179] locoplayer trace 21 f- 0: pl1 hd0 st-1.00 age0.10 land-9.00 scan1 | heel  0.51  0.50  -16.9 ball  0.49  0.68   +0.0 toe  0.49  0.74   +0.0 | root  0.55  0.95 z2.38 yaw  +0 v6.90 | probe  0.50  0.36 +0.34
+[1131.179] locoplayer deep switchback down sprint foot 0: h -16.9 b   0.0 t   0.0 cm | v 6.90 | age0.10 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.125
+[1143.573] locoplayer seg 23: switchback down sprint, 2.2 s, 11.1 m, 4.97 m/s
+[1155.999] Transit: 0.100 ms/frame avg, 1 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[1162.946] Wildlife: 117 animals (109 birds) in 14 groups, 49 drawn in 12 draws | update 0.169 ms, render 0.284 ms
+[1176.849] locoplayer seg 24: switchback up run, 3.1 s, 11.0 m, 3.52 m/s
+[1202.778] locoplayer trace 22: switchback down run foot 0, seg 25
+[1202.778] locoplayer trace 22 f-13: pl1 hd0 st-1.00 age0.10 land-9.00 scan1 | heel  0.11  2.75   +0.0 ball -0.07  2.77   +0.5 toe -0.13  2.78   +0.6 | root  0.04  2.82 z1.53 yaw+119 v3.40 | probe  0.09  2.69 +0.00
+[1202.778] locoplayer trace 22 f-12: pl1 hd0 st-1.00 age0.13 land-9.00 scan1 | heel  0.11  2.75   +1.5 ball -0.07  2.77   +0.0 toe -0.14  2.78   +0.3 | root -0.04  2.88 z1.53 yaw+132 v3.20 | probe  0.08  2.69 +0.00
+[1202.778] locoplayer trace 22 f-11: pl1 hd0 st-1.00 age0.17 land-9.00 scan1 | heel  0.11  2.76   +4.5 ball -0.07  2.77   +0.0 toe -0.14  2.78   +0.2 | root -0.13  2.94 z1.53 yaw+143 v2.99 | probe  0.07  2.69 +0.00
+[1202.778] locoplayer trace 22 f-10: pl1 hd0 st-1.00 age0.20 land-9.00 scan1 | heel  0.10  2.78   +4.9 ball -0.07  2.77   +0.0 toe -0.15  2.77   +0.1 | root -0.21  2.98 z1.53 yaw+153 v2.77 | probe  0.07  2.70 +0.00
+[1202.778] locoplayer trace 22 f- 9: pl1 hd0 st-1.00 age0.23 land-9.00 scan0 | heel  0.11  2.80   +4.7 ball -0.07  2.78   +0.4 toe -0.14  2.77   +0.0 | root -0.29  3.00 z1.53 yaw+160 v2.56 | probe  0.07  2.72 +0.00
+[1202.778] locoplayer trace 22 f- 8: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel  0.11  2.81   +9.4 ball -0.07  2.78   +5.9 toe -0.14  2.77   +5.2 | root -0.37  3.02 z1.53 yaw+166 v2.37 | probe -1.10  2.68 +0.00
+[1202.778] locoplayer trace 22 f- 7: pl0 hd0 st-1.00 age0.00 land 0.00 scan1 | heel -0.16  2.91  +13.4 ball -0.33  2.85   +9.9 toe -0.39  2.83   +9.1 | root -0.44  3.02 z1.53 yaw+171 v2.20 | probe -0.33  2.88 +0.00
+[1202.778] locoplayer trace 22 f- 6: pl0 hd0 st-1.00 age0.00 land 0.00 scan0 | heel -0.40  2.94  +13.8 ball -0.56  2.86  +10.7 toe -0.62  2.82  +10.5 | root -0.51  3.02 z1.53 yaw+175 v2.05 | probe -1.03  2.72 +0.00
+[1202.778] locoplayer trace 22 f- 5: pl0 hd0 st-1.00 age0.00 land 0.00 scan1 | heel -0.61  2.93  +11.4 ball -0.76  2.83   +9.6 toe -0.81  2.79   +9.9 | root -0.57  3.00 z1.53 yaw+178 v1.96 | probe -0.77  2.87 +0.00
+[1202.778] locoplayer trace 22 f- 4: pl0 hd0 st-1.00 age0.00 land 0.00 scan0 | heel -0.77  2.89   +6.7 ball -0.90  2.77   +8.9 toe -0.95  2.73   +9.7 | root -0.63  2.97 z1.53 yaw-179 v1.91 | probe -0.98  2.72 +0.00
+[1202.778] locoplayer trace 22 f- 3: pl0 hd0 st-1.00 age0.00 land 0.00 scan0 | heel -0.87  2.82   +4.8 ball -0.99  2.69   +7.8 toe -1.04  2.64   +9.0 | root -0.68  2.93 z1.53 yaw-177 v1.91 | probe -1.01  2.72 +0.00
+[1202.778] locoplayer trace 22 f- 2: pl0 hd0 st-1.00 age0.00 land 0.00 scan0 | heel -0.93  2.71   +3.1 ball -1.05  2.58   +7.1 toe -1.09  2.53   +8.5 | root -0.72  2.89 z1.53 yaw-174 v1.97 | probe -0.96  2.68 +0.00
+[1202.778] locoplayer trace 22 f- 1: pl1 hd0 st-1.00 age0.03 land-9.00 scan0 | heel -0.95  2.61   +0.1 ball -1.06  2.48   +4.6 toe -1.10  2.43   +6.3 | root -0.76  2.83 z1.53 yaw-172 v2.08 | probe -0.98  2.61 +0.00
+[1202.778] locoplayer trace 22 f- 0: pl1 hd0 st-1.00 age0.07 land-9.00 scan1 | heel -0.95  2.61   +0.1 ball -1.06  2.47   +2.0 toe -1.10  2.42 +155.9 | root -0.79  2.76 z1.53 yaw-170 v2.22 | probe -0.99  2.62 +0.00
+[1202.836] locoplayer trace 23: switchback down run foot 1, seg 25
+[1202.836] locoplayer trace 23 f-13: pl1 hd0 st-1.00 age0.20 land-9.00 scan0 | heel -0.60  3.19   +5.5 ball -0.75  3.12   +0.0 toe -0.82  3.08   +0.3 | root -0.68  2.93 z1.53 yaw-177 v1.91 | probe -0.61  3.19 +0.00
+[1202.836] locoplayer trace 23 f-12: pl1 hd0 st-1.00 age0.23 land-9.00 scan0 | heel -0.61  3.19   +7.5 ball -0.75  3.12   +0.0 toe -0.82  3.08   +0.1 | root -0.72  2.89 z1.53 yaw-174 v1.97 | probe -0.62  3.20 +0.00
+[1202.836] locoplayer trace 23 f-11: pl0 hd0 st-1.00 age0.00 land-9.00 scan0 | heel -0.61  3.19  +12.2 ball -0.75  3.12   +3.3 toe -0.82  3.08   +2.7 | root -0.76  2.83 z1.53 yaw-172 v2.08 | probe -1.15  1.84 -0.45
+[1202.836] locoplayer trace 23 f-10: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel -0.64  3.17  +17.2 ball -0.77  3.08   +7.8 toe -0.83  3.04   +6.6 | root -0.79  2.76 z1.53 yaw-170 v2.22 | probe -0.73  3.05 +0.00
+[1202.836] locoplayer trace 23 f- 9: pl0 hd0 st-1.00 age0.00 land-0.34 scan1 | heel -0.76  3.05  +13.7 ball -0.88  2.94   +6.9 toe -0.94  2.89   +5.5 | root -0.80  2.68 z1.53 yaw-168 v2.32 | probe -0.70  1.88 -0.34
+[1202.836] locoplayer trace 23 f- 8: pl0 hd0 st-1.00 age0.00 land-0.34 scan1 | heel -0.84  2.82  +13.8 ball -0.95  2.69   +9.6 toe -1.00  2.63   +8.3 | root -0.79  2.59 z1.53 yaw-167 v2.65 | probe -0.84  2.91 +0.00
+[1202.836] locoplayer trace 23 f- 7: pl0 hd0 st-1.00 age0.00 land-0.34 scan1 | heel -0.86  2.59  +13.3 ball -0.96  2.45  +11.4 toe -1.00  2.39  +10.7 | root -0.78  2.49 z1.53 yaw-167 v2.99 | probe -0.83  1.76 -0.34
+[1202.836] locoplayer trace 23 f- 6: pl0 hd0 st-1.00 age0.00 land-0.34 scan0 | heel -0.86  2.38   +9.9 ball -0.94  2.22  +26.6 toe -0.97  2.16  +26.6 | root -0.77  2.38 z1.53 yaw-168 v3.34 | probe -0.87  2.48 +0.00
+[1202.836] locoplayer trace 23 f- 5: pl0 hd0 st-1.00 age0.00 land-0.34 scan1 | heel -0.82  2.16  +23.7 ball -0.90  1.99  +24.7 toe -0.92  1.93  +42.1 | root -0.74  2.26 z1.53 yaw-169 v3.69 | probe -0.80  1.71 -0.34
+[1202.836] locoplayer trace 23 f- 4: pl0 hd0 st-1.00 age0.00 land-0.17 scan1 | heel -0.78  1.97  +20.2 ball -0.84  1.80  +38.9 toe -0.87  1.73  +39.6 | root -0.72  2.13 z1.36 yaw-170 v4.06 | probe -0.80  2.10 +0.00
+[1202.836] locoplayer trace 23 f- 3: pl0 hd0 st-1.00 age0.00 land-0.17 scan1 | heel -0.74  1.82  +23.5 ball -0.80  1.65  +42.3 toe -0.82  1.59  +43.0 | root -0.70  1.99 z1.36 yaw-171 v4.10 | probe -0.75  1.64 -0.34
+[1202.836] locoplayer trace 23 f- 2: pl1 hd0 st-1.00 age0.03 land-9.00 scan1 | heel -0.72  1.75   +0.0 ball -0.77  1.58  +17.8 toe -0.78  1.52  +18.1 | root -0.68  1.86 z1.19 yaw-172 v4.10 | probe -0.76  1.80 +0.00
+[1202.836] locoplayer trace 23 f- 1: pl1 hd0 st-1.00 age0.07 land-9.00 scan1 | heel -0.72  1.75   -6.2 ball -0.77  1.58  +10.7 toe -0.78  1.52  +10.7 | root -0.67  1.72 z1.19 yaw-173 v4.10 | probe -0.76  1.80 +0.00
+[1202.836] locoplayer trace 23 f- 0: pl1 hd0 st-1.00 age0.10 land-9.00 scan1 | heel -0.72  1.75  -17.0 ball -0.77  1.58   +0.0 toe -0.78  1.52   +0.0 | root -0.65  1.59 z1.02 yaw-174 v4.10 | probe -0.76  1.80 +0.17
+[1202.836] locoplayer deep switchback down run foot 1: h -17.0 b   0.0 t   0.0 cm | v 4.10 | age0.10 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.129
+[1202.847] locoplayer deep switchback down run foot 1: h -15.9 b   0.0 t   0.0 cm | v 4.10 | age0.13 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.129
+[1208.482] locoplayer trace 24: switchback down run foot 0, seg 25
+[1208.482] locoplayer trace 24 f-13: pl1 hd0 st-1.00 age0.17 land-9.00 scan1 | heel -0.95  2.61   +0.0 ball -1.06  2.47   +0.5 toe -1.10  2.42 +153.9 | root -0.78  2.49 z1.53 yaw-167 v2.99 | probe -1.02  2.64 +0.00
+[1208.482] locoplayer trace 24 f-12: pl1 hd0 st-1.00 age0.20 land-9.00 scan0 | heel -0.95  2.61   +1.7 ball -1.06  2.47   +0.0 toe -1.11  2.42 +153.3 | root -0.77  2.38 z1.53 yaw-168 v3.34 | probe -1.03  2.65 +0.00
+[1208.482] locoplayer trace 24 f-11: pl0 hd0 st 0.00 age0.00 land-9.00 scan1 | heel -0.96  2.61   +5.5 ball -1.06  2.47   +0.1 toe -1.11  2.41 +153.3 | root -0.74  2.26 z1.53 yaw-169 v3.69 | probe -0.65  2.31 +0.00
+[1208.483] locoplayer trace 24 f-10: pl0 hd0 st 0.15 age0.00 land-9.00 scan1 | heel -0.94  2.59   +9.9 ball -1.04  2.46   +2.7 toe -1.09  2.40   +2.4 | root -0.72  2.13 z1.36 yaw-170 v4.06 | probe -0.64  2.56 +0.17
+[1208.483] locoplayer trace 24 f- 9: pl0 hd0 st 0.29 age0.00 land-9.00 scan1 | heel -0.87  2.56  +14.9 ball -0.96  2.43   +7.5 toe -1.01  2.36   +6.7 | root -0.70  1.99 z1.36 yaw-171 v4.10 | probe -0.58  2.49 +0.17
+[1208.483] locoplayer trace 24 f- 8: pl0 hd0 st 0.44 age0.00 land-9.00 scan1 | heel -0.80  2.40  +21.4 ball -0.88  2.26  +14.5 toe -0.92  2.20  +30.1 | root -0.68  1.86 z1.19 yaw-172 v4.10 | probe -0.62  2.19 +0.17
+[1208.483] locoplayer trace 24 f- 7: pl0 hd0 st 0.59 age0.00 land-9.00 scan1 | heel -0.72  2.14  +41.7 ball -0.78  1.98  +35.8 toe -0.81  1.92  +51.1 | root -0.67  1.72 z1.19 yaw-173 v4.10 | probe -0.61  1.93 +0.00
+[1208.483] locoplayer trace 24 f- 6: pl0 hd0 st 0.74 age0.00 land-9.00 scan1 | heel -0.65  1.75  +57.0 ball -0.69  1.58  +69.7 toe -0.71  1.52  +68.1 | root -0.65  1.59 z1.02 yaw-174 v4.10 | probe -0.61  1.63 +0.00
+[1208.484] locoplayer trace 24 f- 5: pl0 hd0 st 0.88 age0.00 land-9.00 scan0 | heel -0.59  1.62  +68.3 ball -0.63  1.44  +65.7 toe -0.64  1.38  +81.7 | root -0.64  1.45 z1.02 yaw-175 v4.10 | probe -0.61  1.63 +0.00
+[1208.484] locoplayer trace 24 f- 4: pl1 hd0 st-1.00 age0.03 land-9.00 scan0 | heel -0.58  1.58   +6.4 ball -0.61  1.40   +5.6 toe -0.62  1.34  +22.3 | root -0.63  1.31 z0.85 yaw-175 v4.10 | probe -0.61  1.63 +0.17
+[1208.484] locoplayer trace 24 f- 3: pl0 hd0 st-1.00 age0.00 land-9.00 scan0 | heel -0.58  1.58  +56.0 ball -0.61  1.40  +56.7 toe -0.62  1.34  +73.9 | root -0.62  1.18 z0.85 yaw-176 v4.10 | probe -0.54  0.53 -0.45
+[1208.484] locoplayer trace 24 f- 2: pl0 hd0 st-1.00 age0.00 land-9.00 scan0 | heel -0.54  1.16  +20.6 ball -0.56  0.98  +39.4 toe -0.56  0.92  +40.0 | root -0.61  1.04 z0.68 yaw-176 v4.10 | probe -0.55  1.06 +0.00
+[1208.484] locoplayer trace 24 f- 1: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel -0.52  0.88  +13.6 ball -0.52  0.70  +32.8 toe -0.53  0.63  +33.6 | root -0.60  0.91 z0.68 yaw-177 v4.10 | probe -0.50  0.49 -0.34
+[1208.484] locoplayer trace 24 f- 0: pl1 hd0 st-1.00 age0.03 land-9.00 scan1 | heel -0.52  0.79  +28.7 ball -0.52  0.61  +30.9 toe -0.52  0.54  +48.7 | root -0.60  0.77 z0.51 yaw-177 v4.10 | probe -0.52  0.84 +0.00
+[1208.724] locoplayer seg 25: switchback down run, 3.2 s, 11.1 m, 3.52 m/s
+[1232.054] locoplayer bigslide switchback up sprint foot 0: 15.6 cm over 5 frames | planted 0 stepT -1.00
+[1232.158] locoplayer trace 25: switchback up sprint foot 0, seg 26
+[1232.158] locoplayer trace 25 f-13: pl0 hd0 st-1.00 age0.00 land 0.51 scan1 | heel -0.13  3.20  +64.7 ball  0.01  3.15  +56.1 toe  0.08  3.12  +54.4 | root  0.19  2.85 z1.53 yaw-149 v3.40 | probe -0.06  3.14 +0.00
+[1232.158] locoplayer trace 25 f-12: pl0 hd0 st-1.00 age0.00 land 0.68 scan1 | heel  0.07  3.07  +65.5 ball  0.21  2.99  +58.2 toe  0.27  2.96  +56.2 | root  0.28  2.77 z1.53 yaw-155 v3.61 | probe  0.83  1.46 +0.45
+[1232.158] locoplayer trace 25 f-11: pl0 hd0 st-1.00 age0.00 land 0.68 scan1 | heel  0.28  2.89  +67.9 ball  0.42  2.79  +62.3 toe  0.47  2.75  +60.4 | root  0.38  2.69 z1.53 yaw-162 v3.79 | probe  0.36  2.83 +0.00
+[1232.158] locoplayer trace 25 f-10: pl0 hd0 st-1.00 age0.00 land 0.68 scan0 | heel  0.48  2.66  +65.1 ball  0.61  2.54  +61.5 toe  0.66  2.49  +60.1 | root  0.47  2.59 z1.53 yaw-168 v3.95 | probe  0.95  1.44 +0.45
+[1232.158] locoplayer trace 25 f- 9: pl0 hd0 st-1.00 age0.00 land 0.68 scan0 | heel  0.67  2.42  +65.4 ball  0.78  2.28  +63.8 toe  0.82  2.22  +46.2 | root  0.55  2.49 z1.53 yaw-176 v4.08 | probe  0.76  2.37 +0.00
+[1232.158] locoplayer trace 25 f- 8: pl0 hd0 st-1.00 age0.00 land 0.68 scan1 | heel  0.82  2.17  +56.8 ball  0.92  2.02  +56.7 toe  0.96  1.97  +56.8 | root  0.63  2.37 z1.53 yaw+180 v4.20 | probe  1.08  1.47 +0.45
+[1232.158] locoplayer trace 25 f- 7: pl0 hd0 st-1.00 age0.00 land 0.51 scan1 | heel  0.92  2.11  +44.2 ball  1.01  1.96  +28.8 toe  1.04  1.90  +29.5 | root  0.70  2.25 z1.53 yaw+176 v4.32 | probe  0.99  2.05 +0.17
+[1232.158] locoplayer trace 25 f- 6: pl0 hd0 st-1.00 age0.00 land 0.34 scan1 | heel  1.00  1.95  +25.5 ball  1.08  1.79  +28.2 toe  1.11  1.73 +216.8 | root  0.76  2.11 z1.70 yaw+172 v4.44 | probe  1.01  1.78 +0.17
+[1232.158] locoplayer trace 25 f- 5: pl0 hd0 st-1.00 age0.00 land 0.34 scan1 | heel  0.97  1.77  +22.7 ball  1.03  1.60   +8.6 toe  1.06  1.54   +9.8 | root  0.80  1.97 z1.70 yaw+169 v4.28 | probe  0.98  1.69 +0.17
+[1232.158] locoplayer trace 25 f- 4: pl0 hd0 st-1.00 age0.00 land 0.17 scan1 | heel  0.91  1.67   +0.9 ball  0.97  1.50   +3.6 toe  0.99  1.44   +4.6 | root  0.79  1.82 z1.87 yaw+167 v4.59 | probe  0.95  1.58 +0.17
+[1232.158] locoplayer trace 25 f- 3: pl1 hd0 st-1.00 age0.03 land-9.00 scan1 | heel  0.86  1.64   -0.7 ball  0.91  1.47   +0.0 toe  0.93  1.40   +0.3 | root  0.78  1.65 z2.04 yaw+168 v4.92 | probe  0.92  1.63 +0.00
+[1232.158] locoplayer trace 25 f- 2: pl1 hd0 st-1.00 age0.07 land-9.00 scan0 | heel  0.86  1.64   -0.5 ball  0.91  1.47   +0.0 toe  0.93  1.40   +0.2 | root  0.76  1.48 z2.04 yaw+168 v5.25 | probe  0.93  1.64 +0.00
+[1232.158] locoplayer trace 25 f- 1: pl1 hd0 st-1.00 age0.10 land-9.00 scan1 | heel  0.86  1.64   +0.9 ball  0.91  1.47   +0.0 toe  0.93  1.40   +0.1 | root  0.74  1.29 z2.21 yaw+169 v5.60 | probe  0.94  1.65 -0.17
+[1232.158] locoplayer trace 25 f- 0: pl1 hd0 st-1.00 age0.13 land-9.00 scan1 | heel  0.86  1.63   +6.4 ball  0.91  1.47   +0.1 toe  0.93  1.39  -17.0 | root  0.71  1.10 z2.38 yaw+170 v5.96 | probe  0.75 -0.31 +0.45
+[1232.158] locoplayer deep switchback up sprint foot 0: h   6.4 b   0.1 t -17.0 cm | v 5.96 | age0.13 ballProbe 1 stairLand -9.00 stepT -1.00 lead 0.130
+[1232.162] locoplayer deep switchback up sprint foot 0: h  14.0 b   5.0 t -12.5 cm | v 6.33 | age0.17 ballProbe 1 stairLand -9.00 stepT -1.00 lead 0.130
+[1238.496] locoplayer seg 26: switchback up sprint, 2.2 s, 11.1 m, 4.97 m/s
+[1247.511] locoplayer trace 26: switchback down sprint foot 0, seg 27
+[1247.511] locoplayer trace 26 f-13: pl1 hd0 st-1.00 age0.03 land-9.00 scan1 | heel  0.86  1.64   -0.7 ball  0.91  1.47   +0.0 toe  0.93  1.40   +0.3 | root  0.78  1.65 z2.04 yaw+168 v4.92 | probe  0.92  1.63 +0.00
+[1247.511] locoplayer trace 26 f-12: pl1 hd0 st-1.00 age0.07 land-9.00 scan0 | heel  0.86  1.64   -0.5 ball  0.91  1.47   +0.0 toe  0.93  1.40   +0.2 | root  0.76  1.48 z2.04 yaw+168 v5.25 | probe  0.93  1.64 +0.00
+[1247.511] locoplayer trace 26 f-11: pl1 hd0 st-1.00 age0.10 land-9.00 scan1 | heel  0.86  1.64   +0.9 ball  0.91  1.47   +0.0 toe  0.93  1.40   +0.1 | root  0.74  1.29 z2.21 yaw+169 v5.60 | probe  0.94  1.65 -0.17
+[1247.512] locoplayer trace 26 f-10: pl1 hd0 st-1.00 age0.13 land-9.00 scan1 | heel  0.86  1.63   +6.4 ball  0.91  1.47   +0.1 toe  0.93  1.39  -17.0 | root  0.71  1.10 z2.38 yaw+170 v5.96 | probe  0.75 -0.31 +0.45
+[1247.512] locoplayer trace 26 f- 9: pl1 hd0 st-1.00 age0.17 land-9.00 scan1 | heel  0.86  1.57  +14.0 ball  0.90  1.42   +5.0 toe  0.93  1.34  -12.5 | root  0.68  0.89 z2.38 yaw+172 v6.33 | probe  0.96  1.67 -0.34
+[1247.512] locoplayer trace 26 f- 8: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel  0.84  1.45  +80.4 ball  0.89  1.31  +54.4 toe  0.91  1.23  +53.1 | root  0.65  0.67 z2.55 yaw+173 v6.68 | probe  0.70 -0.71 +0.45
+[1247.512] locoplayer trace 26 f- 7: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel  0.77  1.17  +93.7 ball  0.82  1.01  +68.4 toe  0.83  0.95  +66.3 | root  0.63  0.44 z2.72 yaw+175 v6.90 | probe  0.81  1.17 -0.45
+[1247.512] locoplayer trace 26 f- 6: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel  0.71  0.71  +62.7 ball  0.75  0.55  +38.6 toe  0.76  0.48  +36.3 | root  0.61  0.21 z2.89 yaw+176 v6.90 | probe  0.67 -1.17 +0.17
+[1247.512] locoplayer trace 26 f- 5: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel  0.67  0.26  +38.8 ball  0.70  0.09  +33.1 toe  0.71  0.03  +31.0 | root  0.60 -0.02 z3.06 yaw+177 v6.90 | probe  0.69  0.26 -0.17
+[1247.512] locoplayer trace 26 f- 4: pl0 hd0 st-1.00 age0.00 land-0.17 scan1 | heel  0.50  0.29  +28.0 ball  0.48  0.47  +30.0 toe  0.48  0.53  +30.8 | root  0.55  0.06 z2.89 yaw  +0 v5.87 | probe  0.49  0.42 -0.17
+[1247.513] locoplayer trace 26 f- 3: pl0 hd0 st-1.00 age0.00 land-0.17 scan1 | heel  0.50  0.39  +24.8 ball  0.49  0.57  +43.8 toe  0.48  0.63  +44.5 | root  0.55  0.27 z2.89 yaw  +0 v6.23 | probe  0.50  0.18 +0.00
+[1247.513] locoplayer trace 26 f- 2: pl1 hd0 st-1.00 age0.03 land-9.00 scan1 | heel  0.51  0.50   +0.0 ball  0.49  0.68  +17.9 toe  0.49  0.74  +18.3 | root  0.55  0.49 z2.72 yaw  +0 v6.60 | probe  0.50  0.37 +0.00
+[1247.513] locoplayer trace 26 f- 1: pl1 hd0 st-1.00 age0.07 land-9.00 scan1 | heel  0.51  0.50   -6.3 ball  0.49  0.68  +10.7 toe  0.49  0.74  +10.7 | root  0.55  0.72 z2.55 yaw  +0 v6.90 | probe  0.50  0.36 +0.17
+[1247.513] locoplayer trace 26 f- 0: pl1 hd0 st-1.00 age0.10 land-9.00 scan1 | heel  0.51  0.50  -16.9 ball  0.49  0.68   +0.0 toe  0.49  0.74   +0.0 | root  0.55  0.95 z2.38 yaw  +0 v6.90 | probe  0.50  0.36 +0.34
+[1247.513] locoplayer deep switchback down sprint foot 0: h -16.9 b   0.0 t   0.0 cm | v 6.90 | age0.10 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.125
+[1254.412] locoplayer seg 27: switchback down sprint, 2.2 s, 11.1 m, 4.97 m/s
+[1264.312] Transit: 0.085 ms/frame avg, 1 trains materialized, 0 waiters, 0 walkers, boardings 0/0 riders 0/0
+[1273.288] locoplayer seg 28: switchback up run, 3.1 s, 11.0 m, 3.52 m/s
+[1287.062] locoplayer trace 27: switchback down run foot 0, seg 29
+[1287.062] locoplayer trace 27 f-13: pl1 hd0 st-1.00 age0.10 land-9.00 scan1 | heel  0.11  2.75   +0.0 ball -0.07  2.77   +0.5 toe -0.13  2.78   +0.6 | root  0.04  2.82 z1.53 yaw+119 v3.40 | probe  0.09  2.69 +0.00
+[1287.063] locoplayer trace 27 f-12: pl1 hd0 st-1.00 age0.13 land-9.00 scan1 | heel  0.11  2.75   +1.5 ball -0.07  2.77   +0.0 toe -0.14  2.78   +0.3 | root -0.04  2.88 z1.53 yaw+132 v3.20 | probe  0.08  2.69 +0.00
+[1287.063] locoplayer trace 27 f-11: pl1 hd0 st-1.00 age0.17 land-9.00 scan1 | heel  0.11  2.76   +4.5 ball -0.07  2.77   +0.0 toe -0.14  2.78   +0.2 | root -0.13  2.94 z1.53 yaw+143 v2.99 | probe  0.07  2.69 +0.00
+[1287.063] locoplayer trace 27 f-10: pl1 hd0 st-1.00 age0.20 land-9.00 scan1 | heel  0.10  2.78   +4.9 ball -0.07  2.77   +0.0 toe -0.15  2.77   +0.1 | root -0.21  2.98 z1.53 yaw+153 v2.77 | probe  0.07  2.70 +0.00
+[1287.063] locoplayer trace 27 f- 9: pl1 hd0 st-1.00 age0.23 land-9.00 scan0 | heel  0.11  2.80   +4.7 ball -0.07  2.78   +0.4 toe -0.14  2.77   +0.0 | root -0.29  3.00 z1.53 yaw+160 v2.56 | probe  0.07  2.72 +0.00
+[1287.063] locoplayer trace 27 f- 8: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel  0.11  2.81   +9.4 ball -0.07  2.78   +5.9 toe -0.14  2.77   +5.2 | root -0.37  3.02 z1.53 yaw+166 v2.37 | probe -1.10  2.68 +0.00
+[1287.063] locoplayer trace 27 f- 7: pl0 hd0 st-1.00 age0.00 land 0.00 scan1 | heel -0.16  2.91  +13.4 ball -0.33  2.85   +9.9 toe -0.39  2.83   +9.1 | root -0.44  3.02 z1.53 yaw+171 v2.20 | probe -0.33  2.88 +0.00
+[1287.063] locoplayer trace 27 f- 6: pl0 hd0 st-1.00 age0.00 land 0.00 scan0 | heel -0.40  2.94  +13.8 ball -0.56  2.86  +10.7 toe -0.62  2.82  +10.5 | root -0.51  3.02 z1.53 yaw+175 v2.05 | probe -1.03  2.72 +0.00
+[1287.063] locoplayer trace 27 f- 5: pl0 hd0 st-1.00 age0.00 land 0.00 scan1 | heel -0.61  2.93  +11.4 ball -0.76  2.83   +9.6 toe -0.81  2.79   +9.9 | root -0.57  3.00 z1.53 yaw+178 v1.96 | probe -0.77  2.87 +0.00
+[1287.063] locoplayer trace 27 f- 4: pl0 hd0 st-1.00 age0.00 land 0.00 scan0 | heel -0.77  2.89   +6.7 ball -0.90  2.77   +8.9 toe -0.95  2.73   +9.7 | root -0.63  2.97 z1.53 yaw-179 v1.91 | probe -0.98  2.72 +0.00
+[1287.063] locoplayer trace 27 f- 3: pl0 hd0 st-1.00 age0.00 land 0.00 scan0 | heel -0.87  2.82   +4.8 ball -0.99  2.69   +7.8 toe -1.04  2.64   +9.0 | root -0.68  2.93 z1.53 yaw-177 v1.91 | probe -1.01  2.72 +0.00
+[1287.063] locoplayer trace 27 f- 2: pl0 hd0 st-1.00 age0.00 land 0.00 scan0 | heel -0.93  2.71   +3.1 ball -1.05  2.58   +7.1 toe -1.09  2.53   +8.5 | root -0.72  2.89 z1.53 yaw-174 v1.97 | probe -0.96  2.68 +0.00
+[1287.063] locoplayer trace 27 f- 1: pl1 hd0 st-1.00 age0.03 land-9.00 scan0 | heel -0.95  2.61   +0.1 ball -1.06  2.48   +4.6 toe -1.10  2.43   +6.3 | root -0.76  2.83 z1.53 yaw-172 v2.08 | probe -0.98  2.61 +0.00
+[1287.063] locoplayer trace 27 f- 0: pl1 hd0 st-1.00 age0.07 land-9.00 scan1 | heel -0.95  2.61   +0.1 ball -1.06  2.47   +2.0 toe -1.10  2.42 +155.9 | root -0.79  2.76 z1.53 yaw-170 v2.22 | probe -0.99  2.62 +0.00
+[1287.147] locoplayer trace 28: switchback down run foot 1, seg 29
+[1287.148] locoplayer trace 28 f-13: pl1 hd0 st-1.00 age0.20 land-9.00 scan0 | heel -0.60  3.19   +5.5 ball -0.75  3.12   +0.0 toe -0.82  3.08   +0.3 | root -0.68  2.93 z1.53 yaw-177 v1.91 | probe -0.61  3.19 +0.00
+[1287.148] locoplayer trace 28 f-12: pl1 hd0 st-1.00 age0.23 land-9.00 scan0 | heel -0.61  3.19   +7.5 ball -0.75  3.12   +0.0 toe -0.82  3.08   +0.1 | root -0.72  2.89 z1.53 yaw-174 v1.97 | probe -0.62  3.20 +0.00
+[1287.148] locoplayer trace 28 f-11: pl0 hd0 st-1.00 age0.00 land-9.00 scan0 | heel -0.61  3.19  +12.2 ball -0.75  3.12   +3.3 toe -0.82  3.08   +2.7 | root -0.76  2.83 z1.53 yaw-172 v2.08 | probe -1.15  1.84 -0.45
+[1287.148] locoplayer trace 28 f-10: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel -0.64  3.17  +17.2 ball -0.77  3.08   +7.8 toe -0.83  3.04   +6.6 | root -0.79  2.76 z1.53 yaw-170 v2.22 | probe -0.73  3.05 +0.00
+[1287.148] locoplayer trace 28 f- 9: pl0 hd0 st-1.00 age0.00 land-0.34 scan1 | heel -0.76  3.05  +13.7 ball -0.88  2.94   +6.9 toe -0.94  2.89   +5.5 | root -0.80  2.68 z1.53 yaw-168 v2.32 | probe -0.70  1.88 -0.34
+[1287.148] locoplayer trace 28 f- 8: pl0 hd0 st-1.00 age0.00 land-0.34 scan1 | heel -0.84  2.82  +13.8 ball -0.95  2.69   +9.6 toe -1.00  2.63   +8.3 | root -0.79  2.59 z1.53 yaw-167 v2.65 | probe -0.84  2.91 +0.00
+[1287.148] locoplayer trace 28 f- 7: pl0 hd0 st-1.00 age0.00 land-0.34 scan1 | heel -0.86  2.59  +13.3 ball -0.96  2.45  +11.4 toe -1.00  2.39  +10.7 | root -0.78  2.49 z1.53 yaw-167 v2.99 | probe -0.83  1.76 -0.34
+[1287.148] locoplayer trace 28 f- 6: pl0 hd0 st-1.00 age0.00 land-0.34 scan0 | heel -0.86  2.38   +9.9 ball -0.94  2.22  +26.6 toe -0.97  2.16  +26.6 | root -0.77  2.38 z1.53 yaw-168 v3.34 | probe -0.87  2.48 +0.00
+[1287.148] locoplayer trace 28 f- 5: pl0 hd0 st-1.00 age0.00 land-0.34 scan1 | heel -0.82  2.16  +23.7 ball -0.90  1.99  +24.7 toe -0.92  1.93  +42.1 | root -0.74  2.26 z1.53 yaw-169 v3.69 | probe -0.80  1.71 -0.34
+[1287.148] locoplayer trace 28 f- 4: pl0 hd0 st-1.00 age0.00 land-0.17 scan1 | heel -0.78  1.97  +20.2 ball -0.84  1.80  +38.9 toe -0.87  1.73  +39.6 | root -0.72  2.13 z1.36 yaw-170 v4.06 | probe -0.80  2.10 +0.00
+[1287.148] locoplayer trace 28 f- 3: pl0 hd0 st-1.00 age0.00 land-0.17 scan1 | heel -0.74  1.82  +23.5 ball -0.80  1.65  +42.3 toe -0.82  1.59  +43.0 | root -0.70  1.99 z1.36 yaw-171 v4.10 | probe -0.75  1.64 -0.34
+[1287.148] locoplayer trace 28 f- 2: pl1 hd0 st-1.00 age0.03 land-9.00 scan1 | heel -0.72  1.75   +0.0 ball -0.77  1.58  +17.8 toe -0.78  1.52  +18.1 | root -0.68  1.86 z1.19 yaw-172 v4.10 | probe -0.76  1.80 +0.00
+[1287.148] locoplayer trace 28 f- 1: pl1 hd0 st-1.00 age0.07 land-9.00 scan1 | heel -0.72  1.75   -6.2 ball -0.77  1.58  +10.7 toe -0.78  1.52  +10.7 | root -0.67  1.72 z1.19 yaw-173 v4.10 | probe -0.76  1.80 +0.00
+[1287.148] locoplayer trace 28 f- 0: pl1 hd0 st-1.00 age0.10 land-9.00 scan1 | heel -0.72  1.75  -17.0 ball -0.77  1.58   +0.0 toe -0.78  1.52   +0.0 | root -0.65  1.59 z1.02 yaw-174 v4.10 | probe -0.76  1.80 +0.17
+[1287.148] locoplayer deep switchback down run foot 1: h -17.0 b   0.0 t   0.0 cm | v 4.10 | age0.10 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.129
+[1287.150] locoplayer deep switchback down run foot 1: h -15.9 b   0.0 t   0.0 cm | v 4.10 | age0.13 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.129
+[1287.195] locoplayer trace 29: switchback down run foot 0, seg 29
+[1287.195] locoplayer trace 29 f-13: pl1 hd0 st-1.00 age0.17 land-9.00 scan1 | heel -0.95  2.61   +0.0 ball -1.06  2.47   +0.5 toe -1.10  2.42 +153.9 | root -0.78  2.49 z1.53 yaw-167 v2.99 | probe -1.02  2.64 +0.00
+[1287.195] locoplayer trace 29 f-12: pl1 hd0 st-1.00 age0.20 land-9.00 scan0 | heel -0.95  2.61   +1.7 ball -1.06  2.47   +0.0 toe -1.11  2.42 +153.3 | root -0.77  2.38 z1.53 yaw-168 v3.34 | probe -1.03  2.65 +0.00
+[1287.195] locoplayer trace 29 f-11: pl0 hd0 st 0.00 age0.00 land-9.00 scan1 | heel -0.96  2.61   +5.5 ball -1.06  2.47   +0.1 toe -1.11  2.41 +153.3 | root -0.74  2.26 z1.53 yaw-169 v3.69 | probe -0.65  2.32 +0.00
+[1287.195] locoplayer trace 29 f-10: pl0 hd0 st 0.15 age0.00 land-9.00 scan1 | heel -0.94  2.59   +9.9 ball -1.04  2.46   +2.7 toe -1.09  2.40   +2.4 | root -0.72  2.13 z1.36 yaw-170 v4.06 | probe -0.64  2.56 +0.17
+[1287.195] locoplayer trace 29 f- 9: pl0 hd0 st 0.29 age0.00 land-9.00 scan1 | heel -0.87  2.56  +14.9 ball -0.96  2.43   +7.5 toe -1.01  2.36   +6.7 | root -0.70  1.99 z1.36 yaw-171 v4.10 | probe -0.58  2.49 +0.17
+[1287.195] locoplayer trace 29 f- 8: pl0 hd0 st 0.44 age0.00 land-9.00 scan1 | heel -0.80  2.40  +21.4 ball -0.88  2.26  +14.5 toe -0.92  2.20  +30.1 | root -0.68  1.86 z1.19 yaw-172 v4.10 | probe -0.62  2.19 +0.17
+[1287.195] locoplayer trace 29 f- 7: pl0 hd0 st 0.59 age0.00 land-9.00 scan1 | heel -0.72  2.14  +41.7 ball -0.78  1.98  +35.8 toe -0.81  1.92  +51.1 | root -0.67  1.72 z1.19 yaw-173 v4.10 | probe -0.61  1.93 +0.00
+[1287.195] locoplayer trace 29 f- 6: pl0 hd0 st 0.74 age0.00 land-9.00 scan1 | heel -0.65  1.75  +57.0 ball -0.69  1.58  +69.7 toe -0.71  1.52  +68.1 | root -0.65  1.59 z1.02 yaw-174 v4.10 | probe -0.61  1.63 +0.00
+[1287.198] locoplayer trace 29 f- 5: pl0 hd0 st 0.88 age0.00 land-9.00 scan0 | heel -0.59  1.62  +68.3 ball -0.63  1.44  +65.7 toe -0.64  1.38  +81.7 | root -0.64  1.45 z1.02 yaw-175 v4.10 | probe -0.61  1.63 +0.00
+[1287.198] locoplayer trace 29 f- 4: pl1 hd0 st-1.00 age0.03 land-9.00 scan0 | heel -0.58  1.58   +6.4 ball -0.61  1.40   +5.6 toe -0.62  1.34  +22.3 | root -0.63  1.31 z0.85 yaw-175 v4.10 | probe -0.61  1.63 +0.17
+[1287.198] locoplayer trace 29 f- 3: pl0 hd0 st-1.00 age0.00 land-9.00 scan0 | heel -0.58  1.58  +56.0 ball -0.61  1.40  +56.7 toe -0.62  1.34  +73.9 | root -0.62  1.18 z0.85 yaw-176 v4.10 | probe -0.54  0.53 -0.45
+[1287.198] locoplayer trace 29 f- 2: pl0 hd0 st-1.00 age0.00 land-9.00 scan0 | heel -0.54  1.16  +20.6 ball -0.56  0.98  +39.4 toe -0.56  0.92  +40.0 | root -0.61  1.04 z0.68 yaw-176 v4.10 | probe -0.55  1.06 +0.00
+[1287.198] locoplayer trace 29 f- 1: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel -0.52  0.88  +13.6 ball -0.52  0.70  +32.8 toe -0.53  0.63  +33.6 | root -0.60  0.91 z0.68 yaw-177 v4.10 | probe -0.50  0.49 -0.34
+[1287.198] locoplayer trace 29 f- 0: pl1 hd0 st-1.00 age0.03 land-9.00 scan1 | heel -0.52  0.79  +28.7 ball -0.52  0.61  +30.9 toe -0.52  0.54  +48.7 | root -0.60  0.77 z0.51 yaw-177 v4.10 | probe -0.52  0.84 +0.00
+[1290.466] locoplayer seg 29: switchback down run, 3.2 s, 11.1 m, 3.52 m/s
+[1302.566] Wildlife: 117 animals (109 birds) in 14 groups, 49 drawn in 10 draws | update 0.139 ms, render 0.374 ms
+[1302.610] locoplayer bigslide switchback up sprint foot 0: 15.6 cm over 5 frames | planted 0 stepT -1.00
+[1302.730] locoplayer trace 30: switchback up sprint foot 0, seg 30
+[1302.730] locoplayer trace 30 f-13: pl0 hd0 st-1.00 age0.00 land 0.51 scan1 | heel -0.13  3.20  +64.7 ball  0.01  3.15  +56.1 toe  0.08  3.12  +54.4 | root  0.19  2.85 z1.53 yaw-149 v3.40 | probe -0.06  3.14 +0.00
+[1302.730] locoplayer trace 30 f-12: pl0 hd0 st-1.00 age0.00 land 0.68 scan1 | heel  0.07  3.07  +65.5 ball  0.21  2.99  +58.2 toe  0.27  2.96  +56.2 | root  0.28  2.77 z1.53 yaw-155 v3.61 | probe  0.83  1.46 +0.45
+[1302.730] locoplayer trace 30 f-11: pl0 hd0 st-1.00 age0.00 land 0.68 scan1 | heel  0.28  2.89  +67.9 ball  0.42  2.79  +62.3 toe  0.47  2.75  +60.4 | root  0.38  2.69 z1.53 yaw-162 v3.79 | probe  0.36  2.83 +0.00
+[1302.730] locoplayer trace 30 f-10: pl0 hd0 st-1.00 age0.00 land 0.68 scan0 | heel  0.48  2.66  +65.1 ball  0.61  2.54  +61.5 toe  0.66  2.49  +60.1 | root  0.47  2.59 z1.53 yaw-168 v3.95 | probe  0.95  1.44 +0.45
+[1302.730] locoplayer trace 30 f- 9: pl0 hd0 st-1.00 age0.00 land 0.68 scan0 | heel  0.67  2.42  +65.4 ball  0.78  2.28  +63.8 toe  0.82  2.22  +46.2 | root  0.55  2.49 z1.53 yaw-176 v4.08 | probe  0.76  2.37 +0.00
+[1302.731] locoplayer trace 30 f- 8: pl0 hd0 st-1.00 age0.00 land 0.68 scan1 | heel  0.82  2.17  +56.8 ball  0.92  2.02  +56.7 toe  0.96  1.97  +56.8 | root  0.63  2.37 z1.53 yaw+180 v4.20 | probe  1.08  1.47 +0.45
+[1302.731] locoplayer trace 30 f- 7: pl0 hd0 st-1.00 age0.00 land 0.51 scan1 | heel  0.92  2.11  +44.2 ball  1.01  1.96  +28.8 toe  1.04  1.90  +29.5 | root  0.70  2.25 z1.53 yaw+176 v4.32 | probe  0.99  2.05 +0.17
+[1302.731] locoplayer trace 30 f- 6: pl0 hd0 st-1.00 age0.00 land 0.34 scan1 | heel  1.00  1.95  +25.5 ball  1.08  1.79  +28.2 toe  1.11  1.73 +216.8 | root  0.76  2.11 z1.70 yaw+172 v4.44 | probe  1.01  1.78 +0.17
+[1302.731] locoplayer trace 30 f- 5: pl0 hd0 st-1.00 age0.00 land 0.34 scan1 | heel  0.97  1.77  +22.7 ball  1.03  1.60   +8.6 toe  1.06  1.54   +9.8 | root  0.80  1.97 z1.70 yaw+169 v4.28 | probe  0.98  1.69 +0.17
+[1302.731] locoplayer trace 30 f- 4: pl0 hd0 st-1.00 age0.00 land 0.17 scan1 | heel  0.91  1.67   +0.9 ball  0.97  1.50   +3.6 toe  0.99  1.44   +4.6 | root  0.79  1.82 z1.87 yaw+167 v4.59 | probe  0.95  1.58 +0.17
+[1302.731] locoplayer trace 30 f- 3: pl1 hd0 st-1.00 age0.03 land-9.00 scan1 | heel  0.86  1.64   -0.7 ball  0.91  1.47   +0.0 toe  0.93  1.40   +0.3 | root  0.78  1.65 z2.04 yaw+168 v4.92 | probe  0.92  1.63 +0.00
+[1302.732] locoplayer trace 30 f- 2: pl1 hd0 st-1.00 age0.07 land-9.00 scan0 | heel  0.86  1.64   -0.5 ball  0.91  1.47   +0.0 toe  0.93  1.40   +0.2 | root  0.76  1.48 z2.04 yaw+168 v5.25 | probe  0.93  1.64 +0.00
+[1302.732] locoplayer trace 30 f- 1: pl1 hd0 st-1.00 age0.10 land-9.00 scan1 | heel  0.86  1.64   +0.9 ball  0.91  1.47   +0.0 toe  0.93  1.40   +0.1 | root  0.74  1.29 z2.21 yaw+169 v5.60 | probe  0.94  1.65 -0.17
+[1302.732] locoplayer trace 30 f- 0: pl1 hd0 st-1.00 age0.13 land-9.00 scan1 | heel  0.86  1.63   +6.4 ball  0.91  1.47   +0.1 toe  0.93  1.39  -17.0 | root  0.71  1.10 z2.38 yaw+170 v5.96 | probe  0.75 -0.31 +0.45
+[1302.732] locoplayer deep switchback up sprint foot 0: h   6.4 b   0.1 t -17.0 cm | v 5.96 | age0.13 ballProbe 1 stairLand -9.00 stepT -1.00 lead 0.130
+[1302.740] locoplayer deep switchback up sprint foot 0: h  14.0 b   5.0 t -12.5 cm | v 6.33 | age0.17 ballProbe 1 stairLand -9.00 stepT -1.00 lead 0.130
+[1305.706] locoplayer seg 30: switchback up sprint, 2.2 s, 11.1 m, 4.97 m/s
+[1311.998] locoplayer trace 31: switchback down sprint foot 0, seg 31
+[1311.998] locoplayer trace 31 f-13: pl1 hd0 st-1.00 age0.03 land-9.00 scan1 | heel  0.86  1.64   -0.7 ball  0.91  1.47   +0.0 toe  0.93  1.40   +0.3 | root  0.78  1.65 z2.04 yaw+168 v4.92 | probe  0.92  1.63 +0.00
+[1311.998] locoplayer trace 31 f-12: pl1 hd0 st-1.00 age0.07 land-9.00 scan0 | heel  0.86  1.64   -0.5 ball  0.91  1.47   +0.0 toe  0.93  1.40   +0.2 | root  0.76  1.48 z2.04 yaw+168 v5.25 | probe  0.93  1.64 +0.00
+[1311.998] locoplayer trace 31 f-11: pl1 hd0 st-1.00 age0.10 land-9.00 scan1 | heel  0.86  1.64   +0.9 ball  0.91  1.47   +0.0 toe  0.93  1.40   +0.1 | root  0.74  1.29 z2.21 yaw+169 v5.60 | probe  0.94  1.65 -0.17
+[1311.999] locoplayer trace 31 f-10: pl1 hd0 st-1.00 age0.13 land-9.00 scan1 | heel  0.86  1.63   +6.4 ball  0.91  1.47   +0.1 toe  0.93  1.39  -17.0 | root  0.71  1.10 z2.38 yaw+170 v5.96 | probe  0.75 -0.31 +0.45
+[1311.999] locoplayer trace 31 f- 9: pl1 hd0 st-1.00 age0.17 land-9.00 scan1 | heel  0.86  1.57  +14.0 ball  0.90  1.42   +5.0 toe  0.93  1.34  -12.5 | root  0.68  0.89 z2.38 yaw+172 v6.33 | probe  0.96  1.67 -0.34
+[1311.999] locoplayer trace 31 f- 8: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel  0.84  1.45  +80.4 ball  0.89  1.31  +54.4 toe  0.91  1.23  +53.1 | root  0.65  0.67 z2.55 yaw+173 v6.68 | probe  0.70 -0.71 +0.45
+[1311.999] locoplayer trace 31 f- 7: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel  0.77  1.17  +93.7 ball  0.82  1.01  +68.4 toe  0.83  0.95  +66.3 | root  0.63  0.44 z2.72 yaw+175 v6.90 | probe  0.81  1.17 -0.45
+[1311.999] locoplayer trace 31 f- 6: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel  0.71  0.71  +62.7 ball  0.75  0.55  +38.6 toe  0.76  0.48  +36.3 | root  0.61  0.21 z2.89 yaw+176 v6.90 | probe  0.67 -1.17 +0.17
+[1312.000] locoplayer trace 31 f- 5: pl0 hd0 st-1.00 age0.00 land-9.00 scan1 | heel  0.67  0.26  +38.8 ball  0.70  0.09  +33.1 toe  0.71  0.03  +31.0 | root  0.60 -0.02 z3.06 yaw+177 v6.90 | probe  0.69  0.26 -0.17
+[1312.000] locoplayer trace 31 f- 4: pl0 hd0 st-1.00 age0.00 land-0.17 scan1 | heel  0.50  0.29  +28.0 ball  0.48  0.47  +30.0 toe  0.48  0.53  +30.8 | root  0.55  0.06 z2.89 yaw  +0 v5.87 | probe  0.49  0.42 -0.17
+[1312.000] locoplayer trace 31 f- 3: pl0 hd0 st-1.00 age0.00 land-0.17 scan1 | heel  0.50  0.39  +24.8 ball  0.49  0.57  +43.8 toe  0.48  0.63  +44.5 | root  0.55  0.27 z2.89 yaw  +0 v6.23 | probe  0.50  0.18 +0.00
+[1312.000] locoplayer trace 31 f- 2: pl1 hd0 st-1.00 age0.03 land-9.00 scan1 | heel  0.51  0.50   +0.0 ball  0.49  0.68  +17.9 toe  0.49  0.74  +18.3 | root  0.55  0.49 z2.72 yaw  +0 v6.60 | probe  0.50  0.37 +0.00
+[1312.000] locoplayer trace 31 f- 1: pl1 hd0 st-1.00 age0.07 land-9.00 scan1 | heel  0.51  0.50   -6.3 ball  0.49  0.68  +10.7 toe  0.49  0.74  +10.7 | root  0.55  0.72 z2.55 yaw  +0 v6.90 | probe  0.50  0.36 +0.17
+[1312.001] locoplayer trace 31 f- 0: pl1 hd0 st-1.00 age0.10 land-9.00 scan1 | heel  0.51  0.50  -16.9 ball  0.49  0.68   +0.0 toe  0.49  0.74   +0.0 | root  0.55  0.95 z2.38 yaw  +0 v6.90 | probe  0.50  0.36 +0.34
+[1312.001] locoplayer deep switchback down sprint foot 0: h -16.9 b   0.0 t   0.0 cm | v 6.90 | age0.10 ballProbe 0 stairLand -9.00 stepT -1.00 lead 0.125
+[1318.348] locoplayer seg 31: switchback down sprint, 2.2 s, 11.1 m, 4.97 m/s
+[1318.505] locoplayer switchback up   run    steps  55 | slide cm/step mean 0.11 p90 0.39 max 0.96 | scuffs 2 | planted foot-frames 378 | sunk 1 cm 4.2%, 3 cm 2.1% | lifted 4.0% | deep 0 | lowest sole -35.6 mm
+[1318.505] locoplayer switchback up   sprint steps  40 | slide cm/step mean 3.36 p90 15.59 max 15.59 | scuffs 16 | planted foot-frames 206 | sunk 1 cm 8.7%, 3 cm 4.9% | lifted 1.0% | deep 10 | lowest sole -170.0 mm
+[1318.505] locoplayer switchback down run    steps  56 | slide cm/step mean 0.21 p90 0.80 max 0.89 | scuffs 0 | planted foot-frames 390 | sunk 1 cm 6.4%, 3 cm 6.4% | lifted 15.6% | deep 10 | lowest sole -169.7 mm
+[1318.505] locoplayer switchback down sprint steps  40 | slide cm/step mean 0.70 p90 3.25 max 3.25 | scuffs 5 | planted foot-frames 208 | sunk 1 cm 14.9%, 3 cm 14.9% | lifted 26.9% | deep 8 | lowest sole -168.7 mm
+[1318.505] locoplayer done
+[1334.338] Shutdown complete.

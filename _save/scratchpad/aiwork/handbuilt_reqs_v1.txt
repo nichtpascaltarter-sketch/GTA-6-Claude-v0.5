@@ -1,0 +1,212 @@
+AI REQUIREMENTS FOR THE HAND-BUILT WORLD (AI agent: traffic, pedestrians, police, events)
+
+The short version: the AI runs on one runtime model, AI::LaneGraph (lanes.cpp). It holds lanes, turn connectors, junctions with approaches and signal plans, the pedestrian walk graph with crosswalks, and scenario points. Today that model is derived from the procedural RoadNetwork at load. With hand-built data, the cheapest path that keeps everything working is to feed the same model from authored data: an offline or load-time build step produces it, and validation reports catch gaps. Everything the AI derives today can be supplied directly. Where a derivation still works (connectors from lane geometry, default signal plans), the data needs only enough to run it, plus room for authored overrides.
+
+1. WHAT TODAY'S SYSTEMS READ FROM THE GENERATOR (these must exist in the new data, or be built from it)
+
+- lanes.cpp, LaneGraph::build(World::RoadNetwork). This is the main consumer.
+  - Nodes: position with z, the incident edges, the control type (0 none, 1 stop signs, 2 lights), a highway flag, and the clearing radius of the junction area.
+  - Edges:
+    - their two nodes and a centreline polyline with z;
+    - the road class, which looks up roadInfo: lane width, lanes per direction, median width, shoulder / parking strip width, sidewalk width, speed limit and grade separation;
+    - flags: bridge, one-way, elevated, no sidewalk, unpaved;
+    - lanes per direction, paved half width and sidewalk width;
+    - junction cut-backs at each end, so lanes start and stop at the junction box;
+    - the street name.
+  - Dead-end turning bulbs (RoadNetwork::bulbRadius).
+  - Buildings (pointInBuilding) and site colliders (siteColliderNear). Turn curves and sidewalk corner arcs are checked against these to stay clear.
+  - Site walkways (World::SiteSet::walks): plaza paths, and mid-block zebras over site roads.
+  - From these it derives:
+    - lanes: offsets, widths, the usable range and the stop line, each lane's left/right neighbour, and flags (highway, ramp, dirt, one-way, bridge, no traffic);
+    - connectors: Bezier turn paths with kinds (straight, right, left, U, merge), curvature speed limits, conflict zones and yield priority;
+    - signal plans: a phase per axis, a protected left on wide approaches, greens by road class, amber by speed, all-red;
+    - crosswalks, with the ped signal of each node approach;
+    - bus stops and benches, placed exactly like roadmesh.cpp places its street furniture;
+    - the sidewalk walk graph, made of sidewalk / crosswalk / corner / path / zebra links, each with a walkable half width;
+    - zebras: where each crosses each lane;
+    - spatial hashes.
+- traffic_core.cpp, the driver model: lanes, connectors, conflicts and signals. It also runs A* over directed RoadNetwork edges for destination routing (setDestination, nearestEdge).
+- traffic.cpp:
+  - Kerbside parking is implicit today. It is any rightmost lane on a street, avenue or lane-class road with a parking strip of 1.8 m or more, except road-works zones (World::roadWorkZoneAt) and the 22 m round a bus stop.
+  - Pulling out of parking, taxis, the bus stops on lanes.
+  - Building roof heights, for the helicopter's terrain following.
+  - Water and terrain, for boats and helicopters.
+- pednav.cpp: the walk graph (nearestWalk, link kinds and widths), and the walk signal per junction approach.
+- pedai.cpp:
+  - Districts (World::Region via map->regionAt): roles, behaviours, nightlife areas, gang turf.
+  - Buildings:
+    - shop windows to stop at: the street facades of stores, chosen by building style and front direction;
+    - street doors for people walking into and out of buildings (aiBuildingDoorNear in ai.cpp). This is the middle of the street facade, skipping industrial buildings, garages and those with an interior.
+  - Jaywalking: only over narrow streets (paved half width under 7.5 m; not highway, ramp or boulevard), at least 12 m from a junction, to the mirrored sidewalk.
+  - Scenario points: benches and bus stops only (SP_BENCH, SP_BUS_STOP).
+- police.cpp:
+  - lanes for dispatch spawns ahead of and around the player, roadblocks across the road ahead, and pull-overs into kerb lanes;
+  - road edges for route lengths;
+  - building corners, for the search plan once the suspect is lost;
+  - water and terrain for boats and the helicopter;
+  - the walk graph for foot beats and foot chases.
+- events.cpp:
+  - kerb lanes with a parking strip (fender benders, breakdowns, traffic stops);
+  - sidewalks (muggings, purse snatches, street performers, asking the way);
+  - a 4-way crossing of streets or avenues with lights or all-way stops (street takeovers);
+  - districts, for the event mix;
+  - parked cars beside sidewalks (alarms, break-ins).
+- barks.cpp: districts, for local lines.
+- Not mine, but it feeds the AI: population.cpp reads
+  - districts (density tables, roles);
+  - site elements (gates, booths, taxi rank shelters, truck lanes: the "venues", 3956 laid out at start);
+  - place anchors (hotel rows, hospitals, the prison; work and exercise spots);
+  - buildings, for how lived-in a street is (stores, strip malls, gas stations and motels count most, homes a little);
+  - the coast and water (beach crowds);
+  - the lane graph (traffic spawns, buses, taxis, patrols by district, cars parked along kerbs);
+  - the walk graph (pedestrian spawns);
+  - the club queues.
+- Not mine: transit.cpp registers its bus and streetcar stops with the AI. The last log has "64 bus stops registered with the AI (48 lane stops added, 240 waiting spots)" and "16 streetcar stops registered (16 curb lanes kept clear)". Riders board from the waiting spots.
+- Not mine: interiors_game.cpp reads world/interiors.h plans: rooms, openings, doors, and scenario points where NPCs are pinned (clerks, cooks, patrons, dancers, cops, nurses). There is no interior navigation today: NPCs inside never walk.
+
+2. ROAD GRAPH (authored)
+
+- Segments and junctions, as nodes and edges today, but with the junction authored.
+  - The junction polygon, i.e. the box that cars clear.
+  - Which roads enter it, and the stop line of each approach.
+  - Irregular junctions must be expressible: skewed, 5-way, offset, T, and roundabouts, which yield at entry.
+- Lanes per segment and direction.
+  - Count, widths, and markings: solid or dashed, i.e. whether a lane change is allowed.
+  - Lanes starting or ending mid-segment: turn pockets, taper positions, lane drops and merges.
+  - Bus and streetcar lanes, and bike lanes (no car traffic).
+  - The allowed movements at each lane's end: left, straight, right, U. These define the connectors.
+  - Connectors can still be generated from the lane ends. Allow authored turn curves where the geometry is unusual.
+- Junction control: none, yield (which approaches yield), stop (2-way or all-way), or signals.
+  - Signals: a phase plan (which movements and ped crossings go in each phase, protected or permissive lefts, timings), or "generate" to use today's planner, with optional overrides.
+  - Also the signal heads' positions, for the lamp states on screen.
+- Per segment:
+  - speed limit, one-way, turn bans (no left / no U);
+  - grade separation (flyovers and interchange ramps never conflict);
+  - names.
+- Highways:
+  - ramps with their merge and diverge points, acceleration and deceleration lanes, lane adds and drops;
+  - shoulders (breakdowns, police stops);
+  - median barriers (no U-turns, no crossing on foot).
+- z everywhere: lanes carry the surface height, including bridges, ramps and elevated roads.
+- Kerbside. This replaces today's implicit parking strip. Per kerb:
+  - parking bays (marked spaces with length, or a strip);
+  - no-stopping stretches: junction approaches, crosswalks, hydrants, driveways, bus stops;
+  - loading zones, taxi ranks, disabled bays, metered or not;
+  - driveways into private lots;
+  - road-works zones as today, plus closures.
+- Off-street parking: lots and garages, with entry and exit points joined to lanes, the bay layout, and the aisle paths drivers follow.
+- Bus and streetcar stops: the lane, the stop point along it, the waiting area and shelter on the sidewalk, and which routes stop. Streetcar stops also keep their kerb lane clear.
+
+3. SIDEWALKS, CROSSWALKS, JAYWALK ZONES
+
+- A walk graph, or walk polygons that a graph is derived from.
+  - Sidewalk segments with their clear width, linked at the corners.
+  - Plazas, park paths, steps and ramps.
+  - It must link to the building doors, the bus stops and the car park exits.
+- Crosswalks:
+  - marked ones at junctions, each tied to its signal phase;
+  - unmarked junction crossings;
+  - mid-block zebras, where cars yield;
+  - footbridges and underpasses.
+- Jaywalk zones: stretches where crossing mid-block is plausible (narrow, slow streets, a gap in the parked cars), and where it is impossible (median barriers, highways, fences). Today this is a rule on road width and class, which still works if the road data says width and class.
+- Street furniture as obstacles with footprints: benches, bins, lamps, planters, hydrants, newspaper boxes, signal poles.
+  - Walkers steer round it today by querying the physics world for primitive colliders near their line (aiStaticDetour: boxes and cylinders, ignoring anything kerb-high or overhead).
+  - The new geometry needs simple colliders for these objects. If collision becomes triangle meshes, walking round needs a navmesh with the obstacles carved out instead.
+  - The walk graph's clear width should account for them too.
+- Frontage along the sidewalk:
+  - shop windows (where to stop and look, and what kind of shop);
+  - entrances (see 5);
+  - café terraces;
+  - kiosks, ATMs, vending machines, phone booths;
+  - doorways to linger in.
+
+4. PED SPAWNS AND ACTIVITY SPOTS (scenario points)
+
+- Authored points, each with:
+  - a type: sit (bench, wall, steps), lean (wall, rail), smoke, phone, wait for a bus, queue (ordered), window-shop, ATM, vending, café seat, bar stool, busk, sell (vendor stall), guard or door staff, dance, watch the view, fish, exercise, sunbathe, sleep rough, or a talk ring for N;
+  - position, facing and capacity;
+  - opening hours, and whether it is sheltered from rain;
+  - who uses it: role, age, wardrobe;
+  - the prop and the pose or clip.
+- Groups: tables with seats, rings for chats, queues with an order.
+- Spawn zones:
+  - pedestrian density by area and hour (and weekday);
+  - the mix of people: business, tourist, nightlife, beach, workers, gang turf;
+  - where people come from and go to: building doors, transit stops, car parks, the edges of the populated area. They should not pop in on the sidewalk.
+- District tags, the same role as today's World::Region: density tables, roles, local lines, the event mix, patrol density, gang territory (Cuervos, Saints).
+- Venues: places with a working crowd of their own, such as the port gate, the airport curb with its taxi rank, and the causeway landing. These would be authored layouts of their slots, instead of population.cpp laying them out from site elements.
+
+5. INTERIOR NAVIGATION (every building enterable)
+
+- Per building:
+  - Floors: levels with z.
+  - Rooms per floor: polygons, a type (lobby, corridor, office, apartment, shop, storage, restroom, kitchen, stairwell, lift lobby) and capacity.
+  - A walk graph per floor: room centres, door portals and corridor centrelines are enough for NPCs. Police chasing the player inside will need a navmesh-quality surface, or a dense graph with obstacle footprints.
+- Doors:
+  - position, width and swing;
+  - kind: hinged, sliding, revolving or roll-up;
+  - the two rooms it joins;
+  - locked, or lockable by schedule;
+  - public, private or staff-only.
+- Vertical links:
+  - stairs: start and end per floor, and the step geometry (the animator plants feet on treads);
+  - lifts: shaft, cabin size, the door and call point on each floor;
+  - escalators and ramps;
+  - fire escapes and roof access.
+- Exterior doors joined to the outside walk graph: main entrance, shop doors, service doors to alleys, and garage doors to the road graph.
+- Occupancy:
+  - Who may be where, and when: public rooms in opening hours, residents' flats, staff areas, offices in office hours.
+  - Furniture scenario points inside: desk, counter (serve / queue / browse shelves), sofa, bed, kitchen, washroom, bar, dance floor.
+- Levels:
+  - Every walkable surface needs a level id: building and floor, or "outside".
+  - Most AI proximity queries today are 2D (pedsNear, vehiclesNear, the walk graph within an xy radius). With full buildings above each other, they need a level filter, or a guest on floor 9 will step aside for someone on floor 2. That is AI work on my side, but the level must be known without ray casts.
+  - Ground and floor height queries must answer per level (groundHeight / surfaceHeight today).
+- Simulation range: interior NPCs are simulated near the player only (75 m today). The data must stream per cell. Each building needs a light population state, so the same people are there when the player comes back.
+- Police and crime:
+  - entry points and a room-clearing order;
+  - cover points;
+  - exits and roof routes, for a suspect running through a building;
+  - each shop's counter and back room (hold-ups).
+
+6. POLICE AND EVENTS
+
+- Police:
+  - stations, with parking bays, the garage exit, the booking door for arrests, and the release / respawn point;
+  - patrol zones with a density per district, or authored patrol loops;
+  - foot-beat stretches on busy sidewalks;
+  - break spots (a coffee shop kerb);
+  - roadblock sites at chokepoints, such as bridges, tunnels and key junctions (derivable from the graph, but authored ones read better);
+  - stretches where a car can be pulled over: kerb lanes with room, not at a bus stop or junction;
+  - helicopter pads, boat launch points, and the K9 and SWAT bases.
+- Events. All 15 types (events.cpp) find their own places today from the lane and walk graphs, out of the player's sight (hiddenFrom).
+  - Lane spots:
+    - a kerb lane with a parking strip, long enough for two cars nose to tail (fender bender, breakdown, traffic stop);
+    - a fast road, 12 m/s or two lanes or more, for street racers;
+    - lanes for car chases.
+  - Sidewalk spots:
+    - mugging, purse snatch, a drunk, lost tourists, a brawl, a proposal;
+    - a gang shootout, which needs a walk link 30 m long or more;
+    - a busker's pitch;
+    - a panhandler sitting against the building side of the sidewalk. The walk graph must say which side is the building side.
+  - Junctions: a 4-way crossing of streets or avenues with lights or all-way stops (street takeover).
+  - Parked cars beside sidewalks (alarms, break-ins); bus stops (running for the bus); shop fronts (window shopping, hold-ups); plazas (crowds, performers).
+  - These keep working on any lane and walk graph that has these properties.
+  - Wanted, and hand-built maps can finally give it:
+    - authored pitches and walls (busker, panhandler);
+    - alleys behind buildings, dead ends and service yards (muggings, deals, gang hangouts, people sleeping rough);
+    - car park corners;
+    - gang turf boundaries.
+- Emergency services: hospitals with an ambulance bay and the ER door, fire stations, tow yards.
+
+7. IDS AND VALIDATION
+
+- Stable ids for lanes, junctions, walk links, doors and spots. The traffic, events and save data refer to them.
+- A validation report from the build step:
+  - lanes that lead nowhere, and junctions with an approach but no movement;
+  - signal plans that leave a movement never green;
+  - sidewalks with no crossing for a long way;
+  - walk links ending in walls;
+  - scenario points inside geometry;
+  - doors that join only one room;
+  - stairs that don't reach the next floor.
+- Today the procedural build logs the same kind of counts at load, for example "Lane graph: 25496 lanes, 56760 connectors, 40687 walk nodes, 56441 walk links".

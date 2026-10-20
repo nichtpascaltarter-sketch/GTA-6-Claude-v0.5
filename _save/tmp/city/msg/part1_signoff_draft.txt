@@ -1,0 +1,42 @@
+city snapshot-safe: part 1 of the Calle Luna pilot. The pilot's streets, drawn and played in hand mode, on the graded terrain. It is based on 62 plus the roads set.
+
+Blobs are in /tmp/city/p1_blobs.txt, each on 62's blob or on the roads set's (rb_blobs + rb62_blobs):
+@BLOBS@
+Shared-file touches, as you agreed: src/game/app.cpp and src/game/savegame.cpp, both checked equal to HEAD's and the shared tree's before the edit.
+
+What it does:
+1a. The pilot's streets (world/): world.ntw, districts/cl/district.ntw and roads.ntw, and lib/signals/cl_twophase.ntw.
+  - 52 nodes, 83 edges, 8.9 km of street.
+  - 9 signals, 7 all-way stops, and every other junction written as priority by class.
+  - One bridge, one-way alleys, and five turning circles.
+  - Designed by hand; the check map you saw.
+1b. The terrain is graded under the roads.
+  - Two mechanical moves, so worldc can run today's grading:
+    - worldmap.cpp's grid queries and grading primitives go to terrainops.cpp, which worldmap.cpp includes.
+    - roads.cpp's grading pass goes to roadgrade.cpp: gradeTerrainForRoads, declared in roads.h.
+  - New: the grading leaves authored decks alone.
+  - worldc grades the baked heights and stores a delta in "terrain.grade", 3 KB for the pilot. The game adds it at load, before the splat.
+  - A compile fix: an edge's polyline now gets a point at every profile break. Before, a straight shape with a deck profile came out flat, and the pilot's bridge did. There is a new test for it.
+1c. Hand mode draws the road cells.
+  - generateCell builds the roads without the procedural dressing (roadmesh.cpp: a dressing switch; works zones off in hand mode), and nothing else procedural.
+  - In app.cpp, game.init runs when the hand world has roads. Hand mode never opens the main menu; --play and --autoplay start a new game, and otherwise you get the free camera.
+  - In savegame.cpp, saveGame and loadGame return false in hand mode, so no hand session ever touches the real saves.
+- Docs: HANDBUILT_WORLD 6.1 and NTW_FORMAT section 1 say what worldc compiles now.
+- Tests: worldmodel_test adds testProfilePoints and testGrade (a street's cut, a bridge's ramps, a deck over a hill and a river).
+
+Checks on p62 (62 plus roads plus part 1; cq70):
+- CI's six GCC steps, with CI's flags:
+  - bit_scan 12146 masks; updater 243 checks;
+  - world_format, worldv_test and worldmodel_test: all passed;
+  - worldv on world/ (the pilot): 0 errors, 0 warnings.
+- worldc on world/: roads 52/83/9, grade 5356 texels. The world.bin is identical to the one built on p1. rbcheck: IDENTICAL.
+- MinGW main.cpp and worldc: 0/0.
+- The procedural census, s62 vs p62: 0 of 55,086 lines differ, and the terrain's height, water and splat hashes are equal. So the moved code changes nothing procedural.
+- The exe built.
+- Hand mode (shots, with the game initialised): no fatal errors, 52 nodes and 83 edges, lane graph 192 lanes and 397 connectors.
+@GAMES@
+- On p1 earlier: a hand --play drive (spawn on the Paseo del Rio, 76-89 peds and 54-67 vehicles, no fatal errors), and the procedural drive at the same positions as before the change.
+
+Next, as small sign-offs:
+- worldv's three fixture and doc fixes for its slice 6: the bus.8 route order, the model fixture's moves, and NTW_FORMAT 9.12's route wording. Ready in p62f; its tests are queued.
+- Then part 2a, blocks (ground, dressing, lamps), with Domino Park as its first block. It is written and its checks are queued.

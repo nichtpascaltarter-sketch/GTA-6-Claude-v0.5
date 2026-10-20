@@ -1,0 +1,3 @@
+12fe477395b64bc3bfd575a2d7cbb32236e6e670 src/game/traffic_core.cpp
+3e7f9ad4d14b1e92357b8a11fd8ded99c5de2b0d src/game/ai_core.h
+fce68d5f7a5ab5a9c75e80e00077f9fbb242d553 src/game/ai.cpp

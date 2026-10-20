@@ -1,0 +1,8 @@
+In file included from src/main.cpp:70:
+src/game/app.cpp: In member function 'void Game::App::updateCamFade(Game::Controls&, float)':
+src/game/app.cpp:6096: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
+ 6096 |         else at = vec2(pp.x, pp.y) + vec2(-sinf(pl->yaw), cosf(pl->yaw)) * 0.75f;
+      | 
+src/game/app.cpp:6096: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
+-rwxr-xr-x 1 root root 13318144 Oct 19 21:56 /tmp/faces/nt_d23.exe
+build exit 0 21:56:43

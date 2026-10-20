@@ -1,0 +1,21 @@
+In file included from src/ui/ui_all.cpp:4,
+                 from src/main.cpp:39:
+src/ui/icons.cpp: In function 'UI::icons_detail::Shape UI::icons_detail::makeIcon(int)':
+src/ui/icons.cpp:330: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
+  330 |                 if ((gx + gy) & 1) s.sub(rectP(24 + gx * 12.4f, 14 + gy * 11.f, 24 + (gx + 1) * 12.4f, 14 + (gy + 1) * 11.f));
+      | 
+src/ui/icons.cpp:330: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
+/usr/bin/x86_64-w64-mingw32-ld: /tmp/cciNX58W.o:main.cpp:(.text+0x5afe1): undefined reference to `World::SiteSet::padHeight(vec2, float*, float) const'
+/usr/bin/x86_64-w64-mingw32-ld: /tmp/cciNX58W.o:main.cpp:(.text+0x5b0b1): undefined reference to `World::SiteSet::padHeight(vec2, float*, float) const'
+/usr/bin/x86_64-w64-mingw32-ld: /tmp/cciNX58W.o:main.cpp:(.text+0xafd67): undefined reference to `World::SiteSet::layout(World::WorldMap&)'
+/usr/bin/x86_64-w64-mingw32-ld: /tmp/cciNX58W.o:main.cpp:(.text+0xb2626): undefined reference to `World::SiteSet::blocksRoads(vec2) const'
+/usr/bin/x86_64-w64-mingw32-ld: /tmp/cciNX58W.o:main.cpp:(.text+0xb3796): undefined reference to `World::SiteSet::blocksRoads(vec2) const'
+/usr/bin/x86_64-w64-mingw32-ld: /tmp/cciNX58W.o:main.cpp:(.text+0xe701a): undefined reference to `World::SiteSet::blocksLots(vec2) const'
+/usr/bin/x86_64-w64-mingw32-ld: /tmp/cciNX58W.o:main.cpp:(.text+0xe72bf): undefined reference to `World::SiteSet::blocksLots(vec2) const'
+/usr/bin/x86_64-w64-mingw32-ld: /tmp/cciNX58W.o:main.cpp:(.text+0xe9c02): undefined reference to `World::SiteSet::finalize(World::WorldMap&, World::RoadNetwork const&, World::BuildingSet const&)'
+/usr/bin/x86_64-w64-mingw32-ld: /tmp/cciNX58W.o:main.cpp:(.rdata$.refptr._ZN5World6gSitesE[.refptr._ZN5World6gSitesE]+0x0): undefined reference to `World::gSites'
+collect2: error: ld returned 1 exit status
+
+real	3m16.196s
+user	1m24.397s
+sys	0m1.815s

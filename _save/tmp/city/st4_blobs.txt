@@ -1,0 +1,4 @@
+src/world/ntwschema.h 862eac6927eb7d9b1ed8c2812ddfc67c9540c531 (3989 bytes; on step 3's c305e4cc)
+src/world/ntwschema.cpp b6339abbe355c3a4e4b8b4d35a1ae2f4132424f5 (36568 bytes; on step 3's f7039f19)
+tests/world/world_format_test.cpp b91a548eae7519366ea9ce28be13350044d61ea7 (22796 bytes; on step 3's 2df4f914)
+docs/NTW_FORMAT.md 1785aebfb704fe938d9a66db3ee7de3c2a74def6 (40381 bytes; on step 3's )

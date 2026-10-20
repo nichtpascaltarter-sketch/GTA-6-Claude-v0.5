@@ -1,0 +1,583 @@
+# NTW: the text format of the hand-built world
+
+Version 1, frozen: the syntax (sections 1-7) and the kinds of section 9, which include the AI agent's road-graph and
+navigation requirements (docs/HANDBUILT_WORLD.md section 12). Section 7 says how it may change from here.
+
+This is the reference for everyone who writes, reads or checks world data: library authors, district builders, the
+tools and the compiler. docs/HANDBUILT_WORLD.md explains why the world is built this way; this file says exactly what a
+file may contain. The schema in `src/world/ntwschema.cpp` is the same definition in code, and the two must agree: a change
+to one is a change to both, in the same commit.
+
+---
+
+## 1. Files
+
+- Every file is UTF-8 text with LF line endings. Readers accept CRLF and a byte-order mark; the formatter writes neither.
+  The repository's `.gitattributes` keeps `.ntw` files LF on every checkout, Windows included, and marks the `.ntg`
+  grids binary.
+- A file holds one thing: one building, one block's ground and dressing, one library item, one district's roads.
+  Section 8 says where each kind lives.
+- The first record of every file is its header:
+
+  ```
+  ntw 1 <kind> [key=value ...]
+  ```
+
+  `1` is the version of the format and of the kind (section 7). `<kind>` is one of the kinds of section 9.
+- Files are kept in canonical form (section 6). `tools/ntwfmt` writes it, `ntwfmt --check` reports files that aren't in
+  it, and the validator refuses them.
+- `tools/worldc` compiles the kinds as their compilers arrive. So far that is the terrain; the roads with the world,
+  district, signal and transit files they name: the roads go into world.bin's roads sections (src/world/roadsbin.h),
+  and the terrain is graded under them; and the blocks with the catalog: their parcels, plazas and dressing go into
+  the blocks section (src/world/blocksbin.h), and the parcels' grades into the grading (section 9.5).
+  A building, places or other library file stops the build ("no compiler for ... files yet") until its compiler
+  exists. The validator checks every kind already.
+
+## 2. Lines and records
+
+A file is a sequence of lines. Each line is one of:
+
+| Line | Form | Meaning |
+|---|---|---|
+| record | `<type> [<id>] [key=value ...]` | one record: a type, an optional id, fields |
+| continuation | `key=value ...` | more fields of the record on the line before |
+| `end` | `end` | closes the innermost open block |
+| comment | `# text` | a comment; kept by the formatter |
+| blank | | ignored; the formatter keeps one blank line where there were any |
+
+- **Type.** Lowercase: `[a-z][a-z0-9_]*`.
+- **Id.** The second token, when it has no `=`: `[a-z0-9_.-]+`. Section 5 says how ids are built. Whether a record type
+  has an id, may have one or must have one is part of its kind (section 9).
+- **Fields.** `key=value`, with lowercase keys (`[a-z][a-z0-9_]*`). A key appears at most once in a record. Every token
+  after the id is a field.
+- **Continuation.** A line that starts with a field continues the record on the line before it, whatever its
+  indentation. A comment line may not stand between a record and its continuation.
+- **Blocks.** Some record types open a block: the records on the following lines belong to it, up to the line `end`.
+  Blocks nest. Which types open blocks, and which types a block may hold, is part of the kind (section 9).
+  Indentation is for readers only: the parser goes by `end`, so a whitespace slip can't change the meaning.
+- **Comments.** A `#` that begins a token, at the start of a line or after whitespace, starts a comment that runs to the
+  end of the line. A `#` inside a value doesn't (`color=#2f4f4f`). Comment lines before a record belong to it, and a
+  comment after a record's fields stays at the end of its line.
+
+Example (a building file):
+
+```
+ntw 1 building id=cl.b014.h03 block=cl.b014 parcel=cl.b014.p03
+place plan=lib.plan.house.bungalow_b02 at=1701.10,361.30 z=3.45 yaw=90.0 mirror=1
+config palette=lib.palette.bungalow.coral roof=lib.kit.roof_tile_terracotta porch=screened
+# the family redid the kitchen
+override room=f0.kitchen variant=c
+```
+
+## 3. Values
+
+A value is the text after `=`, up to the next whitespace, or a quoted string.
+
+| Type | Written as | Examples |
+|---|---|---|
+| number | optional `-`, digits, optional `.` and digits, optional exponent | `3.40`, `-12`, `1e-3` |
+| integer | optional `-`, digits | `2560`, `-1` |
+| id | `[a-z0-9_.-]+` | `cl.b014.p03`, `w12` |
+| reference | an id that names another record (section 5) | `lib.plan.house.bungalow_b02` |
+| word | one of the words a field allows | `signal`, `hinged`, `none` |
+| name | an open-ended word, `[a-z0-9_.-]+`, that the validator checks against its table (households, schedules, roles) | `family_young`, `evening` |
+| text | a quoted string: `"..."`, with `\"` and `\\` as escapes | `name="SW 8th St"` |
+| point | `x,y` or `x,y,z` | `1701.10,361.30`, `2.60,3.00,2.75` |
+| points | points separated by `;` | `0,0;11.60,0;11.60,9.40` |
+| list | items separated by `,` | `a,b,c` |
+| colour | `#rrggbb` in lowercase hex | `#2f4f4f` |
+| hash | lowercase hex digits | `ea53b9afef88dfc9` |
+| compound | numbers and words joined by `:` or `/`, as a field defines; a range joins two numbers with `-`, a size with `x` | `lanes=1/1`, `parking=both:2.40`, `profile=0:3.40;115.50:3.55`, `hours=8.00-18.00`, `size=11.60x9.40` |
+
+- Numbers have no leading `+`, no leading or trailing `.`, no hex and no spaces.
+- Only a value may be quoted, and only right after its `=`. A quoted value is the only way to include spaces.
+- A value is never empty, except a quoted `""`.
+
+## 4. Units, frames and conventions
+
+**Units.** Metres, degrees, seconds, metres per second, kilograms, lux. Times of day are hours, `0.00..24.00`.
+
+**Hours.** An `hours` field is a range of times of day, `from-to` (`8.00-18.00`), that may run past midnight
+(`22.00-4.00`), or several ranges joined by `;` (`11.00-15.00;18.00-23.00`). Absent, it means always.
+
+**World frame.** x east, y north, z up, in metres, with the origin at the centre of the 20.48 km map
+(`world/terrain/terrain.ntw` holds the grid). World files (roads, blocks, buildings, places, transit) use it.
+
+**Local frames.** Library items use their own frame, and a placement maps it into the world:
+- *Plans, layouts, units and fit-outs:* the origin at the front-left corner of the footprint at ground-floor level,
+  +x along the front, +y into the building, +z up. The front faces -y. These are today's interior axes, with the origin
+  moved from the front centre to the front-left corner.
+- *Kit pieces:* the origin at the centre of the footprint on the floor, +y forward: a sofa's seat, a counter's serving
+  side and a bed's foot face +y.
+- *Sets:* the origin at the centre of the anchor wall, on the floor, +y into the room.
+- *People and spots:* face +y.
+
+**Yaw.** Degrees, counter-clockwise seen from above. An item placed with yaw θ maps a local point (x, y) to
+`at + (x cos θ - y sin θ, x sin θ + y cos θ)`. At yaw 0 the local axes are the world's (or the parent item's).
+
+**Mirror.** `mirror=1` reflects a plan or layout across its centre line before the yaw: x becomes W - x, where W is
+the footprint's width. Left and right swap with it (door hinges, `ext=left` walls), and text such as signs stays
+readable.
+
+**Heights.** Road heights (`node z`, edge `profile`, transit profiles) and building placements (`place z`, the height
+of the ground floor) are absolute. Everything else in a world file stands on the ground: a `z`, or the third
+coordinate of an `at`, is the height above the graded ground under it. Inside library items, heights are above the
+item's floor.
+
+**Precision.** Positions, lengths and heights have 2 decimals (cm); angles 1 decimal; speeds 1 decimal; times of day 2.
+Section 9 gives each field's precision, and the formatter writes every number with it.
+
+## 5. Identifiers and references
+
+**Ids are stable.** Missions, nav links, saves and overrides refer to ids, never to positions or file order. An id is
+never reused for something else. A rename goes through the validator's rename command, which updates every reference.
+
+**World ids** start with their district's id, then the parts below it, joined by dots:
+
+| Entity | Pattern | Example |
+|---|---|---|
+| district | `<d>` | `cl` (Calle Luna) |
+| road node, edge | `<d>.n<NNNN>`, `<d>.e<NNNN>` (4 digits or more) | `cl.n0012`, `cl.e0007` |
+| block | `<d>.b<NNN>` | `cl.b014` |
+| parcel | `<block>.p<NN>` | `cl.b014.p03` |
+| building | `<block>.<letter><NN>`: h house, s shop, m midrise, w warehouse, v villa, c condo, t tower, d deco, g garage, x other | `cl.b014.h03` |
+| path | `<block>.pa<N>` | `cl.b014.pa1` |
+| bus stop | `<d>.bus.<NN>` | `cl.bus.08` |
+| trunk roads | `tr.n<NNNNN>`, `tr.e<NNNNN>` | `tr.e00412` |
+| places | `place.<name>` | `place.mari_apartment` |
+| zone, anchor | `<d>.<name>` | `cl.turf.north`, `cl.pd.station` |
+| plaza, lot, spot in a block | `<block>.<name>` | `cl.b014.lot1` |
+| transit line | `<kind>.<name>`, the kind of its file | `bus.8` |
+
+Numbered parts have at least the digits shown, zero-padded, and may have more.
+
+**Library ids** are `lib.<category>.<family>.<name>`, or `lib.<category>.<name>` where a category has no families:
+
+| Category | Id | File |
+|---|---|---|
+| plan, layout, unit, fitout | `lib.plan.house.bungalow_b02` | `lib/plans/house/bungalow_b02.ntw` (the category's plural, the family, the name) |
+| set | `lib.set.living.cottage_01` | `lib/sets/living/cottage_01.ntw` (the family is the room type) |
+| palette | `lib.palette.bungalow.coral` | the record `coral` in `lib/palettes/bungalow.ntw` |
+| facade, signal | `lib.facade.bungalow_siding` | `lib/facades/bungalow_siding.ntw` |
+| kit, prop, veg, light, fence | `lib.kit.sofa_3seat` | a `piece` record in `lib/catalog.ntw` (the pieces are built in code) |
+
+**Element ids** inside a library item are local to it: walls `w<N>`, doors `d<N>`, windows `n<N>`, rooms by name
+(`kitchen`, `bed2`), slots `u<N>`, stairs `st<N>`, lifts `lf<N>`, counters `c<N>`, lights `l<N>`, spots `s<N>`. From
+outside the item they are reached through its floors: `f0.d1` is door d1 of floor f0, `f1.u2` is slot u2 of floor f1.
+
+**Scopes.** World ids and library ids are unique across the world: districts, zones, anchors, road nodes, edges and
+bus stops, blocks, parcels, paths, plazas, lots and block spots, buildings, places, transit lines, library items,
+palettes (as `lib.palette.<family>.<id>`) and catalog pieces. Every other id is local to its file: terrain layers,
+water classes, outlines and channels; signal phases; a plan's floors, options, features and entrances; a library item's
+elements, in one namespace across walls, rooms, doors, windows and the rest; a building's outbuildings; a transit
+line's stations, stops and piers. A junction's id, a `furnish` block's id and a building `slot`'s id are references: to
+a node, a room and a slot.
+
+The validator rejects world and library ids that don't follow their patterns. Element ids that don't follow theirs are
+warnings.
+
+**References** are written as plain ids. worldc and the validator resolve every one and report the ones that don't
+resolve, with file and line. `schemaRefs()` in src/world/ntwschema.cpp lists every field that names other records, and
+the shape of its value: which kinds of record, and where a compound holds them (`<edge>:<lane>`).
+
+## 6. Canonical form
+
+`tools/ntwfmt` rewrites a file in canonical form, and `ntwfmt --check` reports files that aren't in it. The rules:
+- The header line, then the records in the order written. The formatter never reorders records.
+- A record's fields come in the order section 9 lists them. Fields a kind doesn't know (which the check reports) follow,
+  in the order written.
+- Numbers are written with their field's precision. `-0.00` becomes `0.00`.
+- Indentation is two spaces per block level. `end` lines sit at their block's level.
+- A record line holds as many fields as fit in 120 columns. The rest go on continuation lines, indented two more spaces.
+  A single value longer than the line (a long polyline) stands alone on its line.
+- Comment lines stay before their record, and end-of-line comments stay on its last line. A comment on an `end` line
+  moves to the line above it. Where there were blank lines between records, one remains.
+- Values are quoted only when they were quoted or must be.
+
+The canonical form is stable: formatting a canonical file changes nothing.
+
+## 7. Versions
+
+The `1` in `ntw 1 <kind>` is the version of the syntax and of that kind.
+- **Additive changes keep the version.** A new record type, a new optional field or a new word in a field's list. Older
+  files stay valid, and readers must refuse fields they don't know, so compiler and data move together.
+- **Breaking changes raise the kind's version.** A field renamed, a meaning changed, a required field added. worldc
+  then reads both versions for one release, the migration rewrites every file, and the old version is dropped.
+- The syntax of sections 1-6 has no planned changes.
+
+## 8. Where files live
+
+```
+world/
+  world.ntw                                kind world: the districts                          (world engineer)
+  terrain/terrain.ntw                      kind terrain: the baked terrain and its grids      (world engineer)
+  trunk/roads.ntw                          kind roads: highways, interchanges, arterials      (roads lead)
+  transit/<line>.ntw                       kind transit: SkyLine, bus routes, ferries, streetcar   (roads lead)
+  places/places.ntw                        kind places: anchors for missions and activities   (missions agent)
+  districts/<d>/district.ntw               kind district: bounds, label, zones                (the district's builder)
+  districts/<d>/roads.ntw                  kind roads: the district's streets
+  districts/<d>/blocks/<b>/block.ntw       kind block: parcels, paths, ground, dressing
+  districts/<d>/blocks/<b>/<building>.ntw  kind building: one placed building
+  lib/plans/<family>/<name>.ntw            kind plan                                          (library authors)
+  lib/layouts/<family>/<name>.ntw          kind layout
+  lib/units/<family>/<name>.ntw            kind unit
+  lib/fitouts/<family>/<name>.ntw          kind fitout
+  lib/sets/<room type>/<name>.ntw          kind set
+  lib/facades/<name>.ntw                   kind facade
+  lib/palettes/<family>.ntw                kind palette
+  lib/signals/<name>.ntw                   kind signal: signal plans
+  lib/catalog.ntw                          kind catalog: the code-built pieces and their parameters
+```
+
+A building file is named after the last part of its id: `cl.b014.h03` lives in `districts/cl/blocks/b014/h03.ntw`.
+Library files follow their ids as section 5 shows.
+
+---
+
+## 9. The kinds
+
+Each kind lists its header fields and its record types. For each record type: whether it has an id (none, optional or
+required), whether it opens a block and what that block may hold, and its fields in canonical order. Field types are
+those of section 3; `req` marks required fields, and the number after a type is its precision.
+
+### 9.1 `terrain`: world/terrain/terrain.ntw
+
+Written by `tools/terrainbake`; changed only by a re-bake or the terrain tools.
+
+| Record | Id | Fields |
+|---|---|---|
+| `source` | none | `tool` id, `generator` id, `seed`, `commit`: where the bake came from |
+| `grid` | none | `res` integer req, `cell` number 2 req, `origin` point 2 req: the height grid (2560 texels of 8 m from -10240,-10240) |
+| `layer` | req: `height`, `water`, `region`, `coast` | `file` req (beside terrain.ntw), `type` word `i16`/`u8` req, `res` integer, `cell` number 2, `unit` number (metres per step), `hash` hash req, `range` point 2 (lowest, highest) |
+| `water` | req: `c0`, `c1`, ... | `level` req, 4: a number, or `none` for c0. Each texel of the water layer holds a class, and the class its level |
+| `outline` | req | `pts` points 2 req: the coast of `mainland`, `sol_beach`, `key_coral`, `port_isle`, each `island.NN`, and the `lake` |
+| `channel` | req | `width0` number 2 req, `width1` number 2 req, `depth` number 2 req, `pts` points 2 req: rivers and canals |
+
+The layers are NTG grids (`src/world/gridcodec.h`): heights in cm, the water class, today's region map, and the signed
+coast distance on a 640² grid of 32 m.
+
+### 9.2 `world`: world/world.ntw
+
+| Record | Id | Fields |
+|---|---|---|
+| `world` | req: `palmera` | `name` text req |
+| `district` | req: the district id | `name` text req, `label` point 2 (where the map writes its name), `order` integer (build order, for the stages) |
+
+### 9.3 `district`: world/districts/<d>/district.ntw
+
+Header: `district` id req.
+
+| Record | Id | Fields |
+|---|---|---|
+| `bounds` | none | `poly` points 2 req: the district's area; districts don't overlap |
+| `label` | none | `at` point 2 req, `text` text: the map label, if not the district's name |
+| `zone` | req | `kind` word req (below), `poly` points 2 req, `tags` list, `peds` list (2), `traffic` list (2), `days` list |
+| `trunk` | none | `node` reference req: a trunk node this district's roads may join |
+
+Zones are tagged polygons, and one zone set serves the AI, the population, audio, wildlife and the map. By kind:
+
+| Kind | Tags and fields |
+|---|---|
+| `district` | `tags` the region the AI uses there: one of today's World::Region names, which set roles, density tables, local lines, the event mix and patrol density. Until zones exist, the AI reads the terrain's `region` layer, as today; once any zone exists, zones override the layer inside their polygons |
+| `use` | `tags` from `nightlife`, `beach`, `business`, `industrial`, `residential` |
+| `turf` | `tags` the gang: `cuervos`, `saints` |
+| `density` | `peds` and `traffic`: 24 factors by hour of the day, 1.00 being the region's default, for the `days` listed (`mon` ... `sun`; all days without it) |
+| `audio` | `tags` the ambience: `street_latin`, `traffic_light` |
+| `habitat` | `tags` the species: `pelican`, `ibis` |
+| `police` | `tags` the patrol level: `low`, `mid`, `high` |
+| `map` | `tags` the map style |
+
+### 9.4 `roads` and `signal`
+
+**Kind `roads`**: world/districts/<d>/roads.ntw, and world/trunk/roads.ntw for the trunk. The roads compile to today's
+`RoadNetwork` (src/world/roads.h), which worldc writes into world.bin and the game reads in hand mode, and
+`LaneGraph::build` runs on it unchanged. What the lane graph derives today stays derived: the lanes and their
+connectors, priority from the road class, stop lines and the junction box, signal plans and heads, crosswalks, kerbside
+parking and bus-stop waiting areas. A record overrides a derivation where it is written, and adds what nothing can
+derive. docs/HANDBUILT_WORLD.md section 12 gives the AI agent's requirement behind each record.
+
+Header: `district` id (a district's streets) or `scope=trunk`.
+
+- Distances along an edge (`at`, `from`, `to`) are metres from its `from` node, and `to=end` runs to its `to` node.
+- `fwd` is the direction from the `from` node to the `to` node, and `bwd` the other. `left` and `right` are seen looking
+  along `fwd`.
+- Lanes are counted from the left of their direction of travel, from 0. `left` and `right` name the outermost ones.
+- Turns are `l`, `s` (straight), `r` and `u`.
+
+| Record | Id | Block | Fields |
+|---|---|---|---|
+| `node` | req | no | `at` point 2 req, `z` number 2 req, `control` word `none`/`stop`/`yield`/`signal` (none: priority by road class; stop: every approach stops, or those in `stops`; yield: the approaches in `yield` give way), `plan` reference or `auto` (signals: a `signal` plan; `auto`, the default, derives one as today), `offset` number 1 (s into the plan's cycle), `approaches` compound `n:<edge>,e:<edge>,...` (which leg each compass letter of the plan names, where the bearings leave doubt), `stops` `all` or a list of edges, `yield` list of edges, `bulb` number 2 (a dead end's turning-circle radius; without one, long vehicles avoid the dead end) |
+| `edge` | req | yes: the records below it, `lanes` to `sign` | `from` reference req, `to` reference req, `class` word `highway`/`boulevard`/`avenue`/`street`/`lane`/`rural`/`dirt`/`ramp` req, `name` text, `lanes` compound `F/B` req (lanes `fwd` and `bwd`: `3/0` is one-way), `lanewidth` number 2, `median` compound `W` or `W:barrier` (2; a barrier stops U-turns, crossing on foot and jaywalking), `shoulder` compound `left:W`, `right:W` or `both:W` (2), `parking` compound `none` or as `shoulder`, `sidewalk` compound (as `parking`), `speed` number 1 (m/s), `flags` list of `bridge`, `elevated`, `unpaved`, `tunnel`, `shape` points 2 req (the centreline, from the `from` node to the `to` node), `profile` compound `s:z;s:z...` (2): the height by distance |
+| `lanes` | none | no | `from`, `to` number 2 or `end`, `dir` word `fwd`/`bwd` req, `count` integer req, `add` word `left`/`right`, `drop` word `left`/`right`, `taper` number 2: one direction's lane count over a stretch. `add` and `drop` say which side gains or loses the lane, over the taper: turn pockets, merges, acceleration and deceleration lanes |
+| `lane` | none | no | `dir` word req, `index` integer, `left` or `right` req, `use` word `bus`/`streetcar`/`bike`/`general` req, `from`, `to`: a lane kept for one use over a stretch |
+| `noswitch` | none | no | `dir` word req, `from`, `to`: solid lines, no lane changes |
+| `moves` | none | no | `at` word `n0`/`n1` req (the end the lanes arrive at: `n1` for the `fwd` lanes), `lanes` list req: per lane from the left, the turns it may make (`l,s,sr`). Without it, derived as today |
+| `crossing` | none | no | `at` number 2 req, `kind` word `signal`/`zebra`/`plain`/`unmarked` req (`unmarked`: no paint, people cross in gaps), `w` number 2 |
+| `busstop` | req | no | `at` number 2 req, `side` word req, `kind` word `bus`/`streetcar` (`bus`), `shelter` reference, `wait` points, or a point and a radius `x,y:r` (2): the waiting area on the sidewalk, derived without it; `routes` list (transit lines), `clear` number 2 (streetcars: the kerb lane kept clear, m) |
+| `parkbay` | none | no | `from` number 2 req, `to` number 2 req, `side` word req, `kind` word `parallel`/`angle`/`perp` req, `meter` integer 0/1, `disabled` integer 0/1 |
+| `nostop` | none | no | `from` number 2 req, `to` number 2 req, `side` word req, `why` word `junction`/`crossing`/`hydrant`/`busstop`/`driveway`/`bridge`/`other` |
+| `loading` | none | no | `from` number 2 req, `to` number 2 req, `side` word req, `hours` compound |
+| `taxirank` | none | no | `from` number 2 req, `to` number 2 req, `side` word req, `cap` integer |
+| `curbcut` | none | no | `at` number 2 req, `side` word req, `w` number 2 req, `to` reference (the parcel or lot it serves) |
+| `nojaywalk` | none | no | `from` number 2 req, `to` number 2 req, `side` word `left`/`right`/`both`: fences and guard rails |
+| `deck` | none | no | `from` number 2 req, `to` number 2 req, `kind` word `bridge`/`viaduct`/`overpass` req: the edge runs on a structure here, and the ground under it isn't graded |
+| `sign` | none | no | `at` number 2 req, `side` word req, `kind` word `stop`/`yield`/`speed`/`oneway`/`noentry`/`name` req, `value` |
+| `junction` | req: the node's id | yes: `stopline`, `connect`, `ban`, `head` | `kind` word `plain`/`roundabout` (a roundabout: yield at entry, and its ring lanes circulate), `turns` word `all`/`no_uturn`/`custom` (`custom`: only the `connect` records), `box` points 2 (the junction box; derived from the cut-backs without it) |
+| `stopline` | none | no | `edge` reference req, `at` number 2 req: the stop line of that edge's approach, metres back from the junction |
+| `connect` | none | no | `from` compound `<edge>:<lane>` req, `to` compound `<edge>:<lane>` req, `turn` word `left`/`right`/`straight`/`uturn` req, `protected` integer 0/1 |
+| `ban` | none | no | `from` reference req, `to` reference req: a turn from one edge into the other that isn't allowed |
+| `head` | none | no | `at` point x,y,z 2 req, `faces` compound `<edge>:<dir>` req: a signal head, where the derived ones don't suit |
+
+Hydrants imply 5 m of `nostop` and curb cuts imply it across them. Police and cabs pull over on any kerb lane outside a
+`nostop`, and need no record.
+
+What the roads compiler (src/world/worldmodel.h) reads, and requires:
+- An edge's `shape` starts at its `from` node's `at` and ends at its `to` node's, within 2 cm, with no two points in one
+  place. `from` and `to` are two different nodes: a loop needs a node along it.
+- A `profile` rises in `s` from 0 to the shape's length in plan, within 0.5 m, and starts and ends at its nodes' `z`,
+  within 5 cm. Without one, the edge runs straight from its `from` node's `z` to its `to` node's.
+- `shoulder`, `parking` and `sidewalk` describe both sides: the side a compound doesn't name has none
+  (`parking=left:2.40` leaves the right without parking). Unwritten, they take the class's widths, as `lanewidth`,
+  `median` and `speed` do. The class has one kerb width for shoulder and parking together, which either field
+  replaces; on one side the two add up.
+- `lanes` is at most 8 each way. A `deck` puts the edge on a structure, as `flags=bridge` does.
+- A node's `control` replaces the derived one. Today's lane graph knows priority by road class, stop signs on every
+  approach and signals: `yield`, and `stop` on only some approaches, run as priority by road class until it reads the
+  `yield` and `stops` lists.
+- Today's `RoadNetwork` has one width for both sides of a road, so the wider side counts there until the lane graph
+  reads both. An edge's dressing seed comes from its id, so adding an edge changes no other edge's.
+
+**Kind `signal`**: lib/signals/<name>.ntw, header `id` id req. A plan's phases run in order, each for its `green`, then
+its `amber`, then its `allred`.
+- A movement is `<approach>_<turn>`. The approach is the leg the traffic arrives on, by compass (`n`, `e`, `s`, `w`), as
+  the compiler reads the legs' bearings or the node's `approaches` says. A `p` after the turn marks a protected turn
+  (`n_lp`). A turn without one gives way.
+- A crossing is named by the leg it crosses (`e`).
+
+| Record | Id | Block | Fields |
+|---|---|---|---|
+| `plan` | none | no | `cycle` number 1 req (s; the validator checks that it is the sum of the phases), `legs` integer (3 or 4: the junctions it suits) |
+| `phase` | req | no | `green` number 1 req, `amber` number 1 req, `allred` number 1 req, `moves` list (the movements with a green), `walk` list (the crossings with a walk), `walktime` number 1 (s of walk), `flash` number 1 (s of flashing don't-walk after it) |
+
+Every movement and every crossing of a node gets a green or a walk in some phase of its plan. The validator checks it.
+
+### 9.5 `block`: world/districts/<d>/blocks/<b>/block.ntw
+
+Header: `id` id req, `district` id req.
+
+| Record | Id | Block | Fields |
+|---|---|---|---|
+| `parcel` | req | yes: `paint`, `fence`, `pad` | `poly` points 2 req, `use` word `residential`/`commercial`/`mixed`/`industrial`/`civic`/`park`/`parking`/`vacant` req, `grade` number 2 (pad height), `blend` number 2 (m), `ground` word (its default ground: `lawn`, `paving`, `gravel`, `dirt`, `sand`, `planting`), `front` compound `<edge>:<side>` |
+| `paint` | none | no | `kind` word (as `ground`) req, `poly` points 2 req |
+| `fence` | none | no | `kind` reference req, `line` points 2 req, `gate` compound `<at>:<width>` (2): a gate at that distance along the line |
+| `pad` | none | no | `poly` points 2 req, `z` number 2 req, `kind` word `paving`/`concrete`/`deck` req: a level slab in the parcel |
+| `plaza` | optional | no | `poly` points 2 req, `ground` word, `tags` list: an open paved area where people mill about; the walk graph crosses it on its paths |
+| `path` | req | no | `line` points 2 req, `w` number 2 req, `kind` word `walk`/`plaza`/`alley`/`trail`/`boardwalk`/`footbridge`/`underpass` req, `profile` compound `s:z;...` (2): the height along it, for footbridges and underpasses |
+| `steps` | none | no | `line` points 2 req (from the bottom), `w` number 2 req, `treads` integer, `rise` number 2: outdoor steps (plazas, porches), climbed a tread at a time |
+| `tree` | none | no | `kind` reference req, `at` point 2 req, `h` number 2, `yaw` number 1, `canopy` number 2 |
+| `plant` | none | no | `kind` reference req, `at` point 2 req, `yaw` number 1, `scale` number 2: shrubs, hedges, planters |
+| `prop` | none | no | `kind` reference req, `at` point 2 req, `z` number 2, `yaw` number 1, `look` integer (the piece's mesh variant) |
+| `light` | none | no | `kind` reference req, `at` point 2 req (or `at` with z), `yaw` number 1, `sched` word `dusk`/`evening`/`night`/`always`/`never` |
+| `spot` | optional | no | `kind` word req (below), `at` point 2, `yaw` number 1, `line` points 2 (a queue, its head first), `cap` integer, `hours` compound, `cover` integer 0/1 (sheltered, used in rain), `roles` list, `ages` compound `min-max`, `prop` reference, `pose` name (the clip), `for` compound (what a queue leads to: a door `cl.b014.s07:f0.d1`, a counter, a stop): a scenario point |
+| `lot` | req | yes: `row`, `ramp` | `entry` compound `<edge>:<at>:<side>` req (2; the curb cut it is entered by), `exit` compound (as `entry`; the entry without it), `levels` integer (1): a car park |
+| `row` | none | no | `line` points 2 req, `bays` integer req, `w` number 2, `len` number 2, `yaw` number 1, `level` integer (0): a row of bays along the line, with its aisle |
+| `ramp` | none | no | `from` integer req, `to` integer req (levels), `line` points 2 req |
+
+What the blocks compiler (src/world/worldmodel.h compileBlocks) reads so far, and requires:
+- A parcel's `ground` covers its polygon, and its `paint` lies over that. A parcel with `grade` is level at it, and
+  the terrain blends back over `blend` metres outside it; its pads are level slabs `z` above the grade. Without
+  `grade` the ground follows the graded terrain, and a pad stands `z` above the terrain under its centre. A `plaza`
+  is paved unless its `ground` says otherwise. Polygons need 3 points or more.
+- Trees, plants and props are the catalog pieces their `kind` names, built by the piece's `code`. A tree's `h`
+  scales its piece by the piece's `size` height, and a plant's `scale` scales it; trees and plants without `yaw`
+  turn, and vary among the piece's `variants`, by their position, so that a row of them never repeats. A `light`
+  is its fixture's piece and lamp (a street light's lamp hangs 2.2 m forward, 8.6 m up), or a lamp alone where its
+  piece is one: on at dusk, or by its `sched`.
+- Every z is above the graded ground, or above the sidewalk or road where one runs under the record.
+- Fences, paths, steps, spots and lots are read and checked, and compile later (with the walk graph and parking).
+
+**Spot kinds.** Outdoors: `bench`, `wall_sit`, `steps_sit`, `lean`, `smoke`, `phone`, `busstop_wait`, `queue`, `window`,
+`atm`, `vending`, `cafe_seat`, `bar_stool`, `busk`, `vendor`, `guard`, `door_staff`, `watch_view`, `fish`, `exercise`,
+`sunbathe`, `sleep_rough`, `talk_ring`, `cover`. Indoors (9.8) the same, without `busstop_wait`, `fish` and `sunbathe`,
+and with `desk`, `counter_serve`, `counter_queue`, `browse`, `bed`, `sofa`, `kitchen`, `washroom`, `bar`, `dance`.
+A spot has an `at` or a `line`. Benches, bus-stop waits and café seats that the compiler derives from props need no
+spot. The population's venues are spots too.
+
+Dressing records (`tree`, `plant`, `prop`, `light`) have no ids: nothing refers to a single tree. A record that
+something must find (a mission's bench) gets a `place` in places.ntw instead.
+
+### 9.6 `building`: world/districts/<d>/blocks/<b>/<building>.ntw
+
+Header: `id` id req, `block` id req, `parcel` id req. The id matches the file's path (section 8), and the validator checks
+that it does.
+
+| Record | Id | Block | Fields |
+|---|---|---|---|
+| `place` | none | no | `plan` reference req, `at` point 2 req (the plan's origin), `z` number 2 req, `yaw` number 1 req, `mirror` integer 0/1 |
+| `config` | none | no | `palette` reference, `roof` reference, `facade` reference, and one field per option the plan declares (`porch=screened`); worldc checks them against the plan |
+| `slot` | req: the slot's element id (`f1.u2`) | no | `unit` reference or `fitout` reference, `variant` name, `household` name, `sign` text, `sign_style` name |
+| `furnish` | none | no | `household` name, `variant` name: the default for every room that has variants |
+| `override` | none | no | `room` compound, `variant` name, `add` reference, `remove` compound, `wall` compound, `side` word `in`/`out`, `at` number 2, `h` number 2, `door` compound, `style` reference, `lock` word `none`/`key`/`staff`/`resident`/`alarm`: one change, each named by its element (section 5) |
+| `occupancy` | none | no | `residents` integer, `workers` integer, `schedule` name, `hours` compound `HH.HH-HH.HH` |
+| `outbuilding` | req | no | `plan` reference req, `at` point 2 req, `z` number 2, `yaw` number 1 req: a back garage or shed on the same lot |
+
+### 9.7 `plan`: lib/plans/<family>/<name>.ntw
+
+Header: `id` id req.
+
+| Record | Id | Block | Fields |
+|---|---|---|---|
+| `meta` | none | no | `class` word `tower`/`midrise`/`condo`/`deco`/`shop`/`stripmall`/`house`/`villa`/`warehouse`/`factory`/`farmhouse`/`barn`/`motel`/`gasstation`/`garage`/`church`/`shack`/`landmark` req (today's building styles, so every consumer keeps working), `family` id req, `era` integer, `floors` integer req, `beds` integer, `baths` integer, `size` compound `WxD` (2) req, `tags` list |
+| `footprint` | none | no | `poly` points 2 req |
+| `floor` | req: `f0`, `f1`, ... `b1` (basements), `attic`, `roof` | no | `layout` reference req, `z` number 2 req, `h` number 2 req, `access` compound (e.g. `hatch:f0.hall`) |
+| `roof` | none | no | `form` word `flat`/`gable`/`hip`/`shed`/`mansard`/`barrel` req, `pitch` number 1, `overhang` number 2, `material` reference |
+| `facade` | none | no | `style` reference req, `palette` reference |
+| `option` | req: the option's name | no | `choices` list req, `default` name req (one of the choices) |
+| `feature` | req | no | `when` compound `<option>:<choice>` req, `mesh` reference req, `span` points 2, `depth` number 2, `h` number 2 |
+| `entrance` | req | no | `door` compound req (a floor's door: `f0.d1`), `kind` word `main`/`service`/`garage`/`fire` |
+
+### 9.8 `layout`, `unit` and `fitout`
+
+A **layout** is a floor plate (lib/layouts). A **unit** is an apartment, office suite or hotel room that fills a layout's
+slot (lib/units). A **fit-out** is a shop, restaurant, workshop or warehouse bay that fills one (lib/fitouts). They share
+these records. A unit or fit-out has no exterior walls: those belong to the layout, with their windows. Stairs and doors
+are built to the kit's geometry in docs/HANDBUILT_WORLD.md 4.9, and the validator checks its limits.
+
+Header: `id` id req; a unit or fit-out also `slot_size` compound `WxD` (2) and `kind` word.
+
+| Record | Id | Block | Fields |
+|---|---|---|---|
+| `wall` | req | no | `a` point 2 req, `b` point 2 req, `t` number 2 req, `ext` word `front`/`back`/`left`/`right` (exterior walls, layouts only), `finish` reference |
+| `room` | req | no | `type` word req (`living`, `kitchen`, `bed`, `bath`, `hall`, `stair`, `office`, `shop`, `store`, `lobby`, `corridor`, `plant`, `garage`, `dining`, `utility`, `restaurant`, `bar`), `poly` points 2 req, `cap` integer (the people it holds), `sched` name, `lux` integer, `outdoor` integer 0/1 |
+| `door` | req | no | `wall` reference req, `at` number 2 req, `w` number 2 req (the clear width), `h` number 2 req, `kind` word `hinged`/`pair`/`sliding`/`revolving`/`rollup`/`lift`/`opening` req, `hinge` word `left`/`right`, `swing` word `in`/`out`, `style` reference, `leads` compound `<room>:<room>` req (a room or slot each side, `out` for outside), `lock` word `none`/`key`/`staff`/`resident`/`alarm`, `hours` compound (when it is open to the public; the lock applies outside them) |
+| `window` | req | no | `wall` reference req, `at` number 2 req, `w` number 2 req, `h` number 2 req, `sill` number 2 req, `kind` word `fixed`/`dhung`/`casement`/`slider`/`storefront`/`jalousie`/`glassblock` req, `room` reference req |
+| `stair` | req | no | `from` compound req (`f0.hall`; in a layout serving several floors `0:hall`, a room of this floor), `to` compound req (`f1.hall`; or `+1:hall` / `-1:hall`, a room on the floor above / below), `run` points 2 req (the flight's centreline), `w` number 2 req, `kind` word req: `straight`, `dogleg` (a 180° landing), `quarter` (a 90° landing), `winder`, `spiral`, `curved` or `escalator` (a moving floor), `treads` integer, `rise` number 2 (both derived from the floors without them), `landing` number 2 (the landing's depth; from the run without it), `walk` number 2 (the walking line: its distance from the centre on spirals and curved stairs, from the inner corner on winders; the middle of the flight without it) |
+| `lift` | req | no | `at` point 2 req, `size` compound `WxD` (2) req, `stops` list req (floor ids), `door` word `front`/`back`/`left`/`right` (the side of the car its doors open on; front faces -y), `cap` integer (people per car), `call` point 2 (where people wait for it) |
+| `slot` | req | no | `poly` points 2 req, `entry` reference req (a door), `allow` list req (unit or fit-out ids, or families with `*`) |
+| `furnish` | req: a room's id | yes: `variant`, `item` | `variants` list req: the room's furnishing variants, `a,b,c` |
+| `variant` | req: `a`, `b`, ... | no | `set` reference, `anchor` reference (a wall): a variant furnished by a set |
+| `item` | none | no | `kind` reference req, `at` point 2 req, `z` number 2, `yaw` number 1, `look` integer (the piece's mesh variant), `variant` name (inside a `furnish` block: the variant it belongs to) |
+| `spot` | optional | no | `kind` word req (9.5's spot kinds), `room` reference req, `at` point 2, `yaw` number 1, `line` points 2, `cap` integer, `hours` compound, `roles` list, `ages` compound, `prop` reference, `pose` name, `for` compound: a scenario point, as in blocks |
+| `light` | req | no | `room` reference req, `at` point x,y,z 2 req, `fixture` reference req, `sched` name, `anim` word `none`/`tv`/`neon`/`flicker` |
+| `counter` | req | no | `line` points 2 req, `h` number 2 req: shops: where staff stand and customers queue (fit-outs) |
+| `sign` | none | no | `wall` reference req, `at` number 2 req, `w` number 2 req, `h` number 2 req: where a fit-out's sign goes (filled by the building's `slot ... sign=`) |
+
+How the validator reads a layout's geometry:
+
+- **Openings.** A door's or window's `at` is the opening's centre, measured along its wall from `a`. An opening keeps
+  clear of its wall's ends by half the thickness of the wall it meets there plus 0.05 m. A door joins the two rooms its
+  `leads` names, one on each side of its wall.
+- **Where doors lead.** `leads` names rooms, slots or `out`. A slot's entry door names the slot (`leads=hall:s1`). In
+  a layout, `out` is only through an exterior wall (`ext=`); in a unit or fit-out, `out` is anywhere outside its
+  `slot_size` rectangle (the slot's entry and the layout's corridor are there).
+- **Stair runs.** `run` is the flight's centreline from its foot:
+  - `straight` and `escalator`: 2 points;
+  - `dogleg`: 4, with the middle two at the landing's mid-depth, so each flight is its segment less half the landing;
+  - `quarter`: 3, the middle one the landing's centre;
+  - `winder`: 3, the middle one where the centreline turns;
+  - `spiral` and `curved`: points on the arc, which is fitted to them (a spiral's sweep may pass 360°).
+- **Stair defaults.** `landing` defaults to the flight's width `w`. `walk` defaults to the centreline: on a spiral or
+  curved stair, the arc's radius; on a winder, `w`/2 from the inner corner. A tread is measured on the walking line:
+  the walking line's length over `treads` (on a spiral, the sweep times the walking radius).
+- **Stair floors.** In a plan, `from` and `to` name a floor and a room (`f0.hall`, `f1.hall`). A layout that serves
+  several floors of a plan (a typical floor) names floors relative to its own: `from=0:<room>`, a room of this floor,
+  and `to=+1:<room>` or `-1:<room>`, the room it reaches on the floor above or below wherever the plan uses the layout
+  (the rooms are the layout's own: the floors above and below use it too).
+
+### 9.9 `set`: lib/sets/<room type>/<name>.ntw
+
+Header: `id` id req, `room` word (a room type) req, `style` name, `income` word `low`/`mid`/`high`.
+
+| Record | Id | Fields |
+|---|---|---|
+| `fits` | none | `w` compound `min-max` (2) req, `d` compound `min-max` (2) req: the room sizes it suits |
+| `item` | none | `kind` reference req, `at` point 2 req (from the anchor wall's centre, +y into the room), `z` number 2, `yaw` number 1, `look` integer |
+
+### 9.10 `facade` and `palette`
+
+Kind `facade` (lib/facades/<name>.ntw): header `id` id req.
+
+| Record | Id | Fields |
+|---|---|---|
+| `wall` | none | `material` reference req, `color` name (a palette slot: `wall`, `trim`, `door`, `accent`, `roof`) |
+| `trim` | none | `kind` word `none`/`band`/`cornice`/`quoin`/`eyebrow` req, `material` reference, `color` name, `h` number 2 |
+| `window` | none | `kind` word (as layouts) req, `frame` reference, `color` name, `shutters` word `none`/`fixed`/`bahama` |
+| `door` | none | `style` reference req, `color` name |
+| `base` | none | `h` number 2, `material` reference |
+
+Kind `palette` (lib/palettes/<family>.ntw): header `family` id req. A palette is referred to as
+`lib.palette.<family>.<id>`: `lib.palette.bungalow.coral` is the palette `coral` in lib/palettes/bungalow.ntw.
+
+| Record | Id | Fields |
+|---|---|---|
+| `palette` | req | `wall` colour req, `trim` colour req, `door` colour req, `accent` colour, `roof` colour |
+
+### 9.11 `places`: world/places/places.ntw
+
+| Record | Id | Fields |
+|---|---|---|
+| `place` | req | `building` reference, `door` compound, `walk` point 2 req (the sidewalk point), `curb` point x,y,z 2, `dir` point 2 (along the street), `water` points 2 (boat access), `note` text |
+
+| `anchor` | req | `kind` word req: police (`police_station`, `police_bays`, `garage_exit`, `booking_door`, `release`, `k9`, `swat`, `patrol_loop`, `foot_beat`, `break`, `roadblock`, `helipad`, `boat_launch`), emergency services (`ambulance_bay`, `er_door`, `fire_station`, `tow_yard`) or `event`; `event` name (the event kind, for `kind=event`), `at` point 2, `z` number 2, `yaw` number 1, `poly` points 2, `line` points 2 (loops and beats), `building` reference, `door` compound, `edge` reference, `cap` integer, `tags` list |
+
+Each of today's ~60 mission places becomes one `place`, and `computePlaces` fills the same `Place` structs from it.
+Anchors add to what the AI finds by itself: it derives roadblock sites and the places of every event kind from the
+graphs, as today, so nothing needs an anchor to work.
+
+### 9.12 `transit`: world/transit/<line>.ntw
+
+Header: `line` id req, `kind` word `skyline`/`bus`/`ferry`/`streetcar` req, `name` text.
+
+| Record | Id | Fields |
+|---|---|---|
+| `route` | none | `edges` list (bus, streetcar: road edges in order), `pts` points 2 (SkyLine and ferries: the path), `profile` compound `s:z;...` (2) |
+| `station` | req | `at` point 2 req, `z` number 2, `name` text req, `side` word |
+| `stop` | req | `busstop` reference req: a bus stop of a road edge |
+| `pier` | req | `at` point 2 req, `yaw` number 1 req, `name` text req |
+| `pole` | none | `at` point 2 req, `h` number 2: streetcar wire poles |
+| `service` | none | `headway` number 1 req (s), `first` number 2, `last` number 2 (hours) |
+
+### 9.13 `catalog`: lib/catalog.ntw
+
+The pieces built in code (furniture and fixtures in interiorfurniture.cpp and interiorkit.cpp, props in propmesh.cpp,
+trees and plants, lights, fences) and the parameters they take. References to `lib.kit.*`, `lib.prop.*`, `lib.veg.*`,
+`lib.light.*` and `lib.fence.*` resolve here.
+
+| Record | Id | Fields |
+|---|---|---|
+| `piece` | req | `code` req (the C++ enum or function that builds it, as written in the code: `FURN_SOFA`), `size` compound `WxDxH` (2), `variants` integer, `params` list, `collide` word `box`/`cylinder`/`none` (a collider of the piece's real size, height included, so the AI tells low cover from high) |
+
+---
+
+## 10. Example files
+
+A placed house, `world/districts/cl/blocks/b014/h03.ntw`:
+
+```
+ntw 1 building id=cl.b014.h03 block=cl.b014 parcel=cl.b014.p03
+place plan=lib.plan.house.bungalow_b02 at=1701.10,361.30 z=3.45 yaw=90.0 mirror=1
+config palette=lib.palette.bungalow.coral roof=lib.kit.roof_tile_terracotta porch=screened garage=carport_left
+furnish household=family_young variant=b
+override room=f0.kitchen variant=c
+override add=lib.kit.mural_wall_02 wall=f0.w2 side=out at=2.00 h=2.40
+occupancy residents=4 schedule=family_school
+```
+
+A floor layout, `world/lib/layouts/house/bungalow_b02_f0.ntw` (excerpt):
+
+```
+ntw 1 layout id=lib.layout.house.bungalow_b02_f0
+wall w1 a=0.00,0.00 b=11.60,0.00 t=0.25 ext=front
+wall w5 a=5.20,0.00 b=5.20,6.00 t=0.12
+room living type=living poly=0.00,0.00;5.20,0.00;5.20,6.00;0.00,6.00 cap=6 sched=evening lux=150
+door d1 wall=w1 at=2.20 w=0.95 h=2.10 kind=hinged hinge=left swing=in leads=out:living
+window n1 wall=w1 at=4.00 w=1.20 h=1.40 sill=0.90 kind=dhung room=living
+furnish living variants=a,b,c
+  variant a set=lib.set.living.cottage_01 anchor=w5
+  variant b set=lib.set.living.family_04 anchor=w5
+  item kind=lib.kit.sofa_3seat at=2.50,4.80 yaw=180.0 variant=c
+  item kind=lib.kit.tv_stand at=2.50,0.60 variant=c
+end
+spot s1 kind=sofa room=living at=2.50,4.60 yaw=0.0 cap=2 hours=18.00-23.00 roles=resident
+light l1 room=living at=2.60,3.00,2.75 fixture=lib.kit.ceiling_bowl
+```

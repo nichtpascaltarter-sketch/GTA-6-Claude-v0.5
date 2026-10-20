@@ -1,0 +1,73 @@
+Transit: SkyLine loop 8.60 km, 8 stations, 4299 samples; 3 ferry piers
+Sites: 91 pads, 324 elements, 23 roads, 21 buildings requested (0.08 s)
+World map generated in 23.01 s
+Road gen: 18 interchanges, 50 ramps (22 left out where they could not come down in time)
+Road network: 6248 nodes, 9828 edges, 1716 signalized; hwy 61.7 km, streets 1187.4 km (4.02 s)
+worldcheck: 0 cells, 0 colliders, 0 props
+
+[lanes] colliders intruding into drivable lanes: 0, props standing in lanes: 0; dead-end turning circles without room: 0, obstructed: 0 (0 pulled back to fit)
+
+[falls] road edges with a fall of more than 1.2 m: guarded 0 m, unguarded 124600 m
+  unguarded at (3620.4, 7481.8, 17.7)
+  unguarded at (3642.5, 7463.7, 17.7)
+  unguarded at (3622.9, 7484.9, 17.7)
+  unguarded at (3645.1, 7466.8, 17.7)
+  unguarded at (3625.5, 7488.1, 17.7)
+  unguarded at (3647.6, 7469.9, 17.7)
+  unguarded at (3628.0, 7491.2, 17.7)
+  unguarded at (3650.1, 7473.0, 17.7)
+  unguarded at (3630.6, 7494.2, 17.7)
+  unguarded at (3652.7, 7476.0, 17.7)
+  unguarded at (3633.1, 7497.3, 17.7)
+  unguarded at (3655.2, 7479.1, 17.7)
+  unguarded at (3635.7, 7500.4, 17.7)
+  unguarded at (3657.7, 7482.2, 17.7)
+  unguarded at (3638.2, 7503.5, 17.7)
+  unguarded at (3660.3, 7485.3, 17.7)
+  unguarded at (3640.8, 7506.6, 17.7)
+  unguarded at (3662.8, 7488.4, 17.7)
+  unguarded at (3643.3, 7509.7, 17.7)
+  unguarded at (3665.4, 7491.5, 17.7)
+  unguarded at (3645.9, 7512.8, 17.7)
+  unguarded at (3667.9, 7494.5, 17.7)
+  unguarded at (3648.5, 7515.9, 17.7)
+  unguarded at (3670.5, 7497.6, 17.7)
+  unguarded at (3651.0, 7518.9, 17.7)
+  unguarded at (3673.0, 7500.7, 17.7)
+  unguarded at (3653.6, 7522.0, 17.7)
+  unguarded at (3675.6, 7503.7, 17.7)
+  unguarded at (3656.1, 7525.1, 17.7)
+  unguarded at (3678.1, 7506.8, 17.7)
+  unguarded at (3658.7, 7528.2, 17.7)
+  unguarded at (3680.7, 7509.9, 17.7)
+  unguarded at (3661.3, 7531.2, 17.7)
+  unguarded at (3683.2, 7513.0, 17.7)
+  unguarded at (3663.8, 7534.3, 17.7)
+  unguarded at (3685.8, 7516.0, 17.7)
+  unguarded at (3666.4, 7537.4, 17.7)
+  unguarded at (3688.3, 7519.1, 17.7)
+  unguarded at (3669.0, 7540.5, 17.7)
+  unguarded at (3690.9, 7522.1, 17.7)
+
+[steps] lane surface vs physics ground: 1610679 samples, 62 off by more than 0.45 m at 8 places
+  step +1.00 m at (3016.3, 61.3) z 1.96 (terrain 1.66): Boulevard edge 132 s 17 of 100 (cut 17/17) nodes 117->120; ground from Boulevard edge 130 (sidewalk)
+  step +0.93 m at (3877.7, 3053.7) z 0.60 (terrain 0.28): Boulevard edge 307 s 23 of 45 (cut 17/17) nodes 297->299; ground from Boulevard edge 308 (sidewalk)
+  step +0.85 m at (3742.2, -40.5) z 0.48 (terrain 0.17): Boulevard edge 231 s 95 of 114 (cut 17/17) nodes 223->225; ground from Boulevard edge 9632
+  step +0.84 m at (2954.8, 168.4) z 2.99 (terrain -1.99): Boulevard edge 133 s 161 of 214 (cut 17/17) nodes 117->119; ground from Boulevard edge 133
+  step +0.59 m at (3082.2, 204.1) z 2.23 (terrain 1.35): Boulevard edge 135 s 83 of 101 (cut 17/0) nodes 119->122; ground from Boulevard edge 136 (sidewalk)
+  step +0.56 m at (3757.7, 1060.5) z 1.16 (terrain 0.67): Boulevard edge 262 s 23 of 40 (cut 17/0) nodes 251->255; ground from Boulevard edge 263 (sidewalk)
+  step +0.52 m at (3759.5, -163.0) z 1.54 (terrain 1.07): Avenue edge 343 s 37 of 51 (cut 17/12) nodes 222->328; ground from Street edge 340 (sidewalk)
+  step +0.46 m at (4649.2, 5046.3) z 1.32 (terrain 0.14): Boulevard edge 338 s 21 of 47 (cut 17/0) nodes 173->325; ground from Avenue edge 339
+
+[grades] road profile segments steeper than 16%:
+  20% on Street edge 4858 at (-7310.0, -9445.8) z 2.08 -> 3.58 over 7.5 m (s 7 of 38)
+  18% on Street edge 4858 at (-7302.6, -9444.3) z 3.58 -> 4.91 over 7.5 m (s 15 of 38)
+  20% on Street edge 5587 at (-8737.8, -2022.9) z 3.01 -> 4.52 over 7.5 m (s 24 of 62)
+  18% on Road edge 5639 at (-8761.4, -2009.0) z 2.18 -> 3.80 over 9.1 m (s 19 of 62)
+  18% on Road edge 5639 at (-8761.1, -2018.1) z 3.80 -> 5.43 over 9.1 m (s 28 of 62)
+  5 segments
+
+[crossings] roads crossing without a junction less than 4.5 m apart:
+  0 crossings
+
+worldcheck: FAILED

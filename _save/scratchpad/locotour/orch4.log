@@ -1,0 +1,6 @@
+start 05:16:00
+gate: memory still short, not running
+build after_st2 rc 0
+Embedded 40 shader files.
+-rwxr-xr-x 1 root root 12408320 Oct  6 05:48 bin/loco_after_st2.exe
+built after_st2 05:48:15

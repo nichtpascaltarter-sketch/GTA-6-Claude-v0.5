@@ -1,0 +1,9 @@
+Embedded 35 shader files.
+In file included from src/audio/audio_all.cpp:9,
+                 from src/main.cpp:53:
+src/audio/music.cpp: In member function 'void Audio::detail::music::ScoreGen::appendChunk()':
+src/audio/music.cpp:4129: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
+ 4129 |                     for (float t = 0.f; t < 3.99f; t += 0.25f) c.hit(tD, b, t, DK_HAT_C, (fmodf(t, 0.5f) < 0.01f ? 66 : 46) + r.irange(-5, 5));
+      | 
+src/audio/music.cpp:4129: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
+-rwxr-xr-x 1 root root 9858560 Sep 30 17:33 /home/user/GTA-6-Claude-v0.5/bin/nt_fx24.exe

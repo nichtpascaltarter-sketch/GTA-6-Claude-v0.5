@@ -1,0 +1,60 @@
+city snapshot-safe: world model v0, the typed model of the hand-built world that worldv's stage-1 checks and worldc's stage-1 compilers will share. Built on HEAD bcb8a71 plus the road fix (c5bc0aab) and step 4.1. Blobs only: no shared file is touched. It has to land after both of those, because four of its files build on them.
+
+CHANGED (blob on its base)
+  src/world/roads.cpp                    120a1113 on c5bc0aab (the road fix)
+  src/world/roads.h                      8f46021f on eee40e8e
+  src/world/ntwschema.h                  29d50e6a on 862eac69
+  src/world/ntwschema.cpp                667e43c3 on 906d1d0f (4.1's)
+  docs/NTW_FORMAT.md                     1763c8dc on d318643d (4.1's)
+  tests/world/world_format_test.cpp      24ff960c on 90f983c5 (4.1's)
+  .github/workflows/windows-build.yml    5d63b13a on afe28696 (adds one step, "Test the world model (loader, references, roads compile)", after worldv's test)
+NEW
+  src/world/roadnet.cpp, src/world/worldmodel.h, src/world/worldmodel.cpp, src/world/worldmodel_roads.cpp
+  tests/world/worldmodel_test.cpp, tests/world/fixtures/model/ (11 files)
+- List: /tmp/city/wm_blobs.txt (23 files).
+- /tmp/city/apply_wm.sh <tree> checks every base and that the new files are absent, then writes all 23 from the shared repo's objects. It writes nothing on a mismatch.
+- Tree: /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/wm
+
+WHAT
+- The model, src/world/worldmodel.h (host tools only; worldv reviewed the header and its points are in):
+  - discover(), loadParsed() and load();
+  - typed records with file and line: districts and zones, nodes, edges with every record in their blocks, junctions, bus stops, signal plans, transit, places and anchors, blocks with parcels and lots, buildings' headers and placement, library items;
+  - references resolved by the schema's table, with the same rules as worldv's ref checks;
+  - findings with stable codes.
+- compileRoads() turns the model into today's RoadNetwork:
+  - widths as written, else the class's;
+  - heights from the profiles or the node z (no terrain read);
+  - seeds from the edge ids;
+  - junction radii, cut-backs and control as generate() derives them, with control= overriding;
+  - the spatial hash;
+  - plus a RoadIndex back to the ids and lines.
+- roads.cpp: its network core moves to roadnet.cpp, which roads.cpp includes, so host tools can link the core without the generator's world. The core is the class table, positions along an edge, the hash and its queries, and the junction pass, which becomes RoadNetwork::finishJunctions(). The move is mechanical: 194 lines, plus the include and the one call. The procedural world is unchanged. rfcheck's census covers every edge, node, building, bus stop and route, and the site and story places: 55,085 record lines, all identical to the road fix's. Only its 30 timing lines differ.
+- ntwschema: the reference patterns are parsed and matched in one place (parseRefPattern, matchRefs, refRules). It is worldv's matcher moved over, so worldv can drop its copy.
+- NTW_FORMAT 9.4 gains what the roads compiler requires: shape ends on its nodes; profiles from 0 to the shape's length at the nodes' z; one-sided kerb compounds leave the other side bare; the symmetric widths; seeds from ids; how yield and two-way stops run until the lane graph reads the lists.
+- world.bin is unchanged: worldc doesn't use the model until stage 1, and world/ has no roads yet.
+
+CHECKS (CI flags where CI has the step)
+- world_format_test: all passed, with the new pattern cases.
+- worldmodel_test: all passed, also under ASan and UBSan with leak detection.
+- worldv_test: all passed, built with the new ntwschema.
+- worldv --world=world: 0 errors, 0 warnings.
+- worldv on the model's test world: 0 errors, 0 warnings, 11 files, 33 ids.
+- ntwfmt --check on the samples and the test world: 27 files canonical.
+- worldc: 0 warnings, and world.bin is byte-identical to 4.1's.
+- MinGW syntax check: main.cpp 0 errors / 0 warnings; worldmodel_test.cpp 0 / 0.
+- The census of the procedural world: identical (above).
+- doccheck: the same 2 known false hits as 4.1.
+- worldv's own fixture world: loads and compiles clean (30 files, 63 ids; 5 nodes, 3 edges; 12 of 12 road references resolve).
+- apply_wm.sh: on bcb8a71 + road fix + 4.1 it reproduces the tree exactly (23 files). On a plain bcb8a71 tree it refuses with 4 base mismatches and writes nothing.
+These checks finished at 08:40, before the restart, so nothing of mine needed rerunning: the road fix's and 4.1's chains had finished earlier too.
+
+NOT IN v0
+- A world.bin round trip for the roads. It moves to stage 1 with worldc's roads compiler and the game's reader, because the section has to carry the overrides the lane graph will read (the AI agent's API).
+- Block and building geometry: footprints, entrances, colliders (v1).
+- Hand-world dead ends get today's derived turning bulbs: the node's bulb= stays on the model until roadmesh and the lane graph read it.
+
+For the AI agent: tools/traffic_sim.cpp is unaffected, since it includes roads.cpp and roads.cpp includes "roadnet.cpp" beside it. A roads.cpp copy passed through TS_ROADS_CPP needs a roadnet.cpp beside it.
+
+If the road fix changes before it lands, I rebase v0's roads.cpp: the move is mechanical.
+
+Next: I'm sending worldv the final API now. Their step-2 checks can start on it once it lands.

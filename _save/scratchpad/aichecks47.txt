@@ -1,0 +1,14 @@
+Checks (AI agent):
+- Taxi:
+  - With the fix, the fare started the door clip at the kerb-side back door at t=28.0. The cab's 25 s give-up passed
+    mid-clip and the cab held. The fare was in at t=30.4 and the cab set off on the ride.
+  - On HEAD the cab gave up as soon as the clip began.
+- Taxi with this fix alone, the cab stopping short as on main:
+  - When the fare never reached the door, the cab gave up at 25 s and the fare was freed. The next cab picked them up
+    and held until they were in.
+  - No worse than main: the give-up runs at most one clip (about 3 s) past 25 s.
+- trafficstop, on exactly this pair: the whole stop played out, from the officer stepping out (still PS_EXITING) to both
+  driving off. Before the fix it was called off as the officer stepped out.
+- knock, a real fender bender, on exactly this pair: both drivers stepped out and the argument played out (about 30 s)
+  before they got back in and drove off.
+- Every other door-clip exit site was checked: none aborts on PS_EXITING.

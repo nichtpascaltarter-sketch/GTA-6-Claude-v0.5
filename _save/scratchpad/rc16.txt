@@ -1,0 +1,66 @@
+Transit: SkyLine loop 8.60 km, 8 stations, 4299 samples; 3 ferry piers
+Sites: 91 pads, 324 elements, 23 roads, 21 buildings requested (0.04 s)
+World map generated in 25.07 s
+Road gen: 18 interchanges, 54 ramps (18 left out where they could not come down in time) 0.57 s DBGT
+Road network: 6253 nodes, 9929 edges, 1738 signalized; hwy 61.7 km, streets 1189.3 km (5.00 s)
+worldcheck: 0 cells, 0 colliders, 0 props
+
+[lanes] colliders intruding into drivable lanes: 0, props standing in lanes: 0; dead-end turning circles without room: 0, obstructed: 0 (0 pulled back to fit)
+
+[falls] road edges with a fall of more than 1.2 m: guarded 0 m, unguarded 123896 m
+  unguarded at (3620.4, 7481.8, 17.7)
+  unguarded at (3642.5, 7463.7, 17.7)
+  unguarded at (3622.9, 7484.9, 17.7)
+  unguarded at (3645.1, 7466.8, 17.7)
+  unguarded at (3625.5, 7488.1, 17.7)
+  unguarded at (3647.6, 7469.9, 17.7)
+  unguarded at (3628.0, 7491.2, 17.7)
+  unguarded at (3650.1, 7473.0, 17.7)
+  unguarded at (3630.6, 7494.2, 17.7)
+  unguarded at (3652.7, 7476.0, 17.7)
+  unguarded at (3633.1, 7497.3, 17.7)
+  unguarded at (3655.2, 7479.1, 17.7)
+  unguarded at (3635.7, 7500.4, 17.7)
+  unguarded at (3657.7, 7482.2, 17.7)
+  unguarded at (3638.2, 7503.5, 17.7)
+  unguarded at (3660.3, 7485.3, 17.7)
+  unguarded at (3640.8, 7506.6, 17.7)
+  unguarded at (3662.8, 7488.4, 17.7)
+  unguarded at (3643.3, 7509.7, 17.7)
+  unguarded at (3665.4, 7491.5, 17.7)
+  unguarded at (3645.9, 7512.8, 17.7)
+  unguarded at (3667.9, 7494.5, 17.7)
+  unguarded at (3648.5, 7515.9, 17.7)
+  unguarded at (3670.5, 7497.6, 17.7)
+  unguarded at (3651.0, 7518.9, 17.7)
+  unguarded at (3673.0, 7500.7, 17.7)
+  unguarded at (3653.6, 7522.0, 17.7)
+  unguarded at (3675.6, 7503.7, 17.7)
+  unguarded at (3656.1, 7525.1, 17.7)
+  unguarded at (3678.1, 7506.8, 17.7)
+  unguarded at (3658.7, 7528.2, 17.7)
+  unguarded at (3680.7, 7509.9, 17.7)
+  unguarded at (3661.3, 7531.2, 17.7)
+  unguarded at (3683.2, 7513.0, 17.7)
+  unguarded at (3663.8, 7534.3, 17.7)
+  unguarded at (3685.8, 7516.0, 17.7)
+  unguarded at (3666.4, 7537.4, 17.7)
+  unguarded at (3688.3, 7519.1, 17.7)
+  unguarded at (3669.0, 7540.5, 17.7)
+  unguarded at (3690.9, 7522.1, 17.7)
+
+[steps] lane surface vs physics ground: 1612569 samples, 22 off by more than 0.45 m at 4 places
+  step +0.85 m at (2954.8, 168.4) z 2.97 (terrain -1.99): Boulevard edge 141 s 161 of 214 (cut 17/17) nodes 122->124; ground from Boulevard edge 141
+  step +0.57 m at (3713.2, -46.3) z 0.47 (terrain 0.17): Boulevard edge 9471 s 13 of 25 (cut 11/11) nodes 5893->230; ground from Boulevard edge 245
+  step +0.56 m at (2920.6, -3311.2) z 0.41 (terrain -0.02): Lane edge 1329 s 7 of 15 (cut 7/0) nodes 940->941; ground from Avenue edge 1331
+  step +0.51 m at (3668.0, -1248.4) z 1.14 (terrain 0.78): Street edge 212 s 13 of 20 (cut 9/0) nodes 198->200; ground from Boulevard edge 210
+
+[grades] road profile segments steeper than 16%:
+  0 segments
+
+[crossings] roads crossing without a junction less than 4.5 m apart:
+  Ramp edge 10 x Track edge 9902 at (2800.0, 5702.2): 4.34 m apart
+  Street edge 5423 x Road edge 5424 at (500.0, 7200.0): 0.00 m apart
+  2 crossings
+
+worldcheck: FAILED

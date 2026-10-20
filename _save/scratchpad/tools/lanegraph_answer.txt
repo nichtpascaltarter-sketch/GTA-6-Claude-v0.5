@@ -1,0 +1,40 @@
+AI agent's answer (2026-10-20 ~03:35) to the tools engineer's LaneGraph read request. All in src/game/ai_core.h,
+struct LaneGraph, filled by LaneGraph::build in lanes.cpp; read-only use is fine.
+
+1. Lanes: G.lanes[]. Lane::edge, dir (+1 runs n0->n1, -1 runs n1->n0), index (0 = leftmost, centre-line/median side),
+   count, width, offset, u0/u1, fromNode/toNode, left/right neighbours, flags (LF_HIGHWAY, RAMP, DIRT, ONEWAY, BRIDGE,
+   NOTRAFFIC), cls. laneOf(edge, dir, index) and groupFirst/groupCount look lanes up.
+   GAP: no kerb field. Derive it as right < 0 (or index == count-1); on a one-way road the lane with left < 0 is a kerb
+   lane too.
+2. Connectors: G.conns[]. from, to (lane ids), node, turn (TK_STRAIGHT/RIGHT/LEFT/UTURN/MERGE), approach/outApproach.
+   Connector::conflicts[]: the other connector id, zone entry/exit arc lengths, a merge flag and a yield flag (1 = this
+   one yields when both may go); wide[] holds extra conflicts that only apply to long vehicles. Priority: Connector::prio
+   and Approach::rank (1 = main road at uncontrolled nodes). Also holdS (permissive-left wait point), grade, geometry
+   (pts/s/curv), length, maxSpeed. Per lane, Lane::out lists its connectors; per node they're contiguous in
+   NodeInfo::firstConn/connCount. Path ids put lanes first, then connectors (connPath(c) = c + lanes.size()).
+3. Box and stop line: NodeInfo::approaches[]: Approach::edge, outgoing, dir/ang, cut (box cut-back along the edge), hw
+   (paved half width), sw (sidewalk width), crosswalk/crossS, axis, inLanes/outLanes. The stop line is per incoming
+   lane: Lane::stopU (-1 = none, yield at u1), with u1 as the box entry; Lane::approachIn is its approach at toNode.
+   GAP: no box polygon is stored; build it from cut and hw per approach.
+4. Signal plan: NodeInfo control (2 = signals), cycle, offset, phases[] {axis, kind PH_LEFT/LEFT_AMBER/GREEN/AMBER/
+   ALLRED, t0, t1}, leftPhase[axis], each approach's axis. Fixed cycle, no actuation.
+   GAP: phases are per axis, not explicit movement/walk lists. Movements expand as axis -> approaches -> connectors by
+   approach + turn (PH_LEFT = left/U arrow only). Walks are implicit: a crosswalk over approach A shows WALK during the
+   PH_GREEN of the other axis (first 60%, then flashing). movementSignal(node, approach, turn, t) and
+   pedSignal(node, approach, t) evaluate both.
+5. Walk graph: G.walkNodes[] {p, roadNode, approach, side (-1/+1 around the approach), links} and G.walkLinks[] {a, b,
+   kind (WL_SIDEWALK/CROSSWALK/CORNER/PATH/ZEBRA), edge, sa/sb, lat (signed sidewalk-centre offset in the edge frame,
+   + right of n0->n1), halfWidth (walkable half width, not paved), node/approach for crosswalks, ctrl (corner control
+   point), length}. Zebras are also on lanes (Lane::zebras).
+   GAP: kerb side and building side are not stored. For a sidewalk the kerb side is toward the edge centreline
+   (|lat| - halfWidth) and the building side away from it; corners, crosswalks, paths and zebras have no sides.
+6. RoadNetwork mapping: LaneGraph::nodes[] has the same indexing as RoadNetwork::nodes. Lanes map through
+   edge/fromNode/toNode, connectors through node, approaches through edge, walk nodes through roadNode, sidewalk links
+   through edge, crosswalk links through node/approach.
+   GAPS: corner links have edge = -1 (map them through their walk nodes); WL_PATH plaza walkways and site zebras come
+   from World::SiteSet::walks, not the RoadNetwork, so they have no road index.
+7. Counts: lanes.size(), conns.size(), walkNodes.size(), walkLinks.size(), plus buildSeconds. build() already logs
+   "Lane graph: N lanes, N connectors (N pts), N walk nodes, N walk links, ..." (lanes.cpp ~1725).
+Inputs build() reads besides the RoadNetwork: World::gBuildings and siteColliderNear (cellgen.cpp, used by the
+dead-end bulb rings) and World::gSites walks. gBuildings and gSites are null-checked; check siteColliderNear when
+linking.

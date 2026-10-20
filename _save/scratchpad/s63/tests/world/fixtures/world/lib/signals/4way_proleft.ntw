@@ -1,0 +1,5 @@
+ntw 1 signal id=lib.signal.4way_proleft
+plan cycle=90.0 legs=4
+phase p1 green=14.0 amber=3.0 allred=1.0 moves=n_lp,s_lp
+phase p2 green=30.0 amber=4.0 allred=2.0 moves=n_s,n_r,n_l,s_s,s_r,s_l walk=e,w walktime=7.0 flash=12.0
+phase p3 green=30.0 amber=4.0 allred=2.0 moves=e_s,e_r,e_l,w_s,w_r,w_l walk=n,s walktime=7.0 flash=12.0

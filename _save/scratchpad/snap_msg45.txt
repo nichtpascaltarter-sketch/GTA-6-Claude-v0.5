@@ -1,0 +1,63 @@
+Street life 4 and night interiors: the street reacts to the player's car, AI peds get in through the door, lit rooms behind glass at night, crowds that slow behind slower walkers
+
+AI sets 14-16 (src/game: ai.cpp, ai_game.h, app.cpp, barks.cpp, pedai.cpp, police.cpp; peds.cpp gets one line):
+- Set 14: the street watches the player's car.
+  - Screeching tyres turn heads within 30 m, with the occasional "Whoa!".
+  - Donuts or a burnout in one spot make a show: most people stop to watch and the bold film it with their phones up. The
+    steadier sort tut and walk on, officers on foot call out "Hey! Knock it off!", and the crowd breaks up when it ends.
+  - A car left over a crosswalk or up on a sidewalk gets glares and words ("Hey! I'm walking here!"), and the bold slap
+    the hood going past.
+  - People standing near a stopped car with its radio on may dance to it, or ask for it to be turned down.
+- Set 15: the player on foot.
+  - Sprinting past close gets looks and the odd "Jeez, slow down!".
+  - Late at night on a quiet street, someone walking alone towards the player may cross to the other sidewalk, or give a
+    wide berth.
+- Set 16: getting into cars through the door, and held hands.
+  - AI peds now walk to their seat's door and get in with the door clip (GameWorld::startCarEntry), about 3 s from the
+    door to seated, and the car waits until everyone is in. This covers owners driving off, companions riding along,
+    prisoners being put in, delivery drivers, road-rage and sorry drivers, ambulance crews, coffee-break officers, taxi
+    fares and officers returning to their car. If a seat has no door clip, the plain enter-car clip or warp is used.
+  - Couples' held hands hang fingers-down, palms facing (in.grabAxis in the couple block of peds.cpp).
+- Tests (app.cpp test code): showoff, crosswalk, runby and nightwalk modes. The crosswalk test turns the radio off in
+  stages 2-3.
+
+Night renderer phase A (src/shaders/post.hlsl, src/render/post.cpp, src/shaders/facade.hlsli, PROGRESS.md):
+- At night a lit lobby or shop behind glass no longer reads as a white block. A local exposure pulls large bright areas
+  towards the street's exposure and keeps their detail, the way the eye adapts. Lamps, neon and distant windows stay
+  bright, with no halo, and a lit window filling half the frame no longer darkens the street. It is off by day.
+- Windows show rooms lit by their own lamp: a ceiling fixture, a corner table lamp, or only a TV's blue flicker.
+  - Light falls off across the room.
+  - Lamps run from candle-warm to cool LED: homes mostly warm, offices neutral to cool.
+  - Levels spread over about three stops, and fewer homes are lit late at night.
+- Shop shelves and clothing rails use muted colours instead of rainbow bars.
+- The tonemap's sharpening stays within each pixel's neighbourhood range, so there is no pale line along dark brows,
+  lash lines or window frames.
+
+Animation, change 1 (src/game/peds.cpp, GameWorld::updatePeds' ped-ped separation):
+- Two non-player peds pressing into each other now also lose the closing part of their relative velocity, split like the
+  position push, the way movePed treats a static collider. Someone walking into another's back carries the speed they
+  actually make, so their gait no longer drags planted feet into quick steps, and the AI's stuck test (aiWalkRound)
+  sees them held up. Pairs with the player keep the position push only, so pushing through a crowd feels as before.
+
+Animation, stair items 2-3 (src/anim/animator.cpp):
+- Toes are kept 5.5 cm (was 4.5) plus half an update's travel clear of the next riser, so they clear it at low frame
+  rates too.
+- A foot landing on stairs without a fitted tread goes down at the tread under its forefoot.
+
+Checks:
+- AI agent: on nt_ai90a (61a3b7b + exactly these AI blobs) showoff and runby passed. On nt_ai86 (the same set 16 code)
+  rideoff, couple, copbreak, crosswalk and nightwalk ran: all passed except nightwalk's night chats, which are a set 10 gap
+  fixed in set 17. The MSVC scan of every added line is clean.
+- Night agent: --gfxselftest 0 failures and 0 debug-layer errors, and 150 shaders compiled. Night views: a lit lobby's
+  median luminance 0.57 -> 0.41, and the sidewalk 0.018 -> 0.023. Day views differ only at sharpened edges and in the
+  shop colours. Post pass about +10% (frame total +2.8%, within per-stop noise).
+- Animation agent: in game, sunk 3 cm going up 3.7 -> 1.7%, and scuffs 29 -> 22. Harness: only stair metrics change.
+  anim_test ALL PASSED.
+- Change 1 (animation agent):
+  - locopush (the player and a knot of 6) is identical to HEAD.
+  - The melee smoke is identical except one stagger sample.
+  - locostairs: the -233 mm ascent frame and the 43 cm ascent slide are gone (slide max up 43 -> 8 cm).
+  - AI agent on a clean 61a3b7b + change 1 exe: crowded, crossing and walkby pass, with no stuck or jitter, queues and
+    step-offs as before, and companions abreast.
+- peds.cpp carries both the AI's grabAxis line and change 1 (a clean 3-way merge on 5c6e2ff). The other sign-offs touch
+  disjoint files.

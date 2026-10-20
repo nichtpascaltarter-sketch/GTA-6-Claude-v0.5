@@ -1,0 +1,93 @@
+snapshot-safe SET 19 (AI agent): procedural-world traffic. Fixes red runs and overshot stop signs at close pairs of junctions, junction-box standoffs, cars held for good behind vans and trucks parked half into their lane, and a left-turning bus rolling into oncoming traffic. Also the --overlaps and --walkcheck lists you asked for.
+
+FILES (on HEAD bcb8a71's versions; my other files are unchanged from HEAD)
+- src/game/traffic_core.cpp  f174c1a0dd847d44451effe953b9fac82ce60451  (HEAD 8efeb4a)
+- src/game/ai_core.h         3babf61f42d0fb67fcef110a321d00439856e1a1  (HEAD 321e33e; five Driver fields)
+- src/game/ai.cpp            fce68d5f7a5ab5a9c75e80e00077f9fbb242d553  (HEAD 35f1bc0; the traffic health log line only)
+- tools/traffic_sim.cpp      3bf2159a529f2e53daad375a10a7ab5f3c7d9ba7  (HEAD 78a70f3; the shared tree's copy, unchanged)
+  - --overlaps (strict, kept stable for the world engineer), --walkcheck [all], --seed N, --parked N, and continue (not break) after --lane/--node/--conn.
+No shared files. MinGW -Wall: the nt_ai105 build (bcb8a71 + exactly these three) has 0 warnings. Nothing GCC-only.
+
+WHAT (player-facing)
+- Red lights and stop signs at close pairs of junctions. A car that went through junction A on green used to meet B's red only on the short link between them (6-15 m at 8-15 m/s), so it ran the red or stopped hard on the crosswalk. Now it sees B's light from the lane before A and from inside A's box. A stop sign there, or an amber it can't beat, counts as red.
+  - When the link can't hold the car at a red, it waits at A's line, for at most 30 s, so lights that never line up don't trap it.
+  - At a stop sign whose line is at A's exit (a link shorter than the car), it stops at the line with its tail still in A's box, and goes in the stop's order from there.
+- Left turns on green. A turner creeping toward its hold point in the box was treated as committed as soon as its nose crossed the stop line, so it sped up into the box. The box's own gap check then stopped it in the oncoming lane: a bus was hit at 13 m/s by the car that had started with it. Now it stops at the hold point until the gap check lets it go. If it is over the line when the light goes amber, it still commits and clears the junction.
+- Junction standoffs. A permissive left turner past its hold point and the oncoming car it misjudged stopped 2.6-3.3 m apart in the middle of the box and held the junction for good (32 cars waiting a minute and more at node 5040). Inside a box they now count as blocking each other up to 6 m (3 m on lanes), so one backs off.
+- Getting round a parked van or truck, a breakdown or an abandoned car. This replaces the old overtake:
+  - The car picks the smaller side step that clears the blocker by 0.3 m, within the room the road gives: the same-way lane beside it, the oncoming lane of a two-way road without a median, the shoulder of a one-way road or ramp, or on the kerb side of a town road only its own lane.
+  - An in-lane squeeze is allowed close to a junction. Borrowing a lane still needs 30 m before the junction and a clear lane.
+  - While passing, the blocker is judged by the car's own body pushed slightly ahead, and the car creeps by at 3 m/s at most. If it stopped too close to steer round, it backs up 3 m first (twice at most). The side step lasts until the blocker is behind it.
+  - A lane change stuck behind a parked car is taken over by the pass.
+  - Parked cars get a fixed 0.25 m margin (one that grew with speed made a car by a van parked 0.31 m within reach brake and pull away twice a second, until it was taken for stuck).
+  - Before: a car stopped a car length behind never got round, because its near corridor stayed where the car was. Near a junction there was no overtake at all. On a one-lane ramp or a one-way street, the old overtake pulled a lane's width over, into the barrier. That fits nt_ai102c's soak, where the player's car sat 150 s on an I-38 on-ramp and wheel-spun into a "show".
+- Parked trucks facing you across the street no longer make cars keep to the kerb ("meeting a big vehicle"), which used to press them onto the cars parked on their own side.
+- Log only: the traffic health line now names the head of a stuck queue (what holds it) and, when autoplay drives it, the player's own car with its queue. A parked obstacle's position across the path is included.
+
+HOW (all in traffic_core.cpp unless named)
+- plan(), stops: stopsAhead() (a stop sign, a red, or an amber that ends before the car gets there) previews the junction after next, from the lane before A (route[2]) and from inside A's box (route[1]). From the lane, at a signal whose link can't hold the car (room < its length + 1 m), it stops at A's line while waitTime < 30 s. From the box, it stops at B's line. At an all-way stop it records preStop (and its arrival) once stopped within 2.2 m of the line, and preGo once stopGrant() and B's exit allow it, or after 25 / 30 s as gate() does. stopGrant()'s queue counts such a car as waiting, and gate() takes stopDone from preStop on B's lane.
+- gate(): toHold. A permissive left or U-turn on green with a hold point is no longer committed by crossing the line; it stops at the hold point until the box's gap check lets it go. Amber or red: it commits as before.
+- drive(): mutual blocking (nose to nose, the later / higher id backs up after 3 s) counts up to 6 m between cars inside a box, 3 m elsewhere.
+- drive(): the pass replaces the overtake. It keeps passHost / passT / passBacks, takes the smaller side step that clears the blocker's extent across the lane by 0.3 m within the road's room (above), and ends when the blocker is behind or drives off. It takes over a stuck lane change, and backs up through the k-turn recovery (straight, 3 m, at most twice).
+- plan(), perception: while passing, the blocker is tested against the car's swept box (ahead clamp(0.8 v + 0.5, 0.5, 2.5) m, 0.08 m to the side) instead of the corridor, and the speed is capped at 3 m/s. A still parked body gets a fixed 0.25 m margin. meetBig skips parked bodies and is off while passing.
+- ai.cpp aiTrafficHealthText(): the queue head (up to 8 hops), the player's own car when AI-driven, a parked obstacle's offset, "(driving round car N, k back-ups)".
+- ai_core.h: Driver gains passHost, passT, passBacks, preStop, preGo.
+
+TESTS
+Native traffic harness (tools/traffic_sim.cpp on the real world and vehicle physics, HEAD 837b39c's world). base = HEAD's AI, s19 = these blobs. Columns: collisions (of them at the overlap sites) / hard collisions / red runs / waits over 60 s (at or queued back from the overlaps) / waits over 30 s behind a parked car / stuck recoveries / wall and prop hits.
+Over the 15 runs, base -> s19: red runs 73 -> 2; waits over 60 s away from the overlaps 75 -> 3; waits over 30 s behind a parked car 7 -> 0; collisions away from the overlaps 3 -> 2; wall hits 7 -> 4.
+scenario                 build  coll (ovl)  hard  red wait>60 (ovl)  parked  stuck  walls
+I-38 ramps, 3 seeds      base       1 ( 0)     0   18       34 ( 0)       -      1      5
+I-38 ramps, 3 seeds      s19        0 ( 0)     0    1        3 ( 0)       -      1      3
+Midtown, 3 seeds         base      11 (11)     0   28       68 (67)       -      3      0
+Midtown, 3 seeds         s19       10 (10)     1    0       59 (59)       -      1      0
+Sol Beach, 2 seeds       base       5 ( 5)     1    0       35 (35)       -      0      0
+Sol Beach, 2 seeds       s19        5 ( 4)     1    0       30 (30)       -      1      0
+downtown                 base       0 ( 0)     0    0        0 ( 0)       -      0      0
+downtown                 s19        0 ( 0)     0    1        0 ( 0)       -      0      0
+Calle Luna               base       0 ( 0)     0    1        0 ( 0)       -      0      0
+Calle Luna               s19        0 ( 0)     0    0        0 ( 0)       -      3      0
+highway                  base       0 ( 0)     0    0        0 ( 0)       -      0      0
+highway                  s19        0 ( 0)     0    0        0 ( 0)       -      0      0
+parked: ramps            base       1 ( 0)     0    7       19 ( 0)       2      0      2
+parked: ramps            s19        1 ( 0)     0    0        0 ( 0)       0      0      1
+parked: Midtown 2 seeds  base       7 ( 7)     0   19       50 (34)       4      1      0
+parked: Midtown 2 seeds  s19        4 ( 4)     0    0       44 (44)       0      0      0
+parked: downtown         base       1 ( 0)     0    0        5 ( 0)       1      0      0
+parked: downtown         s19        0 ( 0)     0    0        0 ( 0)       0      0      0
+- The Midtown collisions and long waits are all at the overlapping edges of Bayshore Boulevard / 9th Avenue (your roads.cpp pass), and so is its one hard collision (node 283, where two straight connectors lie on top of each other). Sol Beach's long waits are all at the 35th Street / Solano Causeway pair (see LISTS).
+- The wall hits are I-38's median barrier by the Bayshore Boulevard Exit gore (2480-2492, 3668-3776). Base hits it too, at 22-33 m/s with the car 0.1-1.1 m left of its lane's middle. The two fast lanes there (68 and 71) are 4.7 m apart, so the 0.6 m barrier between them leaves only 0.16-0.37 m to each lane's edge. For the world engineer: a little more median on that deck. For me (set 20): trucks drift 0.3-0.7 m toward it at speed.
+- The 2 red runs left are ambers taken at 4-5 m/s that turned red before the line.
+- The ramps' 3 waits over 60 s (base 34, 32 of them the node 5040 standoff) are at the lights of nodes 5038 / 5040: a van kept at 5040's line through a green because its exit was full (a car stopped 20 m past the box), and two cars queued on a one-lane approach of 5038 that gets 12 s of green in 51 s.
+- Stuck recoveries: the ramps' one is a motorbike spawned 8 m off its lane at t=7 (base too), Midtown's and Sol Beach's are at the overlaps, and Calle Luna's 3 are one pickup at a dead-end turning circle (older than this set; set 20 below).
+- Sol Beach's hard collision is a fire engine and a box truck meeting on an S-bend of a 2 x 3.2 m street, both in their lanes. Base has the same kind there (24715 Ns, two cars on another street), so this too is older than the set (set 20 below).
+In game:
+- soak, bin/nt_ai105.exe (bcb8a71 + exactly these blobs), 300 s: PASS, the same run as nt_ai104's below. Traffic health clean all the way (no car stuck over 30 s, blocked over 45 s or waiting over 90 s; core red 0, stuck 0, deadlock breaks 0; the longest wait 36 s); the player's car up the I-38 on-ramp and on the motorway at 34.5 m/s by t=160; no crash.
+- Earlier builds of this set, the same except the last two fixes (nt_ai103 = 837b39c + the set without the stop-sign hand-over and the 0.25 m parked margin; nt_ai104 = bcb8a71 + the set without the stop-sign hand-over):
+  - soak, nt_ai103 and nt_ai104, 300 s each: PASS. Traffic health was clean all the way: no car stuck over 30 s, blocked over 45 s or waiting over 90 s; core red 0, stuck 0, deadlock breaks 0; the longest wait was 36 s. The player's car took the same I-38 on-ramp at t=140 and was on the motorway at 34.5 m/s by t=160. On nt_ai102c it had sat there 150 s, and a car was held 145 s behind a parked Compactor.
+  - hwysoak, nt_ai103, 300 s: PASS. Clean all the way, 0 impacts, the player's car never stuck.
+  - life, nt_ai104, 200 s: PASS. The street census matches nt_ai102c's: nobody hurt or in the water, no panic, no near misses, no crash scenes.
+  - chase, nt_ai104, 180 s: no crash. The fleeing car (the traffic AI in flee mode) was boxed in at t=44 (15 boxing moves, a roadblock, 2 helicopters, up to 19 units), and with officers on foot round it the player went down at t=94 (respawned at Tidewater General, wanted 0). No panic, near misses or crash scenes.
+
+LISTS (as asked)
+- Overlapping road edges: 31 pairs of 12 m or more, in SP/ts/overlaps.txt (overlaps4.txt reproduces them exactly on HEAD 837b39c).
+  - The shared tree's --overlaps is the strict test that gives exactly these, and stays as it is for the world engineer's before/after check.
+  - FYI: a wider test (carriageways overlapping by 1 m or more) finds 14 more pairs, mostly the same Bayshore Boulevard / 9th-10th-11th Avenue family (SP/ts/overlaps_wide_extra.txt; normal highway/ramp gores left out).
+  - Sol Beach's pair (35th Street on Solano Causeway, nodes 2544-2478 / 2546-2478) also leaves its two end junctions 11 m apart with 1.1 m links: a signal (2546) and an all-way stop (2544) that work as one junction. The waits there go with that pair.
+- Walk links on another road's carriageway (--walkcheck all, SP/ts/walkcheck_all.txt): 805 links (9.3 km).
+  - 188 (5.2 km) are the overlap pairs' own sidewalks and corners, and should go away with the roads.cpp pass.
+  - The other 617 (4.2 km; SP/ts/walkcheck_other.txt) are mostly 2-12 m sidewalk ends and corners at junctions.
+  - The worst are corner links cutting straight across the inside of sharp bends, where the inner sidewalk lines meet behind the corner's walk nodes (Key Lime Boulevard at 2984,-2049: the link crosses the inner lanes). That is lanes.cpp's walk graph, so mine: I'd take it as set 20.
+  - Plus 1 walk link through a building: plaza path 56305 through building 35588 (campus, 2041 3820). That's for whoever owns the site walkways.
+- For the population owner (not my file): population.cpp's parked-car spawner admits a half width up to strip/2 + 0.5 = 1.7 m. A Parcel P70 (box half width 1.42) or a Compactor (1.50) in a 2.4 m strip therefore sticks about 0.5 m into the lane. The AI now gets round them, but "half width <= strip/2 + 0.1" would keep them out of the strip.
+- For set 20 (mine, found here, older than set 19):
+  - Dead-end turning circles (lanes.cpp: radius 4.8-6.5 m, entry bends 4.3 m) are tighter than a pickup's full lock (a Sawgrass: 4.5 m). Its three-point turns at node 4870 (2000, 175) walked it 10 m off the road and into the Rio Sol marina (Calle Luna).
+  - Two long vehicles meeting on a bend of a narrow two-way street: the kerb-side nudge leaves them 0.2 m each, and their bodies swing over the line (Sol Beach, 5340 243).
+  - Trucks keeping to the middle of a motorway lane at speed (the I-38 median above).
+  - The sidewalk corner links above.
+
+EVIDENCE (SP = the scratchpad)
+- Harness table: SP/ts/set19_table.txt (SP/aiwork/ts_table.py --signoff); runs SP/ts/{q,p,r}_*_{base,s19y}*.txt.
+- Watches: SP/ts/w_ramp_s19b_1.txt + w62_ramp_s19b_1.txt (the bus at node 5038), SP/ts/w71_mid_s19w.txt (the margin limit cycle), SP/ts/w53_luna_s19x.txt (the turning circle), SP/ts/w17_beach_s19y_1.txt + w134_beach_s19y_1.txt (the fire engine and the truck).
+- Game logs: SP/log_soak_nt_ai105.txt, SP/log_soak_nt_ai103.txt, SP/log_hwysoak_nt_ai103.txt, SP/log_soak_nt_ai104.txt, SP/log_life_nt_ai104.txt, SP/log_chase_nt_ai104.txt; shots in /tmp/ai/<mode>_<exe> (PNGs SP/ts/soak103_04.png, soak103_05.png; nt_ai102c's stuck ramp: SP/ts/soak102c_05.png, soak102c_06.png).
+- Exes kept until you merge: bin/nt_ai105.exe (bin/nt_ai103.exe and nt_ai104.exe can go once you have read this; bin/nt_ai102c.exe stays only while the animation agent still wants it for follower flips).

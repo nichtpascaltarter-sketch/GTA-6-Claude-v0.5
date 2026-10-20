@@ -1,0 +1,63 @@
+- tipoff on nt_ai83 (100 s): the test itself was broken; it never reached a tip-off. It put the player 600 m away and sent the officers 220 m off, but the population recycles anyone more than 150 m from the player. So every witness and the kept officer were gone before the officer could be brought over ("no witness (-1) or no officer (-1)" in both rounds; tip-offs 0).
+  - Test fix, in app.cpp for sets 10-13 (blob e2d4a5c): the player now lies low 85-105 m off, out of sight behind a building (ai_tests::hiddenSpot), and the kept officer is persistent for the round. The camera stays on the run spot while the player hides, so the people there are not recycled as unseen. copask had the same flaw (300 m), with the same fix.
+  - Both are rerun on nt_ai83f, the exact sets 10-13 graft: b907098 + the nt_ai83 blobs with that app.cpp.
+- askway on nt_ai83 (90 s): pass.
+  - Ask 1 (t=4.4): a tourist (ped 70) came over from 6.8 m and asked from 2.1 m ("Hi. I think I'm lost. Where's the nearest train stop?"). The hint "Stand still to point the way" showed. The player stood still and pointed (the arm out in the shots), and got "Thanks so much. Have a good one."
+  - Ask 2 (t=39.9): a local (ped 17) came over from 8.5 m and asked "Sorry to bother you, is there a pharmacy around here?". The test moved the player 6 m away mid-question, and the log has "the player leaves ped 17 without an answer".
+  - Census: asked the way 2 (pointed 1).
+  - In between, ped 70 also asked a passer-by the way (an ordinary kind 1 street meet).
+- hitped on nt_ai83 (120 s): the test failed again, not the feature; nobody was knocked down. In both stages the walker put 5 m ahead of a car doing 10-12 m/s dived out of the way (the pedai.cpp dive), and the car braked to a stop. So the driver never had anyone to stop for (rage 0, sorry 0).
+  - Test fix: the victim's diveCooldown is set to 3 s, so they stand frozen. It is in the sets 10-13 app.cpp (now blob 9b43215, which replaces e2d4a5c and also has the tipoff/copask fix). hitped is rerun on nt_ai83f.
+- night on nt_ai83 (200 s at 23:00 by the downtown corner; nothing forced): downtown empties at night, from 18 people on foot within 60 m down to 2. No walking pair came within 8 m of the player, so no lines were overheard (chats 0, night chats 0; nt_ai62 had chats 2). Clean otherwise.
+  - Night chats will be checked with a new nightwalk mode, the walkby walk on Ocean Promenade at 22:30. It comes in a later build; the night-chat code is the same there.
+- hitplayer on nt_ai83 (100 s; the check of set 11's way round parked cars): pass.
+  - Stage 1: a man on the sidewalk gasped ("Don't move, don't move!"). The bystander (ped 6), kept 4.4 m off by a car parked at the kerb on nt_ai79 and nt_ai77f, now went round its end into the road: 4.8 m at t=10, 2.0 m at t=14, then asked "are you okay?". The sorry driver came over as before.
+  - Stage 2: the same, with the helper from 4.3 m to 2.1 m.
+  - Census: sorry drivers 2, asked okay 2 (nt_ai77f: 1).
+  - Both cars then stood still, because the player stayed standing in the road in front of them (a test artifact; the same on nt_ai77f).
+- plticket on nt_ai83 (90 s): pass.
+  - A car at the kerb was made the player's (left two minutes ago), with a beat pair put 10 m behind it and the player 40 m away.
+  - Officer 103 walked up and wrote it up by the driver's side, the partner by him, and the ticket went under the wiper after 23 s (t=26.5).
+  - Put back in 4 s later, the player paid: "police: the player back in car 63 - a parking ticket on it, $45 paid" (money 3500 -> 3455, the "Parking ticket -$45" notice). Census: player tickets 1.
+- tipoff rerun on nt_ai83f (the exact graft, with the test fix): pass.
+  - Round 1: the player lay low 82 m off, out of sight, and the kept officer was still there. But nobody who saw the run was willing (witness() leaves out the timid and those sat down), so there was no tip-off.
+  - Round 2:
+    - Witness 30 (saw him 1.1 s before) and officer 75, put 9 m apart: "police: witness 30 calls to officer 75 (7.4 m off) - the player seen 4.0 s ago 28 m from them".
+    - Then "witness 30 points officer 75 the way - the player seen 7.3 s ago at 2711 792 (going 2.9 m/s)". The police's last-seen position and time moved to the sighting (last seen 46 s ago -> 9 s ago, at 2711 792), and the officer searched that way.
+    - Later the officer asked another passer-by about the suspect (set 11, "they saw him 37 s ago"). Once the stars were gone, he took a statement from witness 30.
+  - Census: tip-offs 1.
+- copask rerun on nt_ai83f (the exact graft, with the test fix): pass.
+  - The player lay low 82 m off, out of sight. Two officers on foot searched where he ran and asked people about six times ("police: officer 49 asks ped 29 about the suspect (6.9 m off ...)", then peds 7, 17 and 86; officer 50 asked peds 101 and 106).
+  - In the shots, each officer walks up to the person, both turned to each other.
+  - Meanwhile a witness called out and pointed the way on their own (a tip-off, 23.9 s after the sighting). That moved the police's last-seen to the same moment, so the next people asked (who saw the run 27-52 s before) had nothing newer and said "No, sorry", as designed: they only tell what the police don't know yet.
+  - Census: cop asks 6, tip-offs 1.
+- hitped rerun on nt_ai83f (the exact graft, with the no-dive fix): partly verified. The stop works; the talk between the driver and the one hit was not reached.
+  - Stage 1:
+    - The walker put 5.3 m ahead of a car doing 11.8 m/s was knocked down: "traffic: car 14 knocked ped 7 down - the driver stops to see". The driver stopped and got out.
+    - The victim (made tough, 400 hp) was up again within ~2 s. The test had left them in ACT_INSPECT, so they walked off along the traffic lane toward where the car had been, away from the driver: 14 m, then 30 m apart.
+    - Another car knocked them down again ("car 12 knocked ped 7 down - the driver stops to see"; its driver got out too, as the shots show).
+    - The first driver's 3.5 s "they are up and all right" clock ran out before he reached them, so he went back to his car, and the victim's angry word never came.
+  - Stage 2: the car (9.3 m/s) braked to a stop 2.4 m short, so nobody was hit. The down-hurt path (the phone call, the ambulance) was not exercised in this run.
+  - Census: others hit 2 (both drivers stopped to see).
+  - Known gap: someone knocked down who gets up walks on (or, here, follows the test's look), instead of staying to have a word with the driver coming over. The reply only happens if the driver reaches them within 3.5 s of them standing.
+  - Fix for a later set: a victim whose driver stopped to see holds where they stand and faces the driver for up to ~8 s. Also make the test put stage 2's walker inside the car's stopping distance (about 3 m at over 9 m/s).
+- pedstop on nt_ai83 (240 s): pass. All three stages completed; on nt_ai77, stage 2 had given up.
+  - Stage 1: officer 103 stopped ped 20 from 18 m ("nothing on them") and let them go after 27 s. The player, put right by the officer during the stop (t=16-26), was told to step back (set 12's test fix; census step backs 2).
+  - Stage 2 (the warrant; set 13's pickSubject fix):
+    - Officer 8 walked up to ped 30 from 20 m: 1.0-1.4 m off while the check ran.
+    - "the stop of 30 turns up a warrant", then cuffs. A transport (unit 57) was sent from out of view 146 m off and pulled over 22 m from them.
+    - "officer 8 has suspect 30 in unit 57 (53 s after the cuffs) - back to the beat".
+  - Stage 3 (the runner): 77 ran from the stop and was caught and cuffed. Unit 57 turned round from 211 m for him, and the partner took a statement from a witness (23 s). The test ended before the second put-in.
+  - Two parking tickets were written in between.
+  - Census: stops 3 (warrants 1, runs 1), custody 1, transports 2, statements 1, tickets 2, step backs 2.
+- busrun on nt_ai83 (170 s): pass, with set 13's kerb-lane fix.
+  - All three buses sent along the kerb lane served the stop: bus 49 waited 16.0 s, bus 67 16.9 s and bus 71 9.6 s. On nt_ai77 two of the three drove past both stops.
+  - Bus 67's runner (ped 81) ran 56 m along the sidewalk to the door and made it. Bus 49 had nobody able to run for it ("17 close"); bus 71's draw ("runner as it comes") gave none.
+  - Census: bus runs 1 (made 1, missed 0).
+- nearmiss on nt_ai83 (120 s, set 13's rewritten test): the startle is now exercised.
+  - Four people were stood at the kerb 70-115 m ahead of the player's car, 2.16 m out from the middle of its 3.6 m lane. All four started back as it tore past at about 36 m/s: near misses 4 by t=10, with "Dios mio!" heard in the first shot.
+  - Test note: the long kerb lane the test picked near the start turned out to be a highway (the shots show an elevated road at 120-160 km/h), so these four were stood on its shoulder. The startle code doesn't care, but the test should leave out highway and ramp lanes; a test-only fix for a later set.
+- alarm on nt_ai83 (150 s; regression check for the car detour): pass, as on nt_ai77.
+  - Stage 1: the knocked car's owner came from 17 m, stopped the alarm with the fob from 7.1 m, looked it over ("Did you touch my car?" to the player beside it) and walked on.
+  - Stage 2: the player broke into car 77 and drove off, the tyres smoking. Its owner came running from 29 m as it was taken.
+  - Census: alarms 2 (owners 2, looks 9), fobs 3.

@@ -1,0 +1,12 @@
+In file included from src/anim/anim_all.cpp:14,
+                 from src/main.cpp:49:
+src/anim/clips.cpp: In function 'void Anim::detail::splineWeights(const float*, int, float, int*, float*)':
+src/anim/clips.cpp:2491: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
+ 2491 |     while (i + 2 < n && t > ts[i + 1]) i++;
+      | 
+src/anim/clips.cpp:2491: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
+-rwxr-xr-x 1 root root 11695616 Oct  1 02:24 bin/missions2.exe
+
+real	21m26.351s
+user	3m47.028s
+sys	0m3.685s

@@ -1,0 +1,21 @@
+cq68 start Tue Oct 20 15:16:03 UTC 2026
+p1 worldmodel_test build rc=0 (0 error/warning lines) Tue Oct 20 15:17:31 UTC 2026
+p1 worldmodel_test run rc=0: worldmodel_test: all passed Tue Oct 20 15:17:31 UTC 2026
+p1 worldc build rc=0 (0 warnings) Tue Oct 20 15:19:51 UTC 2026
+p1 worldc on world/ rc=0: worldc: roads 52 nodes, 83 edges, 9 signalised; 1 districts, 1 signal plans, 0 transit lines;worldc: terrain graded under the roads: 5356 texels changed, by up to 3.71 m (3 KB); Tue Oct 20 15:19:52 UTC 2026
+worldv on p1 world/ rc=0: worldv: 5 files (5 checked, 0 from the cache), 252 records, 139 ids, 177 references: 0 errors, 0 warnings (0.01 s) Tue Oct 20 15:19:52 UTC 2026
+ntwfmt --check rc=0: ntwfmt: 5 file(s), 0 with errors, 0 not canonical Tue Oct 20 15:19:52 UTC 2026
+p1 rbcheck build rc=0 Tue Oct 20 15:20:23 UTC 2026
+p1 rbcheck rc=0: world.bin 9 sections; roads 52 nodes, 83 edges, ids 52/83; compileRoads on world: 52 nodes, 83 edges; IDENTICAL Tue Oct 20 15:20:23 UTC 2026
+p1 MinGW main.cpp rc=0 errors 0 warnings 0 Tue Oct 20 15:20:57 UTC 2026
+p1 MinGW worldc rc=0 errors 0 warnings 0 Tue Oct 20 15:21:01 UTC 2026
+p1 MinGW worldmodel_test rc=0 errors 0 warnings 0 Tue Oct 20 15:21:04 UTC 2026
+rfcheck2_rb build rc=0 Tue Oct 20 15:23:32 UTC 2026
+rfcheck2_rb run rc=0: H height d55254e381552a4f water 648950842102bbf5 splat 46745a54fe5aae45 0bd0f752ee015608 Tue Oct 20 15:23:49 UTC 2026
+rfcheck2_p1 build rc=0 Tue Oct 20 15:26:02 UTC 2026
+rfcheck2_p1 run rc=0: H height d55254e381552a4f water 648950842102bbf5 splat 46745a54fe5aae45 0bd0f752ee015608 Tue Oct 20 15:26:17 UTC 2026
+census rb vs p1: record lines 0 differ (of 55086); all lines, times masked: 0 differ Tue Oct 20 15:26:17 UTC 2026
+nt_p1 build rc=0: 15861248 bytes; worldc: roads 52 nodes, 83 edges, 9 signalised; 1 districts, 1 signal plans, 0 transit lines;worldc: terrain graded under the roads: 5356 texels changed, by up to 3.71 m (3 KB);worldc: 5 file(s) -> build/gen/world.bin (2676672 bytes, 9 sections) and build/gen/world.rc; Tue Oct 20 15:37:52 UTC 2026
+hand mode on the pilot rc=0: 5 shots; 0 fatal; Hand world: terrain and 52 road nodes, 83 edges from the exe (2613 KB, 9 sections) in 2.14 s Tue Oct 20 15:47:22 UTC 2026
+procedural drive smoke rc=0: 0 fatal; Road network: 6260 nodes, 9547 edges; [ 654.197] autoplay t=17.5 pos 1806.7 270.4 3.5 state 2 health 200 veh 1 speed 17.5 | peds 89 vehicles 67 wanted 0 | cpu Tue Oct 20 16:00:58 UTC 2026
+cq68 done Tue Oct 20 16:00:58 UTC 2026

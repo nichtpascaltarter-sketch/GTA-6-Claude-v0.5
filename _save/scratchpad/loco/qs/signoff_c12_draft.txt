@@ -1,0 +1,57 @@
+snapshot-safe: slow-pace stair fix (animation). Ready to land; HEAD bcb8a71, my bases unchanged.
+
+FILES
+- src/anim/animator.cpp: base 002915d05faa27c2f22ed0e704f2d404ee871628 -> 63a9f73eb4dabc5c61e7d6808daf3678f129d4f2 (written with hash-object -w)
+- src/anim/character.h: base 1628ef2eac91fa7f8788ea10b915193d20a5e702 -> 9dfb632f7c315a9efebef4a226d0dfd64f02c35b (additive only: four Animator fields after stairLand: stairDir[2], liftGround[2], blendSteady, stairRear[2])
+- Or as patches (git apply --check OK on bcb8a71):
+  SP/loco/qs/stairpace12_animator_002915d0.patch (+133/-32)
+  SP/loco/qs/stairpace12_character_1628ef2e.patch
+- No other files. No GCC builtins, VLAs, typeof, __attribute__ or M_PI.
+
+WHAT (player-facing)
+People walking stairs at the pace the AI is about to give them (about 0.5 m/s up, 0.55 m/s down, one tread a step) keep their feet on the treads. Before this, at that pace a sixth of the planted feet stood inside a step (toes in a riser, a foot sunk a whole tread). This covers straight flights, switchbacks, L stairs with landings and curved stairs, plus the step that turns onto a flight from a landing. Walking at today's pace is unchanged or better.
+
+HOW (animator.cpp)
+- Below the slow walk (the walk blended with the stand), the swing keeps the walk's clearance in the tests that decide when it touches down, grazes, lets go of its toe-off hold, fades its correction and stays planted. This applies at a steady pace only; setting off and stopping keep their timing.
+- Landings are predicted along the turning way (turn rate) and scanned along the landing foot's own axis. They are re-scanned when the landing drifts across or turns from the scanned line. The tread move goes along that line.
+- The landing probe sits under the toes. Going up, a foot about to lift probes its landing in its last stance frames.
+- Going down, a tread too short for both margins splits the shortfall between heel and ball.
+- A swing's tread fit holds only where it comes down near its fitted landing. On stairs, a swing stays above the ground it left through the first part of the swing.
+- A swing coming down short of its fit, with its heel well over the nose behind that tread, stands on its forefoot.
+
+TESTS
+- anim_test: ALL PASSED (SP/loco/sl/at_qs12.log).
+- Locomotion harness, c10 = HEAD's animator -> c12:
+  - full suites: 26 worse / 192 better (30 Hz, AI profile 0), 29 / 190 (60 Hz, profile 2)
+  - interior at the walkers' pace: 18 / 106
+  - interior at 0.5 m/s: 15 / 172
+  - straight stairs at 0.5 m/s: 3 / 111 (60 Hz), 2 / 112 (30 Hz)
+- Building-kit sweep at 0.5 m/s, planted frames 3 cm or more inside a step, mean per family:
+  straight 17.1% -> 0.4%, switchback 16.1 -> 0.4, L 21.5 -> 0.7, curved 18.8 -> 0.8, winder 24.8 -> 3.5, spiral 26.0 -> 8.9 (median 4.5)
+- In game, locostairs at 0.5 m/s, base st16ap -> candidate st17p:
+  - sunk 3 cm: up 15.9% -> 2.4%, down 17.9% -> 2.8%
+  - slide per step mean / p90: up 2.88 / 7.12 -> 0.68 / 0.55 cm, down 1.15 / 2.00 -> 0.48 / 0.53 cm
+  - max slide: 62 / 65 -> 38 / 56 cm
+  - big slides 25 -> 8; lowest sole -211 / -227 -> -169 mm; peds cpu 1.75 -> 1.84 ms/frame
+- In game, locostairs at the walkers' own pace (1.2-1.4 m/s), base st16as -> candidate st17s (14 trips each):
+  - sunk 3 cm: up 7.9% -> 3.2%, down 7.2% -> 5.9%; lifted: up 1.2% -> 1.1%, down 4.1% -> 3.5%
+  - slide per step mean / p90: up 1.29 / 2.64 -> 1.39 / 2.68 cm, down 0.94 / 1.74 -> 0.93 / 1.74 cm
+  - lowest sole -252 / -177 -> -169 / -169 mm; big slides 9 -> 9 (in both, swing feet grazing a nose, none planted); scuffs 101 -> 92
+  - peds cpu 2.69 -> 2.89 ms/frame (both on a shared, loaded machine)
+- In game, locotour (flat ground, peds 13, 35, 12, 114, 107 traced), base st16at -> candidate st17t: no change, or a little better.
+  - all steps: slide per step mean / p90 / max 0.98 / 1.74 / 37.6 -> 0.95 / 1.71 / 37.6 cm; scuffs 37 -> 26
+  - walking, turning: 1.35 / 3.08 / 29.2 -> 1.21 / 3.05 / 24.0 cm; walking straight and standing the same
+  - planted feet more than 15 mm off the ground: 77 -> 71 of 74754 foot-frames; slides over 20 cm 5 -> 4
+
+KNOWN LIMITS (not made worse unless stated)
+- Jogging and running on stairs are pre-existing and badly off on HEAD.
+  - Harness, straight flights, sunk 3 cm: jog 3 m/s up 38-63%; run 5 m/s up 40-47%, down 22-44%.
+  - At 5 m/s this candidate trades floats for sinks: lifted 12-15% -> 0-2%, sunk up to 67-78%.
+  - The next candidate (run landing lead plus the switchback-landing quick step) fixes it: run 5 m/s up 70.6 -> 4.5%, down 48.9 -> 8.0%.
+- Spirals with a walking line under 0.55 m, and winders with the walking line at 0.45-0.5 m, stay 3-9%; the kit spec already steers away from them.
+- Unchanged from HEAD: a walker stopping mid-flight going up can stand a foot up to 16 cm in the air for a few frames (the swing's fit is two treads up and the foot lands short of it). That's a later stairs item.
+
+EVIDENCE
+- Harness: SP/loco/r9/vm_c12_*, fs_c12_*, sv5_c12*, kit_d13_*; base: vm_c10n_*, fs_c10n_*, sv5_c10*, kit_c10n_*.
+- In game: SP/locotour/log_st17p.txt, log_st16ap.txt, log_st17s.txt, log_st16as.txt, log_st17t.txt, log_st16at.txt; summaries: sh SP/locotour/lsum.sh <log>...; the tour pair: python3 SP/locotour/tools/tourcmp.py SP/locotour/log_st16at.txt SP/locotour/log_st17t.txt
+- SP = /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad

@@ -1,0 +1,64 @@
+  step run 0 foot 1 t 3.650-3.950 slide 0.25 cm pivot 22.0 deg maxframe 0.19
+  step run 0 foot 0 t 3.650-4.567 slide 0.21 cm pivot 0.0 deg maxframe 0.18
+  step run 0 foot 1 t 4.250-5.167 slide 1.29 cm pivot 34.8 deg maxframe 0.28
+  step run 0 foot 0 t 4.900-5.817 slide 1.01 cm pivot 49.5 deg maxframe 0.19
+  step run 0 foot 1 t 5.500-6.417 slide 1.41 cm pivot 52.1 deg maxframe 0.28
+  step run 0 foot 0 t 6.150-7.150 slide 42.65 cm pivot 77.6 deg maxframe 9.94
+  step run 0 foot 0 t 8.217-8.317 slide 0.18 cm pivot 0.0 deg maxframe 0.18
+  step run 1 foot 1 t 3.650-4.117 slide 0.43 cm pivot 22.2 deg maxframe 0.41
+  step run 1 foot 0 t 3.800-4.767 slide 0.98 cm pivot 20.3 deg maxframe 0.21
+  step run 1 foot 1 t 4.433-5.433 slide 1.35 cm pivot 47.0 deg maxframe 0.27
+  step run 1 foot 0 t 5.133-6.033 slide 0.44 cm pivot 50.4 deg maxframe 0.15
+  step run 1 foot 1 t 5.750-6.767 slide 0.73 cm pivot 62.0 deg maxframe 0.15
+  step run 1 foot 0 t 6.450-7.267 slide 0.03 cm pivot 42.9 deg maxframe 0.01
+  step run 2 foot 1 t 3.650-3.833 slide 0.56 cm pivot 22.3 deg maxframe 0.12
+  step run 2 foot 0 t 3.650-4.433 slide 0.23 cm pivot 9.4 deg maxframe 0.16
+  step run 2 foot 1 t 4.133-5.017 slide 1.34 cm pivot 28.5 deg maxframe 0.26
+  step run 2 foot 0 t 4.750-5.617 slide 1.21 cm pivot 43.9 deg maxframe 0.27
+  step run 2 foot 1 t 5.333-6.250 slide 1.32 cm pivot 51.3 deg maxframe 0.46
+  step run 2 foot 0 t 5.950-6.817 slide 0.59 cm pivot 48.3 deg maxframe 0.11
+  step run 2 foot 1 t 6.533-7.417 slide 0.69 cm pivot 41.7 deg maxframe 0.18
+  step run 3 foot 1 t 3.650-3.733 slide 0.30 cm pivot 11.3 deg maxframe 0.30
+  step run 3 foot 0 t 3.650-4.317 slide 0.05 cm pivot 22.0 deg maxframe 0.01
+  step run 3 foot 1 t 3.950-4.567 slide 0.33 cm pivot 1.0 deg maxframe 0.26
+  step run 3 foot 0 t 4.533-5.450 slide 0.03 cm pivot 44.2 deg maxframe 0.01
+  step run 3 foot 1 t 5.100-6.067 slide 0.54 cm pivot 56.5 deg maxframe 0.27
+  step run 3 foot 0 t 5.683-6.267 slide 0.03 cm pivot 24.2 deg maxframe 0.01
+  step run 3 foot 0 t 6.467-6.600 slide 0.00 cm pivot 0.0 deg maxframe 0.00
+  step run 3 foot 1 t 6.250-7.217 slide 0.61 cm pivot 59.6 deg maxframe 0.27
+  step run 3 foot 1 t 8.217-8.333 slide 0.00 cm pivot 0.0 deg maxframe 0.00
+  step run 4 foot 0 t 3.650-4.017 slide 0.46 cm pivot 21.5 deg maxframe 0.25
+  step run 4 foot 1 t 3.700-4.617 slide 0.02 cm pivot 0.0 deg maxframe 0.01
+  step run 4 foot 0 t 4.300-5.250 slide 1.54 cm pivot 40.6 deg maxframe 0.28
+  step run 4 foot 1 t 4.950-5.300 slide 0.79 cm pivot 2.3 deg maxframe 0.44
+  step run 4 foot 0 t 5.567-6.517 slide 1.03 cm pivot 56.3 deg maxframe 0.16
+  step run 4 foot 1 t 6.217-7.150 slide 1.74 cm pivot 56.0 deg maxframe 0.28
+  step run 4 foot 0 t 6.883-7.250 slide 0.71 cm pivot 2.1 deg maxframe 0.37
+  step run 4 foot 1 t 8.217-8.450 slide 0.25 cm pivot 0.0 deg maxframe 0.25
+  step run 5 foot 1 t 3.650-4.117 slide 0.41 cm pivot 22.1 deg maxframe 0.25
+  step run 5 foot 0 t 3.783-4.750 slide 1.27 cm pivot 18.9 deg maxframe 0.21
+  step run 5 foot 1 t 4.433-5.400 slide 1.67 cm pivot 45.0 deg maxframe 0.28
+  step run 5 foot 0 t 5.117-6.050 slide 1.36 cm pivot 52.8 deg maxframe 0.28
+  step run 5 foot 1 t 5.750-6.733 slide 1.72 cm pivot 59.2 deg maxframe 0.27
+  step run 5 foot 0 t 6.483-7.100 slide 0.03 cm pivot 28.7 deg maxframe 0.01
+  step run 5 foot 0 t 7.317-7.400 slide 0.00 cm pivot 0.0 deg maxframe 0.00
+M spiral.down_0.7.steps                            44.000
+M spiral.down_0.7.slide_cm_step_mean                1.632
+M spiral.down_0.7.slide_cm_step_p90                 1.542
+M spiral.down_0.7.slide_cm_step_max                42.655
+M spiral.down_0.7.pivot_deg_step_mean              30.694
+M spiral.down_0.7.pivot_deg_step_max               77.644
+M spiral.down_0.7.slide_cm_total_per_person        11.987
+M spiral.down_0.7.pivot_deg_total_per_person      232.134
+M spiral.down_0.7.lowest_sole_mm                 -563.236
+M spiral.down_0.7.planted_float_frames             33.000
+M spiral.down_0.7.planted_float_max_mm             77.964
+M spiral.down_0.7.scuffs                            3.000
+M spiral.down_0.7.planted_sunk_pct                  3.082
+M spiral.down_0.7.planted_sunk_3cm_pct              3.038
+M spiral.down_0.7.planted_deep_frames               1.000
+M spiral.down_0.7.planted_lifted_pct                1.453
+M spiral.down_0.7.quick_steps                       7.000
+time 0.2 s
+animator 7.140 us per update over 7194 updates
+ground scans 202 (one per 36 updates)

@@ -1,0 +1,26 @@
+ntw 1 roads district=cl
+node cl.n0012 at=1702.00,365.50 z=3.40 control=signal plan=lib.signal.4way_proleft offset=12.0
+node cl.n0013 at=1702.00,481.00 z=3.55 control=stop stops=cl.e0007,cl.e0009
+node cl.n0014 at=1702.00,600.00 z=3.70
+node cl.n0015 at=1600.00,365.50 z=3.30
+edge cl.e0007 from=cl.n0012 to=cl.n0013 class=street name="SW 8th St" lanes=1/1 lanewidth=3.20 parking=both:2.40
+  sidewalk=both:3.00 speed=13.4 shape=1702.00,365.50;1702.40,420.00;1702.00,481.00 profile=0.00:3.40;115.50:3.55
+  lanes from=80.00 to=end dir=fwd count=2 add=left taper=12.00
+  noswitch dir=fwd from=95.00 to=end
+  moves at=n1 lanes=l,sr
+  crossing at=8.00 kind=signal
+  crossing at=60.00 kind=zebra
+  busstop cl.bus.08 at=40.00 side=right shelter=lib.prop.shelter_a wait=1704.80,403.00:3.00 routes=bus.8
+  parkbay from=12.00 to=34.00 side=left kind=parallel meter=1
+  nostop from=0.00 to=12.00 side=right why=junction
+  loading from=44.00 to=56.00 side=left hours=6.00-11.00
+  curbcut at=72.00 side=right w=4.00 to=cl.b014.lot1
+end
+edge cl.e0009 from=cl.n0013 to=cl.n0014 class=street lanes=1/1 shape=1702.00,481.00;1702.00,600.00
+end
+edge cl.e0011 from=cl.n0012 to=cl.n0015 class=street lanes=1/1 shape=1702.00,365.50;1600.00,365.50
+end
+junction cl.n0012 turns=custom
+  stopline edge=cl.e0007 at=6.50
+  connect from=cl.e0007:0 to=cl.e0011:0 turn=left protected=1
+end
