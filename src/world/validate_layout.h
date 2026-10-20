@@ -27,8 +27,11 @@ struct PlanFinding {
 };
 
 // The checks across a plan's floors (docs/HANDBUILT_WORLD.md 9.1): stairs and lifts join the floors they claim at the
-// floors' heights, a hatch lands in a room, and doors and windows fit their floor's height
-void checkPlanFloors(const std::string& plan, const std::vector<PlanFloor>& floors, std::vector<PlanFinding>& out);
+// floors' heights, a hatch lands in a room, and doors and windows fit their floor's height. A shared layout's relative
+// stair ends (0:<room>, +1:<room>, -1:<room>, NTW_FORMAT 9.8) resolve against each floor that uses it; `reached`
+// receives the floors they lead into from another floor (the reference check only sees the layout's own rooms).
+void checkPlanFloors(const std::string& plan, const std::vector<PlanFloor>& floors, std::vector<PlanFinding>& out,
+                     std::vector<std::string>* reached = nullptr);
 
 }  // namespace Validate
 }  // namespace World

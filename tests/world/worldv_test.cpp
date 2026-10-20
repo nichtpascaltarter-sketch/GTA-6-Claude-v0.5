@@ -303,12 +303,12 @@ static void testBad() {
     matchMarks(dir, ds, true);
 }
 
-// The plan pass needs a world: tests/world/fixtures/plans holds one plan with its layouts, its findings marked
+// The plan pass needs a world: tests/world/fixtures/plans holds plans with their layouts, their findings marked
 static void testPlanPass() {
     const std::string dir = std::string(kFixtures) + "/plans";
     Summary s;
     const std::vector<Diagnostic> ds = runWorld(dir, &s);
-    EXPECT(s.files == 4 && s.world, "the plan pass's world: %zu files", s.files);
+    EXPECT(s.files == 13 && s.world, "the plan pass's world: %zu files", s.files);
     matchMarks(dir, ds, false);
     // checked as files instead, the plan pass doesn't run (it reads the floors' layouts through the plan)
     Options opt;
@@ -384,6 +384,70 @@ static fs::path copyWorld(const char* name) {
     const fs::path dir = tempDir(name) / "world";
     fs::copy(std::string(kFixtures) + "/world", dir, fs::copy_options::recursive);
     return dir;
+}
+
+// A typical floor's layout names its stair's floors relative to each floor that uses it (NTW_FORMAT 9.8): 0:<room> on
+// that floor, +1:<room> / -1:<room> on the next floor up / down by height. The plans fixture has a clean tower (tower_b),
+// a typical floor on the top floor (tower_c: +1 has no floor there) and one whose stair runs down (tower_d).
+static fs::path copyFixture(const char* fixture, const char* name) {
+    const fs::path dir = tempDir(name) / fixture;
+    fs::copy(std::string(kFixtures) + "/" + fixture, dir, fs::copy_options::recursive);
+    return dir;
+}
+
+static void testRelativeStairs() {
+    const std::string dir = std::string(kFixtures) + "/plans";
+    const std::vector<Diagnostic> ds = runWorld(dir);
+    auto messages = [&](const char* file, int line) {
+        std::vector<std::string> m;
+        for (const Diagnostic& d : ds)
+            if (validate_detail::endsWith(d.file, file) && d.line == line && d.check == "stair.floors") m.push_back(d.message);
+        return m;
+    };
+    const std::vector<std::string> top = messages("lib/layouts/test/tower_c_typ.ntw", 11), down = messages("lib/layouts/test/tower_d_typ.ntw", 10);
+    EXPECT(top.size() == 1 && top[0] == "stair st1: to=+1:stair names the floor above, but floor f2 is the top floor of plan lib.plan.test.tower_c, "
+                                         "with no floor above it",
+           "+1 off the top: %s", top.empty() ? "nothing" : top[0].c_str());
+    EXPECT(down.size() == 1 && down[0] == "stair st1: to=-1:stair isn't above from=0:stair (plan lib.plan.test.tower_d)", "a stair down: %s",
+           down.empty() ? "nothing" : down[0].c_str());
+    // the clean tower, its top floor reached through the typical floor's stair (no room.reach for its layout)
+    for (const Diagnostic& d : ds) EXPECT(d.file.find("tower_b") == std::string::npos, "tower_b: %s:%d %s", d.file.c_str(), d.line, d.check.c_str());
+    // on copies: what the relative ends resolve to, checked per floor
+    const std::vector<Plant> plants = {
+        // the floor above uses a layout without the room: the reference check sees only the stair's own layout
+        {"the room above isn't there", {{"lib/layouts/test/tower_b_top.ntw", "room stair type=stair", "room landing type=stair"}, {"lib/layouts/test/tower_b_top.ntw", "hall:stair", "hall:landing"}},
+         {"lib/layouts/test/tower_b_typ.ntw:10 stair.floors", "lib/layouts/test/tower_b_top.ntw:1 room.reach"}},
+        // treads and risers against every pair of floors the layout joins: one finding for all of them
+        {"risers that don't climb a typical floor", {{"lib/layouts/test/tower_b_typ.ntw", "kind=straight", "kind=straight treads=18 rise=0.17"}},
+         {"lib/layouts/test/tower_b_typ.ntw:10 stair.floors"}},
+        {"treads derived from the typical floor's height", {{"lib/layouts/test/tower_b_typ.ntw", "run=1.00,5.50;6.50,5.50", "run=1.00,5.50;4.00,5.50"}},
+         {"lib/layouts/test/tower_b_typ.ntw:10 stair.tread"}},
+        // the next floor up is the next by height, wherever the plan lists it
+        {"floors listed out of order", {{"lib/plans/test/tower_b.ntw", "floor f1 layout=lib.layout.test.tower_b_typ z=3.00 h=3.00\nfloor f2 layout=lib.layout.test.tower_b_typ z=6.00 h=3.00",
+                                         "floor f2 layout=lib.layout.test.tower_b_typ z=6.00 h=3.00\nfloor f1 layout=lib.layout.test.tower_b_typ z=3.00 h=3.00"}},
+         {}},
+        // the top floor taken away: f2's stair has nowhere to go, and nothing is left to reach tower_b_top
+        {"the typical floor becomes the top", {{"lib/plans/test/tower_b.ntw", "floor f3 layout=lib.layout.test.tower_b_top z=9.00 h=3.00\n", ""}},
+         {"lib/layouts/test/tower_b_typ.ntw:10 stair.floors", "lib/layouts/test/tower_b_top.ntw:1 room.reach"}},
+    };
+    for (const Plant& p : plants) {
+        const fs::path world = copyFixture("plans", "relstair");
+        bool applied = true;
+        for (const Edit& e : p.edits) applied = apply(world, e) && applied;
+        EXPECT(applied, "%s: an edit didn't apply", p.name);
+        std::vector<std::string> want(p.want.begin(), p.want.end()), got;
+        // (the fixture's own marked findings in tower_a, tower_c and tower_d stay: compare what's new)
+        for (const std::string& g : brief(runWorld(world.generic_string()), world.generic_string()))
+            if (g.find("tower_b") != std::string::npos) got.push_back(g);
+        std::sort(want.begin(), want.end());
+        std::sort(got.begin(), got.end());
+        EXPECT(got == want, "%s: the findings differ", p.name);
+        if (got != want) {
+            for (const std::string& g : got) printf("    found: %s\n", g.c_str());
+            for (const std::string& w : want) printf("    wanted: %s\n", w.c_str());
+        }
+        fs::remove_all(world.parent_path());
+    }
 }
 
 static void testPlants() {
@@ -604,6 +668,7 @@ int main() {
     testBad();
     testWorld();
     testPlanPass();
+    testRelativeStairs();
     testPlants();
     testCache();
     testOnly();

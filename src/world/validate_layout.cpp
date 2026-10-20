@@ -796,10 +796,12 @@ struct PlanPass {
     const std::string& plan;
     const std::vector<PlanFloor>& floors;
     std::vector<PlanFinding>& out;
+    std::vector<std::string>* reached;   // the floors that relative stair ends of other floors reach
     std::vector<Diagnostic> scratch;   // (the layouts' own findings: their file's checks report those)
     std::map<const Ntw::Document*, std::unique_ptr<Item>> items;
 
-    PlanPass(const std::string& p, const std::vector<PlanFloor>& f, std::vector<PlanFinding>& o) : plan(p), floors(f), out(o) {}
+    PlanPass(const std::string& p, const std::vector<PlanFloor>& f, std::vector<PlanFinding>& o, std::vector<std::string>* r)
+        : plan(p), floors(f), out(o), reached(r) {}
 
     Item* item(const PlanFloor& f) {
         if (!f.layout) return nullptr;
@@ -846,32 +848,107 @@ struct PlanPass {
         return !r || !r->proper || where(p, r->poly) >= 0;   // (a missing or broken room: other checks report it)
     }
 
+    // The next floor up (dir +1) or down (-1) from f by height; nullptr at the top or the bottom
+    const PlanFloor* neighbour(const PlanFloor& f, int dir) const {
+        const double z = num(f, "z");
+        const PlanFloor* best = nullptr;
+        for (const PlanFloor& g : floors) {
+            const double gz = num(g, "z");
+            if (&g == &f || (dir > 0 ? gz <= z + kTol : gz >= z - kTol)) continue;
+            if (!best || (dir > 0 ? gz < num(*best, "z") : gz > num(*best, "z"))) best = &g;
+        }
+        return best;
+    }
+
+    // A stair's end, on floor f (one that uses the layout): "f0.hall" names its floor; in a layout several floors share,
+    // "0:hall" is a room of f, and "+1:hall" / "-1:hall" one on the next floor up / down by height
+    struct End {
+        const PlanFloor* floor = nullptr;
+        std::string room;
+        bool relative = false;
+        int offset = 0;   // relative: 0, +1 or -1
+    };
+    // False when the end names no floor: `why` says so for a relative end past the top or the bottom floor; a missing
+    // floor or another form is the reference check's
+    bool stairEnd(const PlanFloor& f, const std::string& v, End& e, std::string& why) const {
+        const size_t colon = v.find(':');
+        if (colon == std::string::npos) {
+            std::string fl;
+            if (!floorRoom(v, &fl, &e.room)) return false;
+            e.floor = floor(fl);
+            return e.floor != nullptr;
+        }
+        const std::string off = v.substr(0, colon);
+        e.relative = true;
+        e.room = v.substr(colon + 1);
+        if (off == "0") e.offset = 0;
+        else if (off == "+1") e.offset = 1;
+        else if (off == "-1") e.offset = -1;
+        else return false;
+        e.floor = e.offset == 0 ? &f : neighbour(f, e.offset);
+        if (!e.floor)
+            why = "floor " + f.rec->id + " is the " + (e.offset > 0 ? "top" : "bottom") + " floor of plan " + plan + ", with no floor " +
+                  (e.offset > 0 ? "above" : "below") + " it";
+        return e.floor != nullptr;
+    }
+
     void stairs(const PlanFloor& f, Item& it) {
         for (Stair& s : it.stairs) {
             const Ntw::Record& r = *s.rec;
-            std::string fa, ra, fb, rb;
-            if (!floorRoom(r.value("from", ""), &fa, &ra) || !floorRoom(r.value("to", ""), &fb, &rb)) continue;
-            const PlanFloor* a = floor(fa);
-            const PlanFloor* b = floor(fb);
-            if (!a || !b) continue;   // (the reference check reports it)
+            const std::string from = r.value("from", ""), to = r.value("to", "");
+            End a, b;
+            std::string whyA, whyB;
+            const bool okA = stairEnd(f, from, a, whyA), okB = stairEnd(f, to, b, whyB);
+            const bool relative = a.relative || b.relative;
             const std::string ctx = " (plan " + plan + ")";
-            const double dz = num(*b, "z") - num(*a, "z");
+            // relative ends that don't climb, whichever floor uses the layout
+            if (a.relative && b.relative && b.offset <= a.offset) {
+                report(f, false, r.line, SEV_ERROR, "stair.floors", "stair " + r.id + ": to=" + to + " isn't above from=" + from + ctx);
+                continue;
+            }
+            if (!whyA.empty() || !whyB.empty()) {
+                report(f, false, r.line, SEV_ERROR, "stair.floors",
+                       "stair " + r.id + ": " + (whyA.empty() ? "to=" + to + " names the floor " + (b.offset > 0 ? "above" : "below") + ", but " + whyB
+                                                              : "from=" + from + " names the floor " + (a.offset > 0 ? "above" : "below") + ", but " + whyA));
+                continue;
+            }
+            if (!okA || !okB) continue;   // (the reference check reports it)
+            const std::string fa = a.floor->rec->id, fb = b.floor->rec->id;
+            // a relative end's room is on the floor it reaches (the reference check only sees this layout)
+            bool rooms = true;
+            for (const End* e : {&a, &b}) {
+                Item* other = e->relative ? item(*e->floor) : nullptr;
+                if (!other) continue;
+                if (other->room(e->room)) {
+                    if (e->floor != &f && reached) reached->push_back(e->floor->rec->id);
+                    continue;
+                }
+                report(f, false, r.line, SEV_ERROR, "stair.floors",
+                       "stair " + r.id + ": " + (e == &a ? "from=" + from : "to=" + to) + ": floor " + e->floor->rec->id + " (layout " +
+                           e->floor->rec->value("layout", "") + ") has no room " + e->room + ctx);
+                rooms = false;
+            }
+            if (!rooms) continue;
+            const double dz = num(*b.floor, "z") - num(*a.floor, "z");
             if (dz <= kTol) {
-                report(f, false, r.line, SEV_ERROR, "stair.floors", "stair " + r.id + ": to=" + r.value("to", "") + " isn't above from=" + r.value("from", "") + ctx);
+                report(f, false, r.line, SEV_ERROR, "stair.floors",
+                       "stair " + r.id + ": to=" + to + " isn't above from=" + from + (relative ? " (floor " + f.rec->id + " of plan " + plan + ")" : ctx));
                 continue;
             }
             // the run's ends stand in the rooms it names, on their floors
             if (s.run.size() >= 2) {
-                if (!inRoom(*a, ra, s.run.front()))
-                    report(f, false, r.line, SEV_ERROR, "stair.floors", "stair " + r.id + ": its bottom " + pt(s.run.front()) + " isn't in room " + ra + " of floor " + fa + ctx);
-                if (!inRoom(*b, rb, s.run.back()))
-                    report(f, false, r.line, SEV_ERROR, "stair.floors", "stair " + r.id + ": its top " + pt(s.run.back()) + " isn't in room " + rb + " of floor " + fb + ctx);
+                if (!inRoom(*a.floor, a.room, s.run.front()))
+                    report(f, false, r.line, SEV_ERROR, "stair.floors", "stair " + r.id + ": its bottom " + pt(s.run.front()) + " isn't in room " + a.room + " of floor " + fa + ctx);
+                if (!inRoom(*b.floor, b.room, s.run.back()))
+                    report(f, false, r.line, SEV_ERROR, "stair.floors", "stair " + r.id + ": its top " + pt(s.run.back()) + " isn't in room " + b.room + " of floor " + fb + ctx);
             }
             if (s.kind == "escalator") continue;
-            // its treads climb the floors' difference in height: treads x rise, or derived from it
+            // its treads climb the floors' difference in height: treads x rise, or derived from it. (Relative ends say the
+            // same for every pair of floors as far apart: one finding for all of them.)
             double treads = field(r, "treads", 0.0), rise = field(r, "rise", 0.0);
-            const std::string between = " between floors " + fa + " and " + fb + ", " + fmt(dz) + " m apart" + ctx;
-            const std::string derived = " (derived from the " + fmt(dz) + " m between floors " + fa + " and " + fb + ", plan " + plan + ")";
+            const std::string between = relative ? ", for floors " + fmt(dz) + " m apart" + ctx : " between floors " + fa + " and " + fb + ", " + fmt(dz) + " m apart" + ctx;
+            const std::string derived = relative ? " (derived from the " + fmt(dz) + " m between its floors, plan " + plan + ")"
+                                                 : " (derived from the " + fmt(dz) + " m between floors " + fa + " and " + fb + ", plan " + plan + ")";
             if (treads > 0.0 && rise > 0.0) {
                 if (std::fabs(treads * rise - dz) > 0.05 + 1e-9)
                     report(f, false, r.line, SEV_ERROR, "stair.floors", "stair " + r.id + ": treads x rise = " + fmt(treads * rise) + " m" + between);
@@ -992,8 +1069,8 @@ struct PlanPass {
 
 }  // namespace layout_detail
 
-void checkPlanFloors(const std::string& plan, const std::vector<PlanFloor>& floors, std::vector<PlanFinding>& out) {
-    layout_detail::PlanPass pass(plan, floors, out);
+void checkPlanFloors(const std::string& plan, const std::vector<PlanFloor>& floors, std::vector<PlanFinding>& out, std::vector<std::string>* reached) {
+    layout_detail::PlanPass pass(plan, floors, out, reached);
     pass.run();
 }
 

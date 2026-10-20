@@ -1169,8 +1169,8 @@ struct WorldChecks {
                 if (r.scope.empty()) global(r, i);
                 else floorRef(r, i);
             }
+        planPass();   // (first: relative stairs it resolves reach floors too)
         wayIn();
-        planPass();
     }
 
     // The plan pass reads documents, not facts: every plan with the layouts of its floors, parsed again from the text
@@ -1205,7 +1205,9 @@ struct WorldChecks {
                 floors.push_back(f);
             }
             std::vector<PlanFinding> found;
-            checkPlanFloors(r.defs.front().id, floors, found);
+            std::vector<std::string> into;
+            checkPlanFloors(r.defs.front().id, floors, found, &into);
+            for (const std::string& fl : into) reached.insert(r.defs.front().id + "/" + fl);
             for (const PlanFinding& p : found) {
                 const size_t to = p.inPlan ? i : p.layoutKey;
                 if (!said.insert(std::to_string(to) + ":" + std::to_string(p.d.line) + ":" + p.d.check + ":" + p.d.message).second) continue;
