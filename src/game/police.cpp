@@ -635,8 +635,9 @@ void escortStep(GameWorld& g, int id, float dt) {
     p.firing = false;
     p.animIn.stance = 0;
     p.animIn.crouch = false;
+    float turnR = ai_turn::ease(p.yaw, faceYaw, length(p.vel.xy()), p.aiming, 7.f, desired);   // (a walk's turn and pace: ai_turn)
     float dy = AI::wrapPi(faceYaw - p.yaw);
-    p.yaw = AI::wrapPi(p.yaw + Clamp(dy, -7.f * dt, 7.f * dt));
+    p.yaw = AI::wrapPi(p.yaw + Clamp(dy, -turnR * dt, turnR * dt));
     g.movePed(p, desired, dt, false);
 }
 
@@ -831,8 +832,9 @@ void step(GameWorld& g, int id, float dt) {
     p.firing = false;
     p.animIn.stance = stance;
     p.animIn.crouch = false;
+    float turnR = ai_turn::ease(p.yaw, faceYaw, length(p.vel.xy()), p.aiming, 6.f, desired);   // (a walk's turn and pace: ai_turn)
     float dy = AI::wrapPi(faceYaw - p.yaw);
-    p.yaw = AI::wrapPi(p.yaw + Clamp(dy, -6.f * dt, 6.f * dt));
+    p.yaw = AI::wrapPi(p.yaw + Clamp(dy, -turnR * dt, turnR * dt));
     g.movePed(p, desired, dt, false);
 }
 
@@ -1026,8 +1028,9 @@ void coverStep(GameWorld& g, int id, float dt) {
     p.aiming = p.firing = false;
     p.animIn.stance = 0;
     p.animIn.crouch = false;
+    float turnR = ai_turn::ease(p.yaw, faceYaw, length(p.vel.xy()), p.aiming, 6.f, desired);   // (a walk's turn and pace: ai_turn)
     float dy = AI::wrapPi(faceYaw - p.yaw);
-    p.yaw = AI::wrapPi(p.yaw + Clamp(dy, -6.f * dt, 6.f * dt));
+    p.yaw = AI::wrapPi(p.yaw + Clamp(dy, -turnR * dt, turnR * dt));
     g.movePed(p, desired, dt, false);
 }
 
@@ -1155,8 +1158,9 @@ void step(GameWorld& g, int id, float dt) {
     p.aiming = p.firing = false;
     p.animIn.stance = stance;
     p.animIn.crouch = false;
+    float turnR = ai_turn::ease(p.yaw, faceYaw, length(p.vel.xy()), p.aiming, 6.f, desired);   // (a walk's turn and pace: ai_turn)
     float dy = AI::wrapPi(faceYaw - p.yaw);
-    p.yaw = AI::wrapPi(p.yaw + Clamp(dy, -6.f * dt, 6.f * dt));
+    p.yaw = AI::wrapPi(p.yaw + Clamp(dy, -turnR * dt, turnR * dt));
     g.movePed(p, desired, dt, false);
 }
 
@@ -1453,8 +1457,9 @@ void step(GameWorld& g, int id, float dt) {
     p.aiming = p.firing = false;
     p.animIn.stance = stance;
     p.animIn.crouch = false;
+    float turnR = ai_turn::ease(p.yaw, faceYaw, length(p.vel.xy()), p.aiming, 6.f, desired);   // (a walk's turn and pace: ai_turn)
     float dy = AI::wrapPi(faceYaw - p.yaw);
-    p.yaw = AI::wrapPi(p.yaw + Clamp(dy, -6.f * dt, 6.f * dt));
+    p.yaw = AI::wrapPi(p.yaw + Clamp(dy, -turnR * dt, turnR * dt));
     g.movePed(p, desired, dt, false);
 }
 
@@ -3448,8 +3453,9 @@ void GameWorld::aiPoliceBrain(int id, float dt) {
             pedAI(id).navOk = false;
             return;
         }
+        float turnR = ai_turn::ease(p.yaw, faceYaw, length(p.vel.xy()), p.aiming, 8.f, desired);   // (a walk's turn and pace: ai_turn)
         float d = AI::wrapPi(faceYaw - p.yaw);
-        p.yaw = AI::wrapPi(p.yaw + Clamp(d, -8.f * dt, 8.f * dt));
+        p.yaw = AI::wrapPi(p.yaw + Clamp(d, -turnR * dt, turnR * dt));
         movePed(p, desired, dt, false);
         return;
     }
@@ -3489,8 +3495,9 @@ void GameWorld::aiPoliceBrain(int id, float dt) {
                 return;
             }
         }
+        float turnR = ai_turn::ease(p.yaw, faceYaw, length(p.vel.xy()), p.aiming, 9.f, desired);   // (a walk's turn and pace: ai_turn)
         float d = AI::wrapPi(faceYaw - p.yaw);
-        p.yaw = AI::wrapPi(p.yaw + Clamp(d, -9.f * dt, 9.f * dt));
+        p.yaw = AI::wrapPi(p.yaw + Clamp(d, -turnR * dt, turnR * dt));
         movePed(p, desired, dt, false);
         return;
     }
@@ -3573,8 +3580,9 @@ void GameWorld::aiPoliceBrain(int id, float dt) {
         }
         p.animIn.stance = 0;
         p.animIn.crouch = false;
+        float turnR = ai_turn::ease(p.yaw, faceYaw, length(p.vel.xy()), p.aiming, 9.f, desired);   // (a walk's turn and pace: ai_turn)
         float dyaw = AI::wrapPi(faceYaw - p.yaw);
-        p.yaw = AI::wrapPi(p.yaw + Clamp(dyaw, -9.f * dt, 9.f * dt));
+        p.yaw = AI::wrapPi(p.yaw + Clamp(dyaw, -turnR * dt, turnR * dt));
         movePed(p, desired, dt, false);
         return;
     }
@@ -3901,8 +3909,9 @@ void GameWorld::aiPoliceBrain(int id, float dt) {
     bool meleeEngaged = p.meleeTarget >= 0 && p.meleeTarget < (int)peds.size() && peds[p.meleeTarget].used && peds[p.meleeTarget].health > 0.f &&
                         length(rel(peds[p.meleeTarget].pos, p.pos)) < 4.f && (p.animIn.stance == 19 || p.animIn.stance == 20);
     if (!meleeEngaged) p.animIn.stance = 0;   // (melee.cpp owns the fighting guard while squared up)
+    float turnR = ai_turn::ease(p.yaw, faceYaw, length(p.vel.xy()), p.aiming, 9.f, desired);   // (a walk's turn and pace: ai_turn)
     float dy = AI::wrapPi(faceYaw - p.yaw);
-    p.yaw = AI::wrapPi(p.yaw + Clamp(dy, -9.f * dt, 9.f * dt));
+    p.yaw = AI::wrapPi(p.yaw + Clamp(dy, -turnR * dt, turnR * dt));
     movePed(p, desired, dt, false);
     (void)pl;
     (void)stance;

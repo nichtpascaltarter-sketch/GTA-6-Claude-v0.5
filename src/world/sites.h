@@ -190,6 +190,11 @@ struct SiteSet {
 };
 
 extern SiteSet* gSites;
+// Terrain bake (tools/terrainbake.cpp, docs/HANDBUILT_WORLD.md section 3.2): SiteSet::layout runs only the layouts that
+// shape the coast and the water, Port Isle's quay walls, dredged ring and berth, and the Key Coral golf pond, and drops
+// everything they place. The airfield, the landmarks, the places and the transit corridor are skipped, with their pads
+// and grading. Off in the game.
+extern bool gTerrainBakeLandforms;
 
 struct CellGeometry;
 // Mesh generation for all site elements touching a streaming cell (sitecell.cpp)

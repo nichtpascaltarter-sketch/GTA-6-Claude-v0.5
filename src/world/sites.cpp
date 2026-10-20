@@ -14,6 +14,7 @@ namespace sites_storage {
 SiteSet gSiteSet;
 }
 SiteSet* gSites = &sites_storage::gSiteSet;
+bool gTerrainBakeLandforms = false;
 
 namespace sites_detail {
 
@@ -1510,6 +1511,24 @@ void SiteSet::layout(WorldMap& map) {
     buildingReqs.clear();
     roads.clear();
     Lay L{*this, map};
+    if (gTerrainBakeLandforms) {
+        // the terrain bake: of all the site layouts, only these two change the land and the water outside pads (the port's
+        // island and channel, the golf pond); what they place is dropped, and `generated` stays false
+        layoutPort(L);
+        layoutKeyCoral(L);
+        pads.clear();
+        elems.clear();
+        walks.clear();
+        lotBlocks.clear();
+        roadBlocks.clear();
+        vegBlocks.clear();
+        buildingReqs.clear();
+        roads.clear();
+        places.clear();
+        anchors.clear();
+        LOG("Sites: terrain bake, landforms only (%.2f s)", TimeSeconds() - t0);
+        return;
+    }
     layoutAirport(L);
     layoutPort(L);
     layoutKeyCoral(L);

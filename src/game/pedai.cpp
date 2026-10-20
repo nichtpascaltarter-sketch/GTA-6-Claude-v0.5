@@ -1473,12 +1473,34 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                             la.handUid = p.uid;
                             pa.handT = la.handT = (float)time;
                         }
-                        if (lspd < 0.3f && d < 1.2f) {
+                        // (stopped with the leader, walking along or neither: taken at one mark, left past a wider one, and
+                        //  kept 0.8 s at least - flipping between them frame to frame, as a leader slowed or set off, turned
+                        //  the companion to and fro and restarted the upper body's crossfade at every flip, so the chat
+                        //  gestures never settled: the animation agent's ped 13 flipped 27 times in 57 s)
+                        {
+                            float dl = length(desired);
+                            int mode = pa.followMode, next = mode;
+                            if (mode == 1) {
+                                if (lspd > 0.45f || d > 1.5f) next = dl > 0.2f ? 2 : 0;
+                            } else if (lspd < 0.25f && d < 1.1f) {
+                                next = 1;
+                            } else if (mode == 2) {
+                                if (dl < 0.12f) next = 0;
+                            } else if (dl > 0.25f) {
+                                next = 2;
+                            }
+                            pa.followModeT += dt;
+                            if (next != mode && pa.followModeT > 0.8f) {
+                                pa.followMode = (u8)next;
+                                pa.followModeT = 0.f;
+                            }
+                        }
+                        if (pa.followMode == 1) {
                             // leader stopped: face the group and chat
                             faceYaw = yawTo(pos, L.pos.toVec3().xy());
                             faceSet = true;
                             stance = 7;
-                        } else if (length(desired) > 0.2f) {
+                        } else if (pa.followMode == 2) {
                             // (close to the slot: the way the leader faces - not the slot's swing as the leader turns;
                             //  further off, the way they go)
                             faceYaw = d < 1.f && lspd > 0.3f ? AI::dirYaw(lf) : atan2f(-desired.x, desired.y);
@@ -3476,24 +3498,18 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
         }
     }
     if (pa.sidestepT > 0.f && b.type == BRAIN_WANDER) desired += pa.sidestep * 2.2f;   // (out of a runner's way)
-    // walking along, the body turns no faster than 3 rad/s, and a sharp turn (over 60 degrees off the way the body faces)
-    // is taken at a slower step: at 6 rad/s at a full walk the trailing foot lifted off for a few frames (the animation
-    // agent's measurement). On the spot the turn stays quick, and so does a run, aiming, a fight or a start back from a car.
-    {
-        float spd = length(desired);
-        if (spd > 0.35f && spd < 2.4f && !p.aiming && b.type != BRAIN_COMBAT && pa.flinchT <= 0.f) {
-            turnRate = Min(turnRate, 3.f);
-            float mYaw = atan2f(-desired.x, desired.y);
-            float tYaw = faceSet ? faceYaw : mYaw;
-            if (fabsf(pedai_detail::wrapA(tYaw - mYaw)) < 0.6f) {   // (facing the way they go: not a strafe or a step back)
-                float err = fabsf(pedai_detail::wrapA(mYaw - p.yaw));
-                if (err > 1.05f) desired *= Max(0.3f, 1.f - (err - 1.05f) / 1.5f);
-            }
-        }
-    }
+    // walking along, the body turns at a rate a walk can follow - by the speed it is going at: 2.4 rad/s from 0.4 m/s up, a
+    // right-angle turn over a step or two, 4 rad/s on the spot (ai_turn) - and the way it goes turns with it: an arc
+    // through the turn, not a crab across the old line, the pace easing off with a sharp turn's size, all but stopped to
+    // turn round. (The 3 rad/s cap on the asked speed before still let the feet slide.) A run, a fight, aiming and a start
+    // back from a car keep their quick turns; a strafe or a step back (facing elsewhere than the way they go) and a quick
+    // step out of a runner's way the rate cap only. The body turns for the way asked, the step goes the eased way.
+    bool turning = faceSet || length2(desired) > 0.04f;
+    float wantYaw = faceSet ? faceYaw : atan2f(-desired.x, desired.y);
+    if (b.type != BRAIN_COMBAT && pa.flinchT <= 0.f)
+        turnRate = ai_turn::ease(p.yaw, wantYaw, length(p.vel.xy()), p.aiming, turnRate, desired, pa.sidestepT <= 0.f);
     // face & move
-    if (faceSet) turnTo(p, faceYaw, turnRate, dt);
-    else if (length2(desired) > 0.04f) turnTo(p, atan2f(-desired.x, desired.y), turnRate, dt);
+    if (turning) turnTo(p, wantYaw, turnRate, dt);
     movePed(p, desired, dt, false);
     pa.lastPos = pos;
 }
