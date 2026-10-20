@@ -6,7 +6,7 @@
 while :; do
   git fetch -q origin claude/pc-queue 2>/dev/null
   git fetch -q origin pc/results 2>/dev/null   # (there is no pc/results until the first result)
-  for f in $(git ls-tree --name-only origin/claude/pc-queue queue/ 2>/dev/null | grep '\.md$' | sort); do
+  for f in $(git ls-tree --name-only origin/claude/pc-queue queue/ 2>/dev/null | grep '\.md$' | grep -v '^queue/README\.md$' | sort); do
     id=$(basename "$f" .md)
     git cat-file -e "origin/claude/pc-queue:queue/$id.cancelled" 2>/dev/null && continue
     git cat-file -e "origin/pc/results:results/$id/started" 2>/dev/null && continue
