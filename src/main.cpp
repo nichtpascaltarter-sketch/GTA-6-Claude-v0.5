@@ -76,18 +76,18 @@
 #include "game/app.cpp"
 
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
-    // a downloaded update installs before any window exists, and the new version takes over in a new process
+    // a built update installs before any window exists, and the new build takes over in a new process
     int updateExit = 0;
     if (Updater::beforeStart(updateExit)) return updateExit;
     static Game::App app;
     if (!app.init()) return 1;
-    Updater::startCheck();   // a newer release downloads in the background (never in automated runs)
+    Updater::startCheck();   // main's newer source builds in the background (never in automated runs)
     app.run();
     bool restart = Updater::stop();   // the main menu's "Restart now"
 #ifdef HAVE_GAME_UI
     if (restart) app.saveSettings();
 #endif
     app.shutdown();
-    if (restart) Updater::restart();   // installs the downloaded update and starts the game again
+    if (restart) Updater::restart();   // installs the built update and starts the game again
     return 0;
 }

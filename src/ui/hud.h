@@ -297,8 +297,8 @@ enum MenuActionType : u8 {
     MA_SETTINGS_CHANGED,   // settings were edited (apply live)
     MA_SET_WAYPOINT, MA_CLEAR_WAYPOINT,
     MA_RUN_BENCHMARK,      // Settings > Display & Graphics > Run Benchmark, confirmed by the player
-    MA_UPDATE_RESTART,     // main menu "Restart now": install the downloaded update and start again
-    MA_UPDATE_PAGE,        // main menu "Open download page": the update could not be downloaded
+    MA_UPDATE_RESTART,     // main menu "Restart now": install the built update and start again
+    MA_UPDATE_OPEN,        // main menu "Open log" (the update build failed) or "Open help page" (no compiler)
 };
 
 struct MenuAction {
@@ -318,13 +318,17 @@ struct StatsEntry {
     std::string name, value;
 };
 
-// A newer version of the game (filled by the game from the updater): the main menu shows it in a corner, with
-// "Restart now" once it is ready or "Open download page" when it could not be downloaded; the pause menu in one line.
-enum UpdateNoticeKind : u8 { UPD_NONE = 0, UPD_DOWNLOADING, UPD_READY, UPD_AVAILABLE };
+// An update built from the game's newest source (filled by the game from the updater): the main menu shows its stage
+// in a corner, with "Restart now" once it is ready, "Open log" when its build failed or "Open help page" when it
+// cannot be built here; the pause menu in one line.
+enum UpdateNoticeKind : u8 { UPD_NONE = 0, UPD_CHECKING, UPD_DOWNLOADING, UPD_UNPACKING, UPD_BUILDING, UPD_READY, UPD_FAILED, UPD_BLOCKED };
 struct UpdateNotice {
     UpdateNoticeKind kind = UPD_NONE;
-    std::string version;     // the new version, e.g. "0.02.7"
-    float progress = -1.f;   // UPD_DOWNLOADING: 0..1, < 0 while the size is unknown
+    std::string commit;    // the update's commit, e.g. "5ad2c3e"
+    std::string changes;   // what it brings, e.g. "3 new updates: #55 Night lighting, #54 Taxi stands, #53 ..."
+    std::string detail;    // UPD_BLOCKED: why it cannot be built here
+    long long bytes = 0;   // UPD_DOWNLOADING: received so far
+    int seconds = 0;       // UPD_BUILDING: since the build started
 };
 
 // Front-end state (the game owns the instance and passes it every frame).
@@ -344,7 +348,7 @@ struct MenuState {
     std::string loadingTip;
     bool canContinue = false;              // main menu shows "Continue"
     bool canSave = true;                   // pause menu offers "Save Game" (false during missions)
-    UpdateNotice update;                   // a newer version downloading, ready or available
+    UpdateNotice update;                   // an update being checked, built, ready or failed
     // internal UI state (owned by the menu code)
     int cursor = 0, tab = 0;
     float anim = 0.f;

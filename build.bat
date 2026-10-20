@@ -5,15 +5,24 @@ setlocal
 cd /d "%~dp0"
 if not exist build\gen mkdir build\gen
 if not exist bin mkdir bin
-rem set VERSION=0.02.7 first for a release build: the exe carries its version (the updater compares it)
+rem set VERSION=0.02.7 first to name the version the exe shows (src\core\version.h)
 set "NTVER="
 if defined VERSION set "NTVER=-DNT_VERSION=\"%VERSION%\""
+rem The commit the exe is built from, which the updater compares with GitHub's main (src\core\version.h): NT_COMMIT
+rem when set (the updater sets it for the builds it makes), else git's HEAD when this folder is a git checkout itself
+rem (not inside another one), else unknown
+set "NTCOMMIT=%NT_COMMIT%"
+if not defined NTCOMMIT if exist .git for /f "usebackq delims=" %%c in (`git rev-parse HEAD 2^>nul`) do set "NTCOMMIT=%%c"
+if not defined NTCOMMIT set "NTCOMMIT=unknown"
+for /f "delims=0123456789abcdef" %%x in ("%NTCOMMIT%") do set "NTCOMMIT=unknown"
+set "NTVER=%NTVER% -DNT_COMMIT=\"%NTCOMMIT%\""
 
 set "VSINSTALL="
 set "VSWHERE=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
 if exist "%VSWHERE%" (
   for /f "usebackq tokens=*" %%i in (`"%VSWHERE%" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath`) do set "VSINSTALL=%%i"
 )
+if defined VSINSTALL if not exist "%VSINSTALL%\VC\Auxiliary\Build\vcvars64.bat" set "VSINSTALL="
 if defined VSINSTALL (
   call "%VSINSTALL%\VC\Auxiliary\Build\vcvars64.bat" >nul
   if errorlevel 1 exit /b 1

@@ -33,12 +33,19 @@ STRIP="-s"
 if [ "$1" = "debug" ]; then OPT="-O0 -g"; STRIP=""; fi
 # QUICK=1: -O1 for iteration builds on a busy test machine (about a third less compile time; not for timings)
 if [ "${QUICK:-0}" = 1 ] && [ "$1" != "debug" ]; then OPT="-O1 -DNDEBUG"; fi
-# VERSION=0.02.7: a release build carries its version (src/core/version.h; the updater compares it with the releases)
+# VERSION=0.02.7 names the version the exe shows (src/core/version.h)
 VER=
 if [ -n "$VERSION" ]; then
   case "$VERSION" in *[!0-9A-Za-z.+-]*) echo "VERSION may only use 0-9 A-Z a-z . + -" >&2; exit 1;; esac
   VER="-DNT_VERSION=\"$VERSION\""
 fi
+# The commit the exe is built from, which the updater compares with GitHub's main (src/core/version.h): NT_COMMIT when
+# set, else git's HEAD when this folder is a git checkout itself (not inside another one), else unknown
+COMMIT=${NT_COMMIT:-}
+if [ -z "$COMMIT" ] && [ -e .git ] && command -v git >/dev/null 2>&1; then COMMIT=$(git rev-parse HEAD 2>/dev/null || true); fi
+case "$COMMIT" in *[!0-9a-f]*) COMMIT=;; esac
+if [ ${#COMMIT} -ne 40 ]; then COMMIT=unknown; fi
+VER="$VER -DNT_COMMIT=\"$COMMIT\""
 # Machines that run several builds at once (the automated test rig) serialize them: each compile peaks near 2.1 GB.
 # Opt in by creating /tmp/neontide_build.lock; the lock is released when this script exits.
 if [ -e /tmp/neontide_build.lock ] && command -v flock >/dev/null 2>&1; then

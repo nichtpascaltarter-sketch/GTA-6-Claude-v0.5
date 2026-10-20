@@ -543,49 +543,137 @@ void drawLoading(MenuState& st, const Layout& L, float dt, float t) {
 
 // ------------------------------------------------------------------------------------------------------------------
 // Game version and update notice: the top-right corner of the main menu (with its button), one line in the pause menu
-u32 updateAccent(const UpdateNotice& u) { return u.kind == UPD_DOWNLOADING ? kCyan : (u.kind == UPD_READY ? kPink : kGold); }
+u32 updateAccent(const UpdateNotice& u) {
+    if (u.kind == UPD_READY) return kPink;
+    return u.kind == UPD_FAILED || u.kind == UPD_BLOCKED ? kGold : kCyan;
+}
+
+// The commit the game was built from (NT_COMMIT): its first 7 digits, "" for a build without one
+std::string buildCommit() {
+    const char* c = NT_COMMIT;
+    if (strlen(c) != 40) return std::string();
+    for (const char* p = c; *p; p++)
+        if (!((*p >= '0' && *p <= '9') || (*p >= 'a' && *p <= 'f'))) return std::string();
+    return std::string(c, 7);
+}
+
+// m:ss, h:mm:ss from an hour on
+std::string clockTime(int seconds) {
+    seconds = Max(seconds, 0);
+    int h = seconds / 3600, m = seconds / 60 % 60, s = seconds % 60;
+    return h ? StrFormat("%d:%02d:%02d", h, m, s) : StrFormat("%d:%02d", m, s);
+}
+
+// `str` word-wrapped into at most maxLines lines no wider than maxW; a line cut short ends in "..."
+std::vector<std::string> fitLines(const std::string& str, const TextStyle& st, float maxW, int maxLines) {
+    std::vector<std::string> lines;
+    std::string line;
+    bool more = false;
+    for (size_t i = 0; i < str.size() && !more;) {
+        size_t e = str.find(' ', i);
+        if (e == std::string::npos) e = str.size();
+        std::string word = str.substr(i, e - i);
+        i = e + 1;
+        if (word.empty()) continue;
+        std::string wider = line.empty() ? word : line + " " + word;
+        if (line.empty() || textWidth(wider.c_str(), st) <= maxW) {
+            line = wider;
+            continue;
+        }
+        lines.push_back(line);
+        line = word;
+        more = (int)lines.size() == maxLines;
+    }
+    if (!more && !line.empty()) lines.push_back(line);
+    for (size_t k = 0; k < lines.size(); k++) {
+        std::string& l = lines[k];
+        bool last = k + 1 == lines.size();
+        if (!(last && more) && textWidth(l.c_str(), st) <= maxW) continue;
+        while (!l.empty() && textWidth((l + "...").c_str(), st) > maxW) l.pop_back();
+        while (!l.empty() && (l.back() == ' ' || l.back() == ',')) l.pop_back();
+        l += "...";
+    }
+    return lines;
+}
 
 MenuAction drawUpdateCorner(const MenuState& st, const Layout& L, const Nav& n, float a, float t) {
     MenuAction act;
     float sc = L.s;
+    // the version, a dot and the commit it was built from
     TextStyle vs = style(FONT_BODY, 16.f * sc, withAlpha(kTextMute, a), ALIGN_RIGHT);
-    text(L.right, L.top - 8.f * sc, "Version " NT_VERSION, vs);
+    float vx = L.right, vy = L.top - 8.f * sc;
+    std::string commit = buildCommit();
+    if (!commit.empty()) {
+        text(vx, vy, commit.c_str(), vs);
+        vx -= textWidth(commit.c_str(), vs) + 9.f * sc;
+        circle(vx, vy + vs.size * 0.6f, 2.f * sc, withAlpha(kTextMute, a));
+        vx -= 9.f * sc;
+    }
+    text(vx, vy, "Version " NT_VERSION, vs);
     const UpdateNotice& u = st.update;
     if (u.kind == UPD_NONE) return act;
-    bool downloading = u.kind == UPD_DOWNLOADING, ready = u.kind == UPD_READY;
-    float w = 500.f * sc, pad = 22.f * sc, h = (downloading ? 92.f : 166.f) * sc;
+    if (u.kind == UPD_CHECKING) {   // only a line under the version
+        text(L.right, vy + 22.f * sc, "Checking for updates...", vs);
+        return act;
+    }
+    bool working = u.kind == UPD_DOWNLOADING || u.kind == UPD_UNPACKING || u.kind == UPD_BUILDING, ready = u.kind == UPD_READY;
+    const char* title = "UPDATE AVAILABLE";
+    std::string message, right;
+    switch (u.kind) {
+    case UPD_DOWNLOADING:
+        title = "DOWNLOADING UPDATE";
+        if (u.bytes > 0) right = StrFormat("%.1f MB", (double)u.bytes / 1048576.0);
+        break;
+    case UPD_UNPACKING: title = "UNPACKING UPDATE"; break;
+    case UPD_BUILDING:
+        title = "BUILDING UPDATE";
+        right = clockTime(u.seconds);
+        break;
+    case UPD_READY:
+        title = "UPDATE READY";
+        message = "It installs the next time you start Neon Tide.";
+        break;
+    case UPD_FAILED:
+        title = "UPDATE BUILD FAILED";
+        message = "Neon Tide keeps running this version.";
+        break;
+    default: message = u.detail; break;
+    }
+    float w = 520.f * sc, pad = 22.f * sc, inner = w - 2.f * pad, lineH = 18.f * sc * 1.25f;
+    TextStyle cs = style(FONT_BODY, 18.f * sc, withAlpha(kTextDim, a)), ms = style(FONT_BODY, 18.f * sc, withAlpha(kText, a));
+    std::vector<std::string> changes = fitLines(u.changes, cs, inner, 2), msg = fitLines(message, ms, inner, 3);
+    float h = pad + 26.f * sc + pad + (working ? 22.f * sc : 62.f * sc);
+    if (!changes.empty()) h += 10.f * sc + (float)changes.size() * lineH;
+    if (!msg.empty()) h += 8.f * sc + (float)msg.size() * lineH;
     float x = L.right - w, y = L.top + 22.f * sc;
     panel(x, y, w, h, a);
     roundRect(x, y + 14.f * sc, 4.f * sc, h - 28.f * sc, 2.f * sc, withAlpha(updateAccent(u), a));
-    TextStyle ts = style(FONT_HEADING, 22.f * sc, withAlpha(kWhite, a));
+    // the title, and the build's time or the download's size at its right
+    TextStyle ts = style(FONT_HEADING, 22.f * sc, withAlpha(kWhite, a)), rs = style(FONT_HEADING, 20.f * sc, withAlpha(kCyan, a), ALIGN_RIGHT);
     ts.tracking = 0.08f;
-    std::string ver = upper(u.version);
-    std::string title = downloading ? "DOWNLOADING UPDATE " + ver + "..." : "UPDATE " + ver + (ready ? " IS READY" : " AVAILABLE");
-    float tw = textWidth(title.c_str(), ts);
-    if (tw > w - 2.f * pad) ts.size *= (w - 2.f * pad) / tw;   // (a long version number)
-    text(x + pad, y + pad, title.c_str(), ts);
-    if (downloading) {
-        // the bar, and the percentage at its right end
-        float p = u.progress, bh = 6.f * sc, by = y + h - pad - bh, bx = x + pad, bw = w - 2.f * pad;
-        if (p >= 0.f) {
-            TextStyle ps = style(FONT_HEADING, 18.f * sc, withAlpha(kCyan, a), ALIGN_RIGHT);
-            std::string pct = StrFormat("%d%%", (int)(Saturate(p) * 100.f));
-            bw -= textWidth("100%", ps) + 12.f * sc;
-            text(x + w - pad, by + bh * 0.5f - ps.size * 0.56f, pct.c_str(), ps);
-        }
+    float room = inner - (right.empty() ? 0.f : textWidth(right.c_str(), rs) + 16.f * sc), tw = textWidth(title, ts);
+    if (tw > room) ts.size *= room / tw;
+    text(x + pad, y + pad, title, ts);
+    if (!right.empty()) text(x + w - pad, y + pad + 1.f * sc, right.c_str(), rs);
+    float ly = y + pad + 26.f * sc;
+    if (!changes.empty()) ly += 10.f * sc;
+    for (const std::string& l : changes) {
+        text(x + pad, ly, l.c_str(), cs);
+        ly += lineH;
+    }
+    if (!msg.empty()) ly += 8.f * sc;
+    for (const std::string& l : msg) {
+        text(x + pad, ly, l.c_str(), ms);
+        ly += lineH;
+    }
+    if (working) {   // no percentage to show: a segment sweeps along the bar
+        float bh = 6.f * sc, by = y + h - pad - bh, bx = x + pad, bw = inner, seg = bw * 0.25f;
         roundRect(bx, by, bw, bh, bh * 0.5f, C(1.f, 1.f, 1.f, 0.12f * a));
-        if (p > 0.f) {
-            roundRectGradient(bx, by, Max(bh, bw * Saturate(p)), bh, bh * 0.5f, withAlpha(kPink, a), C(0.8f, 0.2f, 1.f, a));
-        } else if (p < 0.f) {   // size not known yet: a segment sweeps along the bar
-            float seg = bw * 0.25f;
-            roundRect(bx + (bw - seg) * (0.5f + 0.5f * sinf(t * 2.4f)), by, seg, bh, bh * 0.5f, withAlpha(kPink, a));
-        }
+        roundRect(bx + (bw - seg) * (0.5f + 0.5f * sinf(t * 2.4f)), by, seg, bh, bh * 0.5f, withAlpha(kPink, a));
         return act;
     }
-    TextStyle bs = style(FONT_BODY, 19.f * sc, withAlpha(kTextDim, a));
-    text(x + pad, y + pad + 36.f * sc, ready ? "It installs the next time you start Neon Tide." : "It could not be downloaded automatically.", bs);
     // the button: a click, U on the keyboard or Y on a controller
-    const char* label = ready ? "RESTART NOW" : "OPEN DOWNLOAD PAGE";
+    const char* label = ready ? "RESTART NOW" : (u.kind == UPD_FAILED ? "OPEN LOG" : "OPEN HELP PAGE");
     const char* key = n.pad ? "Y" : "U";
     TextStyle ls = style(FONT_HEADING, 20.f * sc, kWhite);
     ls.tracking = 0.08f;
@@ -599,19 +687,24 @@ MenuAction drawUpdateCorner(const MenuState& st, const Layout& L, const Nav& n, 
     ls.color = withAlpha(hov ? kWhite : kText, a);
     text(bx + gw + 28.f * sc, by + bh * 0.5f - ls.size * 0.56f, label, ls);
     bool pressed = dialogFree && n.in && (n.in->pressed(KEY_U) || n.in->pad.pressed(PAD_Y));
-    if ((hov && n.click) || pressed) act.type = ready ? MA_UPDATE_RESTART : MA_UPDATE_PAGE;
+    if ((hov && n.click) || pressed) act.type = ready ? MA_UPDATE_RESTART : MA_UPDATE_OPEN;
     return act;
 }
 
 void drawUpdateLine(const MenuState& st, const Layout& L, float a) {
     const UpdateNotice& u = st.update;
-    if (u.kind == UPD_NONE) return;
-    const char* v = u.version.c_str();
-    std::string line;
-    if (u.kind == UPD_DOWNLOADING && u.progress >= 0.f) line = StrFormat("Downloading update %s... %d%%", v, (int)(Saturate(u.progress) * 100.f));
-    else if (u.kind == UPD_DOWNLOADING) line = StrFormat("Downloading update %s...", v);
-    else if (u.kind == UPD_READY) line = StrFormat("Update %s is ready, it installs the next time you start Neon Tide.", v);
-    else line = StrFormat("Update %s available: the main menu opens its download page.", v);
+    std::string c = u.commit.empty() ? std::string() : " " + u.commit, line;
+    switch (u.kind) {
+    case UPD_DOWNLOADING:
+        line = "Downloading update" + c + "..." + (u.bytes > 0 ? StrFormat(" %.1f MB", (double)u.bytes / 1048576.0) : std::string());
+        break;
+    case UPD_UNPACKING: line = "Unpacking update" + c + "..."; break;
+    case UPD_BUILDING: line = "Building update" + c + "... " + clockTime(u.seconds); break;
+    case UPD_READY: line = "Update" + c + " is ready, it installs the next time you start Neon Tide."; break;
+    case UPD_FAILED: line = "Update" + c + " could not be built: the main menu opens its log."; break;
+    case UPD_BLOCKED: line = "Update" + c + " available: the main menu says what building it needs."; break;
+    default: return;   // (nothing while checking)
+    }
     float sc = L.s, y = L.H - 62.f * sc;
     circle(L.left + 6.f * sc, y + 11.f * sc, 5.f * sc, withAlpha(updateAccent(u), a));
     text(L.left + 20.f * sc, y, line.c_str(), style(FONT_BODY, 18.f * sc, withAlpha(kTextDim, a)));

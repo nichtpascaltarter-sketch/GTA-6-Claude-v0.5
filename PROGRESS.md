@@ -419,23 +419,49 @@ Everything (code, models, textures, animation, audio, music, voices, map) is gen
 - FX bridge: `spawnFx/spawnDecal/spawnTracer/spawnSkid/spawnLight` -> renderer particles/decals/lights.
 - Test automation: `--play` (skip menu), `--autoplay walk|drive|bike|fly|boat|shoot` (scripted input, periodic
   screenshots `auto_<mode>_NN.bmp`, telemetry in the log), `--autoduration S`, `--autoevery S`.
+- Data folder: `Platform::userDataDir()` (win32.cpp) is the only way to it: log, settings.ini, saves, Photos,
+  benchmark, ui_font.bin, shadercache and the updater's `updates\`. `--datadir=<dir>` / `NEONTIDE_DATADIR` replace
+  `%LOCALAPPDATA%\NeonTide\` (made with its parents, a full path ending in a backslash), so test runs on the user's
+  PC never touch the player's own files.
 
-## Updates (src/platform/updater*, since 2026-10-19)
-- Version: `src/core/version.h` (`NT_VERSION`, "0.02.7-dev" between releases; `VERSION=x ./build.sh` / `set VERSION=x`
-  for build.bat). Shown in the main menu's top-right corner; the start line of the log carries it too.
-- `Updater::startCheck` (WinMain, after the window opens) reads GitHub's release list (`/releases?per_page=10`: drafts
-  skipped, pre-releases count, highest version by tag) on a detached thread with WinHTTP (TLS checks on, 5 s
-  connect / 10 s receive timeouts). A newer `NeonTide*.exe` is downloaded to `<exe>.download` and verified: https,
-  the listed size, an x64 PE image, the SHA-256 (BCrypt) against GitHub's asset digest, else a `.sha256` /
-  `SHA256SUMS*` asset, else a hash in the release notes; it is then kept as `<exe>.pending` + `<exe>.pending.json`.
-- `Updater::beforeStart` (first thing in WinMain, no window yet) checks the pending file again and swaps it in
-  (`<exe>` -> `<exe>.old`, pending -> `<exe>`), starts it with the same command line and exits; the new process
-  appends to the same log (`NEONTIDE_UPDATED_FROM`) and deletes `<exe>.old`. Main menu: notice with progress, then
-  "Restart now" (U / pad Y / click: quits, saves settings, installs, restarts) or "Open download page" when the
-  download failed or the folder is not writable; one line in the pause menu. Settings > Gameplay > Automatic Updates.
+## Updates (src/platform/updater*, since 2026-10-19; built from main's source since 2026-10-20)
+- Version and commit: `src/core/version.h` (`NT_VERSION` "0.02.7-dev", `VERSION=x` overrides it; `NT_COMMIT` from the
+  `NT_COMMIT` environment variable, else `git rev-parse HEAD` when the build folder has its own `.git`, else
+  "unknown", set by build.sh / build.bat). The main menu's top-right corner shows "Version 0.02.7-dev" with a dot
+  (drawn, the UI font is ASCII only) and the commit's 7 digits; the log's start line carries both.
+- Channel: GitHub's `main` (merged pull requests). `Updater::startCheck` (WinMain, after the window opens) runs a
+  detached thread with WinHTTP (https only to github.com and its subdomains, TLS checks on):
+  `compare/<NT_COMMIT>...main?per_page=100&page=100` (about 13 KB: pages past the first leave out the commits and the
+  file patches) updates only on "ahead"; identical, behind, diverged and 404 (a commit GitHub does not know) log why
+  not. Then `commits?sha=main&per_page=ahead_by+1`: main's head and the pull requests from the merge messages ("Merge
+  pull request #N: title", GitHub's "... from owner/branch" + title line, squash "title (#N)"), down to NT_COMMIT;
+  an "unknown" build lists 10 and updates to main's head once. One API request per start when up to date, two with an
+  update (60 an hour per address unauthenticated).
+- Build (`buildUpdate`): needs a toolchain (`pickToolchain`, build.bat's order: vswhere's VS with the x64 C++ tools
+  and vcvars64.bat, cl on PATH, g++ + windres on PATH, then w64devkit / MSYS2 UCRT64 / MINGW64 folders put in front of
+  PATH), `%SystemRoot%\System32\tar.exe` and a writable game folder; otherwise the notice says what is missing and
+  nothing is downloaded. `https://github.com/<repo>/archive/<sha>.tar.gz` (302 to codeload.github.com, not an API
+  request) goes to `<data folder>\updates\<sha>\source.tar.gz` (`%LOCALAPPDATA%\NeonTide\` or `--datadir`); tar.exe
+  unpacks it, its single top folder must end in the SHA and becomes `src\`; build.bat is rewritten with CRLF (cmd.exe
+  mislabels LF batch files) and runs as `cmd.exe /d /c .\build.bat` with NT_COMMIT set and VERSION removed, below-normal
+  priority, no window, stdin NUL, output in `build.log`, in a job object (killed when the game exits, the setting goes
+  off, a benchmark starts, or after 60 min). `bin\NeonTide.exe` must be an x64 PE carrying the 40-digit commit; it is
+  copied next to the game, hashed (BCrypt SHA-256) and kept as `<exe>.pending` + `<exe>.pending.json` {commit, from,
+  size, sha256, toolchain, commits, pulls}. A failed build writes `failed.txt` (not retried for that commit with that
+  toolchain); other update folders are removed; after a success only `build.log` stays. A named mutex keeps two games
+  from building at once.
+- `Updater::beforeStart` (first thing in WinMain, no window yet) checks the pending file again (from == this build's
+  commit, size, SHA-256, PE, the commit inside) and swaps it in (`<exe>` -> `<exe>.old`, pending -> `<exe>`), starts
+  it with the same command line and exits; the new process appends to the same log (`NEONTIDE_UPDATED_FROM` carries
+  the old commit) and deletes `<exe>.old`. Main menu notice: checking (a line), downloading (MB), unpacking, building
+  (elapsed time), ready ("Restart now": U / pad Y / click quits, saves settings, installs, restarts), build failed
+  ("Open log"), cannot build here ("Open help page": the README's Updates section); one line in the pause menu.
+  Settings > Gameplay > Automatic Updates.
 - Never in automated runs (`automatedRun()` in updater.cpp lists the flags) or with `--no-update`. Tests: native
-  `tests/updater/update_logic_test.cpp` (real API fixtures); `--update-url URL` (http only to this machine) with
-  `--update-test` runs install-or-download without a window; `--viewer menu` shots named `..updget/updready/updfail`.
+  `tests/updater/update_logic_test.cpp` (real compare / commit-list fixtures, toolchain choice, command lines and
+  environment, archive and exe checks); `--update-url URL` (one server for API and archive, http only to this
+  machine) with `--update-test` runs install-or-build without a window; `--viewer menu` shots named
+  `..updcheck/updget/updunpack/updbuild/updready/updfail/updtools` (`updlong`: long titles).
 
 ## Backlog (after the current agent wave)
 - Characters realism pass 3 (faces, skin, hands at close range): next agent slot that frees up.

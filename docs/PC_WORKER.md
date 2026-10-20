@@ -18,9 +18,10 @@ This file is what the PC session reads first, and it is the whole contract betwe
 
 ## Rules
 
-1. **Never touch the user's own checkout.** Work only in worktrees beside it, made with
-   `git worktree add ../neon-tide-pc <ref>`, one per agent package (`../neon-tide-pc-<id>`). Never change the user's
-   branches, stashes or files. Remove a worktree once its package is done (`git worktree remove`).
+1. **Never touch the user's own checkout.** Keep one clone of your own that lasts, for example
+   `%USERPROFILE%\NeonTide-pc`, never a temporary folder. Work only in worktrees beside it, made with
+   `git worktree add --detach ../neon-tide-pc <ref>`, one per agent package (`../neon-tide-pc-<id>`). Never change the
+   user's branches, stashes or files. Remove a worktree once its package is done (`git worktree remove`).
 2. **Push only `pc/results` and `pc/work-<id>`.** Never push `main` or any `claude/*` branch. Never force-push. Never
    delete a branch you did not make. Never merge anything: the lead lands all code through its snapshots.
 3. **The repository is public.** Results never hold:
@@ -42,16 +43,20 @@ This file is what the PC session reads first, and it is the whole contract betwe
 ## The channel: two branches
 
 Packages come on `claude/pc-queue`, one file each: `queue/<id>.md`. Results go on `pc/results` under `results/<id>/`.
-The lead also messages the PC session when a package is queued, and the PC worker messages the lead when a result is
-pushed, so that neither waits on polling. The branches are the record, and they work even when the messages don't.
+The branches are the whole channel. Today the PC session cannot message the cloud session, and the cloud session
+cannot see the PC session, so neither waits on a message.
 
-- **Waiting.** When idle, run `sh tools/pc/next_package.sh --wait` in the background. It fetches once a minute and
-  exits with the id of the oldest package that is neither started nor cancelled.
+- **Waiting.** When idle, run `powershell -NoProfile -ExecutionPolicy Bypass -File tools\pc\next_package.ps1 -Wait`
+  in the background. It fetches once a minute and exits with the id of the oldest package that is neither started nor
+  cancelled. `tools/pc/next_package.sh` does the same where a POSIX shell runs: Git for Windows' `sh` cannot fork
+  inside the PC session.
+- **Signing in.** git needs GitHub credentials to push. The first push asks the user to sign in, so a package's
+  `started` can be a few minutes late the first time.
 - **Taking a package.** Push `results/<id>/started`, holding the UTC time on one line, within a minute of seeing the
   package. If a package is still unstarted 15 minutes after it was queued, the lead takes it back, runs it in the cloud
   and adds `queue/<id>.cancelled`. `next_package.sh` skips cancelled packages.
-- **Finishing.** Push `results/<id>/summary.md` and any files, then message the lead `PC RESULT <id> <pass|fail|error>`.
-  The summary holds:
+- **Finishing.** Push `results/<id>/summary.md` and any files. If the lead's session is among those you can message,
+  also send it `PC RESULT <id> <pass|fail|error>`. The summary holds:
   - the id, kind and ref;
   - the start and finish times (UTC);
   - the status;
@@ -68,7 +73,7 @@ that ref.
 
 | Kind | What to run | What the result reports |
 |---|---|---|
-| `build` | `cmd /c build.bat` (MSVC via vswhere) | the return code, the time, the exe's size, and every compiler warning and error line |
+| `build` | `cmd /c .\build.bat` (MSVC via vswhere). The session sets `NoDefaultCurrentDirectoryInExePath`, so a bare `build.bat` is not found. vcvars64's "'vswhere.exe' is not recognized" line comes from the same setting and is harmless | the return code, the time, the exe's size, and every compiler warning and error line |
 | `test` | each named test with MSVC: `cl /nologo /std:c++17 /utf-8 /O2 /EHsc /W3 /I. <test>.cpp /Fe:build\<name>.exe`, then run it | each test's return code and its last lines |
 | `run` | `bin\NeonTide.exe <args> --datadir=<worktree>\pcdata\` after a `build` of the same ref | the return code; the log's lines that the args name (see below); `log.txt` from the data dir, scrubbed per rule 3 |
 | `shots` | a `run` whose args carry `--shot ...` and `--shotdir <worktree>\shots\` | the shots as PNG (the game writes BMP; convert them with PowerShell's System.Drawing), one per shot, named as the shot |
@@ -93,8 +98,11 @@ the files the agent owns, its checks, and its sign-off format.
 
 ## When the PC is off
 
-Nothing waits for it. The lead checks for the PC session at every check-in, and for each heavy job it queues:
-- If the PC session is there, the work goes to the PC.
-- If it isn't, or a package goes unstarted for 15 minutes, the cloud runs the work as it always has.
+Nothing waits for it. The lead cannot see the PC session, so it goes by the queue. For each heavy job:
+- It queues a package for the PC first.
+- If the package goes unstarted for 15 minutes, the PC counts as off: the lead takes the package back and the cloud
+  runs the work as it always has.
+- Once one package goes unstarted, the lead keeps the work in the cloud until the user says the PC is back, or a
+  package is picked up again.
 
 Agents already running in the cloud finish there. New agent tasks go to the PC while it is up.

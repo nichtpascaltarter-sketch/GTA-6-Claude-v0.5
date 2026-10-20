@@ -17,22 +17,50 @@ WASAPI, and WinHTTP and BCrypt for updates) and the compiler's standard library.
 - Double-click `NeonTide.exe`. There is nothing to install. The first launch compiles and caches the shaders
   (about half a minute), and every launch generates the world (a few seconds on a modern CPU).
 - Settings, saves, photos and benchmark results live in `%LOCALAPPDATA%\NeonTide\`
-  (`settings.ini`, `saves\`, `Photos\`, `benchmark.txt`).
-- The game keeps itself up to date. At startup it looks for a newer release in the background, then downloads and
-  checks it. The update installs the next time you start the game, or right away with **Restart now** in the main
-  menu. When the game's folder is not writable, the menu links to the download page instead. Settings > Gameplay >
-  Automatic Updates turns this off, and so does starting the game with `--no-update`.
+  (`settings.ini`, `saves\`, `Photos\`, `benchmark.txt`), with the log, the shader cache and the updater's builds.
+  `--datadir=<dir>` (or the environment variable `NEONTIDE_DATADIR`) puts all of them in another folder, so test
+  runs leave the player's own files alone.
+- The game keeps itself up to date by building GitHub's newest source on your PC (see [Updates](#updates)). The
+  update installs the next time you start the game, or right away with **Restart now** in the main menu. Settings >
+  Gameplay > Automatic Updates turns this off, and so does starting the game with `--no-update`.
 
 ## Building
 
 - **Windows:** run `build.bat`. It uses MSVC when Visual Studio (Build Tools) is installed and falls back to MinGW-w64
   `g++`. Output: `bin\NeonTide.exe`, statically linked with no DLL dependencies.
 - **Linux cross-compile:** `./build.sh` (MinGW-w64 g++ 13, static). `./build.sh debug` builds with symbols.
-- **Releases:** build with the release's version, for example `VERSION=0.02.7 ./build.sh` (Windows: `set VERSION=0.02.7`,
-  then `build.bat`). The main menu shows that version and the updater compares it. Publish the exe on GitHub as
-  release `v0.02.7` with the asset name `NeonTide-0.02.7.exe`, and optionally `NeonTide-0.02.7.exe.sha256`. GitHub
-  records each asset's SHA-256, and the updater checks it. Pre-releases count, drafts don't. Between releases the
-  source carries the next version with `-dev` (`src/core/version.h`).
+- **Version and commit:** every build carries the commit it was built from: git's `HEAD` when the folder is a git
+  checkout, or the `NT_COMMIT` environment variable, which takes precedence (otherwise `unknown`). The main menu shows
+  the version and the commit's first 7 digits, and the updater compares the commit with `main`. `VERSION=0.02.7
+  ./build.sh` (Windows: `set VERSION=0.02.7`, then `build.bat`) names the version; the source carries `0.02.7-dev`
+  (`src/core/version.h`). Updates no longer need GitHub releases.
+
+## Updates
+
+Updates come from the `main` branch on GitHub, which holds only merged pull requests. The game builds them from
+source on your PC; open or unmerged pull requests are never built.
+
+- At startup the game asks GitHub how its commit compares with `main`. That takes one request, or two when there is
+  an update; GitHub allows 60 an hour per address. Only when `main` has new commits that the running build lacks does
+  it list them: the main menu and the log show the pull requests they merged, for example "3 new updates: #55 ...".
+- The game then downloads `main`'s source (about 6 MB, over https from github.com only, with certificate checks on)
+  and unpacks it with Windows' own `tar.exe`. It builds it with `build.bat` in the background at below-normal
+  priority, in `%LOCALAPPDATA%\NeonTide\updates\<commit>\` (or under `--datadir`). The main menu shows each step
+  and the build's running time. The exe it built must be a 64-bit Windows program that carries the new commit. It
+  is kept next to `NeonTide.exe` until the next start, which checks it again (size, SHA-256, program header) and
+  swaps it in.
+- **What building needs:** Windows 10 version 1803 or later (for `tar.exe`) and a C++ compiler, either of these:
+  - [Visual Studio Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/), free, with the "Desktop
+    development with C++" workload. The game finds it with `vswhere`, as `build.bat` does.
+  - [w64devkit](https://github.com/skeeto/w64devkit/releases) unpacked to `C:\w64devkit` (or `%USERPROFILE%\w64devkit`),
+    or MinGW-w64 GCC from MSYS2 in `C:\msys64\ucrt64` or `C:\msys64\mingw64`, or any `g++` and `windres` on `PATH`.
+
+  Without a compiler, the main menu says what building needs, and nothing is downloaded.
+- If a build fails, the game keeps running the version it has. The main menu offers **Open log**, which opens
+  `build.log` in the update's folder. That commit is not built again with the same compiler; the next commit on
+  `main` is. Old update folders are removed. A build without a commit (`unknown`) updates to `main`'s newest once. A
+  build is not updated when it is already at `main`'s newest commit, ahead of `main`, on another branch, or built from
+  a commit GitHub does not know.
 
 ## Controls
 
@@ -87,6 +115,9 @@ times to `%LOCALAPPDATA%\NeonTide\benchmark.txt`. Options: `--quality 0..3`, `--
 
 ## Developer and test options
 
+- `--datadir=<dir>` (or `NEONTIDE_DATADIR=<dir>`): the folder for the log, settings, saves, photos, benchmark results,
+  caches and the updater's builds, instead of `%LOCALAPPDATA%\NeonTide\`. Test runs on a player's PC keep their files
+  out of the player's own folder. The folder is made if it is missing, and the log's first line names it.
 - `--play`: skip the menu into a new game. `--firstperson`: first person on foot and in vehicles (`--autoplay fpguns` then
   screenshots every gun at the hip, aiming, sprinting, reloading and through scopes; `--tourstart N` /
   `--tourcount M` pick steps; `--autoplay melee --meleeweapon knife|bat` fights with a blade or a bat).
@@ -103,10 +134,10 @@ times to `%LOCALAPPDATA%\NeonTide\benchmark.txt`. Options: `--quality 0..3`, `--
   its messages; `--gfxselftest` runs the graphics-layer self-test (bindless, root constants, indirect draws and
   dispatches, async compute, aliasing, mip generation) and exits with 0 when it passes; `--gputimers` and
   `--synctimers` log per-pass timings.
-- Updates: `--no-update` skips the updater. `--update-url URL` reads the release list from another URL (plain http
-  only to 127.0.0.1 or localhost) and checks even during automated runs. `--update-test` installs a downloaded update,
-  or else checks, downloads and verifies one, without opening a window, then exits (0 done, 1 no update, 2 not
-  downloaded). Other automated runs (`--autotest`, `--benchmark`, `--shot` ...) never update.
+- Updates: `--no-update` skips the updater. `--update-url URL` asks the server at URL instead of api.github.com and
+  github.com (plain http only to 127.0.0.1 or localhost), and it checks even during automated runs. `--update-test`
+  installs a built update, or else checks, downloads, builds and verifies one, without opening a window, then exits
+  (0 done, 1 no update, 2 not built). Other automated runs (`--autotest`, `--benchmark`, `--shot` ...) never update.
 - Native test harnesses live in `tests/` (vehicle physics, animation, audio, wildlife, transit, graphics layer,
   updater logic), plus `tools/worldcheck.cpp` for world data.
 
