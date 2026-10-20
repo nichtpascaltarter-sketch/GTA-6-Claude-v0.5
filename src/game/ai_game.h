@@ -203,6 +203,8 @@ struct PedAI {
     vec2 slot;                 // formation offset (leader frame)
     vec2 followVel = vec2(0.f);   // walking with company: the (smoothed) pace that keeps the slot (pedai.cpp) ...
     i8 slotSide = 0;              // ... and the side of the leader kept: +1 right, -1 left (0: not set yet - the slot's)
+    u8 followMode = 0;            // ... and what the companion is at - 0 neither, 1 stopped with the leader, 2 walking along -
+    float followModeT = 0.f;      // kept a while once taken, left past a wider mark than it was taken at (pedai.cpp)
     i8 rideSeat = -1;             // ACT_RIDE_ALONG: the passenger seat they are getting into (pa.targetVeh's) ...
     bool rider = false;           // ... and in it: out with the driver at a stop (traffic.cpp parking), or on their own
                                   // when the driver is gone (ai.cpp: away from the player at the wheel)
@@ -661,5 +663,43 @@ struct AIState {
     float meetBoost = 1.f;              // autoplay tests: acquaintances meet this many times as often
     bool ready = false;
 };
+
+// Walking turns a gait can follow (pedai.cpp's walkers, ai.cpp's BRAIN_FOLLOW / BRAIN_GOTO, police.cpp's officers on
+// foot). People slow for a sharp turn, or take it over a step or two: at 6-9 rad/s (then a 3 rad/s cap on the asked speed)
+// the feet slid - the animation agent's locotour had 8 of 19 slides over 20 cm in quick turns at walking pace (1.7-3.2
+// rad/s at 0.36-0.98 m/s), the worst a group follower's 148-degree pivot.
+namespace ai_turn {
+
+// the body's turn rate at v m/s: 4 rad/s stood or barely moving (the animator's feet step round on the spot), 2.4 rad/s
+// from 0.4 m/s up (a right-angle turn over a step or two at a full walk; no quicker in a slow walk, where the feet slid most)
+inline float rate(float v) { return Lerp(4.f, 2.4f, Saturate((v - 0.1f) / 0.3f)); }
+
+// The way a walker going at v m/s, its body facing yaw, goes when asked for `desired`: eased to the body's turn - no more
+// than 35 degrees off the way the body faces from 0.5 m/s up (an arc through the turn, not a crab across the old line),
+// any way at all when barely moving - and the pace easing off with the turn's size: as asked up to 50 degrees off, under
+// a tenth of it by 130 (a turn round taken all but on the spot, then off again)
+inline vec2 follow(float yaw, vec2 desired, float v) {
+    float l = length(desired);
+    if (l < 1e-3f) return desired;
+    float err = AI::wrapPi(atan2f(-desired.x, desired.y) - yaw);
+    float k = Lerp(1.f, 0.08f, Saturate((fabsf(err) - 0.87f) / 1.4f));
+    float allow = Lerp(kPi, 0.6f, Saturate((v - 0.15f) / 0.35f));
+    float go = yaw + Clamp(err, -allow, allow);
+    return vec2(-sinf(go), cosf(go)) * (l * k);
+}
+
+// An on-foot step's turn rate (rateMax for a run or aiming) and pace: under 2.4 m/s asked and not aiming, the rate a gait
+// can follow at the speed it is going at (v) - stood or creeping too: 4 rad/s on the spot, where the feet step round (a
+// walker held up to a creep behind somebody turned at its 8 rad/s on nt_ai102b's turntest); walking (over 0.35 m/s asked)
+// the way it faces (faceYaw within 35 degrees of it: not a strafe or a step back) and `couple` (not a quick step aside),
+// the way and the pace eased to the body too (follow)
+inline float ease(float yaw, float faceYaw, float v, bool aiming, float rateMax, vec2& desired, bool couple = true) {
+    float l = length(desired);
+    if (aiming || l >= 2.4f) return rateMax;
+    if (l > 0.35f && couple && fabsf(AI::wrapPi(faceYaw - atan2f(-desired.x, desired.y))) < 0.6f) desired = follow(yaw, desired, v);
+    return Min(rateMax, rate(v));
+}
+
+}  // namespace ai_turn
 
 }  // namespace Game
