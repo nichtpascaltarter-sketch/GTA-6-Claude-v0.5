@@ -87,6 +87,13 @@ that ref.
 For `run` and `shots`, the package names the log lines it wants, for example `autoplay t=`, `selftest:`,
 `Unhandled` or `benchmark`. A `run` that crashes still reports, with the crash lines from the log.
 
+Driving a game window from PowerShell, as learned on this PC:
+- **Keys:** press with `keybd_event`, hold the key for 200 ms, then release it. The game reads a key once a frame, so
+  SendKeys' instant tap is lost.
+- **Screenshots of the window:** call user32's `SetProcessDPIAware()` before `GetWindowRect`. Windows PowerShell isn't
+  DPI-aware, so under display scaling it gets a shrunken rectangle and the shot is cut off.
+- **Timing:** take a screenshot only after the log says `Init done`.
+
 ## Agent packages
 
 An `agent` package is a full task for an agent, written as the lead would write it for a cloud agent. It gives the goal,
