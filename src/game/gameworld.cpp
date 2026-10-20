@@ -14,6 +14,28 @@ mat3 frameFromForward(vec3 fwd, vec3 upHint) {
     return mat3(x, y, z);
 }
 
+// Headlamp technology of a vehicle, for its beam and its lens (dynamic.hlsl lightBits 64): LED (cool white) on current
+// and premium models, halogen (warm) on the dated ones - the '70s muscle car and pickup, the boxy old SUV; everyday
+// models mix, decided by the car's uid so the same car always looks the same (fleet trucks, buses, vans and cabs
+// lean to halogen).
+bool headlampIsLED(const Vehicles::VehicleModel& m, u32 uid) {
+    if (m.name.find('\'') != std::string::npos || m.name == "Tanuki") return false;
+    switch (m.cls) {
+        case Vehicles::VC_SPORTS: case Vehicles::VC_SUPER: case Vehicles::VC_POLICE: case Vehicles::VC_AMBULANCE:
+        case Vehicles::VC_FIRETRUCK: case Vehicles::VC_PLANE: case Vehicles::VC_HELI:
+            return true;
+        default: break;
+    }
+    if (m.maker == "Nordwerk" || m.maker == "Ardent" || m.maker == "Castiglia" || m.maker == "Aether") return true;
+    bool fleet = m.cls == Vehicles::VC_BUS || m.cls == Vehicles::VC_TRUCK || m.cls == Vehicles::VC_SERVICE || m.cls == Vehicles::VC_TAXI;
+    u32 h = (uid ^ 0x9E3779B9u) * 2654435761u;
+    h ^= h >> 16;
+    return (float)(h & 0xffffu) / 65535.f < (fleet ? 0.3f : 0.55f);
+}
+// beam colours at the old single colour's luminance (0.937): LED ~6000 K, halogen ~3200 K (softened)
+const vec3 kHeadLED = vec3(1.f, 0.98f, 0.95f) * (0.937f / 0.982f);
+const vec3 kHeadHalogen = vec3(1.f, 0.8f, 0.55f) * (0.937f / 0.8245f);
+
 }  // namespace gw_detail
 
 using namespace gw_detail;
@@ -412,6 +434,7 @@ void GameWorld::submitRender() {
         if (v.indicator < 0 || v.indicator == 2 || v.alarm) bits |= 8u;    // 2 = hazard lights (both sides)
         if (v.indicator == 1 || v.indicator == 2 || v.alarm) bits |= 16u;
         if (v.sirenOn) bits |= 32u;
+        if (headlampIsLED(a.spec, v.uid)) bits |= 64u;   // LED headlamps (lens colour, dynamic.hlsl)
         // level of detail by distance (the player's own vehicle always full detail)
         int vlod = vi == playerVehicle() ? 0 : (dist < 40.f ? 0 : (dist < 120.f ? 1 : 2));
         // an open door is only a part of its own at full detail (the distant levels are closed shells)
@@ -561,48 +584,108 @@ void GameWorld::submitRender() {
             rd.id = 0x400000000ull | v.uid;
             dyn->submit(rd);
         }
-        if ((v.lightsOn || v.sirenOn || (bits & 2u)) && dist < 260.f) lit.push_back({dist, vi});
+        if ((v.lightsOn || v.sirenOn || (bits & 6u)) && dist < 260.f) lit.push_back({dist, vi});
     }
-    // Real light sources for the nearest lit vehicles
+    // Real light sources for the nearest lit vehicles: up to 24 within 260 m. Beyond ~40 m each lamp pair (head,
+    // tail, brake) becomes one light at the pair's centre with their summed intensity, cross-faded over 36..44 m so
+    // nothing pops as a car crosses the band: far cars cost half the lights (each a full-size lighting volume).
     std::sort(lit.begin(), lit.end(), [](const LitCar& a, const LitCar& b) { return a.d < b.d; });
     int nLit = 0;
     for (const LitCar& lc : lit) {
-        if (nLit >= 14) break;
+        if (nLit >= 24) break;
         nLit++;
         Vehicle& v = vehicles[lc.id];
         const Vehicles::VehicleModel& spec = vassets[v.model].spec;
         mat3 R = v.sim.body.rotMat();
-        bool brake = v.seats[0] >= 0 && v.ctl.brake > 0.1f && v.sim.forwardSpeed() > 0.5f;
+        bool driven = v.seats[0] >= 0;
+        bool brake = driven && v.ctl.brake > 0.1f && v.sim.forwardSpeed() > 0.5f;
+        bool reversing = driven && v.sim.gear < 0;
+        bool lowBeam = !isAircraft(lc.id) && !isBoat(lc.id);
+        vec3 headC = (headlampIsLED(spec, v.uid) ? kHeadLED : kHeadHalogen) * (night ? 9000.f : 3000.f);
+        const vec3 tailC = vec3(1.f, 0.05f, 0.02f) * 15.f;    // tail lamps: real ones are 4-12 cd, a faint red tint
+        const vec3 brakeC = vec3(1.f, 0.05f, 0.02f) * 220.f;  // brake lamps flare red on the road
+        // the lamp groups that are on: their light positions and aims, summed (merged far away)
+        struct Group {
+            dvec3 pos;
+            vec3 dir = vec3(0.f);
+            int n = 0;
+        } grp[3];   // 0 head, 1 tail, 2 brake
+        bool brakeLamps = false;   // (without brake lamps of their own the tail lamps brighten when braking)
+        for (const auto& L : spec.lights) brakeLamps = brakeLamps || L.type == Vehicles::LT_BRAKE;
+        auto groupOf = [&](const Vehicles::LightSpec& L) {
+            if (L.type == Vehicles::LT_HEAD && v.lightsOn) return 0;
+            if (L.type == Vehicles::LT_TAIL && brake && !brakeLamps) return 2;
+            if (L.type == Vehicles::LT_TAIL && v.lightsOn) return 1;
+            if (L.type == Vehicles::LT_BRAKE && brake) return 2;
+            return -1;
+        };
+        auto lightPos = [&](const Vehicles::LightSpec& L, int g) {
+            return v.sim.body.pos + R * L.pos + R * (g == 0 ? vec3(0, 0.15f, 0) : vec3(0, -0.2f, 0));
+        };
+        auto headDir = [&](const Vehicles::LightSpec& L) { return normalize(R * (length2(L.dir) > 0.1f ? L.dir : vec3(0, 1, -0.03f))); };
         for (const auto& L : spec.lights) {
-            dvec3 lp = v.sim.body.pos + R * L.pos;
-            if (L.type == Vehicles::LT_HEAD && v.lightsOn) {
-                Render::DynamicLight dl;
-                dl.pos = lp + R * vec3(0, 0.15f, 0);
-                dl.dir = normalize(R * (length2(L.dir) > 0.1f ? L.dir : vec3(0, 1, -0.08f)));
-                dl.color = vec3(1.f, 0.93f, 0.82f) * (night ? 9000.f : 3000.f);
+            int g = groupOf(L);
+            if (g < 0) continue;
+            grp[g].pos = grp[g].pos + lightPos(L, g);
+            if (g == 0) grp[g].dir += headDir(L);
+            grp[g].n++;
+        }
+        float fade = SmoothStep(36.f, 44.f, lc.d);   // 0: a light per lamp, 1: one per pair
+        auto submit = [&](int g, dvec3 pos, vec3 dir, float k) {
+            Render::DynamicLight dl;
+            dl.pos = pos;
+            if (g == 0) {
+                dl.dir = dir;
+                dl.color = headC * k;
                 dl.radius = 45.f;
                 dl.spotCos = cosf(32.f * kDegToRad);
                 dl.spotInner = cosf(18.f * kDegToRad);
-                dl.headlight = !isAircraft(lc.id) && !isBoat(lc.id);   // low-beam pattern with cut-off (renderer)
-                renderer->addLight(dl);
-            } else if ((L.type == Vehicles::LT_TAIL && v.lightsOn) || (L.type == Vehicles::LT_BRAKE && brake)) {
+                dl.headlight = lowBeam;   // low-beam pattern with cut-off (renderer)
+            } else {
+                dl.color = (g == 1 ? tailC : brakeC) * k;
+                dl.radius = g == 1 ? 2.5f : 5.f;
+            }
+            renderer->addLight(dl);
+        };
+        for (const auto& L : spec.lights) {
+            int g = groupOf(L);
+            if (g >= 0) {
+                float k = grp[g].n >= 2 ? 1.f - fade : 1.f;
+                if (k > 0.f) submit(g, lightPos(L, g), g == 0 ? headDir(L) : vec3(0, 0, -1), k);
+            } else if (L.type == Vehicles::LT_REVERSE && reversing) {
+                // reversing lamp: a wide white spot over the ground behind the car
                 Render::DynamicLight dl;
-                dl.pos = lp - R * vec3(0, 0.2f, 0);
-                dl.color = vec3(1.f, 0.05f, 0.02f) * (brake ? 220.f : 60.f);
-                dl.radius = brake ? 5.f : 3.f;
+                dl.pos = v.sim.body.pos + R * L.pos - R * vec3(0, 0.15f, 0);
+                dl.dir = normalize(R * vec3(0, -1, -0.35f));
+                dl.color = vec3(1.f, 0.98f, 0.95f) * 80.f;
+                dl.radius = 4.5f;
+                dl.spotCos = cosf(75.f * kDegToRad);
+                dl.spotInner = cosf(45.f * kDegToRad);
                 renderer->addLight(dl);
             } else if ((L.type == Vehicles::LT_SIREN_RED || L.type == Vehicles::LT_SIREN_BLUE) && v.sirenOn) {
-                // same flash pattern as the lens shader (dynamic.hlsl): the left half of the bar is half a cycle ahead
-                float ph = fmodf(env->gameSeconds * 2.2f + (L.pos.x < 0.f ? 0.5f : 0.f), 1.f);
-                if (ph < 0.25f || (ph > 0.35f && ph < 0.55f)) {
+                // same pattern as the lens shader (dynamic.hlsl): the left half of the bar half a cycle ahead; with
+                // Reduce Flashing the two halves pulse slowly in turn instead of strobing
+                float k;
+                if (reduceFlashing) k = 0.55f + 0.25f * sinf(env->gameSeconds * 1.2f + (L.pos.x < 0.f ? kPi : 0.f));
+                else {
+                    float ph = fmodf(env->gameSeconds * 2.2f + (L.pos.x < 0.f ? 0.5f : 0.f), 1.f);
+                    k = (ph < 0.25f || (ph > 0.35f && ph < 0.55f)) ? 1.f : 0.f;
+                }
+                if (k > 0.f) {
                     Render::DynamicLight dl;
-                    dl.pos = lp + vec3(0, 0, 0.2f);
-                    dl.color = (L.type == Vehicles::LT_SIREN_RED ? vec3(1.f, 0.05f, 0.05f) : vec3(0.1f, 0.2f, 1.f)) * 1500.f;
+                    dl.pos = v.sim.body.pos + R * L.pos + vec3(0, 0, 0.2f);
+                    dl.color = (L.type == Vehicles::LT_SIREN_RED ? vec3(1.f, 0.05f, 0.05f) : vec3(0.1f, 0.2f, 1.f)) * (1500.f * k);
                     dl.radius = 18.f;
                     renderer->addLight(dl);
                 }
             }
         }
+        if (fade > 0.f)
+            for (int g = 0; g < 3; g++)
+                if (grp[g].n >= 2) {
+                    vec3 d = g == 0 && length2(grp[g].dir) > 1e-6f ? normalize(grp[g].dir) : vec3(0, 0, -1);
+                    submit(g, grp[g].pos * (1.0 / grp[g].n), d, (float)grp[g].n * fade);
+                }
     }
     // ---- peds
     int copTorches = 0;

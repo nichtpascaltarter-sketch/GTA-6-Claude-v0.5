@@ -59,7 +59,8 @@ FormatRules schemaFormatRules();
 // required and unknown fields, value types. Appends errors with their lines.
 void checkDocument(const Document& doc, std::vector<Error>& errors);
 
-// A field, or a record's own id, that names other records (docs/NTW_FORMAT.md section 5). The validator resolves them.
+// A field, or a record's own id, that names other records (docs/NTW_FORMAT.md section 5). worldv and the world model
+// (worldmodel.h) resolve them, reading the values with the parsed patterns below.
 // The pattern is the value's shape: <a|b> is a reference to a record of class a or b, * any one part, other text is
 // literal, '|' separates alternatives, and a trailing ",..." means a list of what comes before it. The classes:
 // - world-wide: district, node, edge, busstop, block, parcel, lot, building, line (a transit file's line=), plan,
@@ -76,6 +77,39 @@ struct RefDef {
     const char* pattern;
 };
 const std::vector<RefDef>& schemaRefs();
+
+// A RefDef pattern, parsed: alternatives, each a sequence of the parts that ':' separates in a value
+struct RefPart {
+    char kind = 'l';       // 'l' literal, '*' any one part, 'r' a reference
+    std::string text;      // the literal, or the reference's classes ("parcel|lot")
+};
+struct RefAlt {
+    std::vector<RefPart> parts;
+    bool list = false;     // a list, each item these parts
+};
+struct RefPattern {
+    std::string text;
+    std::vector<RefAlt> alts;
+};
+RefPattern parseRefPattern(const char* text);
+
+// A reference read out of a value: the classes it may name, and the id it names (an id ending ".*" names a family)
+struct RefName {
+    std::string cls;
+    std::string id;
+};
+// The references in `value`, one group per list item (one group when the alternative that fits isn't a list); false
+// when the value fits none of the pattern's alternatives. The first alternative that fits wins.
+bool matchRefs(const RefPattern& pattern, const std::string& value, std::vector<std::vector<RefName>>& groups);
+
+// schemaRefs() parsed: the rules of a record type in a file of `kind` (type "ntw": the header line), in the table's
+// order; nullptr when it has none. `key` nullptr: the record's own id names the target. Built on first use, then
+// read-only (threads may share it once one call has returned).
+struct RefRule {
+    const char* key;
+    RefPattern pattern;
+};
+const std::vector<RefRule>* refRules(const std::string& kind, const std::string& type);
 
 }  // namespace Ntw
 }  // namespace World

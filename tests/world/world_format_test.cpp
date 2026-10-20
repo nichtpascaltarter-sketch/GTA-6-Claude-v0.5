@@ -187,10 +187,34 @@ static const Sample kSamples[] = {
     {"layout.ntw",
         "ntw 1 layout id=lib.layout.house.bungalow_b02_f0\n"
         "wall w1 a=0.00,0.00 b=11.60,0.00 t=0.25 ext=front\n"
+        "wall w2 a=11.60,0.00 b=11.60,9.40 t=0.25 ext=right\n"
+        "wall w3 a=11.60,9.40 b=0.00,9.40 t=0.25 ext=back\n"
+        "wall w4 a=0.00,9.40 b=0.00,0.00 t=0.25 ext=left\n"
         "wall w5 a=5.20,0.00 b=5.20,6.00 t=0.12\n"
+        "wall w6 a=0.00,6.00 b=11.60,6.00 t=0.12\n"
+        "wall w7 a=0.00,7.20 b=11.60,7.20 t=0.12\n"
+        "wall w8 a=6.00,7.20 b=6.00,9.40 t=0.12\n"
+        "wall w9 a=8.60,7.20 b=8.60,9.40 t=0.12\n"
         "room living type=living poly=0.00,0.00;5.20,0.00;5.20,6.00;0.00,6.00 cap=6 sched=evening lux=150\n"
+        "room kitchen type=kitchen poly=5.20,0.00;11.60,0.00;11.60,6.00;5.20,6.00 cap=4 lux=300\n"
+        "room hall type=hall poly=0.00,6.00;11.60,6.00;11.60,7.20;0.00,7.20 cap=2\n"
+        "room bed type=bed poly=0.00,7.20;6.00,7.20;6.00,9.40;0.00,9.40 cap=2\n"
+        "room bath type=bath poly=6.00,7.20;8.60,7.20;8.60,9.40;6.00,9.40 cap=1\n"
+        "room bed2 type=bed poly=8.60,7.20;11.60,7.20;11.60,9.40;8.60,9.40 cap=1\n"
         "door d1 wall=w1 at=2.20 w=0.95 h=2.10 kind=hinged hinge=left swing=in leads=out:living\n"
+        "door d2 wall=w5 at=3.00 w=0.90 h=2.10 kind=hinged hinge=left swing=in leads=living:kitchen\n"
+        "door d3 wall=w6 at=2.60 w=0.90 h=2.10 kind=hinged hinge=right swing=in leads=living:hall\n"
+        "door d4 wall=w6 at=8.40 w=0.90 h=2.10 kind=opening leads=kitchen:hall\n"
+        "door d5 wall=w7 at=3.00 w=0.90 h=2.10 kind=hinged hinge=left swing=in leads=hall:bed\n"
+        "door d6 wall=w7 at=7.30 w=0.90 h=2.10 kind=hinged hinge=right swing=in leads=hall:bath lock=key\n"
+        "door d7 wall=w7 at=10.10 w=0.90 h=2.10 kind=hinged hinge=left swing=in leads=hall:bed2\n"
+        "door d8 wall=w2 at=2.00 w=0.90 h=2.10 kind=hinged hinge=right swing=out leads=kitchen:out lock=key\n"
         "window n1 wall=w1 at=4.00 w=1.20 h=1.40 sill=0.90 kind=dhung room=living\n"
+        "window n2 wall=w1 at=8.40 w=1.20 h=1.40 sill=0.90 kind=dhung room=kitchen\n"
+        "window n3 wall=w3 at=1.50 w=1.00 h=1.40 sill=0.90 kind=dhung room=bed2\n"
+        "window n4 wall=w3 at=4.30 w=0.60 h=0.60 sill=1.50 kind=jalousie room=bath\n"
+        "window n5 wall=w3 at=8.60 w=1.20 h=1.40 sill=0.90 kind=dhung room=bed\n"
+        "window n6 wall=w4 at=6.50 w=1.20 h=1.40 sill=0.90 kind=dhung room=living\n"
         "furnish living variants=a,b,c\n"
         "  variant a set=lib.set.living.cottage_01 anchor=w5\n"
         "  variant b set=lib.set.living.family_04 anchor=w5\n"
@@ -203,14 +227,22 @@ static const Sample kSamples[] = {
         "ntw 1 layout id=lib.layout.midrise.core_a\n"
         "wall w1 a=0.00,0.00 b=6.00,0.00 t=0.25 ext=front\n"
         "wall w2 a=0.00,5.00 b=3.00,5.00 t=0.20\n"
+        "wall w3 a=6.00,0.00 b=6.00,10.00 t=0.25 ext=right\n"
+        "wall w4 a=6.00,10.00 b=0.00,10.00 t=0.25 ext=back\n"
+        "wall w5 a=0.00,10.00 b=0.00,0.00 t=0.25 ext=left\n"
+        "wall w6 a=3.00,5.00 b=3.00,10.00 t=0.20\n"
+        "wall w7 a=3.00,5.00 b=6.00,5.00 t=0.12\n"
         "room lobby type=lobby poly=0.00,0.00;6.00,0.00;6.00,5.00;0.00,5.00 cap=20 sched=always lux=300\n"
         "room stair type=stair poly=0.00,5.00;3.00,5.00;3.00,10.00;0.00,10.00 cap=6\n"
+        "room liftlobby type=lobby poly=3.00,5.00;6.00,5.00;6.00,10.00;3.00,10.00 cap=8\n"
         "door d1 wall=w1 at=3.00 w=1.80 h=2.40 kind=revolving leads=out:lobby hours=7.00-22.00\n"
         "door d2 wall=w2 at=1.50 w=0.90 h=2.10 kind=hinged hinge=left swing=out leads=lobby:stair lock=none\n"
-        "stair st1 from=f0.stair to=f1.stair run=0.75,5.60;0.75,8.40;2.25,8.40;2.25,5.60 w=1.10 kind=dogleg treads=16 rise=0.18\n"
-        "  landing=1.20\n"
-        "stair st2 from=f0.lobby to=roof.plant run=5.55,3.50;5.00,4.05;4.45,3.50;5.00,2.95;5.55,3.50 w=0.75 kind=spiral treads=14\n"
-        "  rise=0.20 walk=0.55\n"
+        "door d3 wall=w7 at=1.50 w=2.40 h=2.40 kind=opening leads=lobby:liftlobby\n"
+        "window n1 wall=w1 at=1.20 w=1.20 h=2.00 sill=0.40 kind=storefront room=lobby\n"
+        "stair st1 from=f0.stair to=f1.stair run=0.75,6.00;0.75,9.20;2.25,9.20;2.25,6.00 w=1.10 kind=dogleg treads=18 rise=0.16\n"
+        "  landing=1.10\n"
+        "stair st2 from=f0.lobby to=roof.plant run=5.55,3.50;5.00,4.05;4.45,3.50;5.00,2.95;5.55,3.50 w=0.75 kind=spiral treads=12\n"
+        "  rise=0.22 walk=0.55\n"
         "lift lf1 at=4.50,7.50 size=1.60x1.40 stops=f0,f1,f2,f3 cap=8 call=4.50,5.80\n"},
     {"palette.ntw",
         "ntw 1 palette family=bungalow\n"
@@ -352,7 +384,57 @@ static void testRefs() {
             ok = found;
         }
         EXPECT(ok, "reference row %s %s %s names no field", r.kind, r.type, r.key ? r.key : "(id)");
+        // every pattern parses: alternatives with parts, each reference naming its classes
+        const Ntw::RefPattern p = Ntw::parseRefPattern(r.pattern);
+        bool parts = !p.alts.empty() && p.text == r.pattern;
+        for (const Ntw::RefAlt& a : p.alts) {
+            parts = parts && !a.parts.empty();
+            for (const Ntw::RefPart& part : a.parts) parts = parts && (part.kind != 'r' || (!part.text.empty() && !strchr(part.text.c_str(), ':')));
+        }
+        EXPECT(parts, "reference row %s %s %s: the pattern %s doesn't parse", r.kind, r.type, r.key ? r.key : "(id)", r.pattern);
     }
+
+    // values read with a pattern: the references in each list item, as "class=id" joined by ' ', groups by '/'
+    struct Case {
+        const char* pattern;
+        const char* value;
+        bool fits;
+        const char* names;
+    };
+    const Case cases[] = {
+        {"auto|<signal>", "auto", true, ""},
+        {"auto|<signal>", "lib.signal.fourway", true, "signal=lib.signal.fourway"},
+        {"*:<edge>,...", "n:cl.e0001,e:cl.e0002", true, "edge=cl.e0001/edge=cl.e0002"},
+        {"*:<edge>,...", "n-cl.e0001", false, ""},
+        {"<edge>:*", "cl.e0001:0", true, "edge=cl.e0001"},
+        {"<edge>:*", "cl.e0001", false, ""},
+        {"<edge>:*:*", "cl.e0007:72.00:right", true, "edge=cl.e0007"},
+        {"<parcel|lot>", "cl.b014.lot1", true, "parcel|lot=cl.b014.lot1"},
+        {"<unit|fitout>,...", "lib.unit.walkup.*,lib.fitout.shop.corner_a", true, "unit|fitout=lib.unit.walkup.*/unit|fitout=lib.fitout.shop.corner_a"},
+        {"<busstop>|<building>:<f.door|f.counter>", "cl.b014.s07:f0.d1", true, "building=cl.b014.s07 f.door|f.counter=f0.d1"},
+        {"out:<.room|.slot>|<.room|.slot>:out|<.room|.slot>:<.room|.slot>", "out:hall", true, ".room|.slot=hall"},
+        {"<f.room>|0:<.room>", "0:hall", true, ".room=hall"},
+        {"<f.room>|+1:<.room>|-1:<.room>", "+2:hall", false, ""},
+        {"<node>", "Bad Id", false, ""},
+        {"<edge>,...", "cl.e0001,,cl.e0002", false, ""},
+        {"all|<edge>,...", "all", true, ""},
+    };
+    for (const Case& c : cases) {
+        std::vector<std::vector<Ntw::RefName>> groups;
+        const bool fits = Ntw::matchRefs(Ntw::parseRefPattern(c.pattern), c.value, groups);
+        std::string names;
+        for (size_t g = 0; fits && g < groups.size(); g++) {
+            if (g) names += "/";
+            for (size_t i = 0; i < groups[g].size(); i++) names += (i ? " " : "") + groups[g][i].cls + "=" + groups[g][i].id;
+        }
+        EXPECT(fits == c.fits && names == c.names, "pattern %s, value %s: %s '%s'", c.pattern, c.value, fits ? "fits" : "doesn't fit", names.c_str());
+    }
+    const std::vector<Ntw::RefRule>* node = Ntw::refRules("roads", "node");
+    EXPECT(node && node->size() == 4 && !strcmp((*node)[0].key, "plan") && (*node)[0].pattern.alts.size() == 2, "refRules: roads node");
+    const std::vector<Ntw::RefRule>* junction = Ntw::refRules("roads", "junction");
+    EXPECT(junction && junction->size() == 1 && !(*junction)[0].key, "refRules: a junction's id");
+    const std::vector<Ntw::RefRule>* stair = Ntw::refRules("unit", "stair");
+    EXPECT(stair && stair->size() == 2 && Ntw::refRules("roads", "ntw") && !Ntw::refRules("terrain", "grid") && !Ntw::refRules("nokind", "node"), "refRules: lookups");
 }
 
 // ---------------------------------------------------------------------------------------------------- LZ, world.bin

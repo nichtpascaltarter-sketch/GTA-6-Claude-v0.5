@@ -3,42 +3,11 @@
 #include "transit.h"
 #include "../core/noise.h"
 #include <unordered_map>
+#include "roadnet.cpp"   // the network's data and queries (the hand-built roads' compiler links it alone)
 
 namespace World {
 
 RoadNetwork* gRoads = nullptr;
-
-static const RoadClassInfo kRoadInfo[RC_COUNT] = {
-    // name        laneW lanes median shoulder sidewalk speed  gradeSep
-    {"Expressway", 3.6f, 3, 1.2f, 2.6f, 0.f, 33.f, true},
-    {"Boulevard", 3.4f, 3, 4.0f, 1.2f, 4.5f, 18.f, false},
-    {"Avenue", 3.3f, 2, 0.f, 2.2f, 3.5f, 15.f, false},
-    {"Street", 3.2f, 1, 0.f, 2.4f, 3.0f, 12.f, false},
-    {"Lane", 3.0f, 1, 0.f, 1.0f, 1.8f, 10.f, false},
-    {"Road", 3.3f, 1, 0.f, 1.0f, 0.f, 22.f, false},
-    {"Track", 2.8f, 1, 0.f, 0.f, 0.f, 9.f, false},
-    {"Ramp", 3.8f, 1, 0.f, 1.4f, 0.f, 20.f, true},
-};
-const RoadClassInfo& roadInfo(RoadClass c) { return kRoadInfo[c < RC_COUNT ? c : RC_STREET]; }
-
-vec3 RoadEdge::posAt(float s) const {
-    if (pts.size() < 2) return pts.empty() ? vec3() : pts[0];
-    s = Clamp(s, 0.f, length);
-    size_t i = std::upper_bound(dist.begin(), dist.end(), s) - dist.begin();
-    if (i == 0) i = 1;
-    if (i >= pts.size()) i = pts.size() - 1;
-    float seg = dist[i] - dist[i - 1];
-    float t = seg > 1e-5f ? (s - dist[i - 1]) / seg : 0.f;
-    return lerp(pts[i - 1], pts[i], t);
-}
-vec3 RoadEdge::tangentAt(float s) const {
-    if (pts.size() < 2) return vec3(1, 0, 0);
-    s = Clamp(s, 0.f, length);
-    size_t i = std::upper_bound(dist.begin(), dist.end(), s) - dist.begin();
-    if (i == 0) i = 1;
-    if (i >= pts.size()) i = pts.size() - 1;
-    return normalize(pts[i] - pts[i - 1]);
-}
 
 namespace roads_detail {
 
@@ -1597,6 +1566,673 @@ void RoadNetwork::generate(WorldMap& map) {
         if (e.sidewalk <= 0.f) e.flags |= RF_NOSIDEWALK;
     }
 
+    // ============================================================= Roads laid along each other
+    // The named roads (Bayshore Boulevard on the shore line, Old Cutler Road, the causeways, the county roads) are laid over
+    // the districts' grids. Where one runs a few degrees off a grid line, or along it a few metres over, the planariser joins
+    // the two at nodes and leaves their carriageways on top of each other for tens of metres. Their lanes then block each
+    // other with nothing to resolve it (the AI agent's traffic_sim --overlaps; the deadlocks where 9th Avenue runs inside
+    // Bayshore Boulevard and where the Solano Causeway comes in along 35th Street). So the lower road gives way where it lies
+    // on top of the higher one: a stretch of it beside the higher road at under 32 degrees, with its centreline on the
+    // higher road's carriageway (or within 0.8 of its own half width of the higher road's centreline) for 8 m or more
+    // outside both roads' junction areas (the cut-backs the intersection pass sets below), goes. The whole run where the
+    // carriageways overlap goes with it, and the rest of the edge too when less than 20 m of it would be left, or less than
+    // 40 m running on beside the higher road. A cut end is joined back to the higher road at about 65 degrees, at a new
+    // junction on it. What the lower road leaves behind is tidied: a road left with a free end under 20 m goes; a junction
+    // left inside the higher road's carriageway becomes the higher road's junction that a short road (under 20 m) joined it
+    // to, or else moves onto it (into its junction there when that is close); a dead end left further out gets a link to
+    // it; and of two roads then left on top of each other between the same two junctions, the one that gives way goes.
+    // Lots, buildings, bus stops and parked cars hang on the edges' seeds and their places in the order, so every other edge
+    // keeps both. Of an edge's pieces, the one from its start keeps its slot and seed (its lots stay where they were); the
+    // other new edges take the slots of the edges that went, then go last, with seeds made from their edge's. When fewer new
+    // edges come than went, the road nearest to a gone edge (a street or lane before a main road) is split just short of
+    // the junction at its far end (where no lot fits) until every slot is filled: no edge after a gone one moves.
+    {
+        const int NE0 = (int)edges.size();
+        auto atGrade = [&](const RoadEdge& e) { return e.cls != RC_HIGHWAY && e.cls != RC_RAMP && !(e.flags & RF_ELEVATED) && e.pts.size() >= 2; };
+        std::vector<std::vector<vec2>> P2((size_t)NE0);
+        std::vector<std::vector<float>> C2((size_t)NE0);
+        for (int i = 0; i < NE0; i++) {
+            for (const vec3& p : edges[i].pts) P2[i].push_back(p.xy());
+            C2[i].assign(P2[i].size(), 0.f);
+            for (size_t k = 1; k < P2[i].size(); k++) C2[i][k] = C2[i][k - 1] + length(P2[i][k] - P2[i][k - 1]);
+        }
+        auto lenOf = [&](int i) { return C2[i].empty() ? 0.f : C2[i].back(); };
+        // the junction areas, as the intersection pass will cut them back: a node of 3 or more edges clears the widest
+        // road's half width (and some sidewalk) plus 2 m, at most 0.45 of an edge's length
+        std::vector<float> nodeR(nodes.size(), 0.f);
+        std::vector<int> nodeDeg(nodes.size(), 0);
+        for (const RoadEdge& e : edges) {
+            float r = e.halfWidth + e.sidewalk * 0.3f;
+            nodeR[(size_t)e.n0] = Max(nodeR[(size_t)e.n0], r);
+            nodeR[(size_t)e.n1] = Max(nodeR[(size_t)e.n1], r);
+            nodeDeg[(size_t)e.n0]++;
+            nodeDeg[(size_t)e.n1]++;
+        }
+        for (size_t n = 0; n < nodes.size(); n++) nodeR[n] = nodeDeg[n] >= 3 ? nodeR[n] + 2.f : 0.f;
+        auto cutBack = [&](int i, int end) { return Min(nodeR[(size_t)(end ? edges[i].n1 : edges[i].n0)], lenOf(i) * 0.45f); };
+        auto pointAt = [&](int i, float s) {
+            const std::vector<vec2>& q = P2[i];
+            const std::vector<float>& c = C2[i];
+            if (s <= 0.f) return q.front();
+            if (s >= c.back()) return q.back();
+            size_t k = (size_t)(std::upper_bound(c.begin(), c.end(), s) - c.begin());
+            float seg = c[k] - c[k - 1];
+            return lerp(q[k - 1], q[k], seg > 1e-5f ? (s - c[k - 1]) / seg : 0.f);
+        };
+        // the arc length of the point of edge i's stretch [a, b] nearest to p (and its distance)
+        auto arcOn = [&](int i, vec2 p, float a, float b, float* dist) {
+            float bestD = 1e18f, bestS = a;
+            for (size_t k = 0; k + 1 < P2[i].size(); k++) {
+                if (C2[i][k + 1] < a || C2[i][k] > b) continue;
+                float t;
+                distPointSegment2D(p, P2[i][k], P2[i][k + 1], &t);
+                float s = Clamp(Lerp(C2[i][k], C2[i][k + 1], t), a, b), d = length(p - pointAt(i, s));
+                if (d < bestD) {
+                    bestD = d;
+                    bestS = s;
+                }
+            }
+            if (dist) *dist = bestD;
+            return bestS;
+        };
+        auto arcOf = [&](int i, vec2 p) { return arcOn(i, p, 0.f, lenOf(i), nullptr); };
+        // who gives way: the lower class (a rural road ranks above a street), a bridge before the rest of its class, then
+        // the shorter road (all the edges of its name), then the higher index
+        static const int kGiveWayRank[RC_COUNT] = {0, 1, 2, 4, 5, 3, 6, 7};   // highway, boulevard, avenue, street, lane, rural, dirt, ramp
+        std::unordered_map<std::string, float> roadLen;
+        for (int i = 0; i < NE0; i++) roadLen[edges[i].name] += lenOf(i);
+        auto wins = [&](int a, int b) {
+            const RoadEdge &A = edges[a], &B = edges[b];
+            int ra = kGiveWayRank[A.cls] * 2 + ((A.flags & RF_BRIDGE) ? 0 : 1), rb = kGiveWayRank[B.cls] * 2 + ((B.flags & RF_BRIDGE) ? 0 : 1);
+            if (ra != rb) return ra < rb;
+            float la = A.name.empty() ? lenOf(a) : roadLen[A.name], lb = B.name.empty() ? lenOf(b) : roadLen[B.name];
+            if (fabsf(la - lb) > 1.f) return la > lb;
+            return a < b;
+        };
+        const float kG = 32.f;
+        auto gkey = [](int x, int y) { return (long long)(y + 100000) * 400000LL + (x + 100000); };
+        std::unordered_map<long long, std::vector<std::pair<int, int>>> grid;   // (edge, segment)
+        float maxHw = 0.f;
+        for (int i = 0; i < NE0; i++) {
+            if (!atGrade(edges[i])) continue;
+            maxHw = Max(maxHw, edges[i].halfWidth);
+            for (size_t k = 0; k + 1 < P2[i].size(); k++) {
+                vec2 a = P2[i][k], c = P2[i][k + 1];
+                int x0 = (int)floorf(Min(a.x, c.x) / kG), x1 = (int)floorf(Max(a.x, c.x) / kG);
+                int y0 = (int)floorf(Min(a.y, c.y) / kG), y1 = (int)floorf(Max(a.y, c.y) / kG);
+                for (int y = y0; y <= y1; y++)
+                    for (int x = x0; x <= x1; x++) grid[gkey(x, y)].push_back({i, (int)k});
+            }
+        }
+        // ---- find the stretches: every 2 m along each road, the winning road whose carriageway it overlaps, and whether
+        // it lies on top of it (deep)
+        const float kStep = 2.f, kParallel = 0.85f, kDeepMin = 8.f, kMinPiece = 20.f;
+        struct Cut {
+            float s0, s1;          // the stretch (arc length from n0), first and last sample inside
+            int win0, win1;        // the road it lies in at its two ends
+        };
+        std::vector<std::vector<Cut>> cuts((size_t)NE0);
+        std::vector<int> inside;
+        std::vector<char> deep;
+        for (int bi = 0; bi < NE0; bi++) {
+            const RoadEdge& B = edges[bi];
+            if (!atGrade(B)) continue;
+            float L = lenOf(bi);
+            if (L < 8.f) continue;
+            int n = (int)(L / kStep) + 1;
+            inside.assign((size_t)n, -1);
+            deep.assign((size_t)n, 0);
+            bool any = false;
+            const float bLo = cutBack(bi, 0) + 1.f, bHi = L - cutBack(bi, 1) - 1.f;
+            for (int j = 0; j < n; j++) {
+                float s = Min(j * kStep, L);
+                vec2 p = pointAt(bi, s);
+                vec2 t = pointAt(bi, Min(s + 1.f, L)) - pointAt(bi, Max(s - 1.f, 0.f));
+                float tl = length(t);
+                if (tl < 1e-4f) continue;
+                t = t / tl;
+                float r = B.halfWidth + maxHw + 1.f, bestD = 1e9f;
+                int x0 = (int)floorf((p.x - r) / kG), x1 = (int)floorf((p.x + r) / kG);
+                int y0 = (int)floorf((p.y - r) / kG), y1 = (int)floorf((p.y + r) / kG);
+                for (int y = y0; y <= y1; y++)
+                    for (int x = x0; x <= x1; x++) {
+                        auto it = grid.find(gkey(x, y));
+                        if (it == grid.end()) continue;
+                        for (const auto& ref : it->second) {
+                            int ai = ref.first;
+                            if (ai == bi) continue;
+                            const RoadEdge& A = edges[ai];
+                            size_t k = (size_t)ref.second;
+                            vec2 a = P2[ai][k], c = P2[ai][k + 1];
+                            float tt, d = distPointSegment2D(p, a, c, &tt);
+                            if (d >= A.halfWidth + B.halfWidth || d >= bestD) continue;
+                            if ((k == 0 && tt <= 1e-3f) || (k + 2 == P2[ai].size() && tt >= 1.f - 1e-3f)) continue;   // past its end
+                            vec2 ad = c - a;
+                            float al = length(ad);
+                            if (al < 1e-4f || fabsf(dot(ad / al, t)) < kParallel || !wins(ai, bi)) continue;
+                            bestD = d;
+                            inside[(size_t)j] = ai;
+                            float sA = Lerp(C2[ai][k], C2[ai][k + 1], tt);
+                            deep[(size_t)j] = d <= Max(A.halfWidth, 0.8f * B.halfWidth) && s > bLo && s < bHi && sA > cutBack(ai, 0) + 1.f &&
+                                              sA < lenOf(ai) - cutBack(ai, 1) - 1.f;
+                        }
+                    }
+                any = any || deep[(size_t)j];
+            }
+            if (!any) continue;
+            for (int j = 0; j < n;) {
+                if (inside[(size_t)j] < 0) {
+                    j++;
+                    continue;
+                }
+                int j1 = j;   // one clear sample between two inside ones does not end the stretch
+                while (j1 + 1 < n && (inside[(size_t)j1 + 1] >= 0 || (j1 + 2 < n && inside[(size_t)j1 + 2] >= 0))) j1++;
+                int deepN = 0;
+                for (int k = j; k <= j1; k++) deepN += deep[(size_t)k];
+                Cut c;
+                c.s0 = j * kStep;
+                c.s1 = Min(j1 * kStep, L);
+                c.win0 = inside[(size_t)j];
+                c.win1 = inside[(size_t)j1];
+                if (deepN * kStep >= kDeepMin) cuts[(size_t)bi].push_back(c);
+                j = j1 + 1;
+            }
+        }
+        // ---- a cut that would leave less than 20 m of the edge before or after it, or between it and the next one, takes
+        // that too, and so does one that would leave under 40 m running along the bigger road's carriageway to the edge's
+        // end (a join would only bring it back beside it): the road then gives way from its junction
+        auto alongTo = [&](int bi, float a, float b, int win) {
+            int n = Max(1, (int)ceilf((b - a) / 4.f));
+            for (int k = 0; k <= n; k++) {
+                float d;
+                arcOn(win, pointAt(bi, Lerp(a, b, (float)k / n)), 0.f, lenOf(win), &d);
+                if (d > edges[win].halfWidth + edges[bi].halfWidth + 5.f) return false;
+            }
+            return true;
+        };
+        for (int bi = 0; bi < NE0; bi++) {
+            std::vector<Cut>& cs = cuts[(size_t)bi];
+            if (cs.empty()) continue;
+            float L = lenOf(bi);
+            std::vector<Cut> merged;
+            for (Cut c : cs) {
+                float before = c.s0 - kStep, after = L - (c.s1 + kStep);
+                if (before < kMinPiece || (before < 2.f * kMinPiece && alongTo(bi, 0.f, before, c.win0))) c.s0 = 0.f;
+                if (after < kMinPiece || (after < 2.f * kMinPiece && alongTo(bi, c.s1 + kStep, L, c.win1))) c.s1 = L;
+                if (!merged.empty() && (c.s0 - kStep) - (merged.back().s1 + kStep) < kMinPiece) {
+                    if (c.s1 > merged.back().s1) {
+                        merged.back().s1 = c.s1;
+                        merged.back().win1 = c.win1;
+                    }
+                } else {
+                    merged.push_back(c);
+                }
+            }
+            cs.swap(merged);
+        }
+        // ---- the joins: each cut end meets the winning road at a node on it, ~65 degrees back toward the stretch
+        struct Join {
+            int edge;      // the winning road (-1: given up with its cut)
+            float s;       // where on it: an arc length, or one of its ends (0 or its length) when that is within 3 m
+            int node;
+        };
+        std::vector<Join> joins;
+        auto ownCutAt = [&](int ai, float s) {
+            for (const Cut& c : cuts[(size_t)ai])
+                if (s > c.s0 - 5.f && s < c.s1 + 5.f) return true;
+            return false;
+        };
+        auto planJoin = [&](int bi, int ai, float sP, float sInside) {
+            vec2 p = pointAt(bi, sP), q = pointAt(bi, sInside);
+            float sF = arcOf(ai, p), sQ = arcOf(ai, q), LA = lenOf(ai);
+            float back = length(p - pointAt(ai, sF)) * 0.4663f;   // cot 65 degrees
+            float sM = sQ < sF ? sF - back : sF + back;
+            if (sM < 3.f) sM = 0.f;
+            else if (sM > LA - 3.f) sM = LA;
+            if (ownCutAt(ai, sM)) return -1;   // that road gives way there itself
+            joins.push_back({ai, sM, -1});
+            return (int)joins.size() - 1;
+        };
+        // ---- the pieces of road: every edge's stretches between its cuts, with the links from and to their joins
+        struct Piece {
+            int src;                 // the edge it comes from
+            float a, b;              // its stretch of that edge
+            int n0, n1;              // its end nodes
+            int joinA, joinB;        // a link from a join to its start / from its end to a join (-1: none)
+            std::vector<vec2> own;   // a link of its own instead of a stretch (a dead end joined to the bigger road)
+            bool alive;
+        };
+        std::vector<Piece> pcs;
+        pcs.reserve((size_t)NE0 + 256);
+        auto addPiece = [&](int src, float a, float b, int jA, int jB) {
+            Piece p;
+            p.src = src;
+            p.a = a;
+            p.b = b;
+            p.joinA = jA;
+            p.joinB = jB;
+            p.n0 = jA >= 0 ? -1 : edges[src].n0;   // (a join's node comes below)
+            p.n1 = jB >= 0 ? -1 : edges[src].n1;
+            p.alive = true;
+            pcs.push_back(p);
+        };
+        struct Absorbed {
+            int node, winner;   // a node of a cut edge inside its cut, and the road it lay in there
+        };
+        std::vector<Absorbed> absorbed;
+        int cutsMade = 0, cutsLeft = 0;
+        float metresCut = 0.f;
+        for (int i = 0; i < NE0; i++) {
+            float L = lenOf(i), cur = 0.f;
+            int curJoin = -1;
+            bool alive = true;
+            for (const Cut& c : cuts[(size_t)i]) {
+                bool atStart = c.s0 <= 0.f, atEnd = c.s1 >= L;
+                float sEnd = c.s0 - kStep, sStart = c.s1 + kStep;
+                int jEnd = atStart ? -1 : planJoin(i, c.win0, sEnd, c.s0);
+                int jStart = atEnd ? -1 : planJoin(i, c.win1, sStart, c.s1);
+                if ((!atStart && jEnd < 0) || (!atEnd && jStart < 0)) {
+                    if (jEnd >= 0) joins[(size_t)jEnd].edge = -1;
+                    if (jStart >= 0) joins[(size_t)jStart].edge = -1;
+                    cutsLeft++;
+                    continue;
+                }
+                cutsMade++;
+                metresCut += c.s1 - c.s0;
+                if (atStart) absorbed.push_back({edges[i].n0, c.win0});
+                else addPiece(i, cur, sEnd, curJoin, jEnd);
+                if (atEnd) {
+                    absorbed.push_back({edges[i].n1, c.win1});
+                    alive = false;
+                    break;
+                }
+                cur = sStart;
+                curJoin = jStart;
+            }
+            if (alive) addPiece(i, cur, L, curJoin, -1);
+        }
+        if (cutsMade > 0) {
+            // ---- the join nodes: an end of the winning road within 3 m, a node shared with another join within 3 m, or a
+            // new node that splits it
+            std::vector<char> joinUsed(joins.size(), 0);
+            for (const Piece& p : pcs) {
+                if (p.joinA >= 0) joinUsed[(size_t)p.joinA] = 1;
+                if (p.joinB >= 0) joinUsed[(size_t)p.joinB] = 1;
+            }
+            std::vector<std::vector<int>> joinsOn((size_t)NE0);
+            for (size_t k = 0; k < joins.size(); k++)
+                if (joins[k].edge >= 0 && joinUsed[k]) joinsOn[(size_t)joins[k].edge].push_back((int)k);
+            int joined = 0;
+            for (int i = 0; i < NE0; i++) {
+                std::vector<int>& js = joinsOn[(size_t)i];
+                std::sort(js.begin(), js.end(), [&](int x, int y) { return joins[(size_t)x].s < joins[(size_t)y].s; });
+                float L = lenOf(i);
+                int last = -1;
+                for (int k : js) {
+                    Join& J = joins[(size_t)k];
+                    joined++;
+                    if (J.s <= 0.f) J.node = edges[i].n0;
+                    else if (J.s >= L) J.node = edges[i].n1;
+                    else if (last >= 0 && J.s - joins[(size_t)last].s < 3.f && joins[(size_t)last].s > 0.f) {
+                        J.s = joins[(size_t)last].s;
+                        J.node = joins[(size_t)last].node;
+                    } else {
+                        RoadNode rn;
+                        rn.p = pointAt(i, J.s);
+                        J.node = (int)nodes.size();
+                        nodes.push_back(rn);
+                    }
+                    last = k;
+                }
+            }
+            for (Piece& p : pcs) {
+                if (p.joinA >= 0) p.n0 = joins[(size_t)p.joinA].node;
+                if (p.joinB >= 0) p.n1 = joins[(size_t)p.joinB].node;
+            }
+            // splitting a piece at s (of its edge) with a node there; the part after it is a new piece
+            auto splitPiece = [&](int pi, float s, int node) {
+                Piece q = pcs[(size_t)pi];
+                pcs[(size_t)pi].b = s;
+                pcs[(size_t)pi].n1 = node;
+                pcs[(size_t)pi].joinB = -1;
+                q.a = s;
+                q.n0 = node;
+                q.joinA = -1;
+                pcs.push_back(q);
+                return (int)pcs.size() - 1;
+            };
+            auto pieceAt = [&](int i, float s) {
+                for (size_t k = 0; k < pcs.size(); k++) {
+                    const Piece& p = pcs[k];
+                    if (p.alive && p.src == i && p.own.empty() && s > p.a && s < p.b) return (int)k;
+                }
+                return -1;
+            };
+            for (size_t k = 0; k < joins.size(); k++) {
+                const Join& J = joins[k];
+                if (J.edge < 0 || !joinUsed[k] || J.s <= 0.f || J.s >= lenOf(J.edge)) continue;
+                int pi = pieceAt(J.edge, J.s);
+                if (pi >= 0) splitPiece(pi, J.s, J.node);
+            }
+            auto pieceLen = [&](const Piece& p) {
+                float l = 0.f;
+                if (!p.own.empty()) {
+                    for (size_t k = 0; k + 1 < p.own.size(); k++) l += length(p.own[k + 1] - p.own[k]);
+                    return l;
+                }
+                l = p.b - p.a;
+                if (p.joinA >= 0) l += length(nodes[(size_t)p.n0].p - pointAt(p.src, p.a));
+                if (p.joinB >= 0) l += length(nodes[(size_t)p.n1].p - pointAt(p.src, p.b));
+                return l;
+            };
+            // the pieces at each node, and its junction radius as the intersection pass will make it
+            std::vector<std::vector<int>> at;
+            auto rebuildAt = [&]() {
+                at.assign(nodes.size(), std::vector<int>());
+                for (size_t k = 0; k < pcs.size(); k++)
+                    if (pcs[k].alive) {
+                        at[(size_t)pcs[k].n0].push_back((int)k);
+                        if (pcs[k].n1 != pcs[k].n0) at[(size_t)pcs[k].n1].push_back((int)k);
+                    }
+            };
+            auto radiusAt = [&](int n) {
+                if (at[(size_t)n].size() < 3) return 0.f;
+                float r = 0.f;
+                for (int k : at[(size_t)n]) r = Max(r, edges[pcs[(size_t)k].src].halfWidth + edges[pcs[(size_t)k].src].sidewalk * 0.3f);
+                return r + 2.f;
+            };
+            // ---- a road the cuts leave with a free end under 20 m (the rest of a cross street inside the bigger road) goes
+            std::vector<char> affected(nodes.size(), 0);
+            for (const Absorbed& ab : absorbed) affected[(size_t)ab.node] = 1;
+            int hanging = 0;
+            for (bool again = true; again;) {
+                again = false;
+                rebuildAt();
+                for (size_t k = 0; k < pcs.size(); k++) {
+                    Piece& p = pcs[k];
+                    if (!p.alive) continue;
+                    bool free0 = affected[(size_t)p.n0] && at[(size_t)p.n0].size() == 1, free1 = affected[(size_t)p.n1] && at[(size_t)p.n1].size() == 1;
+                    if ((!free0 && !free1) || pieceLen(p) >= kMinPiece) continue;
+                    p.alive = false;
+                    affected[(size_t)p.n0] = affected[(size_t)p.n1] = 1;
+                    hanging++;
+                    again = true;
+                }
+            }
+            // ---- a junction the lower road leaves inside the bigger road's carriageway moves onto it (into its junction there
+            // when it lies in that junction's area), unless a short road still joins it to it; a dead end the cut leaves
+            // further out gets a link to it, square to it
+            auto sameRoad = [&](int i, int w) { return i == w || (!edges[w].name.empty() && edges[i].name == edges[w].name && atGrade(edges[i])); };
+            int movedOn = 0, linked = 0;
+            std::vector<char> seen(nodes.size(), 0);
+            for (const Absorbed& ab : absorbed) {
+                int N = ab.node, W = ab.winner;
+                if (seen[(size_t)N]) continue;
+                seen[(size_t)N] = 1;
+                rebuildAt();
+                const std::vector<int> here = at[(size_t)N];
+                if (here.empty()) continue;
+                bool onW = false, grade = true;
+                for (int k : here) {
+                    onW = onW || sameRoad(pcs[(size_t)k].src, W);
+                    grade = grade && atGrade(edges[pcs[(size_t)k].src]);
+                }
+                if (onW || !grade) continue;
+                int best = -1;
+                float bestD = 1e9f, bestS = 0.f;
+                for (size_t k = 0; k < pcs.size(); k++) {
+                    const Piece& p = pcs[k];
+                    if (!p.alive || !p.own.empty() || !sameRoad(p.src, W)) continue;
+                    float d, s = arcOn(p.src, nodes[(size_t)N].p, p.a, p.b, &d);
+                    if (d < bestD) {
+                        bestD = d;
+                        best = (int)k;
+                        bestS = s;
+                    }
+                }
+                if (best < 0) continue;
+                const Piece P = pcs[(size_t)best];
+                // the node on the winning road it goes to: one of the piece's ends when the point is in that end's junction
+                // area (or within 3.5 m of it), else a node that splits the piece
+                auto landing = [&](int node) {
+                    if (P.joinA < 0 && bestS - P.a < Max(3.5f, radiusAt(P.n0) + 5.f)) return P.n0;
+                    if (P.joinB < 0 && P.b - bestS < Max(3.5f, radiusAt(P.n1) + 5.f)) return P.n1;
+                    if (node < 0) {
+                        RoadNode rn;
+                        rn.p = pointAt(P.src, bestS);
+                        node = (int)nodes.size();
+                        nodes.push_back(rn);
+                        affected.push_back(0);
+                        seen.push_back(0);
+                    } else {
+                        nodes[(size_t)node].p = pointAt(P.src, bestS);
+                    }
+                    splitPiece(best, bestS, node);
+                    return node;
+                };
+                if (bestD < edges[W].halfWidth) {
+                    // joined to a junction of the bigger road by a short road (the rest of a cross street that crossed both):
+                    // the two junctions become that one, and the short road goes
+                    int to = -1;
+                    float stubLen = kMinPiece;
+                    for (int k : here) {
+                        const Piece& p = pcs[(size_t)k];
+                        float l = pieceLen(p);
+                        if (l >= stubLen) continue;
+                        int o = p.n0 == N ? p.n1 : p.n0;
+                        bool onA = false;
+                        for (int q : at[(size_t)o]) onA = onA || sameRoad(pcs[(size_t)q].src, W);
+                        if (onA) {
+                            to = o;
+                            stubLen = l;
+                        }
+                    }
+                    if (to < 0) to = landing(N);
+                    affected[(size_t)to] = 1;
+                    if (to != N) {
+                        for (int k : here) {
+                            Piece& p = pcs[(size_t)k];
+                            if (p.n0 == N) p.n0 = to;
+                            if (p.n1 == N) p.n1 = to;
+                            if (p.n0 == p.n1) p.alive = false;
+                        }
+                    }
+                    movedOn++;
+                } else if (here.size() == 1) {
+                    const Piece rest = pcs[(size_t)here[0]];
+                    int to = landing(-1);
+                    affected[(size_t)to] = 1;
+                    Piece l;
+                    l.src = rest.src;
+                    l.a = l.b = 0.f;
+                    l.joinA = l.joinB = -1;
+                    l.alive = true;
+                    // (the way the road runs, when it is one way)
+                    bool rev = (edges[rest.src].flags & RF_ONEWAY) && rest.n0 == N;
+                    l.n0 = rev ? to : N;
+                    l.n1 = rev ? N : to;
+                    l.own = {nodes[(size_t)l.n0].p, nodes[(size_t)l.n1].p};
+                    pcs.push_back(l);
+                    linked++;
+                }
+            }
+            // ---- two roads left between the same two junctions on top of each other (a junction moved onto the bigger
+            // road brings its roads along): the one that gives way goes (at the junctions the pass changed)
+            int doubled = 0;
+            {
+                std::unordered_map<long long, std::vector<int>> between;
+                for (size_t k = 0; k < pcs.size(); k++) {
+                    const Piece& p = pcs[k];
+                    if (!p.alive || p.n0 == p.n1 || !atGrade(edges[(size_t)p.src]) || (!affected[(size_t)p.n0] && !affected[(size_t)p.n1])) continue;
+                    long long key = (long long)Min(p.n0, p.n1) * 1000003LL + Max(p.n0, p.n1);
+                    between[key].push_back((int)k);
+                }
+                auto midOf = [&](const Piece& p) {
+                    if (!p.own.empty()) return (p.own.front() + p.own.back()) * 0.5f;
+                    return pointAt(p.src, (p.a + p.b) * 0.5f);
+                };
+                std::vector<long long> keys;
+                for (const auto& kv : between)
+                    if (kv.second.size() > 1) keys.push_back(kv.first);
+                std::sort(keys.begin(), keys.end());
+                for (long long key : keys) {
+                    std::vector<int>& ks = between[key];
+                    for (size_t x = 0; x < ks.size(); x++)
+                        for (size_t y = x + 1; y < ks.size(); y++) {
+                            Piece &P = pcs[(size_t)ks[x]], &Q = pcs[(size_t)ks[y]];
+                            if (!P.alive || !Q.alive || !P.own.empty() || !Q.own.empty()) continue;
+                            bool qGoes = wins(P.src, Q.src);
+                            Piece& L = qGoes ? Q : P;
+                            const Piece& Wn = qGoes ? P : Q;
+                            float d;
+                            arcOn(Wn.src, midOf(L), Wn.a, Wn.b, &d);
+                            if (d >= Max(edges[(size_t)P.src].halfWidth, edges[(size_t)Q.src].halfWidth)) continue;
+                            L.alive = false;
+                            doubled++;
+                        }
+                }
+            }
+            // ---- the slots. An edge's piece from its start (else its first) keeps the edge's slot; the other pieces fill the
+            // slots of the edges that went, in order, then go last
+            std::vector<int> keeper((size_t)NE0, -1);
+            for (size_t k = 0; k < pcs.size(); k++) {
+                const Piece& p = pcs[k];
+                if (!p.alive || !p.own.empty()) continue;
+                int& kp = keeper[(size_t)p.src];
+                if (kp < 0 || pcs[(size_t)kp].a > p.a) kp = (int)k;
+            }
+            std::vector<int> freed, extra;
+            for (int i = 0; i < NE0; i++)
+                if (keeper[(size_t)i] < 0) freed.push_back(i);
+            for (size_t k = 0; k < pcs.size(); k++)
+                if (pcs[k].alive && keeper[(size_t)pcs[k].src] != (int)k) extra.push_back((int)k);
+            // fewer new edges than went: the road nearest to a gone edge (a street or lane before a main road, which carries
+            // less traffic to queue there) is split just short of the junction at its far end, far enough out that the
+            // junction keeps its full cut-back and where no lot fits
+            int splitForSlots = 0;
+            rebuildAt();
+            for (size_t f = extra.size(); f < freed.size(); f++) {
+                int gone = freed[f];
+                vec2 mid = pointAt(gone, lenOf(gone) * 0.5f);
+                int best = -1;
+                float bestD = 1e18f, bestS = 0.f;
+                for (size_t k = 0; k < pcs.size(); k++) {
+                    const Piece& p = pcs[k];
+                    const RoadEdge& e = edges[p.src];
+                    if (!p.alive || !p.own.empty() || p.joinB >= 0 || !atGrade(e) || (e.flags & RF_BRIDGE) || at[(size_t)p.n1].size() < 3) continue;
+                    vec2 lo = P2[p.src].front(), hi = lo;
+                    for (const vec2& q : P2[p.src]) {
+                        lo = vec2(Min(lo.x, q.x), Min(lo.y, q.y));
+                        hi = vec2(Max(hi.x, q.x), Max(hi.y, q.y));
+                    }
+                    float penalty = e.cls <= RC_AVENUE ? 150.f : 0.f;
+                    float boxD = length(vec2(Max(Max(lo.x - mid.x, mid.x - hi.x), 0.f), Max(Max(lo.y - mid.y, mid.y - hi.y), 0.f)));
+                    if (boxD + penalty >= bestD) continue;
+                    float s = p.b - Max(radiusAt(p.n1) / 0.45f + 1.f, 12.f);
+                    if (s - p.a < Max(kMinPiece, radiusAt(p.n0) + 10.f)) continue;
+                    float d;
+                    arcOn(p.src, mid, p.a, p.b, &d);
+                    d += penalty;
+                    if (d < bestD) {
+                        bestD = d;
+                        best = (int)k;
+                        bestS = s;
+                    }
+                }
+                if (best < 0) break;   // (cannot happen: there are always long roads; the gone edge would come back as it was)
+                RoadNode rn;
+                rn.p = pointAt(pcs[(size_t)best].src, bestS);
+                int node = (int)nodes.size();
+                nodes.push_back(rn);
+                int q = splitPiece(best, bestS, node);
+                extra.push_back(q);
+                at.push_back(std::vector<int>());
+                at[(size_t)node] = {best, q};
+                splitForSlots++;
+            }
+            // ---- the edges: each piece's stretch of its edge (the edges no cut or join touched come back as they were); seeds:
+            // the slot keeper keeps its edge's, the others get new ones made from it
+            std::vector<int> partOf(pcs.size(), 0), parts((size_t)NE0, 0);
+            {
+                std::vector<int> order;
+                for (size_t k = 0; k < pcs.size(); k++)
+                    if (pcs[k].alive) order.push_back((int)k);
+                std::stable_sort(order.begin(), order.end(), [&](int x, int y) {
+                    const Piece &X = pcs[(size_t)x], &Y = pcs[(size_t)y];
+                    if (X.src != Y.src) return X.src < Y.src;
+                    if (X.own.empty() != Y.own.empty()) return X.own.empty();
+                    return X.a < Y.a;
+                });
+                for (int k : order)
+                    if (keeper[(size_t)pcs[(size_t)k].src] != k) partOf[(size_t)k] = ++parts[(size_t)pcs[(size_t)k].src];
+            }
+            auto build = [&](int k) {
+                const Piece& p = pcs[(size_t)k];
+                RoadEdge e = edges[(size_t)p.src];
+                e.pts.clear();
+                e.dist.clear();
+                std::vector<vec2> q;
+                if (!p.own.empty()) {
+                    q = p.own;
+                } else {
+                    q.push_back(nodes[(size_t)p.n0].p);
+                    if (p.joinA >= 0) q.push_back(pointAt(p.src, p.a));
+                    for (size_t v = 0; v < P2[p.src].size(); v++)
+                        if (C2[p.src][v] > p.a + 0.01f && C2[p.src][v] < p.b - 0.01f) q.push_back(P2[p.src][v]);
+                    if (p.joinB >= 0) q.push_back(pointAt(p.src, p.b));
+                    q.push_back(nodes[(size_t)p.n1].p);
+                }
+                for (size_t v = 0; v < q.size(); v++) {
+                    bool lastPt = v + 1 == q.size();
+                    if (!e.pts.empty() && length(q[v] - e.pts.back().xy()) < 0.05f) {
+                        if (lastPt && e.pts.size() > 1) e.pts.back() = vec3(q[v], 0.f);
+                        continue;
+                    }
+                    e.pts.push_back(vec3(q[v], 0.f));
+                }
+                if (e.pts.size() < 2) e.pts.push_back(vec3(q.back(), 0.f));
+                e.n0 = p.n0;
+                e.n1 = p.n1;
+                if (partOf[(size_t)k] > 0) e.seed = hash32(edges[(size_t)p.src].seed ^ (0x9E3779B9u * (u32)partOf[(size_t)k]));
+                return e;
+            };
+            // a piece that is its whole edge, between the edge's own nodes where they were
+            auto unchanged = [&](int k) {
+                const Piece& p = pcs[(size_t)k];
+                const RoadEdge& e = edges[(size_t)p.src];
+                return p.own.empty() && p.joinA < 0 && p.joinB < 0 && p.a <= 0.f && p.b >= lenOf(p.src) && p.n0 == e.n0 && p.n1 == e.n1 &&
+                       length(nodes[(size_t)p.n0].p - P2[p.src].front()) < 1e-3f && length(nodes[(size_t)p.n1].p - P2[p.src].back()) < 1e-3f;
+            };
+            std::vector<RoadEdge> out((size_t)NE0);
+            std::vector<char> outOld((size_t)NE0, 0);
+            for (int i = 0; i < NE0; i++) {
+                int k = keeper[(size_t)i];
+                if (k < 0) continue;
+                if (unchanged(k)) outOld[(size_t)i] = 1;
+                else out[(size_t)i] = build(k);
+            }
+            size_t next = 0;
+            for (int i : freed) {
+                if (next < extra.size()) out[(size_t)i] = build(extra[next++]);
+                else outOld[(size_t)i] = 1;
+            }
+            int appended = (int)(extra.size() - next);
+            for (; next < extra.size(); next++) out.push_back(build(extra[next]));
+            for (int i = 0; i < NE0; i++)
+                if (outOld[(size_t)i]) out[(size_t)i] = std::move(edges[(size_t)i]);
+            edges.swap(out);
+            for (auto& n : nodes) n.edges.clear();
+            for (size_t i = 0; i < edges.size(); i++) {
+                nodes[(size_t)edges[i].n0].edges.push_back((int)i);
+                nodes[(size_t)edges[i].n1].edges.push_back((int)i);
+            }
+            LOG("Road gen: %d stretches of road laid inside a bigger road's carriageway cut out (%.0f m; %d joins back onto it, %d junctions "
+                "left inside it moved onto it, %d dead ends linked to it, %d roads left hanging and %d left doubled up dropped; %d edges gone, "
+                "%d split to keep the edge order, %d new at the end; %d left where the bigger road gives way itself)",
+                cutsMade, metresCut, joined, movedOn, linked, hanging, doubled, (int)freed.size(), splitForSlots, appended, cutsLeft);
+        }
+    }
+
     // ============================================================= Elevation
     // At-grade roads that highways must bridge over: their (elevated) segments in a coarse grid, built after the streets'
     // own elevation pass so the highway clears their actual surface
@@ -2265,25 +2901,7 @@ void RoadNetwork::generate(WorldMap& map) {
     }
 
     // ============================================================= Intersections: radius, cut-backs, control
-    for (size_t n = 0; n < nodes.size(); n++) {
-        RoadNode& nd = nodes[n];
-        float r = 0;
-        int big = 0, count = (int)nd.edges.size();
-        for (int ei : nd.edges) {
-            const RoadEdge& e = edges[ei];
-            r = Max(r, e.halfWidth + e.sidewalk * 0.3f);
-            if (e.cls <= RC_AVENUE) big++;
-        }
-        nd.radius = count >= 3 ? r + 2.f : 0.f;
-        bool hasHighway = false;
-        for (int ei : nd.edges) hasHighway |= edges[ei].cls == RC_HIGHWAY || edges[ei].cls == RC_RAMP;
-        if (count >= 3 && !hasHighway) nd.control = (big >= 2) ? 2 : (big == 1 ? 1 : (count >= 4 ? 1 : 0));
-        if (count >= 3 && hasHighway) nd.control = 0;
-    }
-    for (auto& e : edges) {
-        e.cut0 = Min(nodes[e.n0].radius, e.length * 0.45f);
-        e.cut1 = Min(nodes[e.n1].radius, e.length * 0.45f);
-    }
+    finishJunctions();
 
     // ============================================================= Terrain flattening along at-grade roads
     for (auto& e : edges) {
@@ -2338,95 +2956,6 @@ void RoadNetwork::generate(WorldMap& map) {
         lights, totalLength(RC_HIGHWAY) / 1000.f,
         (totalLength(RC_STREET) + totalLength(RC_LANE) + totalLength(RC_AVENUE) + totalLength(RC_BOULEVARD)) / 1000.f,
         TimeSeconds() - t0);
-}
-
-void RoadNetwork::buildHash() {
-    hashRes = (int)(2.f * kWorldHalf / kHashCell);
-    hash.assign((size_t)hashRes * hashRes, {});
-    for (size_t i = 0; i < edges.size(); i++) {
-        const RoadEdge& e = edges[i];
-        float r = e.halfWidth + e.sidewalk + 2.f;
-        if (bulbRadius(nodes[e.n0]) > 0.f || bulbRadius(nodes[e.n1]) > 0.f) r += 4.5f;   // the turning bulb reaches past the width
-        vec2 mn(1e9f), mx(-1e9f);
-        for (auto& p : e.pts) { mn = vmin(mn, p.xy()); mx = vmax(mx, p.xy()); }
-        mn -= vec2(r);
-        mx += vec2(r);
-        int x0 = Clamp((int)((mn.x + kWorldHalf) / kHashCell), 0, hashRes - 1), x1 = Clamp((int)((mx.x + kWorldHalf) / kHashCell), 0, hashRes - 1);
-        int y0 = Clamp((int)((mn.y + kWorldHalf) / kHashCell), 0, hashRes - 1), y1 = Clamp((int)((mx.y + kWorldHalf) / kHashCell), 0, hashRes - 1);
-        for (int y = y0; y <= y1; y++)
-            for (int x = x0; x <= x1; x++) {
-                // only add if the edge actually passes near this cell
-                vec2 cmn(-kWorldHalf + x * kHashCell - r, -kWorldHalf + y * kHashCell - r);
-                vec2 cmx = cmn + vec2(kHashCell + 2 * r);
-                bool hit = false;
-                for (size_t k = 0; k + 1 < e.pts.size() && !hit; k++) {
-                    vec2 a = e.pts[k].xy(), c = e.pts[k + 1].xy();
-                    vec2 smn = vmin(a, c), smx = vmax(a, c);
-                    hit = smx.x >= cmn.x && smn.x <= cmx.x && smx.y >= cmn.y && smn.y <= cmx.y;
-                }
-                if (hit) hash[(size_t)y * hashRes + x].push_back((int)i);
-            }
-    }
-}
-
-void RoadNetwork::edgesInRect(vec2 mn, vec2 mx, std::vector<int>& out) const {
-    out.clear();
-    int x0 = Clamp((int)((mn.x + kWorldHalf) / kHashCell), 0, hashRes - 1), x1 = Clamp((int)((mx.x + kWorldHalf) / kHashCell), 0, hashRes - 1);
-    int y0 = Clamp((int)((mn.y + kWorldHalf) / kHashCell), 0, hashRes - 1), y1 = Clamp((int)((mx.y + kWorldHalf) / kHashCell), 0, hashRes - 1);
-    for (int y = y0; y <= y1; y++)
-        for (int x = x0; x <= x1; x++)
-            for (int e : hash[(size_t)y * hashRes + x]) out.push_back(e);
-    std::sort(out.begin(), out.end());
-    out.erase(std::unique(out.begin(), out.end()), out.end());
-}
-
-int RoadNetwork::nearestEdge(vec2 p, float maxDist, float* outS, float* outDist, float* outSide) const {
-    std::vector<int> cand;
-    edgesInRect(p - vec2(maxDist), p + vec2(maxDist), cand);
-    int best = -1;
-    float bestD = maxDist, bestS = 0, bestSide = 0;
-    for (int ei : cand) {
-        const RoadEdge& e = edges[ei];
-        for (size_t k = 0; k + 1 < e.pts.size(); k++) {
-            vec2 a = e.pts[k].xy(), c = e.pts[k + 1].xy();
-            float t;
-            float d = distPointSegment2D(p, a, c, &t);
-            if (d < bestD) {
-                bestD = d;
-                best = ei;
-                bestS = e.dist[k] + t * (e.dist[k + 1] - e.dist[k]);
-                bestSide = cross(c - a, p - a) >= 0 ? 1.f : -1.f;
-            }
-        }
-    }
-    if (outS) *outS = bestS;
-    if (outDist) *outDist = bestD;
-    if (outSide) *outSide = bestSide;
-    return best;
-}
-
-float RoadNetwork::junctionZ(const RoadNode& n, vec2 p) const {
-    float best = 1e30f, bz = n.z;
-    int ni = (int)(&n - &nodes[0]);
-    for (int ei : n.edges) {
-        const RoadEdge& e = edges[ei];
-        size_t cnt = e.pts.size();
-        if (cnt < 2) continue;
-        bool fromStart = e.n0 == ni;
-        // only the part of the polyline inside the junction (+ one segment)
-        for (size_t j = 0; j + 1 < cnt; j++) {
-            size_t k = fromStart ? j : cnt - 2 - j;
-            float along = fromStart ? e.dist[k] : e.length - e.dist[k + 1];
-            if (along > n.radius + 12.f) break;
-            float t;
-            float d = distPointSegment2D(p, e.pts[k].xy(), e.pts[k + 1].xy(), &t);
-            if (d < best) {
-                best = d;
-                bz = Lerp(e.pts[k].z, e.pts[k + 1].z, t);
-            }
-        }
-    }
-    return bz;
 }
 
 bool RoadNetwork::surfaceHeight(vec2 p, float* z, float maxZ) const {
@@ -2489,58 +3018,4 @@ bool RoadNetwork::surfaceHeight(vec2 p, float* z, float maxZ) const {
     if (found) *z = bestZ;
     return found;
 }
-
-bool RoadNetwork::onPavement(vec2 p, float z, float margin, int ignoreEdge, float zTol) const {
-    thread_local std::vector<int> cand;
-    cand.clear();
-    edgesInRect(p - vec2(margin + 30.f), p + vec2(margin + 30.f), cand);
-    for (int ei : cand) {
-        const RoadEdge& e = edges[ei];
-        for (int nn : {e.n0, e.n1}) {
-            float br = bulbRadius(nodes[nn]);
-            if (br > 0.f && length(p - nodes[nn].p) < br + margin && fabsf(nodes[nn].z - z) < zTol) return true;
-        }
-        if (ei == ignoreEdge) continue;
-        if (e.flags & RF_UNPAVED) continue;
-        float r = e.halfWidth + margin;
-        for (size_t k = 0; k + 1 < e.pts.size(); k++) {
-            float t;
-            float d = distPointSegment2D(p, e.pts[k].xy(), e.pts[k + 1].xy(), &t);
-            if (d < r && fabsf(Lerp(e.pts[k].z, e.pts[k + 1].z, t) - z) < zTol) return true;
-        }
-    }
-    return false;
-}
-
-bool RoadNetwork::nearRoad(vec2 p, float margin) const {
-    std::vector<int> cand;
-    edgesInRect(p - vec2(margin + 30.f), p + vec2(margin + 30.f), cand);
-    for (int ei : cand) {
-        const RoadEdge& e = edges[ei];
-        float r = e.halfWidth + e.sidewalk + margin;
-        for (size_t k = 0; k + 1 < e.pts.size(); k++)
-            if (distPointSegment2D(p, e.pts[k].xy(), e.pts[k + 1].xy()) < r) return true;
-        for (int nn : {e.n0, e.n1}) {
-            float br = bulbRadius(nodes[nn]);
-            if (br > 0.f && length(p - nodes[nn].p) < br + e.sidewalk + margin) return true;
-        }
-    }
-    return false;
-}
-
-float RoadNetwork::bulbRadius(const RoadNode& n) const {
-    if (n.edges.size() != 1) return 0.f;
-    const RoadEdge& e = edges[n.edges[0]];
-    if ((e.flags & (RF_UNPAVED | RF_ONEWAY)) || e.lanesF == 0 || e.lanesB == 0) return 0.f;
-    if (e.cls != RC_LANE && e.cls != RC_STREET && e.cls != RC_RURAL) return 0.f;
-    return e.halfWidth + 4.5f;
-}
-
-float RoadNetwork::totalLength(RoadClass c) const {
-    float s = 0;
-    for (auto& e : edges)
-        if (e.cls == c) s += e.length;
-    return s;
-}
-
 }  // namespace World

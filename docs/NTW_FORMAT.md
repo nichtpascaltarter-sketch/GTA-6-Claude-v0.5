@@ -324,6 +324,22 @@ Header: `district` id (a district's streets) or `scope=trunk`.
 Hydrants imply 5 m of `nostop` and curb cuts imply it across them. Police and cabs pull over on any kerb lane outside a
 `nostop`, and need no record.
 
+What the roads compiler (src/world/worldmodel.h) reads, and requires:
+- An edge's `shape` starts at its `from` node's `at` and ends at its `to` node's, within 2 cm, with no two points in one
+  place. `from` and `to` are two different nodes: a loop needs a node along it.
+- A `profile` rises in `s` from 0 to the shape's length in plan, within 0.5 m, and starts and ends at its nodes' `z`,
+  within 5 cm. Without one, the edge runs straight from its `from` node's `z` to its `to` node's.
+- `shoulder`, `parking` and `sidewalk` describe both sides: the side a compound doesn't name has none (`parking=left:2.40`
+  leaves the right without parking). Unwritten, they take the class's widths, as `lanewidth`, `median` and `speed` do.
+  The class has one kerb width for shoulder and parking together, which either field replaces; on one side the two add
+  up.
+- `lanes` is at most 8 each way. A `deck` puts the edge on a structure, as `flags=bridge` does.
+- A node's `control` replaces the derived one. Today's lane graph knows priority by road class, stop signs on every
+  approach and signals: `yield`, and `stop` on only some approaches, run as priority by road class until it reads the
+  `yield` and `stops` lists.
+- Today's `RoadNetwork` has one width for both sides of a road, so the wider side counts there until the lane graph
+  reads both. An edge's dressing seed comes from its id, so adding an edge changes no other edge's.
+
 **Kind `signal`**: lib/signals/<name>.ntw, header `id` id req. A plan's phases run in order, each for its `green`, then
 its `amber`, then its `allred`.
 - A movement is `<approach>_<turn>`. The approach is the leg the traffic arrives on, by compass (`n`, `e`, `s`, `w`), as
@@ -413,9 +429,9 @@ Header: `id` id req; a unit or fit-out also `slot_size` compound `WxD` (2) and `
 |---|---|---|---|
 | `wall` | req | no | `a` point 2 req, `b` point 2 req, `t` number 2 req, `ext` word `front`/`back`/`left`/`right` (exterior walls, layouts only), `finish` reference |
 | `room` | req | no | `type` word req (`living`, `kitchen`, `bed`, `bath`, `hall`, `stair`, `office`, `shop`, `store`, `lobby`, `corridor`, `plant`, `garage`, `dining`, `utility`, `restaurant`, `bar`), `poly` points 2 req, `cap` integer (the people it holds), `sched` name, `lux` integer, `outdoor` integer 0/1 |
-| `door` | req | no | `wall` reference req, `at` number 2 req, `w` number 2 req (the clear width), `h` number 2 req, `kind` word `hinged`/`pair`/`sliding`/`revolving`/`rollup`/`lift`/`opening` req, `hinge` word `left`/`right`, `swing` word `in`/`out`, `style` reference, `leads` compound `<room>:<room>` req (`out` for outside), `lock` word `none`/`key`/`staff`/`resident`/`alarm`, `hours` compound (when it is open to the public; the lock applies outside them) |
+| `door` | req | no | `wall` reference req, `at` number 2 req, `w` number 2 req (the clear width), `h` number 2 req, `kind` word `hinged`/`pair`/`sliding`/`revolving`/`rollup`/`lift`/`opening` req, `hinge` word `left`/`right`, `swing` word `in`/`out`, `style` reference, `leads` compound `<room>:<room>` req (a room or slot each side, `out` for outside), `lock` word `none`/`key`/`staff`/`resident`/`alarm`, `hours` compound (when it is open to the public; the lock applies outside them) |
 | `window` | req | no | `wall` reference req, `at` number 2 req, `w` number 2 req, `h` number 2 req, `sill` number 2 req, `kind` word `fixed`/`dhung`/`casement`/`slider`/`storefront`/`jalousie`/`glassblock` req, `room` reference req |
-| `stair` | req | no | `from` compound req (`f0.hall`), `to` compound req, `run` points 2 req (the flight's centreline), `w` number 2 req, `kind` word req: `straight`, `dogleg` (a 180° landing), `quarter` (a 90° landing), `winder`, `spiral`, `curved` or `escalator` (a moving floor), `treads` integer, `rise` number 2 (both derived from the floors without them), `landing` number 2 (the landing's depth; from the run without it), `walk` number 2 (the walking line: its distance from the centre on spirals and curved stairs, from the inner corner on winders; the middle of the flight without it) |
+| `stair` | req | no | `from` compound req (`f0.hall`; in a layout serving several floors `0:hall`, a room of this floor), `to` compound req (`f1.hall`; or `+1:hall` / `-1:hall`, a room on the floor above / below), `run` points 2 req (the flight's centreline), `w` number 2 req, `kind` word req: `straight`, `dogleg` (a 180° landing), `quarter` (a 90° landing), `winder`, `spiral`, `curved` or `escalator` (a moving floor), `treads` integer, `rise` number 2 (both derived from the floors without them), `landing` number 2 (the landing's depth; from the run without it), `walk` number 2 (the walking line: its distance from the centre on spirals and curved stairs, from the inner corner on winders; the middle of the flight without it) |
 | `lift` | req | no | `at` point 2 req, `size` compound `WxD` (2) req, `stops` list req (floor ids), `door` word `front`/`back`/`left`/`right` (the side of the car its doors open on; front faces -y), `cap` integer (people per car), `call` point 2 (where people wait for it) |
 | `slot` | req | no | `poly` points 2 req, `entry` reference req (a door), `allow` list req (unit or fit-out ids, or families with `*`) |
 | `furnish` | req: a room's id | yes: `variant`, `item` | `variants` list req: the room's furnishing variants, `a,b,c` |
@@ -425,6 +441,28 @@ Header: `id` id req; a unit or fit-out also `slot_size` compound `WxD` (2) and `
 | `light` | req | no | `room` reference req, `at` point x,y,z 2 req, `fixture` reference req, `sched` name, `anim` word `none`/`tv`/`neon`/`flicker` |
 | `counter` | req | no | `line` points 2 req, `h` number 2 req: shops: where staff stand and customers queue (fit-outs) |
 | `sign` | none | no | `wall` reference req, `at` number 2 req, `w` number 2 req, `h` number 2 req: where a fit-out's sign goes (filled by the building's `slot ... sign=`) |
+
+How the validator reads a layout's geometry:
+
+- **Openings.** A door's or window's `at` is the opening's centre, measured along its wall from `a`. An opening keeps
+  clear of its wall's ends by half the thickness of the wall it meets there plus 0.05 m. A door joins the two rooms its
+  `leads` names, one on each side of its wall.
+- **Where doors lead.** `leads` names rooms, slots or `out`. A slot's entry door names the slot (`leads=hall:s1`). In
+  a layout, `out` is only through an exterior wall (`ext=`); in a unit or fit-out, `out` is anywhere outside its
+  `slot_size` rectangle (the slot's entry and the layout's corridor are there).
+- **Stair runs.** `run` is the flight's centreline from its foot:
+  - `straight` and `escalator`: 2 points;
+  - `dogleg`: 4, with the middle two at the landing's mid-depth, so each flight is its segment less half the landing;
+  - `quarter`: 3, the middle one the landing's centre;
+  - `winder`: 3, the middle one where the centreline turns;
+  - `spiral` and `curved`: points on the arc, which is fitted to them (a spiral's sweep may pass 360°).
+- **Stair defaults.** `landing` defaults to the flight's width `w`. `walk` defaults to the centreline: on a spiral or
+  curved stair, the arc's radius; on a winder, `w`/2 from the inner corner. A tread is measured on the walking line:
+  the walking line's length over `treads` (on a spiral, the sweep times the walking radius).
+- **Stair floors.** In a plan, `from` and `to` name a floor and a room (`f0.hall`, `f1.hall`). A layout that serves
+  several floors of a plan (a typical floor) names floors relative to its own: `from=0:<room>`, a room of this floor,
+  and `to=+1:<room>` or `-1:<room>`, the room it reaches on the floor above or below wherever the plan uses the layout
+  (the rooms are the layout's own: the floors above and below use it too).
 
 ### 9.9 `set`: lib/sets/<room type>/<name>.ntw
 

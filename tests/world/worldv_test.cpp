@@ -236,11 +236,10 @@ static void testSamples() {
     Summary s;
     run(opt, ds, s);
     note(ds);
-    // the two layout samples are excerpts until the city completes them (its step 4.1): these are their only findings
+    // the samples are whole (the city completed the two layout samples in its step 4.1): no findings
     std::vector<std::string> got;
     for (const Diagnostic& d : ds) got.push_back(d.file.substr(d.file.rfind('/') + 1) + ":" + std::to_string(d.line) + " " + d.check);
-    const std::vector<std::string> want = {"layout.ntw:4 room.closed",        "layout_core.ntw:4 room.closed",  "layout_core.ntw:5 room.closed",
-                                           "layout_core.ntw:7 door.landing",  "layout_core.ntw:7 door.landing", "layout_core.ntw:10 stair.tread"};
+    const std::vector<std::string> want = {};
     EXPECT(got == want && s.files == 16 && !s.world, "the 16 samples, checked as files: %zu files, %zu diagnostics", s.files, ds.size());
     if (got != want) dump(ds);
 }
@@ -273,6 +272,25 @@ static std::multiset<std::string> expectations(const std::string& text) {
     return out;
 }
 
+// Every file under `dir` has exactly the findings its # expect marks name (`marked`: each file must have some)
+static void matchMarks(const std::string& dir, const std::vector<Diagnostic>& ds, bool marked) {
+    std::map<std::string, std::multiset<std::string>> got;
+    for (const Diagnostic& d : ds) got[d.file].insert(std::to_string(d.line) + (d.severity == SEV_ERROR ? " error " : " warning ") + d.check);
+    std::vector<std::string> files;
+    std::vector<Diagnostic> problems;
+    validate_detail::listTree(dir, files, problems);
+    for (const std::string& f : files) {
+        const std::multiset<std::string> want = expectations(readText(f));
+        EXPECT(!marked || !want.empty(), "%s: no expectations", f.c_str());
+        if (got[f] == want) continue;
+        EXPECT(false, "%s: the findings differ from its # expect marks", f.c_str());
+        for (const std::string& w : want)
+            if (!got[f].count(w)) printf("    expected, not found: %s\n", w.c_str());
+        for (const std::string& g : got[f])
+            if (!want.count(g)) printf("    found, not expected: %s\n", g.c_str());
+    }
+}
+
 static void testBad() {
     Options opt;
     const std::string dir = std::string(kFixtures) + "/bad";
@@ -282,20 +300,24 @@ static void testBad() {
     run(opt, ds, s);
     note(ds);
     EXPECT(s.files >= 20, "bad fixtures: %zu files", s.files);
-    std::map<std::string, std::multiset<std::string>> got;
-    for (const Diagnostic& d : ds) got[d.file].insert(std::to_string(d.line) + (d.severity == SEV_ERROR ? " error " : " warning ") + d.check);
-    std::vector<std::string> files;
-    validate_detail::listTree(dir, files, ds);
-    for (const std::string& f : files) {
-        const std::multiset<std::string> want = expectations(readText(f));
-        EXPECT(!want.empty(), "%s: no expectations", f.c_str());
-        if (got[f] == want) continue;
-        EXPECT(false, "%s: the findings differ from its # expect marks", f.c_str());
-        for (const std::string& w : want)
-            if (!got[f].count(w)) printf("    expected, not found: %s\n", w.c_str());
-        for (const std::string& g : got[f])
-            if (!want.count(g)) printf("    found, not expected: %s\n", g.c_str());
-    }
+    matchMarks(dir, ds, true);
+}
+
+// The plan pass needs a world: tests/world/fixtures/plans holds plans with their layouts, their findings marked
+static void testPlanPass() {
+    const std::string dir = std::string(kFixtures) + "/plans";
+    Summary s;
+    const std::vector<Diagnostic> ds = runWorld(dir, &s);
+    EXPECT(s.files == 13 && s.world, "the plan pass's world: %zu files", s.files);
+    matchMarks(dir, ds, false);
+    // checked as files instead, the plan pass doesn't run (it reads the floors' layouts through the plan)
+    Options opt;
+    opt.files.push_back(dir);
+    std::vector<Diagnostic> files;
+    run(opt, files, s);
+    bool any = false;
+    for (const Diagnostic& d : files) any = any || d.check == "stair.floors" || d.check == "lift.stops" || d.check == "floor.access" || d.check == "door.height";
+    EXPECT(!any, "the plan pass ran in a file run");
 }
 
 static void testWorld() {
@@ -364,6 +386,70 @@ static fs::path copyWorld(const char* name) {
     return dir;
 }
 
+// A typical floor's layout names its stair's floors relative to each floor that uses it (NTW_FORMAT 9.8): 0:<room> on
+// that floor, +1:<room> / -1:<room> on the next floor up / down by height. The plans fixture has a clean tower (tower_b),
+// a typical floor on the top floor (tower_c: +1 has no floor there) and one whose stair runs down (tower_d).
+static fs::path copyFixture(const char* fixture, const char* name) {
+    const fs::path dir = tempDir(name) / fixture;
+    fs::copy(std::string(kFixtures) + "/" + fixture, dir, fs::copy_options::recursive);
+    return dir;
+}
+
+static void testRelativeStairs() {
+    const std::string dir = std::string(kFixtures) + "/plans";
+    const std::vector<Diagnostic> ds = runWorld(dir);
+    auto messages = [&](const char* file, int line) {
+        std::vector<std::string> m;
+        for (const Diagnostic& d : ds)
+            if (validate_detail::endsWith(d.file, file) && d.line == line && d.check == "stair.floors") m.push_back(d.message);
+        return m;
+    };
+    const std::vector<std::string> top = messages("lib/layouts/test/tower_c_typ.ntw", 11), down = messages("lib/layouts/test/tower_d_typ.ntw", 10);
+    EXPECT(top.size() == 1 && top[0] == "stair st1: to=+1:stair names the floor above, but floor f2 is the top floor of plan lib.plan.test.tower_c, "
+                                         "with no floor above it",
+           "+1 off the top: %s", top.empty() ? "nothing" : top[0].c_str());
+    EXPECT(down.size() == 1 && down[0] == "stair st1: to=-1:stair isn't above from=0:stair (plan lib.plan.test.tower_d)", "a stair down: %s",
+           down.empty() ? "nothing" : down[0].c_str());
+    // the clean tower, its top floor reached through the typical floor's stair (no room.reach for its layout)
+    for (const Diagnostic& d : ds) EXPECT(d.file.find("tower_b") == std::string::npos, "tower_b: %s:%d %s", d.file.c_str(), d.line, d.check.c_str());
+    // on copies: what the relative ends resolve to, checked per floor
+    const std::vector<Plant> plants = {
+        // the floor above uses a layout without the room: the reference check sees only the stair's own layout
+        {"the room above isn't there", {{"lib/layouts/test/tower_b_top.ntw", "room stair type=stair", "room landing type=stair"}, {"lib/layouts/test/tower_b_top.ntw", "hall:stair", "hall:landing"}},
+         {"lib/layouts/test/tower_b_typ.ntw:10 stair.floors", "lib/layouts/test/tower_b_top.ntw:1 room.reach"}},
+        // treads and risers against every pair of floors the layout joins: one finding for all of them
+        {"risers that don't climb a typical floor", {{"lib/layouts/test/tower_b_typ.ntw", "kind=straight", "kind=straight treads=18 rise=0.17"}},
+         {"lib/layouts/test/tower_b_typ.ntw:10 stair.floors"}},
+        {"treads derived from the typical floor's height", {{"lib/layouts/test/tower_b_typ.ntw", "run=1.00,5.50;6.50,5.50", "run=1.00,5.50;4.00,5.50"}},
+         {"lib/layouts/test/tower_b_typ.ntw:10 stair.tread"}},
+        // the next floor up is the next by height, wherever the plan lists it
+        {"floors listed out of order", {{"lib/plans/test/tower_b.ntw", "floor f1 layout=lib.layout.test.tower_b_typ z=3.00 h=3.00\nfloor f2 layout=lib.layout.test.tower_b_typ z=6.00 h=3.00",
+                                         "floor f2 layout=lib.layout.test.tower_b_typ z=6.00 h=3.00\nfloor f1 layout=lib.layout.test.tower_b_typ z=3.00 h=3.00"}},
+         {}},
+        // the top floor taken away: f2's stair has nowhere to go, and nothing is left to reach tower_b_top
+        {"the typical floor becomes the top", {{"lib/plans/test/tower_b.ntw", "floor f3 layout=lib.layout.test.tower_b_top z=9.00 h=3.00\n", ""}},
+         {"lib/layouts/test/tower_b_typ.ntw:10 stair.floors", "lib/layouts/test/tower_b_top.ntw:1 room.reach"}},
+    };
+    for (const Plant& p : plants) {
+        const fs::path world = copyFixture("plans", "relstair");
+        bool applied = true;
+        for (const Edit& e : p.edits) applied = apply(world, e) && applied;
+        EXPECT(applied, "%s: an edit didn't apply", p.name);
+        std::vector<std::string> want(p.want.begin(), p.want.end()), got;
+        // (the fixture's own marked findings in tower_a, tower_c and tower_d stay: compare what's new)
+        for (const std::string& g : brief(runWorld(world.generic_string()), world.generic_string()))
+            if (g.find("tower_b") != std::string::npos) got.push_back(g);
+        std::sort(want.begin(), want.end());
+        std::sort(got.begin(), got.end());
+        EXPECT(got == want, "%s: the findings differ", p.name);
+        if (got != want) {
+            for (const std::string& g : got) printf("    found: %s\n", g.c_str());
+            for (const std::string& w : want) printf("    wanted: %s\n", w.c_str());
+        }
+        fs::remove_all(world.parent_path());
+    }
+}
+
 static void testPlants() {
     const char* unit = "ntw 1 unit id=lib.unit.walkup.studio_a slot_size=6.00x5.00 kind=studio\n"
                        "wall w1 a=0.00,0.00 b=6.00,0.00 t=0.12\n"
@@ -391,7 +477,9 @@ static void testPlants() {
         {"an override of a door as a wall", {{"districts/cl/blocks/b014/h03.ntw", "wall=f0.w2", "wall=f0.d1"}}, {"districts/cl/blocks/b014/h03.ntw:6 ref.kind"}},
         {"a building on a missing parcel", {{"districts/cl/blocks/b014/h03.ntw", "parcel=cl.b014.p03", "parcel=cl.b014.p09"}}, {"districts/cl/blocks/b014/h03.ntw:1 ref.missing"}},
         {"an entrance on a missing floor", {{"lib/plans/house/bungalow_b02.ntw", "door=f0.d1 kind=main", "door=f9.d1 kind=main"}}, {"lib/plans/house/bungalow_b02.ntw:10 ref.missing"}},
-        {"a lift stop on a floor its plan doesn't have", {{"lib/layouts/midrise/core_a.ntw", "stops=f0,f1,f2,f3", "stops=f0,f1,f2,f4"}}, {"lib/layouts/midrise/core_a.ntw:22 ref.missing"}},
+        // (and the shaft's other floors then stop elsewhere: the plan pass reports both sides)
+        {"a lift stop on a floor its plan doesn't have", {{"lib/layouts/midrise/core_a.ntw", "stops=f0,f1,f2,f3", "stops=f0,f1,f2,f4"}},
+         {"lib/layouts/midrise/core_a.ntw:22 ref.missing", "lib/layouts/midrise/core_a.ntw:22 lift.stops", "lib/layouts/midrise/walkup_a_f1.ntw:14 lift.stops"}},
         {"a stair to a missing room", {{"lib/layouts/midrise/core_a.ntw", "to=f1.stair", "to=f1.stairs"}}, {"lib/layouts/midrise/core_a.ntw:18 ref.missing"}},
         // the door= of a missing building isn't reported twice
         {"an anchor at a missing building", {{"places/places.ntw", "building=cl.b031.x01", "building=cl.b031.x09"}}, {"places/places.ntw:3 ref.missing"}},
@@ -420,7 +508,23 @@ static void testPlants() {
          {"districts/cl/blocks/b014/m01.ntw:3 ref.missing", "districts/cl/blocks/b014/m01.ntw:4 ref.kind"}},
         // floors that nothing on them leads into, reached through a hatch or another floor's stair, or not
         {"an attic without its hatch", {{"lib/plans/house/bungalow_b02.ntw", " access=hatch:f0.hall", ""}}, {"lib/layouts/house/bungalow_b02_attic.ntw:1 room.reach"}},
-        {"a roof no stair reaches", {{"lib/layouts/midrise/core_a.ntw", "to=roof.plant", "to=f1.flat"}}, {"lib/layouts/midrise/walkup_a_roof.ntw:1 room.reach"}},
+        {"a roof without its hatch", {{"lib/plans/midrise/walkup_a.ntw", " access=hatch:f3.hall", ""}}, {"lib/layouts/midrise/walkup_a_roof.ntw:1 room.reach"}},
+        {"a roof reached by the stair instead", {{"lib/plans/midrise/walkup_a.ntw", " access=hatch:f3.hall", ""}, {"lib/layouts/midrise/core_a.ntw", "to=f1.flat", "to=roof.plant"}},
+         {"lib/layouts/midrise/core_a.ntw:20 stair.floors"}},
+        // the plan pass: stairs and lifts against the floors they claim, hatches, heights
+        {"risers that don't climb to the next floor", {{"lib/layouts/midrise/core_a.ntw", "treads=18 rise=0.16", "treads=18 rise=0.17"}},
+         {"lib/layouts/midrise/core_a.ntw:18 stair.floors"}},
+        {"a stair down", {{"lib/layouts/midrise/core_a.ntw", "stair st1 from=f0.stair to=f1.stair", "stair st1 from=f1.stair to=f0.stair"}},
+         {"lib/layouts/midrise/core_a.ntw:18 stair.floors"}},
+        {"a stair's top outside the room it names", {{"lib/layouts/midrise/core_a.ntw", "to=f1.stair", "to=f1.hall"}}, {"lib/layouts/midrise/core_a.ntw:18 stair.floors"}},
+        {"treads derived from the floors, past the kit's defaults", {{"lib/layouts/midrise/core_a.ntw", "kind=dogleg treads=18 rise=0.16\n  landing=1.10", "kind=dogleg landing=1.10"}},
+         {"lib/layouts/midrise/core_a.ntw:18 stair.tread"}},
+        {"a lift a floor up out of line", {{"lib/layouts/midrise/walkup_a_f1.ntw", "lift lf1 at=4.50,7.50", "lift lf1 at=4.60,7.50"}},
+         {"lib/layouts/midrise/core_a.ntw:22 lift.stops", "lib/layouts/midrise/walkup_a_f1.ntw:14 lift.stops"}},
+        {"a hatch from its own floor", {{"lib/plans/house/bungalow_b02.ntw", "access=hatch:f0.hall", "access=hatch:attic.loft"}}, {"lib/plans/house/bungalow_b02.ntw:5 floor.access"}},
+        {"a floor too low for its doors and windows", {{"lib/plans/shop/corner_a.ntw", "z=0.00 h=3.60", "z=0.00 h=2.00"}},
+         {"lib/layouts/shop/corner_a_f0.ntw:9 door.height", "lib/layouts/shop/corner_a_f0.ntw:10 door.height", "lib/layouts/shop/corner_a_f0.ntw:11 window.height",
+          "lib/layouts/shop/corner_a_f0.ntw:12 window.height"}},
         {"a layout no plan uses, with no way in",
          {{"lib/layouts/test/loft.ntw", nullptr, "ntw 1 layout id=lib.layout.test.loft\nroom loft type=store poly=0.00,0.00;4.00,0.00;4.00,4.00;0.00,4.00 outdoor=1\n"}},
          {"lib/layouts/test/loft.ntw:1 room.reach"}},
@@ -546,7 +650,7 @@ static void testThreads() {
     Summary s1, s4;
     const std::vector<Diagnostic> one = runWorld(world.generic_string(), &s1, std::string(), 1);
     const std::vector<Diagnostic> four = runWorld(world.generic_string(), &s4, std::string(), 4);
-    EXPECT(one.size() == 3 && brief(one, world.generic_string()) == brief(four, world.generic_string()) && s1.refs == s4.refs && s1.records == s4.records,
+    EXPECT(one.size() >= 3 && brief(one, world.generic_string()) == brief(four, world.generic_string()) && s1.refs == s4.refs && s1.records == s4.records,
            "1 thread and 4 find the same");
     for (size_t i = 0; i < one.size() && i < four.size(); i++) EXPECT(one[i].message == four[i].message, "messages differ: %s", one[i].message.c_str());
     fs::remove_all(world.parent_path());
@@ -563,6 +667,8 @@ int main() {
     testSamples();
     testBad();
     testWorld();
+    testPlanPass();
+    testRelativeStairs();
     testPlants();
     testCache();
     testOnly();

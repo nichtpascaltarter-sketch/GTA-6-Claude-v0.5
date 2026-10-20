@@ -78,6 +78,10 @@ jobs:
         run: |
           g++ -std=c++17 -O2 -Wall -Wextra -Werror -fsanitize=undefined -fno-sanitize-recover=undefined tests/world/worldv_test.cpp -o /tmp/neontide-worldv-test
           /tmp/neontide-worldv-test
+      - name: Test the world model (loader, references, roads compile)
+        run: |
+          g++ -std=c++17 -O2 -Wall -Wextra -Werror -fsanitize=undefined -fno-sanitize-recover=undefined tests/world/worldmodel_test.cpp -o /tmp/neontide-worldmodel-test
+          /tmp/neontide-worldmodel-test
       - name: Validate the hand-built world
         run: |
           g++ -std=c++17 -O2 -Wall -Wextra -Werror -I. tools/worldv.cpp -o /tmp/neontide-worldv

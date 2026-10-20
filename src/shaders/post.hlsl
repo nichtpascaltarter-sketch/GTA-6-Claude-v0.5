@@ -266,7 +266,10 @@ void csBloomDown(uint3 id : SV_DispatchThreadID) {
     float3 r;
     if (gBloom.z > 0.5) {
         float3 g0 = (a + b + d + e) * 0.25, g1 = (b + c + e + f) * 0.25, g2 = (d + e + g + h) * 0.25, g3 = (e + f + h + i) * 0.25, g4 = (j + k + l + m) * 0.25;
-        float w0 = 1.0 / (1.0 + luminance(g0)), w1 = 1.0 / (1.0 + luminance(g1)), w2 = 1.0 / (1.0 + luminance(g2)), w3 = 1.0 / (1.0 + luminance(g3)), w4 = 1.0 / (1.0 + luminance(g4));
+        // Karis average against fireflies: bright groups are down-weighted. At night only true outliers (glints far
+        // above everything else) are: neon tubes and lamp heads (pre-exposed luminance ~10..50) keep their glow
+        float kk = lerp(1.0, 1.0 / 64.0, gExposure.w);
+        float w0 = 1.0 / (1.0 + luminance(g0) * kk), w1 = 1.0 / (1.0 + luminance(g1) * kk), w2 = 1.0 / (1.0 + luminance(g2) * kk), w3 = 1.0 / (1.0 + luminance(g3) * kk), w4 = 1.0 / (1.0 + luminance(g4) * kk);
         r = (g0 * w0 * 0.125 + g1 * w1 * 0.125 + g2 * w2 * 0.125 + g3 * w3 * 0.125 + g4 * w4 * 0.5) / (w0 * 0.125 + w1 * 0.125 + w2 * 0.125 + w3 * 0.125 + w4 * 0.5);
     } else {
         r = e * 0.125 + (a + c + g + i) * 0.03125 + (b + d + f + h) * 0.0625 + (j + k + l + m) * 0.125;

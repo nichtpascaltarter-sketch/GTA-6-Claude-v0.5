@@ -12,5 +12,26 @@ namespace Validate {
 // so the caller decides what to report.
 void checkLayout(const Ntw::Document& doc, std::vector<Diagnostic>& out, bool* noWayIn);
 
+// One floor of a plan, for the plan pass
+struct PlanFloor {
+    const Ntw::Record* rec = nullptr;          // the plan's floor record (its id, z, h and access=)
+    const Ntw::Document* layout = nullptr;     // the floor's layout; nullptr when it's missing or doesn't parse
+    size_t layoutKey = 0;                      // the caller's key for the layout's file
+};
+
+// A finding of the plan pass: in the plan's file (at its floor records) or in a layout's
+struct PlanFinding {
+    bool inPlan = false;
+    size_t layoutKey = 0;
+    Diagnostic d;
+};
+
+// The checks across a plan's floors (docs/HANDBUILT_WORLD.md 9.1): stairs and lifts join the floors they claim at the
+// floors' heights, a hatch lands in a room, and doors and windows fit their floor's height. A shared layout's relative
+// stair ends (0:<room>, +1:<room>, -1:<room>, NTW_FORMAT 9.8) resolve against each floor that uses it; `reached`
+// receives the floors they lead into from another floor (the reference check only sees the layout's own rooms).
+void checkPlanFloors(const std::string& plan, const std::vector<PlanFloor>& floors, std::vector<PlanFinding>& out,
+                     std::vector<std::string>* reached = nullptr);
+
 }  // namespace Validate
 }  // namespace World

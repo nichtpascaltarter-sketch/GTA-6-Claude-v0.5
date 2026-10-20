@@ -1245,13 +1245,19 @@ std::string GameWorld::aiTrafficHealthText() const {
         }
     }
     const AI::TrafficStats& ts = traffic.stats;
-    std::string worstTxt = "-";
-    if (worstId >= 0) {
-        const AI::Driver& d = traffic.drivers[worstId];
-        vec3 p = vehicles[worstId].sim.body.pos.toVec3();
-        worstTxt = StrFormat("car %d at %.0f %.0f %s %d u %.1f mode %d stuck %.0f blocked %.0f wait %.0f", worstId, p.x, p.y,
-                             d.path < (int)laneGraph.lanes.size() ? "lane" : "conn", d.path, d.u, (int)d.mode, d.stuckTime, d.blockedTime, d.waitTime);
-        // what it is waiting for: the obstacle ahead (and what that is doing) or the stop point
+    const int NL = (int)laneGraph.lanes.size();
+    auto activeDriver = [&](int vi) -> const AI::Driver* {
+        return vi >= 0 && vi < (int)traffic.drivers.size() && traffic.drivers[vi].active ? &traffic.drivers[vi] : nullptr;
+    };
+    // one car's wait: where it is, its timers, and what holds it - the obstacle ahead (and what that is doing; a parked or
+    // empty car: where it stands across this car's path) or the stop point
+    auto waitText = [&](int vi) -> std::string {
+        const AI::Driver& d = traffic.drivers[vi];
+        vec3 p = vehicles[vi].sim.body.pos.toVec3();
+        std::string s = StrFormat("car %d %s at %.0f %.0f %s %d u %.1f mode %d v %.1f stuck %.0f blocked %.0f wait %.0f", vi, vassets[vehicles[vi].model].spec.name.c_str(),
+                                  p.x, p.y, d.path < NL ? "lane" : "conn", d.path, d.u, (int)d.mode, vehicles[vi].sim.speed(), d.stuckTime, d.blockedTime, d.waitTime);
+        if (d.nudgeTarget != 0.f || d.nudge != 0.f) s += StrFormat(" nudge %.1f->%.1f", d.nudge, d.nudgeTarget);
+        if (d.passT > 0.f) s += StrFormat(" (driving round car %d, %d back-ups)", d.passHost, d.passBacks);
         if (d.obstBody >= 0 && d.obstBody < (int)traffic.bodies.size() && d.obstDist < 40.f) {
             const AI::Body& ob = traffic.bodies[d.obstBody];
             std::string what;
@@ -1259,20 +1265,47 @@ std::string GameWorld::aiTrafficHealthText() const {
                 what = (ob.flags & AI::BF_PLAYER) ? "player" : StrFormat("ped %d%s", ob.host, (ob.flags & AI::BF_CROSSING) ? " crossing" : "");
             } else if (ob.host >= 0 && ob.host < (int)vehicles.size() && vehicles[ob.host].used) {
                 const Vehicle& o = vehicles[ob.host];
-                const AI::Driver* od = ob.host < (int)traffic.drivers.size() && traffic.drivers[ob.host].active ? &traffic.drivers[ob.host] : nullptr;
+                const AI::Driver* od = activeDriver(ob.host);
                 what = StrFormat("car %d %s%s%s", ob.host, vassets[o.model].spec.name.c_str(), (ob.flags & AI::BF_PLAYER) ? " player" : "",
                                  (ob.flags & AI::BF_PARKED) ? " parked" : "");
                 if (od) what += StrFormat(" (mode %d stuck %.0f blocked %.0f wait %.0f)", (int)od->mode, od->stuckTime, od->blockedTime, od->waitTime);
                 else if (o.seats[0] < 0) what += " empty";
                 if (ob.host < (int)ai.veh.size()) what += StrFormat(" role %d", (int)ai.veh[ob.host].role);
+                if (!od && d.path >= 0) {
+                    float plat = 0.f;
+                    laneGraph.projectPath(d.path, ob.pos, d.u, &plat);
+                    what += StrFormat(" [centre %.2f m %s of the path, half width %.2f, lane half width %.2f]", fabsf(plat), plat >= 0.f ? "right" : "left", ob.halfWid,
+                                      d.path < NL ? laneGraph.lanes[d.path].width * 0.5f : 0.f);
+                }
             } else {
                 what = "body";
             }
-            worstTxt += StrFormat(", obstacle %.1f m: %s v %.1f", d.obstDist, what.c_str(), ob.speed);
+            s += StrFormat(", obstacle %.1f m: %s v %.1f", d.obstDist, what.c_str(), ob.speed);
         } else if (d.stopDist < 40.f) {
-            worstTxt += StrFormat(", stop point %.1f m (gate conn %d node %d)", d.stopDist, d.gateConn, d.gateNode);
+            s += StrFormat(", stop point %.1f m (gate conn %d node %d)", d.stopDist, d.gateConn, d.gateNode);
         }
-    }
+        return s;
+    };
+    // the head of its queue: the obstacles ahead one after another while they are cars waiting behind something
+    // themselves (up to eight on) - what holds the whole line, when that is not the first car's own obstacle
+    auto queueText = [&](int vi) -> std::string {
+        int cur = vi, hops = 0;
+        for (; hops < 8; hops++) {
+            const AI::Driver& d = traffic.drivers[cur];
+            if (d.obstBody < 0 || d.obstBody >= (int)traffic.bodies.size() || d.obstDist > 12.f) break;
+            const AI::Body& ob = traffic.bodies[d.obstBody];
+            if (ob.kind != AI::BK_CAR || !activeDriver(ob.host) || traffic.drivers[ob.host].dummy || ob.speed > 1.f || ob.host == vi) break;
+            cur = ob.host;
+        }
+        return hops >= 2 ? StrFormat(" | head of its queue (%d cars on): %s", hops, waitText(cur).c_str()) : std::string();
+    };
+    std::string worstTxt = "-";
+    if (worstId >= 0) worstTxt = waitText(worstId) + queueText(worstId);
+    // the player's own car while the AI drives it (autoplay) and it is held up: what holds it
+    const int pv = playerVehicle();
+    if (pv >= 0 && pv != worstId && activeDriver(pv) && !traffic.drivers[pv].dummy && time - traffic.drivers[pv].lastDriveTime < 0.5 &&
+        (traffic.drivers[pv].waitTime > 20.f || traffic.drivers[pv].stuckTime > 10.f || traffic.drivers[pv].blockedTime > 20.f))
+        worstTxt += " | own car: " + waitText(pv) + queueText(pv);
     return StrFormat("traffic health: stuck>30s %d blocked>45s %d wait>90s %d holding %d rolled %d%s wrecked %d unhung %d | impacts %d (with player %d) | "
                      "core red %ld stopsign %ld stuckEv %ld recov %ld reloc %ld deadlockBreaks %ld kturns %ld | worst: %s",
                      stuck, blocked, waiting, holding, rolled, rolledTxt.c_str(), wrecked, ai.stats.unhung, ai.stats.hardImpacts, ai.stats.impactsWithPlayer, ts.redViolations,

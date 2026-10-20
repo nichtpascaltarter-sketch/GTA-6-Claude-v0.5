@@ -143,6 +143,14 @@ Everything (code, models, textures, animation, audio, music, voices, map) is gen
   over 60 m carry red aviation beacons at their roof corners, flashing in the rhythm of the beacons on masts and
   spires. Offices lit outside working hours have only some of their fixtures on, and office light levels vary over two
   stops.
+- Neon glow and vehicle lights at night (post.hlsl, lights.hlsli, dynamic.hlsl, game/gameworld.cpp): neon tubes, lit
+  letters and lamp heads keep their glow at night (the bloom's firefly guard now only damps true outliers, so a thin
+  bright tube blooms like a lit window of the same brightness). Car low beams light the road evenly out to a cut-off
+  about 35 m ahead, brightest just under it, instead of a hot patch in front of the bumper. Headlamps are LED (cool
+  white) on current and premium models and halogen (warm) on dated ones, everyday models mixed, the lens matching its
+  beam; tail lamps leave only a faint red tint while brake lamps flare red on the road; reversing lamps light the
+  ground behind the car; with Reduce Flashing the siren bar pulses slowly instead of strobing (light and lens). Up to
+  24 cars cast light (was 14): beyond ~40 m each lamp pair is one light, cross-faded over 36-44 m so nothing pops.
 - Audio (src/audio, done by agent): WASAPI mixer (192 voices, 3D, doppler, reverb, ducking), 79 synthesized SFX,
   9 engine kinds, sirens/horns/skids/rotors/boats, ambience beds, procedural music engine, 9 radio stations with DJs,
   ads and talk (live timelines), dynamic mission score. Formant TTS voices (src/audio/speech*).

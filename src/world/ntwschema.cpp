@@ -1,6 +1,7 @@
 // The NTW schema (ntwschema.h). docs/NTW_FORMAT.md describes the same kinds in prose; keep the two in step.
 #include "ntwschema.h"
 #include <cstring>
+#include <unordered_map>
 
 namespace World {
 namespace Ntw {
@@ -584,11 +585,13 @@ const std::vector<RefDef>& schemaRefs() {
                 {k, "wall", "finish", "<kit>"},
                 {k, "door", "wall", "<.wall>"},
                 {k, "door", "style", "<kit>"},
-                {k, "door", "leads", "out:<.room>|<.room>:out|<.room>:<.room>"},
+                {k, "door", "leads", "out:<.room|.slot>|<.room|.slot>:out|<.room|.slot>:<.room|.slot>"},
                 {k, "window", "wall", "<.wall>"},
                 {k, "window", "room", "<.room>"},
-                {k, "stair", "from", "<f.room>"},
-                {k, "stair", "to", "<f.room>"},
+                // a plan's floor and room; in a layout that serves several floors, its own room after 0:, +1: or -1:
+                // (on this floor, the floor above, the floor below)
+                {k, "stair", "from", "<f.room>|0:<.room>"},
+                {k, "stair", "to", "<f.room>|+1:<.room>|-1:<.room>"},
                 {k, "lift", "stops", "<floor>,..."},
                 {k, "slot", "entry", "<.door>"},
                 {k, "slot", "allow", "<unit|fitout>,..."},   // an id ending ".*" names a family
@@ -608,6 +611,123 @@ const std::vector<RefDef>& schemaRefs() {
         return r;
     }();
     return refs;
+}
+
+namespace ntwschema_detail {
+
+std::vector<std::string> splitAt(const std::string& s, char sep) {
+    std::vector<std::string> parts;
+    size_t from = 0;
+    for (size_t i = 0; i <= s.size(); i++)
+        if (i == s.size() || s[i] == sep) {
+            parts.push_back(s.substr(from, i - from));
+            from = i + 1;
+        }
+    return parts;
+}
+
+bool endsWith(const std::string& s, const char* suffix) {
+    const size_t n = strlen(suffix);
+    return s.size() >= n && s.compare(s.size() - n, n, suffix) == 0;
+}
+
+// An id, or a family of library ids (lib.unit.walkup.*)
+bool refText(const std::string& s) { return endsWith(s, ".*") ? isId(s.substr(0, s.size() - 2)) : isId(s); }
+
+bool matchItem(const RefAlt& alt, const std::string& item, std::vector<RefName>& out) {
+    const std::vector<std::string> pieces = splitAt(item, ':');
+    if (pieces.size() != alt.parts.size()) return false;
+    std::vector<RefName> got;
+    for (size_t i = 0; i < pieces.size(); i++) {
+        const RefPart& p = alt.parts[i];
+        if (pieces[i].empty() || (p.kind == 'l' && pieces[i] != p.text)) return false;
+        if (p.kind == 'r') {
+            if (!refText(pieces[i])) return false;
+            RefName n;
+            n.cls = p.text;
+            n.id = pieces[i];
+            got.push_back(n);
+        }
+    }
+    out.insert(out.end(), got.begin(), got.end());
+    return true;
+}
+
+}  // namespace ntwschema_detail
+
+RefPattern parseRefPattern(const char* text) {
+    using namespace ntwschema_detail;
+    RefPattern pat;
+    pat.text = text;
+    std::vector<std::string> alts;
+    int depth = 0;
+    size_t from = 0;
+    for (size_t i = 0; i <= pat.text.size(); i++) {
+        const char c = i < pat.text.size() ? pat.text[i] : '|';
+        if (c == '<') depth++;
+        else if (c == '>') depth--;
+        else if (c == '|' && depth == 0) {
+            alts.push_back(pat.text.substr(from, i - from));
+            from = i + 1;
+        }
+    }
+    for (std::string a : alts) {
+        RefAlt alt;
+        if (endsWith(a, ",...")) {
+            alt.list = true;
+            a.resize(a.size() - 4);
+        }
+        for (const std::string& piece : splitAt(a, ':')) {   // (classes hold no ':')
+            RefPart part;
+            if (piece == "*") part.kind = '*';
+            else if (piece.size() > 2 && piece.front() == '<' && piece.back() == '>') {
+                part.kind = 'r';
+                part.text = piece.substr(1, piece.size() - 2);
+            } else part.text = piece;
+            alt.parts.push_back(part);
+        }
+        pat.alts.push_back(alt);
+    }
+    return pat;
+}
+
+bool matchRefs(const RefPattern& pattern, const std::string& value, std::vector<std::vector<RefName>>& groups) {
+    using namespace ntwschema_detail;
+    for (const RefAlt& alt : pattern.alts) {
+        std::vector<std::vector<RefName>> got;
+        bool ok = true;
+        if (alt.list) {
+            std::vector<std::string> items;
+            ok = toList(value, items);
+            for (size_t i = 0; ok && i < items.size(); i++) {
+                got.emplace_back();
+                ok = matchItem(alt, items[i], got.back());
+            }
+        } else {
+            got.emplace_back();
+            ok = matchItem(alt, value, got.back());
+        }
+        if (ok) {
+            groups = std::move(got);
+            return true;
+        }
+    }
+    return false;
+}
+
+const std::vector<RefRule>* refRules(const std::string& kind, const std::string& type) {
+    static const std::unordered_map<std::string, std::vector<RefRule>> table = [] {
+        std::unordered_map<std::string, std::vector<RefRule>> t;   // by "<kind>/<type>"
+        for (const RefDef& d : schemaRefs()) {
+            RefRule r;
+            r.key = d.key;
+            r.pattern = parseRefPattern(d.pattern);
+            t[std::string(d.kind) + "/" + d.type].push_back(r);
+        }
+        return t;
+    }();
+    const auto it = table.find(kind + "/" + type);
+    return it == table.end() ? nullptr : &it->second;
 }
 
 FormatRules schemaFormatRules() {

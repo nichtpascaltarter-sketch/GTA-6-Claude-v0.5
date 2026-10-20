@@ -295,6 +295,8 @@ struct SimCar {
     float lifeTime = 0.f;
     float latLogT = -100.f;
     float hungTime = 0.f;      // same ledge recovery as the game host (traffic.cpp)
+    bool parked = false;       // --parked: standing in the parking strip, nobody at the wheel (no driver slot)
+    bool parkBlockFlag = false;
 };
 
 struct SimPed {
@@ -335,6 +337,8 @@ struct Sim {
     u32 uidNext = 1;
     // metrics
     long collisions = 0, hardCollisions = 0, pedHits = 0, staticImpacts = 0, deadlocks = 0, respawns = 0, propHits = 0, unhung = 0;
+    int nParked = 0;
+    long parkBlocks = 0;   // waits of over 30 s with a parked car as the obstacle
     double vehSeconds = 0.0;
     double clsSpeedSum[World::RC_COUNT] = {}, clsTime[World::RC_COUNT] = {};
     double aiTime = 0.0, aiMax = 0.0, physTime = 0.0, pedTime = 0.0;
@@ -467,6 +471,69 @@ struct Sim {
         p.used = false;
     }
 
+    // --parked N: cars standing in the parking strips the way the game's population lays them out (population.cpp, the
+    // parked cars round the player): the kerb lane of a street, avenue or lane with a strip of 1.8 m or more, centred in
+    // the strip, a hair off the lane's heading, any model the game parks (no buses, trucks, police...) narrow enough for
+    // the strip with half a metre to spare. Nobody at the wheel: no driver slot, never respawned. On nt_ai102c's soak a
+    // Compactor parked like this held a car in a one-lane street for 145 s
+    void spawnParked(int want) {
+        std::vector<float> pw(models.size(), 0.f);
+        float total = 0.f;
+        for (int i = 0; i < (int)models.size(); i++) {
+            switch (models[i].cls) {
+                case Vehicles::VC_BOAT: case Vehicles::VC_JETSKI: case Vehicles::VC_AIRBOAT: case Vehicles::VC_PLANE: case Vehicles::VC_HELI: case Vehicles::VC_BUS:
+                case Vehicles::VC_FIRETRUCK: case Vehicles::VC_AMBULANCE: case Vehicles::VC_POLICE: case Vehicles::VC_TRUCK: break;
+                default: pw[i] = models[i].spawnWeight;
+            }
+            total += pw[i];
+        }
+        for (int iter = 0; iter < want * 40 && nParked < want && total > 0.f; iter++) {
+            vec2 probe = center + rng.inCircle() * radius;
+            float u = 0.f;
+            int lane = w->lg.nearestLane(probe, vec2(0), 40.f, &u);
+            if (lane < 0) continue;
+            for (int guard = 0; guard < 6 && w->lg.lanes[lane].right >= 0; guard++) lane = w->lg.lanes[lane].right;
+            const AI::Lane& L = w->lg.lanes[lane];
+            if (L.cls != World::RC_STREET && L.cls != World::RC_AVENUE && L.cls != World::RC_LANE) continue;
+            const World::RoadClassInfo& info = World::roadInfo((World::RoadClass)L.cls);
+            if (info.shoulder < 1.8f || L.u1 - L.u0 < 30.f) continue;
+            u = Clamp(u, L.u0 + 9.f, L.u1 - 12.f);
+            bool nearStop = false;
+            for (float bs : L.busStops)
+                if (fabsf(bs - u) < 18.f) nearStop = true;
+            if (nearStop) continue;
+            float lat = L.width * 0.5f + info.shoulder * 0.5f;
+            vec3 c = w->lg.lanePos(lane, u, lat);
+            if (World::roadWorkZoneAt(c.xy())) continue;
+            bool close = false;
+            for (const SimCar& o : cars)
+                if (o.used && length(o.s.body.pos.toVec3().xy() - c.xy()) < 6.5f) close = true;
+            if (close) continue;
+            float pick = rng.f() * total;
+            int m = -1;
+            for (int i = 0; i < (int)pw.size(); i++) {
+                pick -= pw[i];
+                if (pick <= 0.f && pw[i] > 0.f) {
+                    m = i;
+                    break;
+                }
+            }
+            if (m < 0 || models[m].boxHalf.x > info.shoulder * 0.5f + 0.5f) continue;
+            vec2 t = w->lg.laneTangent(lane, u);
+            SimCar pc;
+            pc.used = true;
+            pc.parked = true;
+            pc.model = m;
+            pc.uid = uidNext++;
+            Vehicles::initVehicle(pc.s, models[m], m, dvec3(c.x, c.y, c.z + 0.25), AI::dirYaw(t) + (rng.f() - 0.5f) * 0.05f);
+            pc.info = AI::makeVehicleInfo(models[m], pc.s);
+            pc.ctl.handbrake = true;
+            cars.push_back(pc);
+            nParked++;
+        }
+        tc.drivers.resize(cars.size());   // (the parked cars' slots stay inactive: tc.get() gives nullptr)
+    }
+
 
     int snapCount = 0;
     int snapLimit = 0;
@@ -543,9 +610,9 @@ struct Sim {
             b.halfLen = m.boxHalf.y;
             b.halfWid = m.boxHalf.x;
             b.host = i;
-            b.driver = i;
+            b.driver = c.parked ? -1 : i;
             b.kind = AI::BK_CAR;
-            b.flags = AI::BF_AI | (d && d->dummy ? AI::BF_DUMMY : 0) | (i == respondCar ? AI::BF_SIREN | AI::BF_POLICE : 0);
+            b.flags = c.parked ? AI::BF_PARKED : AI::BF_AI | (d && d->dummy ? AI::BF_DUMMY : 0) | (i == respondCar ? AI::BF_SIREN | AI::BF_POLICE : 0);
             tc.bodies.push_back(b);
         }
         for (int i = 0; i < (int)peds.size(); i++) {
@@ -768,6 +835,25 @@ struct Sim {
                 LOG("LATDEV t=%.1f car %d (%s) at %.1f %.1f lane %d u %.1f latErr %.2f v %.1f vT %.1f steer %.2f diag e %.2f psi %.2f ff %.2f st %.2f", time, i, models[c.model].name.c_str(), c.s.body.pos.x, c.s.body.pos.y, d->path, d->u,
                     d->latErr, c.s.speed(), d->vTarget, c.ctl.steer, d->diag[0], d->diag[1], d->diag[2], d->diag[3]);
             }
+            // held up for long behind a parked car (--parked): where it stands across our path, and the overtake state
+            const AI::Body* pob = d->obstBody >= 0 && d->obstBody < (int)tc.bodies.size() ? &tc.bodies[d->obstBody] : nullptr;
+            if (pob && (pob->flags & AI::BF_PARKED) && d->obstDist < 12.f && d->waitTime > 30.f && !c.parkBlockFlag) {
+                c.parkBlockFlag = true;
+                parkBlocks++;
+                if (verbose) {
+                    const AI::LaneGraph& G = w->lg;
+                    float plat = 0.f;
+                    G.projectPath(d->path, pob->pos, d->u, &plat);
+                    float pathHalf = G.isLane(d->path) ? G.lanes[d->path].width * 0.5f : 0.f;
+                    const SimCar& pcar = cars[pob->host];
+                    LOG("PARKBLOCK t=%.1f car %d (%s, half width %.2f) at %.1f %.1f %s %d u %.1f v %.1f wait %.1f blocked %.1f | parked car %d (%s) %.1f m ahead: half width %.2f "
+                        "half length %.2f, centre %.2f m %s of our path (lane half width %.2f), heading off the path %.3f | nudge %.2f -> %.2f (timer %.1f) lc %d stop %.1f",
+                        time, i, models[c.model].name.c_str(), c.info.halfWid, c.s.body.pos.x, c.s.body.pos.y, G.isLane(d->path) ? "lane" : "conn", d->path, d->u, c.s.speed(),
+                        d->waitTime, d->blockedTime, pob->host, models[pcar.model].name.c_str(), d->obstDist, pob->halfWid, pob->halfLen, fabsf(plat), plat >= 0.f ? "right" : "left",
+                        pathHalf, fabsf(dot(pob->fwd, AI::rightOf(G.pathTangent(d->path, d->u)))), d->nudge, d->nudgeTarget, d->nudgeTimer, d->lcLane, d->stopDist);
+                }
+            }
+            if (d->waitTime < 5.f) c.parkBlockFlag = false;
         }
         double c1 = cpuMs();
         for (int i = 0; i < (int)peds.size(); i++) {
@@ -856,7 +942,7 @@ struct Sim {
         // statistics, static impacts, respawn
         for (int i = 0; i < (int)cars.size(); i++) {
             SimCar& c = cars[i];
-            if (!c.used) continue;
+            if (!c.used || c.parked) continue;
             AI::Driver* d = tc.get(i);
             c.lifeTime += h;
             vehSeconds += h;
@@ -1072,6 +1158,7 @@ struct Sim {
         printf("red-light violations: %ld, stop-sign violations: %ld\n", tc.stats.redViolations, tc.stats.stopSignViolations);
         printf("stuck recoveries: %ld, three-point turns: %ld, relocalizations: %ld, deadlocks (>60 s waits): %ld, respawns: %ld, lifted off ledges: %ld\n", tc.stats.stuckEvents, tc.stats.kTurns, tc.stats.relocalizations, deadlocks, respawns, unhung);
         printf("pedestrians hit: %ld\n", pedHits);
+        if (nParked > 0) printf("parked cars: %d, waits over 30 s behind one: %ld\n", nParked, parkBlocks);
         const char* names[] = {"highway", "boulevard", "avenue", "street", "lane", "rural", "dirt", "ramp"};
         printf("average speed by road class (km/h):");
         for (int k = 0; k < World::RC_COUNT; k++)
@@ -1322,7 +1409,7 @@ struct Sim {
                 cv.line(tr.pts[k], tr.pts[k + 1], col, viewR < 150.f ? 0.5f : 0.8f, viewR < 150.f ? 0 : 1);
             }
         for (auto& c : cars)
-            if (c.used) cv.point(c.s.body.pos.toVec3().xy(), vec3(1, 1, 1), 2);
+            if (c.used) cv.point(c.s.body.pos.toVec3().xy(), c.parked ? vec3(0.55f, 0.55f, 0.55f) : vec3(1, 1, 1), 2);
         for (auto& p : peds)
             if (p.used) cv.point(p.pos, vec3(0.2f, 1.f, 0.4f), 1);
         for (auto& e : events) {
@@ -1358,10 +1445,10 @@ int main(int argc, char** argv) {
                     printf("  dead end node %d uturnBlocked %d conns %d\n", n, (int)w.lg.nodes[n].uturnBlocked, w.lg.nodes[n].connCount);
                     for (int c = w.lg.nodes[n].firstConn; c < w.lg.nodes[n].firstConn + w.lg.nodes[n].connCount; c++) {
                         const AI::Connector& cc = w.lg.conns[c];
-                        float maxY = -1e9f, far = 0.f;
-                        for (auto& q : cc.pts) far = Max(far, length(q.xy() - w.roads.nodes[n].p));
+                        float maxY = -1e9f, farD = 0.f;
+                        for (auto& q : cc.pts) farD = Max(farD, length(q.xy() - w.roads.nodes[n].p));
                         for (auto& q : cc.pts) maxY = Max(maxY, q.y);
-                        printf("    conn %d (path %d) len %.1f pts %zu maxY %.1f farthest from node %.1f\n", c, (int)w.lg.lanes.size() + c, cc.length, cc.pts.size(), maxY, far);
+                        printf("    conn %d (path %d) len %.1f pts %zu maxY %.1f farthest from node %.1f\n", c, (int)w.lg.lanes.size() + c, cc.length, cc.pts.size(), maxY, farD);
                     }
                 }
             std::vector<int> cand;
@@ -1470,6 +1557,182 @@ int main(int argc, char** argv) {
             }
             printf("dead ends: %d\n", total);
             if (all) i++;
+            continue;
+        }
+        if (!strcmp(argv[i], "--overlaps")) {
+            // two road edges laid over the same strip of road: along each edge (junction ends left out), the stretch where
+            // another edge's centreline runs within most of a road width of it, the same way or the opposite one. Their
+            // lanes then sit on top of each other and the cars on them block each other with nothing to resolve it - on
+            // the harness's Sol Beach run a causeway coming in along a street a block before their junction (node 2478)
+            // left queues waiting a minute and more at the junction (18 waits over 60 s in 6 minutes)
+            const World::RoadNetwork& R = w.roads;
+            const int NE = (int)R.edges.size();
+            struct Run {
+                long long key;
+                float m;
+                vec2 at;
+            };
+            std::vector<Run> runs;   // (edge pair, overlapping metres, where it starts)
+            std::vector<int> nbE;
+            for (int a = 0; a < NE; a++) {
+                const World::RoadEdge& A = R.edges[a];
+                if (A.pts.size() < 2 || A.length < 8.f) continue;
+                for (float s = A.cut0 + 2.f; s < A.length - A.cut1 - 2.f; s += 4.f) {
+                    vec3 p3 = A.posAt(s), t3 = A.tangentAt(s);
+                    vec2 p = p3.xy(), t = normalize(t3.xy() + vec2(1e-6f, 0.f));
+                    nbE.clear();
+                    R.edgesInRect(p - vec2(A.halfWidth + 12.f), p + vec2(A.halfWidth + 12.f), nbE);
+                    for (int b : nbE) {
+                        if (b <= a) continue;
+                        const World::RoadEdge& B = R.edges[b];
+                        if (B.pts.size() < 2) continue;
+                        // nearest point of B's centreline (outside its own junction ends)
+                        float best = 1e9f, bz = 0.f, bs = 0.f;
+                        vec2 bt(0.f);
+                        for (size_t k = 0; k + 1 < B.pts.size(); k++) {
+                            vec2 q0 = B.pts[k].xy(), q1 = B.pts[k + 1].xy(), d = q1 - q0;
+                            float l2 = Max(dot(d, d), 1e-6f), f = Clamp(dot(p - q0, d) / l2, 0.f, 1.f);
+                            float dd = length(q0 + d * f - p);
+                            if (dd < best) {
+                                best = dd;
+                                bt = d / sqrtf(l2);
+                                bz = Lerp(B.pts[k].z, B.pts[k + 1].z, f);
+                                bs = B.dist.size() > k + 1 ? Lerp(B.dist[k], B.dist[k + 1], f) : 0.f;
+                            }
+                        }
+                        if (bs < B.cut0 + 1.f || bs > B.length - B.cut1 - 1.f) continue;
+                        if (best > 0.8f * Max(A.halfWidth, B.halfWidth) || fabsf(dot(bt, t)) < 0.85f || fabsf(bz - p3.z) > 3.f) continue;
+                        long long key = (long long)a * NE + b;
+                        bool found = false;
+                        for (size_t r = runs.size(); r-- > 0 && !found;)
+                            if (runs[r].key == key) {
+                                runs[r].m += 4.f;
+                                found = true;
+                            }
+                        if (!found) runs.push_back({key, 4.f, p});
+                    }
+                }
+            }
+            std::sort(runs.begin(), runs.end(), [](const Run& x, const Run& y) { return x.m > y.m; });
+            int shown = 0;
+            for (const Run& r : runs) {
+                if (r.m < 12.f) break;
+                int a = (int)(r.key / NE), b = (int)(r.key % NE);
+                const World::RoadEdge &A = R.edges[a], &B = R.edges[b];
+                printf("overlap %4.0f m from (%.0f, %.0f): edge %d (%s, cls %d, %d/%d lanes, nodes %d-%d) and edge %d (%s, cls %d, %d/%d lanes, nodes %d-%d)\n",
+                       r.m, r.at.x, r.at.y, a, A.name.c_str(), (int)A.cls, A.lanesF, A.lanesB, A.n0, A.n1, b, B.name.c_str(), (int)B.cls, B.lanesF, B.lanesB, B.n0, B.n1);
+                if (++shown >= 60) break;
+            }
+            int over = 0;
+            for (const Run& r : runs) over += r.m >= 12.f;
+            printf("overlapping edge pairs (12 m or more): %d\n", over);
+            continue;
+        }
+        if (!strcmp(argv[i], "--walkcheck")) {
+            const bool listAll = i + 1 < argc && !strcmp(argv[i + 1], "all");   // every hit, not just the 40 longest
+            if (listAll) i++;
+            const size_t listMax = listAll ? (size_t)1 << 30 : 40;
+            // walk links that would take a pedestrian through a wall or along a carriageway: along each link's centre
+            // line in 1 m steps, the metres inside a building footprint (shrunk by 0.3 m, so a sidewalk brushing a facade
+            // passes) and, for links that are not crossings, the metres on another road's carriageway (0.8 m in from its
+            // edge, within 2 m of its height, outside its junction ends)
+            const AI::LaneGraph& G = w.lg;
+            const World::RoadNetwork& R = w.roads;
+            struct Hit {
+                int link, other;   // the walk link; the building or road edge it runs into
+                float m;
+                vec2 at;
+            };
+            std::vector<Hit> inBuilding, onRoad;
+            float metres[2][5] = {{0.f}};
+            int links[2][5] = {{0}};
+            std::vector<int> nbE, nbB;
+            for (int li = 0; li < (int)G.walkLinks.size(); li++) {
+                const AI::WalkLink& L = G.walkLinks[li];
+                if (L.length < 0.5f || L.kind > AI::WL_ZEBRA) continue;
+                const int steps = Max(1, (int)ceilf(L.length));
+                const float stepM = L.length / (float)steps;
+                Hit hb = {li, -1, 0.f, vec2(0.f)}, he = {li, -1, 0.f, vec2(0.f)};
+                for (int k = 0; k <= steps; k++) {
+                    vec3 q3 = G.walkPos(li, L.length * (float)k / (float)steps, 0.f, true);
+                    vec2 q = q3.xy();
+                    if (World::gBuildings) {
+                        nbB.clear();
+                        World::gBuildings->buildingsNear(q, 1.f, nbB);
+                        for (int bi : nbB) {
+                            const World::Building& b = World::gBuildings->buildings[bi];
+                            vec2 d = q - b.c, side(-b.ax.y, b.ax.x);
+                            if (fabsf(dot(d, b.ax)) < b.hx - 0.3f && fabsf(dot(d, side)) < b.hy - 0.3f && q3.z > b.baseZ - 3.f && q3.z < b.baseZ + b.height) {
+                                if (hb.other < 0) {
+                                    hb.other = bi;
+                                    hb.at = q;
+                                }
+                                hb.m += stepM;
+                                break;
+                            }
+                        }
+                    }
+                    if (L.kind == AI::WL_CROSSWALK || L.kind == AI::WL_ZEBRA) continue;
+                    nbE.clear();
+                    R.edgesInRect(q - vec2(12.f), q + vec2(12.f), nbE);
+                    for (int ei : nbE) {
+                        const World::RoadEdge& E = R.edges[ei];
+                        if (E.pts.size() < 2) continue;
+                        float best = 1e9f, bz = 0.f, bs = 0.f;
+                        for (size_t s = 0; s + 1 < E.pts.size(); s++) {
+                            vec2 q0 = E.pts[s].xy(), dq = E.pts[s + 1].xy() - q0;
+                            float l2 = Max(dot(dq, dq), 1e-6f), f = Clamp(dot(q - q0, dq) / l2, 0.f, 1.f);
+                            float dd = length(q0 + dq * f - q);
+                            if (dd < best) {
+                                best = dd;
+                                bz = Lerp(E.pts[s].z, E.pts[s + 1].z, f);
+                                bs = E.dist.size() > s + 1 ? Lerp(E.dist[s], E.dist[s + 1], f) : 0.f;
+                            }
+                        }
+                        if (bs < E.cut0 || bs > E.length - E.cut1 || best > E.halfWidth - 0.8f || fabsf(bz - q3.z) > 2.f) continue;
+                        if (he.other < 0) {
+                            he.other = ei;
+                            he.at = q;
+                        }
+                        he.m += stepM;
+                        break;
+                    }
+                }
+                if (hb.m >= 1.f) {
+                    inBuilding.push_back(hb);
+                    links[0][L.kind]++;
+                    metres[0][L.kind] += hb.m;
+                }
+                if (he.m >= 1.f) {
+                    onRoad.push_back(he);
+                    links[1][L.kind]++;
+                    metres[1][L.kind] += he.m;
+                }
+            }
+            static const char* kKindName[5] = {"sidewalk", "crosswalk", "corner", "path", "zebra"};
+            auto byMetres = [](const Hit& x, const Hit& y) { return x.m > y.m; };
+            std::sort(inBuilding.begin(), inBuilding.end(), byMetres);
+            std::sort(onRoad.begin(), onRoad.end(), byMetres);
+            for (size_t k = 0; k < inBuilding.size() && k < listMax; k++) {
+                const Hit& h = inBuilding[k];
+                const AI::WalkLink& L = G.walkLinks[h.link];
+                const World::Building& b = World::gBuildings->buildings[h.other];
+                printf("in building %4.1f m from (%.1f, %.1f): walk link %d (%s, %.1f m, edge %d) through building %d (style %d, %.1f x %.1f m, interior %d)\n", h.m, h.at.x, h.at.y,
+                       h.link, kKindName[L.kind], L.length, L.edge, h.other, (int)b.style, b.hx * 2.f, b.hy * 2.f, (int)b.interior);
+            }
+            for (size_t k = 0; k < onRoad.size() && k < listMax; k++) {
+                const Hit& h = onRoad[k];
+                const AI::WalkLink& L = G.walkLinks[h.link];
+                const World::RoadEdge& E = R.edges[h.other];
+                printf("on road %4.1f m from (%.1f, %.1f): walk link %d (%s, %.1f m, edge %d, junction %d) on edge %d (%s, cls %d, half width %.1f, nodes %d-%d)\n", h.m, h.at.x,
+                       h.at.y, h.link, kKindName[L.kind], L.length, L.edge, G.walkNodes[L.a].roadNode, h.other, E.name.c_str(), (int)E.cls, E.halfWidth, E.n0, E.n1);
+            }
+            for (int t = 0; t < 2; t++) {
+                printf("%s:", t ? "walk links on a carriageway" : "walk links through buildings");
+                for (int k = 0; k < 5; k++) printf(" %s %d (%.0f m)", kKindName[k], links[t][k], metres[t][k]);
+                printf("\n");
+            }
+            printf("walk links checked: %d\n", (int)G.walkLinks.size());
             continue;
         }
         if (!strcmp(argv[i], "--sites") && i + 3 < argc) {
@@ -1642,7 +1905,7 @@ int main(int argc, char** argv) {
             vec2 c((float)atof(argv[i + 1]), (float)atof(argv[i + 2]));
             float r = (float)atof(argv[i + 3]);
             i += 3;
-            int ncars = 60, npeds = 40;
+            int ncars = 60, npeds = 40, nparked = 0;
             float minutes = 3.f, dummyR = -1.f, detailOff = 0.f;
             int snapLimit = 0;
             vec2 detailAt(1e9f);
@@ -1656,8 +1919,10 @@ int main(int argc, char** argv) {
                 else if (!strcmp(argv[k], "--plot") && k + 1 < argc) plotPath = argv[++k];
                 else if (!strcmp(argv[k], "--dummy") && k + 1 < argc) dummyR = (float)atof(argv[++k]);
                 else if (!strcmp(argv[k], "-v")) verbose = true;
+                else if (!strcmp(argv[k], "--seed") && k + 1 < argc) sim.rng = Rng((u64)strtoull(argv[++k], nullptr, 10));   // another run of the same area
                 else if (!strcmp(argv[k], "--snaps") && k + 1 < argc) snapLimit = atoi(argv[++k]);
                 else if (!strcmp(argv[k], "--bikes") && k + 1 < argc) sim.bikeScale = (float)atof(argv[++k]);
+                else if (!strcmp(argv[k], "--parked") && k + 1 < argc) nparked = atoi(argv[++k]);
                 else if (!strcmp(argv[k], "--respond") && k + 3 < argc) {
                     sim.respondGoal.x = (float)atof(argv[++k]);
                     sim.respondGoal.y = (float)atof(argv[++k]);
@@ -1680,7 +1945,8 @@ int main(int argc, char** argv) {
             sim.snapDir = plotPath ? std::string(plotPath).substr(0, std::string(plotPath).find_last_of('/') + 1) : std::string();
             sim.dummyRadius = dummyR;
             sim.init(&w, c, r, ncars, npeds);
-            LOG("Simulating %.1f minutes around (%.0f, %.0f) r=%.0f with %d cars, %d peds", minutes, c.x, c.y, r, ncars, npeds);
+            if (nparked > 0) sim.spawnParked(nparked);
+            LOG("Simulating %.1f minutes around (%.0f, %.0f) r=%.0f with %d cars, %d peds, %d parked", minutes, c.x, c.y, r, ncars, npeds, sim.nParked);
             sim.run(minutes * 60.f);
             sim.report();
             if (plotPath) {
@@ -1696,10 +1962,10 @@ int main(int argc, char** argv) {
             float a = (float)atof(argv[i + 2]), b = (float)atof(argv[i + 3]);
             i += 3;
             const AI::LaneGraph& G = w.lg;
-            if (id < 0 || id >= (int)G.lanes.size()) break;
+            if (id < 0 || id >= (int)G.lanes.size()) continue;
             const AI::Lane& L = G.lanes[id];
-            printf("lane %d edge %d dir %d idx %d/%d left %d right %d cls %d flags %d u %.1f..%.1f from node %d to node %d speed %.1f out", id, L.edge, L.dir, L.index, L.count, L.left,
-                   L.right, L.cls, L.flags, L.u0, L.u1, L.fromNode, L.toNode, L.speed);
+            printf("lane %d edge %d dir %d idx %d/%d left %d right %d cls %d flags %d u %.1f..%.1f stopU %.1f width %.2f from node %d to node %d speed %.1f out", id, L.edge, L.dir,
+                   L.index, L.count, L.left, L.right, L.cls, L.flags, L.u0, L.u1, L.stopU, L.width, L.fromNode, L.toNode, L.speed);
             for (int c : L.out) printf(" %d(to lane %d turn %d)", c, G.conns[c].to, G.conns[c].turn);
             printf("\n");
             for (float u = Max(a, L.u0); u <= Min(b, L.u1) + 0.01f; u += 2.f) {
@@ -1707,12 +1973,12 @@ int main(int argc, char** argv) {
                 vec2 t = G.laneTangent(id, u);
                 printf("  u %7.1f (%.2f %.2f %.2f) t (%.3f %.3f) curv %+.4f\n", u, q.x, q.y, q.z, t.x, t.y, G.pathCurv(id, u));
             }
-            break;
+            continue;
         }
         if (!strcmp(argv[i], "--node") && i + 1 < argc) {
             int id = atoi(argv[++i]);
             const AI::LaneGraph& G = w.lg;
-            if (id < 0 || id >= (int)G.nodes.size()) break;
+            if (id < 0 || id >= (int)G.nodes.size()) continue;
             const AI::NodeInfo& N = G.nodes[id];
             printf("node %d at (%.1f %.1f) control %d axes %d deadEnd %d cycle %.1f offset %.1f phases %zu leftPhase %d %d %d\n", id, w.roads.nodes[id].p.x, w.roads.nodes[id].p.y, N.control,
                    N.axisCount, (int)N.deadEnd, N.cycle, N.offset, N.phases.size(), N.leftPhase[0], N.leftPhase[1], N.leftPhase[2]);
@@ -1724,12 +1990,12 @@ int main(int argc, char** argv) {
                 printf("  appr %zu edge %d out %d axis %d rank %d dir (%.2f %.2f) in %zu out %zu | %s\n", a, A.edge, (int)A.outgoing, A.axis, A.rank, A.dir.x, A.dir.y, A.inLanes.size(),
                        A.outLanes.size(), tl.c_str());
             }
-            break;
+            continue;
         }
         if (!strcmp(argv[i], "--conn") && i + 1 < argc) {
             int id = atoi(argv[++i]);
             const AI::LaneGraph& G = w.lg;
-            if (id < 0 || id >= (int)G.conns.size()) break;
+            if (id < 0 || id >= (int)G.conns.size()) continue;
             const AI::Connector& C = G.conns[id];
             w.loadCells(C.pts.empty() ? vec2(0.f) : C.pts[0].xy(), 60.f);
             printf("conn %d node %d turn %d appr %d->%d from lane %d to lane %d len %.1f maxSpeed %.1f minRadius %.1f holdS %.1f conflicts %zu\n", id, C.node, C.turn, C.approach, C.outApproach, C.from,
@@ -1741,7 +2007,7 @@ int main(int argc, char** argv) {
                 vec3 a = G.lanePos(ln, L.u0), b = G.lanePos(ln, L.u1);
                 printf("lane %d u %.1f..%.1f (%.1f %.1f)->(%.1f %.1f) width %.2f idx %d/%d cls %d\n", ln, L.u0, L.u1, a.x, a.y, b.x, b.y, L.width, L.index, L.count, L.cls);
             }
-            break;
+            continue;
         }
         if (!strcmp(argv[i], "--colliders") && i + 3 < argc) {
             vec2 p((float)atof(argv[i + 1]), (float)atof(argv[i + 2]));

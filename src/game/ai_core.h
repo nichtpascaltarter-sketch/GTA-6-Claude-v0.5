@@ -413,6 +413,11 @@ struct Driver {
     float stopU = 0.f;
     float lastDriveTime = -1.f; // time of the last drive() call (stale drivers are relocalized)
     float yieldHold = 0.f;      // stay put after backing off to let a blocked vehicle through (s)
+    int passHost = -1;          // a static blocker being driven round (a car parked half in the lane, a breakdown): its
+    float passT = 0.f;          // body's host id, the time the side step may still take (s), and the back-ups so far
+    int passBacks = 0;          // (stopped too close to steer round it) - drive() / plan()
+    int preStop = -1;           // an all-way stop's connector whose line the car has stopped at from the box before (a
+    bool preGo = false;         // link shorter than the car), and its turn there come - plan(); gate() takes them over
     float diag[6] = {};         // controller diagnostics for the test harness (front error, heading error, feed-forward, command, path, u)
 };
 
