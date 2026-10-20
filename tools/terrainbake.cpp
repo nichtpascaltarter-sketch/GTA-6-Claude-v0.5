@@ -47,6 +47,8 @@
 #include "src/world/interiorresidences.cpp"
 #include "src/world/interiors.cpp"
 #include "src/world/gridcodec.cpp"
+#include "src/world/ntw.cpp"
+#include "src/world/ntwschema.cpp"
 #include <thread>
 #include <string>
 #include <vector>
@@ -232,6 +234,17 @@ int run() {
         snprintf(buf, sizeof(buf), "channel ch.%02zu width0=%.2f width1=%.2f depth=%.2f pts=", i, ch.width0, ch.width1, ch.depth);
         t += buf + fmtPts(ch.pts) + "\n";
     }
+    // in its canonical form (tools/ntwfmt.cpp), and checked against the schema
+    Ntw::Document doc;
+    std::vector<Ntw::Error> errs;
+    if (!Ntw::parse(t.data(), t.size(), Ntw::schemaOpensBlock, doc, errs)) {
+        for (const Ntw::Error& e : errs) printf("terrainbake: terrain.ntw:%d: %s\n", e.line, e.message.c_str());
+        return 1;
+    }
+    Ntw::checkDocument(doc, errs);
+    for (const Ntw::Error& e : errs) printf("terrainbake: terrain.ntw:%d: %s\n", e.line, e.message.c_str());
+    if (!errs.empty()) return 1;
+    t = Ntw::format(doc, Ntw::schemaFormatRules());
     if (!writeBytes(gOut + "/terrain.ntw", std::vector<u8>(t.begin(), t.end()))) return 1;
     printf("terrainbake: terrain.ntw %zu bytes; %zu outlines of islands, %zu channels; done in %.2f s\n", t.size(), map->smallIslands.size(),
            map->channels.size(), TimeSeconds() - t0);

@@ -29,6 +29,13 @@ struct Record {
     std::vector<Field> fields;
     std::vector<Record> children;    // the records inside its block, when its type opens one
     int line = 0;
+    bool opensBlock = false;
+    // kept for the formatter: comment lines just before the record, a comment at the end of its line (or lines), comment
+    // lines just before its block's 'end', and whether a blank line came before it (or before its comments)
+    std::vector<std::string> comments;
+    std::string trailing;
+    std::vector<std::string> endComments;
+    bool blankBefore = false;
 
     const Field* field(const char* key) const;
     const char* value(const char* key, const char* fallback = nullptr) const;
@@ -40,6 +47,9 @@ struct Document {
     std::string kind;                // from "ntw <version> <kind>"
     std::vector<Field> header;       // the key=value fields of the first record
     std::vector<Record> records;
+    std::vector<std::string> leadComments;   // comment lines before the first record
+    std::string headerTrailing;
+    std::vector<std::string> tailComments;   // comment lines after the last record
 
     const Field* headerField(const char* key) const;
 };
@@ -54,6 +64,18 @@ typedef bool (*BlockPredicate)(const std::string& kind, const std::string& type)
 
 // Parses `size` bytes of UTF-8 text. Returns true when there were no errors; up to 50 errors are listed with their lines.
 bool parse(const char* text, size_t size, BlockPredicate opensBlock, Document& out, std::vector<Error>& errors);
+
+// Formatting: the canonical text of a document. Fields of a record come in the order `fieldOrder` gives for its type (the
+// others after them, as written); numbers in a field are rewritten with `decimals` places (-1 keeps them as written);
+// records are indented two spaces per block; a record longer than 120 columns continues on lines indented two more;
+// comments and single blank lines stay where they were.
+struct FormatRules {
+    const std::vector<std::string>* (*fieldOrder)(const std::string& kind, const std::string& type) = nullptr;
+    int (*decimals)(const std::string& kind, const std::string& type, const std::string& key) = nullptr;
+};
+std::string format(const Document& doc, const FormatRules& rules);
+// The value with every number in it (between , ; : and /) written with `decimals` places; "-0.00" becomes "0.00"
+std::string formatNumbers(const std::string& value, int decimals);
 
 // Identifiers: [a-z0-9_.-]+ (record ids and references); types and keys: [a-z][a-z0-9_]*
 bool isId(const std::string& s);

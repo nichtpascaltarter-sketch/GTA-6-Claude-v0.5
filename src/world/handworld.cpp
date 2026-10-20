@@ -78,9 +78,9 @@ const u8* embeddedWorldBin(size_t* size) {
 
 bool loadHandTerrain(const WorldBinView& bin, WorldMap& map, std::string* error) {
     using namespace handworld_detail;
-    const WorldBinView::Section* meta = bin.find("terrain");
-    if (!meta || meta->kind != WSK_RAW) return fail(error, "world.bin has no terrain record");
-    ByteReader r(meta->data, meta->size);
+    std::vector<u8> meta;
+    if (!bin.bytes("terrain", meta)) return fail(error, "world.bin has no terrain record");
+    ByteReader r(meta.data(), meta.size());
     if (r.getU32() != 1) return fail(error, "unknown terrain record version");
     TerrainRecord t;
     t.res = r.getU32();

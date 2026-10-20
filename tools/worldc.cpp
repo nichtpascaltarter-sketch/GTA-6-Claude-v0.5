@@ -1,15 +1,20 @@
-// worldc: the world compiler (docs/HANDBUILT_WORLD.md, section 6.1). Reads the hand-built world's text under world/ and
-// writes world.bin, which the build embeds in the exe as the RCDATA resource NT_WORLD (with the world.rc written next to
-// it). Stage 0: the baked terrain (world/terrain/terrain.ntw and its grids).
+// worldc: the world compiler (docs/HANDBUILT_WORLD.md, section 6.1). Reads every .ntw file under world/, checks it
+// against the schema (src/world/ntwschema.h, docs/NTW_FORMAT.md) and compiles it into world.bin, which the build embeds in
+// the exe as the RCDATA resource NT_WORLD (with the world.rc written next to it). Stage 0 compiles the baked terrain;
+// the other kinds get their compilers as the format grows.
 // Build from the repo root:  g++ -std=c++17 -O2 -I. tools/worldc.cpp -o build/worldc
 // Run from the repo root:    build/worldc [--world=world] [--out=build/gen/world.bin]
-// Exit code 1 on any error, with the file and line.
+//                            build/worldc --check=<file.ntw>     (one file against the schema, nothing written)
+// Exit code 1 on any error, each reported as file:line.
 #include "tools/native_stubs.cpp"
 #include "src/world/ntw.cpp"
+#include "src/world/ntwschema.cpp"
 #include "src/world/gridcodec.cpp"
+#include "src/world/lz.cpp"
 #include "src/world/worldbin.cpp"
 #include <algorithm>
 #include <chrono>
+#include <filesystem>
 #include <string>
 #include <vector>
 #include <cstdio>
@@ -59,20 +64,43 @@ bool writeFile(const std::string& path, const std::vector<u8>& bytes) {
     return false;
 }
 
-bool noBlocks(const std::string&, const std::string&) { return false; }
+struct Source {
+    std::string path;    // as given on disk
+    std::string rel;     // relative to the world directory, with '/'
+    std::vector<u8> text;
+    Ntw::Document doc;
+};
 
-// A required number field
-bool num(const std::string& file, const Ntw::Record& r, const char* key, double* out) {
-    const Ntw::Field* f = r.field(key);
-    if (!f) {
-        error(file, r.line, std::string(r.type) + " needs " + key + "=");
+// Parses and checks one file; false (with its errors reported) when it can't be used
+// The manifest's hash of a source: its text as LF lines without a byte-order mark, so a CRLF checkout (Windows without
+// .gitattributes) compiles the same world.bin
+u64 textHash(const std::vector<u8>& t) {
+    size_t i = t.size() >= 3 && t[0] == 0xEF && t[1] == 0xBB && t[2] == 0xBF ? 3 : 0;
+    u64 h = fnv1a64(nullptr, 0);
+    for (; i < t.size(); i++)
+        if (!(t[i] == '\r' && i + 1 < t.size() && t[i + 1] == '\n')) h = fnv1a64(&t[i], 1, h);
+    return h;
+}
+
+bool load(Source& s) {
+    if (!readFile(s.path, s.text)) {
+        error(s.path, 0, "cannot read it");
         return false;
     }
-    if (!Ntw::toNumber(f->value, out)) {
-        error(file, f->line, std::string(key) + "=" + f->value + " is not a number");
+    std::vector<Ntw::Error> errs;
+    if (!Ntw::parse((const char*)s.text.data(), s.text.size(), Ntw::schemaOpensBlock, s.doc, errs)) {
+        for (const Ntw::Error& e : errs) error(s.path, e.line, e.message);
         return false;
     }
-    return true;
+    Ntw::checkDocument(s.doc, errs);
+    for (const Ntw::Error& e : errs) error(s.path, e.line, e.message);
+    return errs.empty();
+}
+
+double num(const Ntw::Record& r, const char* key, double fallback = 0.0) {   // (the schema checked the type)
+    double v = fallback;
+    if (const Ntw::Field* f = r.field(key)) Ntw::toNumber(f->value, &v);
+    return v;
 }
 
 struct LayerSpec {
@@ -84,47 +112,30 @@ struct LayerSpec {
 };
 
 // world/terrain/terrain.ntw and its grids -> the terrain record and the four grid sections
-bool compileTerrain(WorldBinWriter& out) {
-    const std::string dir = gWorld + "/terrain/";
-    const std::string file = dir + "terrain.ntw";
-    std::vector<u8> text;
-    if (!readFile(file, text)) {
-        error(file, 0, "cannot read it");
-        return false;
-    }
-    Ntw::Document doc;
-    std::vector<Ntw::Error> errs;
-    if (!Ntw::parse((const char*)text.data(), text.size(), noBlocks, doc, errs)) {
-        for (const Ntw::Error& e : errs) error(file, e.line, e.message);
-        return false;
-    }
-    if (doc.kind != "terrain" || doc.version != 1) {
-        error(file, 1, "expected: ntw 1 terrain");
-        return false;
-    }
+bool compileTerrain(const Source& src, WorldBinWriter& out) {
+    const std::string& file = src.path;
+    const std::string dir = src.path.substr(0, src.path.find_last_of("/\\") + 1);
+    const int errorsBefore = gErrors;
     double res = 0, cell = 0, coastRes = 0, coastCell = 0, hUnit = 0, cUnit = 0;
     vec2 origin(0.f);
-    bool haveGrid = false;
+    int grids = 0;
     std::vector<std::pair<int, double>> levels;   // class, level
-    LayerSpec layers[4] = {{"height", "terrain.height", GRID_I16}, {"water", "terrain.water", GRID_U8}, {"region", "terrain.region", GRID_U8},
-                           {"coast", "terrain.coast", GRID_I16}};
+    LayerSpec layers[4] = {{"height", "terrain.height", GRID_I16, false, {}}, {"water", "terrain.water", GRID_U8, false, {}},
+                           {"region", "terrain.region", GRID_U8, false, {}}, {"coast", "terrain.coast", GRID_I16, false, {}}};
     ByteWriter outlines, channels;
     u32 outlineCount = 0, channelCount = 0;
-    for (const Ntw::Record& r : doc.records) {
-        if (r.type == "source") continue;
+    for (const Ntw::Record& r : src.doc.records) {
         if (r.type == "grid") {
-            haveGrid = num(file, r, "res", &res) && num(file, r, "cell", &cell);
-            const Ntw::Field* o = r.field("origin");
-            if (!o || !Ntw::toPoint(o->value, &origin)) {
-                error(file, r.line, "grid needs origin=x,y");
-                haveGrid = false;
-            }
+            grids++;
+            res = num(r, "res");
+            cell = num(r, "cell");
+            Ntw::toPoint(r.value("origin", ""), &origin);
         } else if (r.type == "layer") {
             LayerSpec* L = nullptr;
             for (LayerSpec& l : layers)
                 if (r.id == l.id) L = &l;
             if (!L) {
-                error(file, r.line, "unknown layer '" + r.id + "'");
+                error(file, r.line, "unknown layer '" + r.id + "' (height, water, region, coast)");
                 continue;
             }
             if (L->found) {
@@ -132,17 +143,18 @@ bool compileTerrain(WorldBinWriter& out) {
                 continue;
             }
             L->found = true;
-            const char* fname = r.value("file");
-            const char* type = r.value("type");
-            const char* hash = r.value("hash");
-            if (!fname || !type || !hash) {
-                error(file, r.line, "a layer needs file=, type= and hash=");
-                continue;
+            if (strcmp(r.value("type", ""), L->type == GRID_U8 ? "u8" : "i16") != 0)
+                error(file, r.line, std::string("layer ") + L->id + " is type=" + (L->type == GRID_U8 ? "u8" : "i16"));
+            if (L->type == GRID_I16) {
+                if (!r.has("unit")) error(file, r.line, std::string("layer ") + L->id + " needs unit=");
+                (r.id == "height" ? hUnit : cUnit) = num(r, "unit");
             }
-            if (strcmp(type, L->type == GRID_U8 ? "u8" : "i16") != 0) error(file, r.line, std::string("layer ") + L->id + " must be type=" + (L->type == GRID_U8 ? "u8" : "i16"));
-            if (L->type == GRID_I16 && !num(file, r, "unit", r.id == "height" ? &hUnit : &cUnit)) continue;
-            if (r.id == "coast" && !(num(file, r, "res", &coastRes) && num(file, r, "cell", &coastCell))) continue;
-            const std::string path = dir + fname;
+            if (r.id == "coast") {
+                if (!r.has("res") || !r.has("cell")) error(file, r.line, "layer coast needs res= and cell=");
+                coastRes = num(r, "res");
+                coastCell = num(r, "cell");
+            }
+            const std::string path = dir + r.value("file", "");
             if (!readFile(path, L->bytes)) {
                 error(path, 0, "cannot read it (layer " + r.id + ")");
                 continue;
@@ -155,26 +167,19 @@ bool compileTerrain(WorldBinWriter& out) {
             }
             char hex[17];
             snprintf(hex, sizeof(hex), "%016llx", (unsigned long long)gi.hash);
-            if (strcmp(hex, hash) != 0) error(file, r.line, std::string("layer ") + L->id + ": the grid's hash is " + hex + ", the file says " + hash);
+            if (strcmp(hex, r.value("hash", "")) != 0) error(file, r.line, std::string("layer ") + L->id + ": the grid's hash is " + hex + ", the file says " + r.value("hash", ""));
             const int want = r.id == "coast" ? (int)coastRes : (int)res;
-            if (gi.width != want || gi.height != want) error(path, 0, "the grid is " + std::to_string(gi.width) + " x " + std::to_string(gi.height) + ", not " + std::to_string(want));
+            if (gi.width != want || gi.height != want)
+                error(path, 0, "the grid is " + std::to_string(gi.width) + " x " + std::to_string(gi.height) + ", not " + std::to_string(want));
         } else if (r.type == "water") {
-            if (r.id.size() < 2 || r.id[0] != 'c') {
-                error(file, r.line, "water classes are c0, c1, ...");
-                continue;
-            }
             long long c = -1;
-            if (!Ntw::toInt(r.id.substr(1), &c) || c < 0 || c > 254) {
-                error(file, r.line, "bad water class '" + r.id + "'");
+            if (r.id.size() < 2 || r.id[0] != 'c' || !Ntw::toInt(r.id.substr(1), &c) || c < 0 || c > 254) {
+                error(file, r.line, "water classes are c0, c1, ... c254");
                 continue;
             }
-            const char* lv = r.value("level");
-            if (!lv) {
-                error(file, r.line, "water needs level=");
-                continue;
-            }
+            const std::string lv = r.value("level", "");
             if (c == 0) {
-                if (strcmp(lv, "none") != 0) error(file, r.line, "class c0 is dry: level=none");
+                if (lv != "none") error(file, r.line, "class c0 is dry: level=none");
                 continue;
             }
             double v = 0;
@@ -185,9 +190,9 @@ bool compileTerrain(WorldBinWriter& out) {
             levels.push_back(std::make_pair((int)c, v));
         } else if (r.type == "outline") {
             std::vector<vec2> pts;
-            const char* p = r.value("pts");
-            if (r.id.empty() || !p || !Ntw::toPoints(p, pts) || pts.size() < 3) {
-                error(file, r.line, "an outline needs an id and pts= with at least 3 points");
+            Ntw::toPoints(r.value("pts", ""), pts);
+            if (pts.size() < 3) {
+                error(file, r.line, "an outline needs at least 3 points");
                 continue;
             }
             outlines.putString(r.id);
@@ -195,34 +200,29 @@ bool compileTerrain(WorldBinWriter& out) {
             outlineCount++;
         } else if (r.type == "channel") {
             std::vector<vec2> pts;
-            double w0 = 0, w1 = 0, depth = 0;
-            const char* p = r.value("pts");
-            if (!num(file, r, "width0", &w0) || !num(file, r, "width1", &w1) || !num(file, r, "depth", &depth)) continue;
-            if (!p || !Ntw::toPoints(p, pts) || pts.size() < 2) {
-                error(file, r.line, "a channel needs pts= with at least 2 points");
+            Ntw::toPoints(r.value("pts", ""), pts);
+            if (pts.size() < 2) {
+                error(file, r.line, "a channel needs at least 2 points");
                 continue;
             }
             channels.putString(r.id);
-            channels.putF32((float)w0);
-            channels.putF32((float)w1);
-            channels.putF32((float)depth);
+            channels.putF32((float)num(r, "width0"));
+            channels.putF32((float)num(r, "width1"));
+            channels.putF32((float)num(r, "depth"));
             channels.putPoints(pts);
             channelCount++;
-        } else {
-            error(file, r.line, "unknown record '" + r.type + "' in a terrain file");
         }
     }
-    if (!haveGrid) error(file, 0, "no valid grid record");
+    if (grids != 1) error(file, 0, "a terrain file has exactly one grid record");
     for (const LayerSpec& l : layers)
         if (!l.found) error(file, 0, std::string("no layer ") + l.id);
-    // water classes must run 1..n without gaps
     std::sort(levels.begin(), levels.end());
     for (size_t i = 0; i < levels.size(); i++)
         if (levels[i].first != (int)i + 1) {
             error(file, 0, "water classes must be c1, c2, ... without gaps");
             break;
         }
-    if (gErrors) return false;
+    if (gErrors != errorsBefore) return false;
     ByteWriter t;
     t.putU32(1);
     t.putU32((u32)res);
@@ -239,21 +239,58 @@ bool compileTerrain(WorldBinWriter& out) {
     t.bytes.insert(t.bytes.end(), outlines.bytes.begin(), outlines.bytes.end());
     t.putU32(channelCount);
     t.bytes.insert(t.bytes.end(), channels.bytes.begin(), channels.bytes.end());
-    out.add("terrain", WSK_RAW, t.bytes);
+    out.addCompressed("terrain", t.bytes);
     for (const LayerSpec& l : layers) out.add(l.section, WSK_GRID, l.bytes);
     printf("worldc: terrain %dx%d at %.0f m, %zu water levels, %u outlines, %u channels\n", (int)res, (int)res, cell, levels.size(), outlineCount, channelCount);
     return true;
 }
 
+std::vector<Source> discover() {
+    std::vector<Source> files;
+    std::error_code ec;
+    std::vector<std::string> paths;
+    for (const auto& e : std::filesystem::recursive_directory_iterator(gWorld, ec))
+        if (e.is_regular_file() && e.path().extension() == ".ntw") paths.push_back(e.path().generic_string());
+    if (ec) error(gWorld, 0, "cannot list it: " + ec.message());
+    std::sort(paths.begin(), paths.end());
+    for (const std::string& p : paths) {
+        Source s;
+        s.path = p;
+        s.rel = p.size() > gWorld.size() + 1 && p.compare(0, gWorld.size(), gWorld) == 0 ? p.substr(gWorld.size() + 1) : p;
+        files.push_back(std::move(s));
+    }
+    return files;
+}
+
 int run() {
+    std::vector<Source> files = discover();
+    for (Source& s : files) load(s);
+    if (gErrors) {
+        fprintf(stderr, "worldc: %d error(s) in %zu file(s); %s not written\n", gErrors, files.size(), gOut.c_str());
+        return 1;
+    }
     WorldBinWriter out;
-    if (!compileTerrain(out)) {
+    int terrains = 0;
+    std::string manifest = "world.bin manifest 1\n";
+    for (const Source& s : files) {
+        char line[512];
+        snprintf(line, sizeof(line), "%s %s %016llx\n", s.rel.c_str(), s.doc.kind.c_str(), (unsigned long long)textHash(s.text));
+        manifest += line;
+        if (s.doc.kind == "terrain") {
+            if (s.rel != "terrain/terrain.ntw") error(s.path, 0, "the terrain file is world/terrain/terrain.ntw");
+            else if (compileTerrain(s, out)) terrains++;
+        } else {
+            error(s.path, 0, "no compiler for " + s.doc.kind + " files yet");
+        }
+    }
+    if (terrains != 1 && !gErrors) error(gWorld, 0, "no world/terrain/terrain.ntw");
+    if (gErrors) {
         fprintf(stderr, "worldc: %d error(s); %s not written\n", gErrors, gOut.c_str());
         return 1;
     }
+    out.addCompressed("manifest", std::vector<u8>(manifest.begin(), manifest.end()));
     const std::vector<u8> bin = out.finish();
-    // check what was written opens again
-    WorldBinView view;
+    WorldBinView view;   // what was written must open again
     std::string why;
     if (!view.open(bin.data(), bin.size(), &why)) {
         fprintf(stderr, "worldc: internal error: %s\n", why.c_str());
@@ -264,31 +301,42 @@ int run() {
         return 1;
     }
     // the resource script next to it: the build compiles it (windres or rc) and links it into the exe
-    std::string rcPath = gOut;
-    const size_t slash = rcPath.find_last_of("/\\");
-    const std::string base = slash == std::string::npos ? rcPath : rcPath.substr(slash + 1);
-    rcPath = (slash == std::string::npos ? std::string() : rcPath.substr(0, slash + 1)) + "world.rc";
+    const size_t slash = gOut.find_last_of("/\\");
+    const std::string base = slash == std::string::npos ? gOut : gOut.substr(slash + 1);
+    const std::string rcPath = (slash == std::string::npos ? std::string() : gOut.substr(0, slash + 1)) + "world.rc";
     const std::string rc = "// written by tools/worldc.cpp: the hand-built world, embedded in the exe (src/world/handworld.cpp reads it)\n"
                            "NT_WORLD RCDATA \"" + base + "\"\n";
     if (!writeFile(rcPath, std::vector<u8>(rc.begin(), rc.end()))) {
         fprintf(stderr, "worldc: cannot write %s\n", rcPath.c_str());
         return 1;
     }
-    printf("worldc: wrote %s (%zu bytes, %zu sections) and %s\n", gOut.c_str(), bin.size(), view.sections.size(), rcPath.c_str());
+    printf("worldc: %zu file(s) -> %s (%zu bytes, %zu sections) and %s\n", files.size(), gOut.c_str(), bin.size(), view.sections.size(), rcPath.c_str());
     return 0;
+}
+
+int checkOne(const std::string& path) {
+    Source s;
+    s.path = path;
+    s.rel = path;
+    const bool ok = load(s);
+    printf("worldc: %s %s\n", path.c_str(), ok ? "ok" : "has errors");
+    return ok ? 0 : 1;
 }
 
 }  // namespace worldc
 
 int main(int argc, char** argv) {
+    std::string check;
     for (int i = 1; i < argc; i++) {
         const std::string a = argv[i];
         if (a.rfind("--world=", 0) == 0) worldc::gWorld = a.substr(8);
         else if (a.rfind("--out=", 0) == 0) worldc::gOut = a.substr(6);
+        else if (a.rfind("--check=", 0) == 0) check = a.substr(8);
         else {
-            fprintf(stderr, "usage: worldc [--world=world] [--out=build/gen/world.bin]\n");
+            fprintf(stderr, "usage: worldc [--world=world] [--out=build/gen/world.bin] | worldc --check=<file.ntw>\n");
             return 2;
         }
     }
+    if (!check.empty()) return worldc::checkOne(check);
     return worldc::run();
 }

@@ -1,0 +1,6 @@
+ntw 1 building id=cl.b014.q03 block=cl.b014 parcel=cl.b015.p03 # expect id.form id.form
+place plan=lib.plan.house.bungalow_b02 at=0.00,0.00 z=0.00 yaw=0.0
+outbuilding g.1 plan=lib.plan.garage.shed_a at=1.00,1.00 yaw=0.0 # expect w:id.form
+slot f1.u2 unit=lib.unit.x
+slot f1.u2 unit=lib.unit.y # expect id.unique
+slot f1u2 unit=lib.unit.z # expect ref.form
