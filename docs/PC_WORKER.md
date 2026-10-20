@@ -31,9 +31,14 @@ This file is what the PC session reads first, and it is the whole contract betwe
 
    Machine details (CPU, GPU, RAM, driver) go only into benchmark results, and only once the user has said yes to that
    in this session.
-4. **Keep the game away from the user's own saves.** Every game run passes `--datadir=<worktree>\pcdata\`. Check the
-   run's log: its "Data dir:" line must name that folder. If it names `...\AppData\Local\NeonTide\`, the exe is older
-   than the flag, so stop the run and do builds and tests only.
+4. **Keep the game away from the user's own saves.** Every game run passes `--datadir=<worktree>\pcdata\`, and also
+   sets `NEONTIDE_DATADIR` to the same folder as a fallback. Check the run's log: its "Data dir:" line must name that
+   folder. If it names `...\AppData\Local\NeonTide\`, the exe is older than the flag (or the flag was lost), so stop
+   the run and do builds and tests only.
+   - Write paths in a game's command line without quotes, or double the last backslash inside quotes. On Windows,
+     `"...\"` escapes the closing quote, so that argument runs on to the end of the line and swallows the ones after
+     it, `--datadir` among them.
+   - For an unattended run, also write `master_volume=0` into `pcdata\settings.ini`.
 5. **Ask before taking over the PC.** Games run windowed, never `--fullscreen`. If the user is at the PC, ask before a
    run longer than 5 minutes. If the user wants the PC back, stop at once: push `aborted` as the package's result, and
    finish nothing.
@@ -76,11 +81,18 @@ that ref.
 | `build` | `cmd /c .\build.bat` (MSVC via vswhere). The session sets `NoDefaultCurrentDirectoryInExePath`, so a bare `build.bat` is not found. vcvars64's "'vswhere.exe' is not recognized" line comes from the same setting and is harmless | the return code, the time, the exe's size, and every compiler warning and error line |
 | `test` | each named test with MSVC: `cl /nologo /std:c++17 /utf-8 /O2 /EHsc /W3 /I. <test>.cpp /Fe:build\<name>.exe`, then run it | each test's return code and its last lines |
 | `run` | `bin\NeonTide.exe <args> --datadir=<worktree>\pcdata\` after a `build` of the same ref | the return code; the log's lines that the args name (see below); `log.txt` from the data dir, scrubbed per rule 3 |
-| `shots` | a `run` whose args carry `--shot ...` and `--shotdir <worktree>\shots\` | the shots as PNG (the game writes BMP; convert them with PowerShell's System.Drawing), one per shot, named as the shot |
+| `shots` | a `run` whose args carry `--shot ...` and `--shotdir <worktree>\shots\` (unquoted, rule 4) | the shots as JPEG at quality 95 (the game writes BMP; convert them with PowerShell's System.Drawing), one per shot, named as the shot; JPEG keeps the public branch small |
 | `agent` | a whole agent task: the package holds its brief (see below) | the agent's sign-off |
 
 For `run` and `shots`, the package names the log lines it wants, for example `autoplay t=`, `selftest:`,
 `Unhandled` or `benchmark`. A `run` that crashes still reports, with the crash lines from the log.
+
+Driving a game window from PowerShell, as learned on this PC:
+- **Keys:** press with `keybd_event`, hold the key for 200 ms, then release it. The game reads a key once a frame, so
+  SendKeys' instant tap is lost.
+- **Screenshots of the window:** call user32's `SetProcessDPIAware()` before `GetWindowRect`. Windows PowerShell isn't
+  DPI-aware, so under display scaling it gets a shrunken rectangle and the shot is cut off.
+- **Timing:** take a screenshot only after the log says `Init done`.
 
 ## Agent packages
 
