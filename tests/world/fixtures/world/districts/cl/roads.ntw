@@ -20,7 +20,7 @@ edge cl.e0009 from=cl.n0013 to=cl.n0014 class=street lanes=1/1 shape=1702.00,481
 end
 edge cl.e0011 from=cl.n0012 to=cl.n0015 class=street lanes=1/1 shape=1702.00,365.50;1800.00,365.50
 end
-junction cl.n0012 turns=custom
+junction cl.n0012 turns=no_uturn
   stopline edge=cl.e0007 at=6.50
   connect from=cl.e0007:0 to=cl.e0011:0 turn=left protected=1
   connect from=cl.e0011:0 to=cl.e0007:0 turn=right

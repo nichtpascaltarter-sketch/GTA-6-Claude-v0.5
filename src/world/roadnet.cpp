@@ -127,6 +127,62 @@ int RoadNetwork::nearestEdge(vec2 p, float maxDist, float* outS, float* outDist,
     return best;
 }
 
+bool RoadNetwork::roadSurfaceHeight(vec2 p, float* z, float maxZ) const {
+    thread_local std::vector<int> cand;
+    cand.clear();
+    edgesInRect(p - vec2(1.f), p + vec2(1.f), cand);
+    bool found = false;
+    float bestZ = -1e9f;
+    for (int ei : cand) {
+        const RoadEdge& e = edges[ei];
+        // closest point over the whole polyline first, then decide road vs sidewalk once (per-segment tests
+        // misclassified lane points near polyline vertices as the raised sidewalk of the neighboring segment)
+        float bestD = 1e30f, bestZe = 0.f, bestS = 0.f;
+        bool beyondEnd = false;
+        for (size_t k = 0; k + 1 < e.pts.size(); k++) {
+            float t;
+            float d = distPointSegment2D(p, e.pts[k].xy(), e.pts[k + 1].xy(), &t);
+            if (d < bestD) {
+                bestD = d;
+                bestZe = Lerp(e.pts[k].z, e.pts[k + 1].z, t);
+                bestS = Lerp(e.dist[k], e.dist[k + 1], t);
+                beyondEnd = (k == 0 && t <= 0.f) || (k + 2 == e.pts.size() && t >= 1.f);
+            }
+        }
+        // inside a junction (before the cut-backs) only the pavement counts: the corner sidewalks are the junction's own,
+        // and an approach's sidewalk band there would reach over the other approaches' lanes; nor does a sidewalk reach
+        // past the edge's end (over the road that continues from there)
+        bool inJunction = bestS < e.cut0 || bestS > e.length - e.cut1;
+        if (bestD <= e.halfWidth + ((inJunction || beyondEnd) ? 0.f : e.sidewalk)) {
+            float zz = bestZe + (bestD > e.halfWidth ? 0.15f : 0.f);
+            if (zz <= maxZ && zz > bestZ) {
+                bestZ = zz;
+                found = true;
+            }
+        }
+    }
+    for (int ei : cand) {
+        const RoadEdge& e = edges[ei];
+        const RoadNode* ns[2] = {&nodes[e.n0], &nodes[e.n1]};
+        for (auto* n : ns) {
+            float dn = length(p - n->p);
+            // a dead end's turning bulb (and its sidewalk ring) follows the road into it like a junction disc
+            float br = bulbRadius(*n);
+            if (br > 0.f && dn < br + e.sidewalk) {
+                float nz = junctionZ(*n, p) + (dn > br ? 0.15f : 0.f);
+                if (nz <= maxZ && nz > bestZ) { bestZ = nz; found = true; }
+            }
+            if (n->radius <= 0 || dn >= n->radius) continue;
+            // the junction surface follows its roads (height of the nearest incident centreline), so a junction on a grade
+            // or at a ramp start meets every approach without a step
+            float nz = junctionZ(*n, p);
+            if (nz <= maxZ && nz > bestZ) { bestZ = nz; found = true; }
+        }
+    }
+    if (found) *z = bestZ;
+    return found;
+}
+
 float RoadNetwork::junctionZ(const RoadNode& n, vec2 p) const {
     float best = 1e30f, bz = n.z;
     int ni = (int)(&n - &nodes[0]);

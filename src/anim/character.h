@@ -453,6 +453,7 @@ struct Animator {
     bool wallScan[2] = {false, false};        // its last ground scan found none where it was to land
     bool wallCheck[2] = {false, false};       // its last landing probe went where it would land without the pull
     bool wallFlip[2] = {false, false};        // (every other one does)
+    float flatLand[2] = {-9.f, -9.f};         // the ground its last ground scan found where it lands, near stairs with no step there (kept with the world; -9: none)
     float rootRatio = 1.f;                    // the share of its gait's travel the body actually covers (held back: below 1)
     // (a step on stairs - quick or standing: the ground scanned along the foot where it lands, kept with the world while
     // the step lasts and after, and the tread its landing is fitted to)

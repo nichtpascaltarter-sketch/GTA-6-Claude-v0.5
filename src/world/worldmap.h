@@ -92,6 +92,9 @@ struct WorldMap {
     // at `slope` out to `reach`. The ends as flattenAlong's.
     void lowerAlong(vec2 a, vec2 b, float za, float zb, float flat, float reach, float slope, bool capA = true, bool capB = true);
     void flattenRect(vec2 center, vec2 axisX, float hx, float hy, float z, float blend);
+    // Levels the terrain inside a polygon (either winding) to z, blending back over `blend` m outside it; never raises
+    // the ground into a water body's plane (the hand-built world's parcels: worldc)
+    void flattenPoly(const std::vector<vec2>& poly, float z, float blend);
     void recomputeSplat();  // after flattening
 
     // Internal

@@ -12,6 +12,7 @@
 #include "gridcodec.h"
 #include "roads.h"
 #include "roadsbin.h"
+#include "blocksbin.h"
 #include "buildings.h"
 #include "worldtypes.h"
 #include "../core/jobs.h"
@@ -212,11 +213,20 @@ bool loadHandWorld(const char* worldFile, WorldMap& map, RoadNetwork& roads, Bui
         roads.buildHash();
     }
     gRoads = &roads;
+    // what they author beyond the network, for the lane graph (roadoverrides.h): empty lists where there is none
+    static RoadOverrides overrides;
+    if (!readRoadOverrides(bin, roads, overrides, error)) return false;
+    gRoadOverrides = &overrides;
+    // the blocks' ground and dressing where the world has them (blocksbin.h)
+    static HandBlocks blocks;
+    if (!readBlocks(bin, blocks, error)) return false;
+    gHandBlocks = &blocks;
     buildings = BuildingSet();
     buildings.cellLists.assign((size_t)kCellsPerSide * kCellsPerSide, {});
     buildings.openCellLists.assign((size_t)kCellsPerSide * kCellsPerSide, {});
     gBuildings = &buildings;
-    LOG("Hand world: terrain and %zu road nodes, %zu edges from %s (%zu KB, %zu sections) in %.2f s", roads.nodes.size(), roads.edges.size(),
+    LOG("Hand world: terrain, %zu road nodes, %zu edges (%zu with overrides), %zu ground polygons, %zu props and %zu lamps from %s (%zu KB, %zu sections) in %.2f s",
+        roads.nodes.size(), roads.edges.size(), overrides.edges.size(), blocks.ground.size(), blocks.props.size(), blocks.lamps.size(),
         worldFile && *worldFile ? worldFile : "the exe", size / 1024, bin.sections.size(), TimeSeconds() - t0);
     return true;
 }

@@ -3237,7 +3237,9 @@ void GameWorld::updatePopulation(float dt) {
                 break;
             }
         }
-        if (model < 0 || vassets[model].spec.boxHalf.x > info.shoulder * 0.5f + 0.5f) continue;
+        // (no wider than the strip with 0.1 m over at each side: with half a metre allowed, a Parcel P70 or a Compactor
+        // parked there stood up to 0.5 m into the lane)
+        if (model < 0 || vassets[model].spec.boxHalf.x > info.shoulder * 0.5f + 0.1f) continue;
         vec2 t = laneGraph.laneTangent(lane, u);
         int vid = spawnVehicle(model, dvec3(c.x, c.y, c.z + 0.25f), AI::dirYaw(t) + (hashToFloat(hash32(h * 9u)) - 0.5f) * 0.05f, false);
         if (vid < 0) continue;

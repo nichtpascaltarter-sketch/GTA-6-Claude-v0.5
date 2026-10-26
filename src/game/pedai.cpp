@@ -3510,6 +3510,7 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
         turnRate = ai_turn::ease(p.yaw, wantYaw, length(p.vel.xy()), p.aiming, turnRate, desired, pa.sidestepT <= 0.f);
     // face & move
     if (turning) turnTo(p, wantYaw, turnRate, dt);
+    ai_pace::stairs(*this, id, desired);   // (on a flight: a tread a step)
     movePed(p, desired, dt, false);
     pa.lastPos = pos;
 }

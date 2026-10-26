@@ -339,6 +339,12 @@ struct Sim {
     long collisions = 0, hardCollisions = 0, pedHits = 0, staticImpacts = 0, deadlocks = 0, respawns = 0, propHits = 0, unhung = 0;
     int nParked = 0;
     long parkBlocks = 0;   // waits of over 30 s with a parked car as the obstacle
+    // highway lane keeping above 15 m/s (lanes and the links between them; [0] cars, [1] wheelbase over 3.3 m): ticks,
+    // squared error, ticks over 0.5 m off; in the lane next to the median, how far left of the planned line (max) and
+    // the ticks over 0.3 m left of it
+    // ([k][1]: during a lane change)
+    long hwyN[2][2] = {}, hwyOver[2][2] = {}, hwyLeftN[2][2] = {}, hwyLeftOver[2][2] = {};
+    double hwyE2[2][2] = {}, hwyMax[2][2] = {}, hwyLeftMax[2][2] = {};
     double vehSeconds = 0.0;
     double clsSpeedSum[World::RC_COUNT] = {}, clsTime[World::RC_COUNT] = {};
     double aiTime = 0.0, aiMax = 0.0, physTime = 0.0, pedTime = 0.0;
@@ -518,7 +524,7 @@ struct Sim {
                     break;
                 }
             }
-            if (m < 0 || models[m].boxHalf.x > info.shoulder * 0.5f + 0.5f) continue;
+            if (m < 0 || models[m].boxHalf.x > info.shoulder * 0.5f + 0.1f) continue;
             vec2 t = w->lg.laneTangent(lane, u);
             SimCar pc;
             pc.used = true;
@@ -828,6 +834,24 @@ struct Sim {
                         d->lcLen, d->lcFrom, d->lcTo, d->lat, d->nudge);
                 }
             }
+            // highway lane keeping (the I-38: trucks drifting toward the median barrier at speed)
+            if (!d->dummy && c.s.speed() > 15.f && d->recoverTimer <= 0.f && d->path >= 0) {
+                const AI::LaneGraph& G = w->lg;
+                const int lp = G.isLane(d->path) ? d->path : G.conn(d->path).from;
+                if (G.lanes[lp].flags & AI::LF_HIGHWAY) {
+                    const int k = d->info.wheelbase > 3.3f ? 1 : 0, q = d->lcLane >= 0 ? 1 : 0;
+                    const double e = d->latErr;
+                    hwyN[k][q]++;
+                    hwyE2[k][q] += e * e;
+                    hwyOver[k][q] += fabs(e) > 0.5;
+                    hwyMax[k][q] = Max(hwyMax[k][q], fabs(e));
+                    if (G.lanes[lp].left < 0 && G.lanes[lp].count >= 2) {
+                        hwyLeftN[k][q]++;
+                        hwyLeftOver[k][q] += e < -0.3;
+                        hwyLeftMax[k][q] = Max(hwyLeftMax[k][q], -e);
+                    }
+                }
+            }
             // large lateral deviation while plainly following a lane (no lane change / nudge / recovery)
             if (verbose && w->lg.isLane(d->path) && d->lcLane < 0 && fabsf(d->nudge) < 0.05f && fabsf(d->lat) < 0.05f && d->recoverTimer <= 0.f && fabsf(d->latErr) > 0.9f &&
                 c.s.speed() > 3.f && time - c.latLogT > 10.0) {
@@ -962,8 +986,8 @@ struct Sim {
                         cs = StrFormat("collider %d kind %d prop %d c (%.1f %.1f %.1f) he (%.2f %.2f %.2f) ax (%.2f %.2f)", c.s.impactCollider, cl.kind, cl.propIndex, cl.c.x, cl.c.y, cl.c.z, cl.he.x,
                                        cl.he.y, cl.he.z, cl.ax.x, cl.ax.y);
                     }
-                    LOG("STATIC t=%.1f car %d at %.1f %.1f v=%.1f imp %.0f path %d u %.1f lat %.2f %s | %s", time, i, c.s.body.pos.x, c.s.body.pos.y, v, c.s.impactImpulse, d->path, d->u, d->latErr,
-                        models[c.model].name.c_str(), cs.c_str());
+                    LOG("STATIC t=%.1f car %d at %.1f %.1f v=%.1f imp %.0f path %d u %.1f lat %.2f nudge %.2f %s | %s", time, i, c.s.body.pos.x, c.s.body.pos.y, v, c.s.impactImpulse, d->path, d->u,
+                        d->latErr, d->nudge, models[c.model].name.c_str(), cs.c_str());
                 }
             }
             if (c.s.brokenCount > 0) propHits += c.s.brokenCount;
@@ -1171,12 +1195,291 @@ struct Sim {
             en += d.statErrN;
         }
         printf("lane-center error (RMS, lanes, v>3 m/s): %.3f m\n", en ? sqrt(e2 / en) : 0.0);
+        for (int k = 0; k < 2; k++)
+            for (int q = 0; q < 2; q++)
+                if (hwyN[k][q] > 0)
+                    printf("highway lane keeping, %s, %s (v>15 m/s, %.0f s): RMS %.3f m, over 0.5 m %.2f%%, max %.2f m; median lane (%.0f s): over 0.3 m left %.2f%%, max left %.2f m\n",
+                           k ? "long vehicles" : "cars", q ? "changing lanes" : "in lane", hwyN[k][q] / 60.0, sqrt(hwyE2[k][q] / hwyN[k][q]), 100.0 * hwyOver[k][q] / hwyN[k][q],
+                           hwyMax[k][q], hwyLeftN[k][q] / 60.0, hwyLeftN[k][q] ? 100.0 * hwyLeftOver[k][q] / hwyLeftN[k][q] : 0.0, hwyLeftMax[k][q]);
         std::vector<double> s = aiSamples;
         std::sort(s.begin(), s.end());
         double p50 = s.empty() ? 0 : s[s.size() / 2], p99 = s.empty() ? 0 : s[(size_t)(s.size() * 0.99)];
         printf("AI cost per 60 Hz tick: traffic %.3f ms + peds %.3f ms (avg), p50 %.3f ms, p99 %.3f ms, max %.3f ms\n", aiTime / Max(aiTicks, 1L),
                pedTime / Max(aiTicks, 1L), p50, p99, aiMax);
         printf("physics per 120 Hz step: %.3f ms (%d cars)\n", physTime / Max(physSteps, 1L), (int)cars.size());
+    }
+
+    // Single-vehicle dead-end test: every model round the turning circle of every dead end within `radius` of `at` - from
+    // 30 m up its street round the circle until its front axle is on the way back out and lined up with it (or past that
+    // lane) - for whether it gets round within 60 s, the time it takes, the three-point turns it needs, the stuck
+    // recoveries, and how far its front axle strays from the way (in-lane, circle or exit lane, whichever is nearest). The
+    // Calle Luna run: a pickup's three-point turns at node 4870 walked it 10 m off the road and into the marina.
+    // UT_TRACE=conn prints that circle's runs twice a second.
+    void uturnTest(vec2 at, float radius, const char* onlyModel) {
+        AI::LaneGraph& G = w->lg;
+        const int traceU = getenv("UT_TRACE") ? atoi(getenv("UT_TRACE")) : -1;
+        struct Res {
+            int model, node, conn;
+            bool done;
+            float secs, maxOff;
+            int kturns, stucks;
+            float wb, maxSteer;
+        };
+        std::vector<Res> all;
+        const float h = 1.f / 120.f;
+        int nodes = 0;
+        for (int n = 0; n < (int)G.nodes.size(); n++) {
+            if (!G.nodes[n].deadEnd || G.nodes[n].approaches.empty() || length(w->roads.nodes[n].p - at) > radius) continue;
+            nodes++;
+            w->loadCells(w->roads.nodes[n].p, 70.f);
+            for (int m = 0; m < (int)models.size(); m++) {
+                if (models[m].cls >= Vehicles::VC_BOAT) continue;
+                if (onlyModel) {
+                    // (a comma list of names: exact names)
+                    bool any = false;
+                    std::string list = onlyModel;
+                    for (size_t a = 0; a <= list.size();) {
+                        size_t b = list.find(',', a);
+                        if (b == std::string::npos) b = list.size();
+                        if (list.substr(a, b - a) == models[m].name || (list.find(',') == std::string::npos && models[m].name.find(list) != std::string::npos)) any = true;
+                        a = b + 1;
+                    }
+                    if (!any) continue;
+                }
+                for (const AI::Approach& A : G.nodes[n].approaches)
+                    for (int l : A.inLanes)
+                        for (int cn : G.lanes[l].out) {
+                            const AI::Connector& C = G.conns[cn];
+                            if (C.turn != AI::TK_UTURN) continue;
+                            cars.assign(1, SimCar());
+                            tc.drivers.clear();
+                            tc.drivers.resize(1);
+                            SimCar& c = cars[0];
+                            c.used = true;
+                            c.model = m;
+                            c.uid = uidNext++;
+                            const AI::Lane& L = G.lanes[l];
+                            float u = Max(L.u0 + 2.f, L.u1 - 30.f);
+                            vec3 pos = G.lanePos(l, u);
+                            vec2 t = G.laneTangent(l, u);
+                            Vehicles::initVehicle(c.s, models[m], m, dvec3(pos.x, pos.y, pos.z + 0.3), AI::dirYaw(t));
+                            c.info = AI::makeVehicleInfo(models[m], c.s);
+                            c.s.body.vel = vec3(t * 6.f, 0.f);
+                            for (int k = 0; k < c.s.wheelCount; k++) c.s.wheels[k].spinVel = 6.f / Max(models[m].wheels[k].radius, 0.2f);
+                            AI::Driver& d = tc.attach(0, c.uid, hash32(c.uid * 7919u), c.info, l, u);
+                            d.pers = AI::Personality();
+                            d.route[0] = G.connPath(cn);
+                            d.route[1] = C.to;
+                            d.routeLen = 2;
+                            const int exitLane = C.to, connPath = G.connPath(cn);
+                            const long stuck0 = tc.stats.stuckEvents;
+                            Res r{m, n, cn, false, 0.f, 0.f, 0, 0, c.info.wheelbase, c.info.maxSteer};
+                            int kt = 0;
+                            bool wasConn = false;
+                            for (int st = 0; st < 60 * 120; st++) {
+                                if (st % 2 == 0) {
+                                    fillBodies();
+                                    tc.beginTick(time);
+                                    AI::DriveOut out;
+                                    tc.drive(0, c.s, 2.f * h, out);
+                                    c.ctl = out.ctl;
+                                }
+                                Vehicles::stepVehicle(c.s, c.ctl, h);
+                                time += h;
+                                kt = Max(kt, d.kturns);
+                                wasConn |= d.path == connPath;
+                                vec2 f = normalize(c.s.forward().xy());
+                                vec2 front = c.s.body.pos.toVec3().xy() + f * c.info.frontAxleY;
+                                // round: on past the exit lane, or its front axle on that lane and lined up with it (an exit
+                                // lane can be a few metres to a stop line)
+                                const bool onMove = d.path == l || d.path == connPath || d.path == exitLane;
+                                {
+                                    const AI::Lane& E = G.lanes[exitLane];
+                                    float la = 0.f;
+                                    float ue = G.projectPath(exitLane, front, E.u0 + 1.f, &la);
+                                    vec2 te = G.laneTangent(exitLane, Clamp(ue, E.u0, E.u1));
+                                    if (wasConn && (!onMove || (ue > E.u0 + 1.5f && ue < E.u1 && fabsf(la) < 1.2f && dot(f, te) > 0.92f))) {
+                                        r.done = true;
+                                        r.secs = st * h;
+                                        break;
+                                    }
+                                }
+                                if (!onMove) break;
+                                // the front axle's distance from the way: in-lane, circle or exit lane, whichever is nearest
+                                float off = 1e9f;
+                                const int paths[3] = {l, connPath, exitLane};
+                                for (int P : paths) {
+                                    float la = 0.f;
+                                    float lo = G.isLane(P) ? G.lanes[P].u0 : 0.f, hi = G.isLane(P) ? G.lanes[P].u1 : G.pathLength(P);
+                                    float uu = G.projectPath(P, front, P == d.path ? d.u : (lo + hi) * 0.5f, &la);
+                                    float over = uu < lo ? lo - uu : (uu > hi ? uu - hi : 0.f);
+                                    off = Min(off, sqrtf(la * la + over * over));
+                                }
+                                r.maxOff = Max(r.maxOff, off);
+                                if (traceU == cn && st % 60 == 0)
+                                    printf("  t %.1f path %d u %.1f v %.1f steer %.2f off %.2f kturns %d rec %.1f latErr %.2f headErr %.2f\n", st * h, d.path, d.u, c.s.speed(),
+                                           c.ctl.steer, off, d.kturns, d.recoverTimer, d.latErr, d.headErr);
+                                if (off > 12.f) break;   // (well off the road: lost)
+                            }
+                            r.kturns = kt;
+                            r.stucks = (int)(tc.stats.stuckEvents - stuck0);
+                            all.push_back(r);
+                        }
+            }
+        }
+        // per model: circles got round, the slowest, the most three-point turns, the furthest strayed
+        int fails = 0, runs = 0;
+        for (int m = 0; m < (int)models.size(); m++) {
+            int n = 0, done = 0, kmax = 0, kn = 0, stk = 0;
+            float slow = 0.f, off = 0.f, wb = 0.f, ms = 0.f;
+            for (const Res& r : all)
+                if (r.model == m) {
+                    n++;
+                    wb = r.wb;
+                    ms = r.maxSteer;
+                    done += r.done;
+                    if (r.done) slow = Max(slow, r.secs);
+                    kmax = Max(kmax, r.kturns);
+                    kn += r.kturns > 0;
+                    stk += r.stucks;
+                    off = Max(off, r.maxOff);
+                }
+            if (!n) continue;
+            runs += n;
+            fails += n - done;
+            printf("%-22s wb %.2f lock %.2f: round %d/%d, slowest %.1f s, with three-point turns %d (most %d), stuck %d, strayed up to %.1f m\n",
+                   models[m].name.c_str(), wb, ms, done, n, slow, kn, kmax, stk, off);
+        }
+        std::sort(all.begin(), all.end(), [](const Res& a, const Res& b) { return a.done != b.done ? !a.done : a.maxOff > b.maxOff; });
+        printf("worst runs:\n");
+        for (int k = 0; k < (int)all.size() && k < 15; k++) {
+            const Res& r = all[k];
+            const World::RoadNode& rn = w->roads.nodes[r.node];
+            printf("  %-22s node %d (%.0f, %.0f) conn %d minRadius %.1f: %s %.1f s, three-point turns %d, stuck %d, strayed %.1f m\n", models[r.model].name.c_str(), r.node,
+                   rn.p.x, rn.p.y, r.conn, G.conns[r.conn].minRadius, r.done ? "round in" : "NOT round after", r.done ? r.secs : 60.f, r.kturns, r.stucks, r.maxOff);
+        }
+        printf("dead-end test: %d circles, %d runs, %d not round\n", nodes, runs, fails);
+    }
+
+    // Meeting test: two vehicles (models A and B) coming at each other on the two lanes of edge `edge`, started 25 m either
+    // side of a meeting point that steps along the edge every 2 m, at 7 m/s, each on its way on past the edge. For each
+    // meeting point: the least gap between their bodies (m; < 0: they touched) and the speeds then. The Sol Beach run: a fire
+    // engine and a box truck on edge 2907's S-bend, both in their lanes, 98748 Ns. MT_TRACE=k prints meeting point k.
+    void meetTest(int edge, const char* nameA, const char* nameB) {
+        AI::LaneGraph& G = w->lg;
+        int la = -1, lb = -1;
+        for (int i = 0; i < (int)G.lanes.size(); i++)
+            if (G.lanes[i].edge == edge && G.lanes[i].right < 0) (G.lanes[i].dir > 0 ? la : lb) = i;
+        int ma = -1, mb = -1;
+        for (int m = 0; m < (int)models.size(); m++) {
+            if (models[m].name == nameA) ma = m;
+            if (models[m].name == nameB) mb = m;
+        }
+        if (la < 0 || lb < 0 || ma < 0 || mb < 0) {
+            printf("meet test: edge %d lanes %d / %d, models %d / %d - not found\n", edge, la, lb, ma, mb);
+            return;
+        }
+        const int traceK = getenv("MT_TRACE") ? atoi(getenv("MT_TRACE")) : -1;
+        const float h = 1.f / 120.f;
+        const AI::Lane& LA = G.lanes[la];
+        w->loadCells(G.lanePos(la, (LA.u0 + LA.u1) * 0.5f).xy(), 160.f);
+        printf("meet test: edge %d, %s on lane %d against %s on lane %d\n", edge, nameA, la, nameB, lb);
+        int k = 0, touched = 0, standoffs = 0;
+        float worst = 1e9f;
+        for (float uP = LA.u0 + 4.f; uP < LA.u1 - 4.f; uP += 2.f, k++) {
+            vec3 P = G.lanePos(la, uP);
+            float lat = 0.f;
+            float uPb = G.projectPath(lb, P.xy(), (G.lanes[lb].u0 + G.lanes[lb].u1) * 0.5f, &lat);
+            cars.assign(2, SimCar());
+            tc.drivers.clear();
+            tc.drivers.resize(2);
+            const int lanesOf[2] = {la, lb}, modelOf[2] = {ma, mb};
+            const float uMeet[2] = {uP, uPb};
+            bool ok = true;
+            for (int q = 0; q < 2; q++) {
+                SimCar& c = cars[q];
+                c.used = true;
+                c.model = modelOf[q];
+                c.uid = uidNext++;
+                const int l = lanesOf[q];
+                Vehicles::VehicleState tmp;
+                Vehicles::initVehicle(tmp, models[c.model], c.model, dvec3(0.0, 0.0, 0.0), 0.f);
+                AI::VehicleInfo vi = AI::makeVehicleInfo(models[c.model], tmp);
+                // its front 25 m short of the meeting point, on its lane
+                float u = uMeet[q] - 25.f - vi.frontLen;
+                if (u < G.lanes[l].u0) {
+                    ok = false;
+                    break;
+                }
+                vec3 pos = G.lanePos(l, u);
+                vec2 t = G.laneTangent(l, u);
+                Vehicles::initVehicle(c.s, models[c.model], c.model, dvec3(pos.x, pos.y, pos.z + 0.3), AI::dirYaw(t));
+                c.info = AI::makeVehicleInfo(models[c.model], c.s);
+                c.s.body.vel = vec3(t * 7.f, 0.f);
+                for (int wv = 0; wv < c.s.wheelCount; wv++) c.s.wheels[wv].spinVel = 7.f / Max(models[c.model].wheels[wv].radius, 0.2f);
+                AI::Driver& d = tc.attach(q, c.uid, hash32(c.uid * 7919u), c.info, l, u);
+                d.pers = AI::Personality();
+            }
+            if (!ok) continue;
+            float least = 1e9f, vA = 0.f, vB = 0.f, passedAt = -1.f;
+            const vec2 Pxy = P.xy();
+            const vec2 dirA = G.laneTangent(la, uP);
+            for (int st = 0; st < 30 * 120; st++) {
+                if (st % 2 == 0) {
+                    fillBodies();
+                    tc.beginTick(time);
+                    for (int q = 0; q < 2; q++) {
+                        AI::DriveOut out;
+                        tc.drive(q, cars[q].s, 2.f * h, out);
+                        cars[q].ctl = out.ctl;
+                    }
+                }
+                for (int q = 0; q < 2; q++) Vehicles::stepVehicle(cars[q].s, cars[q].ctl, h);
+                time += h;
+                // the gap between the two body boxes: their separation along the box axes (the most of the four)
+                vec2 cc[2], ax[2][2];
+                vec2 he[2];
+                for (int q = 0; q < 2; q++) {
+                    const Vehicles::VehicleModel& md = models[cars[q].model];
+                    mat3 R = cars[q].s.body.rotMat();
+                    cc[q] = (cars[q].s.body.pos.toVec3() + R * md.boxCenter).xy();
+                    vec2 f = normalize(cars[q].s.forward().xy());
+                    ax[q][0] = AI::rightOf(f);
+                    ax[q][1] = f;
+                    he[q] = vec2(md.boxHalf.x, md.boxHalf.y);
+                }
+                float sep = -1e9f;
+                for (int q = 0; q < 2; q++)
+                    for (int a = 0; a < 2; a++) {
+                        vec2 n = ax[q][a];
+                        float ra = he[0].x * fabsf(dot(ax[0][0], n)) + he[0].y * fabsf(dot(ax[0][1], n));
+                        float rb = he[1].x * fabsf(dot(ax[1][0], n)) + he[1].y * fabsf(dot(ax[1][1], n));
+                        sep = Max(sep, fabsf(dot(cc[1] - cc[0], n)) - ra - rb);
+                    }
+                if (sep < least) {
+                    least = sep;
+                    vA = cars[0].s.speed();
+                    vB = cars[1].s.speed();
+                }
+                // past each other: A beyond the meeting point and B on its way back past it (along A's way there)
+                if (passedAt < 0.f && dot(cars[0].s.body.pos.toVec3().xy() - Pxy, dirA) > 6.f && dot(cars[1].s.body.pos.toVec3().xy() - Pxy, dirA) < -6.f) {
+                    passedAt = st * h;
+                    break;
+                }
+                if (traceK == k && st % 30 == 0) {
+                    const AI::Driver& dA = tc.drivers[0];
+                    const AI::Driver& dB = tc.drivers[1];
+                    printf("  t %.2f gap %.2f | A path %d u %.1f v %.1f latErr %.2f nudge %.2f | B path %d u %.1f v %.1f latErr %.2f nudge %.2f\n", st * h, sep, dA.path,
+                           dA.u, cars[0].s.speed(), dA.latErr, dA.nudge, dB.path, dB.u, cars[1].s.speed(), dB.latErr, dB.nudge);
+                }
+            }
+            worst = Min(worst, least);
+            touched += least < 0.f;
+            standoffs += passedAt < 0.f;
+            printf("  meeting point %2d at u %.1f (%.1f, %.1f) curvature %+.4f: least gap %5.2f m (A %.1f m/s, B %.1f m/s), %s%s\n", k, uP, P.x, P.y,
+                   G.pathCurv(la, uP), least, vA, vB, passedAt >= 0.f ? StrFormat("past each other in %.1f s", passedAt).c_str() : "NOT PAST in 30 s", least < 0.f ? "  TOUCHED" : "");
+        }
+        printf("meet test: %d meeting points, %d touched, %d not past each other, least gap %.2f m\n", k, touched, standoffs, worst);
     }
 
     // Single-vehicle turning test: every model through every movement of the node nearest `at` (made uncontrolled),
@@ -1875,6 +2178,77 @@ int main(int argc, char** argv) {
             }
             for (size_t k = 0; k < centers.size(); k++) printf("interchange ~(%.0f, %.0f): %d ramp lanes\n", centers[k].x, centers[k].y, counts[k]);
             continue;
+        }
+        if (!strcmp(argv[i], "--stairprobe") && i + 3 < argc) {
+            // --stairprobe Z X,Y X,Y ...: the AI's stair-pace test (ai.cpp ai_pace::stairs) at each point, 16 ways round:
+            // the ground 0.3 m back, under it and 0.3 / 0.6 / 0.9 m on, each from the one before; a flight = two or more
+            // steps of 10-40 cm all the same way and nothing over 40 cm
+            float z0 = (float)atof(argv[i + 1]);
+            int flights = 0, tests = 0;
+            for (int a = i + 2; a < argc && argv[a][0] != '-'; a++) {
+                vec2 p(0.f);
+                if (sscanf(argv[a], "%f,%f", &p.x, &p.y) != 2) continue;
+                w.loadCells(p, 30.f);
+                std::string ways;
+                for (int k = 0; k < 16; k++) {
+                    float an = kTwoPi * k / 16.f;
+                    vec2 d(cosf(an), sinf(an));
+                    float h[5];
+                    h[1] = w.cw.ground(p.x, p.y, z0 + 0.1f, 0.55f).z;
+                    h[0] = w.cw.ground(p.x - d.x * 0.3f, p.y - d.y * 0.3f, h[1], 0.55f).z;
+                    for (int q = 2; q < 5; q++) h[q] = w.cw.ground(p.x + d.x * 0.3f * (q - 1), p.y + d.y * 0.3f * (q - 1), h[q - 1], 0.55f).z;
+                    int ups = 0, downs = 0, other = 0;
+                    for (int q = 0; q < 4; q++) {
+                        float dh = h[q + 1] - h[q];
+                        if (fabsf(dh) >= 0.1f && fabsf(dh) < 0.4f) (dh > 0.f ? ups : downs)++;
+                        else if (fabsf(dh) >= 0.4f) other++;
+                    }
+                    bool flight = other == 0 && ((ups >= 2 && downs == 0) || (downs >= 2 && ups == 0));
+                    tests++;
+                    flights += flight;
+                    ways += flight ? (ups ? "^" : "v") : ".";
+                }
+                printf("  (%.1f, %.1f) ground %.2f: %s\n", p.x, p.y, w.cw.ground(p.x, p.y, z0 + 0.1f, 0.55f).z, ways.c_str());
+            }
+            printf("stair probe: %d of %d ways read as a flight\n", flights, tests);
+            break;
+        }
+        if (!strcmp(argv[i], "--groundline") && i + 5 < argc) {
+            // --groundline X0 Y0 X1 Y1 Z: the ground every 0.1 m along a line, each query from the height before it (a step
+            // up at most 0.55 m, as the AI's stair probe and the ped controller ask)
+            vec2 a((float)atof(argv[i + 1]), (float)atof(argv[i + 2])), b((float)atof(argv[i + 3]), (float)atof(argv[i + 4]));
+            float z = (float)atof(argv[i + 5]);
+            w.loadCells((a + b) * 0.5f, length(b - a) * 0.5f + 40.f);
+            int n = (int)(length(b - a) / 0.1f);
+            for (int k = 0; k <= n; k++) {
+                vec2 p = a + (b - a) * ((float)k / Max(n, 1));
+                Phys::GroundHit gh = w.cw.ground(p.x, p.y, z, 0.55f);
+                printf("  %.2f (%.2f, %.2f) ground %.3f surf %d%s\n", k * 0.1f, p.x, p.y, gh.z, gh.surface, k > 0 && fabsf(gh.z - z) >= 0.05f ? "  <- step" : "");
+                z = gh.z;
+            }
+            break;
+        }
+        if (!strcmp(argv[i], "--meettest") && i + 3 < argc) {
+            // --meettest EDGE MODEL_A MODEL_B: two vehicles meeting on the two lanes of an edge (see Sim::meetTest)
+            int e = atoi(argv[i + 1]);
+            static Sim sim;
+            vec2 c = w.roads.edges[e].pts.empty() ? vec2(0.f) : w.roads.edges[e].pts[w.roads.edges[e].pts.size() / 2].xy();
+            w.loadCells(c, 160.f);
+            sim.init(&w, c, 50.f, 0, 0);
+            sim.meetTest(e, argv[i + 2], argv[i + 3]);
+            break;
+        }
+        if (!strcmp(argv[i], "--uturntest") && i + 3 < argc) {
+            // --uturntest X Y R [MODEL or A,B,...]: every model (or those named) round every dead end's turning circle
+            // within R m of (X, Y)
+            vec2 c((float)atof(argv[i + 1]), (float)atof(argv[i + 2]));
+            float r = (float)atof(argv[i + 3]);
+            const char* only = i + 4 < argc && argv[i + 4][0] != '-' ? argv[i + 4] : nullptr;
+            w.loadCells(c, 80.f);
+            static Sim sim;
+            sim.init(&w, c, 50.f, 0, 0);
+            sim.uturnTest(c, r, only);
+            break;
         }
         if (!strcmp(argv[i], "--turntest") && i + 2 < argc) {
             vec2 c((float)atof(argv[i + 1]), (float)atof(argv[i + 2]));

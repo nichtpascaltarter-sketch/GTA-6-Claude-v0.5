@@ -90,6 +90,7 @@ struct RoadNetwork {
     int nearestEdge(vec2 p, float maxDist, float* outS = nullptr, float* outDist = nullptr, float* outSide = nullptr) const;
     // Road surface height if p lies on a paved road/intersection/bridge deck; returns false otherwise.
     bool surfaceHeight(vec2 p, float* z, float maxZ = 1e9f) const;
+    bool roadSurfaceHeight(vec2 p, float* z, float maxZ = 1e9f) const;   // (the same, without the sites' pads: roadnet.cpp)
     // True if p is within `margin` meters of any road surface or sidewalk (dead-end bulbs included).
     bool nearRoad(vec2 p, float margin) const;
     // True if p lies on the paved width (+ margin) of a road whose surface there is within 2.5 m of z (street furniture filter);

@@ -1,6 +1,7 @@
 // The world model's roads compile (worldmodel.h): the model's nodes and edges to today's RoadNetwork.
 #include "worldmodel.h"
 #include <cstdio>
+#include <cstring>
 
 namespace World {
 namespace Hand {
@@ -172,6 +173,186 @@ bool compileRoads(const Model& model, RoadNetwork& out, RoadIndex& index, std::v
     }
     out.buildHash();
     return errors.size() == errorsBefore;
+}
+
+void compileRoadOverrides(const Model& model, const RoadIndex& index, const RoadNetwork& net, RoadOverrides& out) {
+    using namespace worldmodel_roads_detail;
+    out = RoadOverrides();
+    if (net.edges.empty() || index.edgeOf.size() != net.edges.size()) return;
+    out.edges.resize(net.edges.size());
+    for (size_t i = 0; i < net.edges.size(); i++) {
+        const Edge& m = model.edges[(size_t)index.edgeOf[i]];
+        const RoadClassInfo& ri = roadInfo(m.cls);
+        RoadOverrides::EdgeExtra& x = out.edges[i];
+        x.speed = m.speed > 0.f ? m.speed : ri.speed;
+        x.laneWidth = m.laneWidth > 0.f ? m.laneWidth : ri.laneWidth;
+        x.median = m.median >= 0.f ? m.median : ri.median;
+        // as compileRoads sizes the carriageway: a written shoulder= or parking= sets both sides, and then the parking
+        // is written too (0 where the compound leaves it out)
+        const bool kerbWritten = m.shoulderL >= 0.f || m.parkingL >= 0.f;
+        x.kerbL = kerbSide(m.shoulderL, m.parkingL, kerbWritten, ri.shoulder);
+        x.kerbR = kerbSide(m.shoulderR, m.parkingR, kerbWritten, ri.shoulder);
+        x.parkingL = kerbWritten ? Max(m.parkingL, 0.f) : -1.f;
+        x.parkingR = kerbWritten ? Max(m.parkingR, 0.f) : -1.f;
+        x.sidewalkL = m.sidewalkL >= 0.f ? m.sidewalkL : ri.sidewalk;
+        x.sidewalkR = m.sidewalkR >= 0.f ? m.sidewalkR : ri.sidewalk;
+        x.flags = (u8)((m.medianBarrier ? RoadOverrides::EX_MEDIAN_BARRIER : 0) | (m.tunnel ? RoadOverrides::EX_TUNNEL : 0));
+    }
+    // the nodes' rules as written (the model's nodes are the network's, in order)
+    static_assert((int)Node::CTL_AUTO == (int)RoadOverrides::CTRL_AUTO && (int)Node::CTL_NONE == (int)RoadOverrides::CTRL_NONE &&
+                      (int)Node::CTL_STOP == (int)RoadOverrides::CTRL_STOP && (int)Node::CTL_YIELD == (int)RoadOverrides::CTRL_YIELD &&
+                      (int)Node::CTL_SIGNAL == (int)RoadOverrides::CTRL_SIGNAL,
+                  "a node's control= and RoadOverrides::NodeRule's are numbered alike");
+    const auto roadEdges = [&](const std::vector<Ref>& refs, std::vector<int>& list) {
+        for (const Ref& x : refs) {
+            const int re = x.target >= 0 && (size_t)x.target < index.roadEdge.size() ? index.roadEdge[(size_t)x.target] : -1;
+            if (re >= 0) list.push_back(re);
+        }
+        std::sort(list.begin(), list.end());
+        list.erase(std::unique(list.begin(), list.end()), list.end());
+    };
+    for (size_t i = 0; i < model.nodes.size() && i < index.roadNode.size(); i++) {
+        const Node& n = model.nodes[i];
+        if (n.control == Node::CTL_AUTO && !n.stopsAll && n.stops.empty() && n.yields.empty() && n.noRedTurn.empty() && n.bulb <= 0.f) continue;
+        if (index.roadNode[i] < 0) continue;
+        RoadOverrides::NodeRule r;
+        r.node = index.roadNode[i];
+        r.control = (u8)n.control;
+        r.flags = (u8)(n.stopsAll || (n.control == Node::CTL_STOP && n.stops.empty()) ? RoadOverrides::NR_STOPS_ALL : 0);
+        r.bulb = Max(n.bulb, 0.f);
+        roadEdges(n.stops, r.stops);
+        roadEdges(n.yields, r.yields);
+        roadEdges(n.noRedTurn, r.noRedTurn);
+        out.nodes.push_back(r);
+    }
+}
+
+namespace worldmodel_roads_detail {
+
+char compassOf(float bearing) { return bearing >= 315.f || bearing < 45.f ? 'n' : bearing < 135.f ? 'e' : bearing < 225.f ? 's' : 'w'; }
+
+u8 turnBit(char t) { return t == 'l' ? TURN_LEFT : t == 's' ? TURN_STRAIGHT : t == 'r' ? TURN_RIGHT : t == 'u' ? TURN_UTURN : 0; }
+
+}  // namespace worldmodel_roads_detail
+
+NodeLegs nodeLegs(const Model& model, const RoadIndex& index, const RoadNetwork& net, int node) {
+    using namespace worldmodel_roads_detail;
+    NodeLegs N;
+    N.node = node;
+    if (node < 0 || (size_t)node >= model.nodes.size() || (size_t)node >= index.roadNode.size()) return N;
+    const int rni = index.roadNode[(size_t)node];
+    if (rni < 0 || (size_t)rni >= net.nodes.size()) return N;
+    const RoadNode& rn = net.nodes[(size_t)rni];
+    int highways = 0, ramps = 0;
+    for (size_t k = 0; k < rn.edges.size(); k++) {
+        const int re = rn.edges[k];
+        const RoadEdge& e = net.edges[(size_t)re];
+        int prior = 0;   // (a loop edge would be there twice: its start, then its end)
+        for (size_t q = 0; q < k; q++) prior += rn.edges[q] == re;
+        NodeLeg g;
+        g.road = re;
+        g.edge = (size_t)re < index.edgeOf.size() ? index.edgeOf[(size_t)re] : -1;
+        g.outgoing = e.n0 == rni && (e.n1 != rni || prior == 0);
+        g.in = g.outgoing ? e.lanesB : e.lanesF;
+        g.out = g.outgoing ? e.lanesF : e.lanesB;
+        const float cut = g.outgoing ? e.cut0 : e.cut1;
+        const float probe = Clamp(Max(cut, 4.f), 0.f, e.length * 0.5f);
+        vec2 d = e.posAt(g.outgoing ? probe : e.length - probe).xy() - rn.p;
+        if (length2(d) < 1e-4f) d = (g.outgoing ? e.pts[1] : e.pts[e.pts.size() - 2]).xy() - rn.p;
+        g.dir = normalize(d);
+        g.bearing = atan2f(g.dir.x, g.dir.y) * kRadToDeg;
+        if (g.bearing < 0.f) g.bearing += 360.f;
+        g.compass = compassOf(g.bearing);
+        g.letter = g.compass;
+        highways += e.cls == RC_HIGHWAY;
+        ramps += e.cls == RC_RAMP;
+        N.legs.push_back(g);
+    }
+    N.interchange = highways > 0 && ramps > 0;
+    N.gradeSeparated = N.legs.size() >= 4 && highways == (int)N.legs.size();
+    // approaches=: a letter's first use and an edge's
+    std::string given;
+    std::vector<int> named;
+    for (const auto& a : model.nodes[(size_t)node].approaches) {
+        if (a.first.size() != 1 || !strchr("nesw", a.first[0]) || given.find(a.first[0]) != std::string::npos) continue;
+        given += a.first[0];
+        if (a.second.target < 0 || std::find(named.begin(), named.end(), a.second.target) != named.end()) continue;
+        named.push_back(a.second.target);
+        for (NodeLeg& g : N.legs)
+            if (g.edge == a.second.target) g.letter = a.first[0];
+    }
+    return N;
+}
+
+u8 legTurn(const Model& model, const NodeLegs& N, const NodeLeg& a, const NodeLeg& b) {
+    // a connect record joining the two edges gives its turn
+    if (N.node >= 0 && (size_t)N.node < model.nodes.size() && model.nodes[(size_t)N.node].junction >= 0) {
+        const Junction& j = model.junctions[(size_t)model.nodes[(size_t)N.node].junction];
+        for (const Junction::Connect& c : j.connects)
+            if (c.fromEdge.target == a.edge && c.toEdge.target == b.edge && a.edge >= 0)
+                return c.turn == "left" ? TURN_LEFT : c.turn == "right" ? TURN_RIGHT : c.turn == "uturn" ? TURN_UTURN : TURN_STRAIGHT;
+    }
+    // as the lane graph classes it
+    const vec2 tin = -a.dir, tout = b.dir;
+    const float deg = atan2f(cross(tin, tout), dot(tin, tout)) * kRadToDeg;
+    u8 t = TURN_STRAIGHT;
+    if (N.legs.size() == 2) t = TURN_STRAIGHT;
+    else if (fabsf(deg) > 140.f) return 0;
+    else if (deg > 35.f) t = TURN_LEFT;
+    else if (deg < -35.f) t = TURN_RIGHT;
+    if (N.interchange) {
+        if (fabsf(deg) > 60.f) return 0;
+        t = TURN_STRAIGHT;   // (a merge or a diverge)
+    }
+    if (N.gradeSeparated && t != TURN_STRAIGHT) return 0;
+    return t;
+}
+
+void resolvePlan(const Model& model, const NodeLegs& N, const SignalPlan& plan, ResolvedPlan& out) {
+    using namespace worldmodel_roads_detail;
+    out = ResolvedPlan();
+    for (const Phase& ph : plan.phases) {
+        ResolvedPlan::Phase rp;
+        for (const std::string& mv : ph.moves) {
+            const bool form = (mv.size() == 3 || (mv.size() == 4 && mv[3] == 'p')) && mv[1] == '_' && strchr("nesw", mv[0]) && turnBit(mv[2]);
+            const u8 want = form ? turnBit(mv[2]) : 0;
+            bool any = false;
+            for (size_t ai = 0; form && ai < N.legs.size(); ai++) {
+                const NodeLeg& a = N.legs[ai];
+                if (a.letter != mv[0] || a.in <= 0) continue;
+                for (size_t bi = 0; bi < N.legs.size(); bi++) {
+                    const NodeLeg& b = N.legs[bi];
+                    if (bi == ai || b.out <= 0 || legTurn(model, N, a, b) != want) continue;
+                    ResolvedPlan::Move m;
+                    m.from = a.road;
+                    m.to = b.road;
+                    m.turn = want;
+                    m.isProtected = mv.size() == 4;
+                    rp.moves.push_back(m);
+                    any = true;
+                }
+            }
+            if (!any) out.unused.push_back(mv);
+        }
+        for (const std::string& w : ph.walk) {
+            bool any = false;
+            for (const NodeLeg& g : N.legs)
+                if (w.size() == 1 && g.letter == w[0]) {
+                    rp.walks.push_back(g.road);
+                    any = true;
+                }
+            if (!any) out.unused.push_back("walk " + w);
+        }
+        // one entry per movement (a protected one where any says so) and per crossing
+        std::sort(rp.moves.begin(), rp.moves.end(), [](const ResolvedPlan::Move& x, const ResolvedPlan::Move& y) {
+            return x.from != y.from ? x.from < y.from : x.to != y.to ? x.to < y.to : x.isProtected > y.isProtected;
+        });
+        rp.moves.erase(std::unique(rp.moves.begin(), rp.moves.end(), [](const ResolvedPlan::Move& x, const ResolvedPlan::Move& y) { return x.from == y.from && x.to == y.to; }),
+                       rp.moves.end());
+        std::sort(rp.walks.begin(), rp.walks.end());
+        rp.walks.erase(std::unique(rp.walks.begin(), rp.walks.end()), rp.walks.end());
+        out.phases.push_back(rp);
+    }
 }
 
 }  // namespace Hand

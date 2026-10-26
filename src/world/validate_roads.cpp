@@ -1,5 +1,6 @@
 // worldv's checks on the world model (validate_roads.h): the roads, their signal plans and the transit lines.
 #include "validate_roads.h"
+#include "validate_lanes.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -911,6 +912,7 @@ void checkWorldModel(const Hand::Model& m, std::vector<ModelFinding>& out, RoadC
     counts.lines = m.transit.size();
     for (const RoadEdge& e : net.edges) counts.km += e.length / 1000.0;
     countAuthored(m, counts);
+    checkLaneGraph(m, net, idx, out, counts.graph);
 }
 
 std::string formatRoadCounts(const RoadCounts& c) {
@@ -923,6 +925,9 @@ std::string formatRoadCounts(const RoadCounts& c) {
         s += "; authored:";
         for (size_t i = 0; i < c.authored.size(); i++) s += (i ? ", " : " ") + c.authored[i].first + " " + std::to_string(c.authored[i].second);
     }
+    if (c.graph.built)
+        s += "; lane graph: " + count(c.graph.lanes, "lane", "lanes") + ", " + count(c.graph.connectors, "connector", "connectors") + ", " +
+             count(c.graph.walkNodes, "walk node", "walk nodes") + ", " + count(c.graph.walkLinks, "walk link", "walk links");
     return s;
 }
 
