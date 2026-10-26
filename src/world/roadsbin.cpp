@@ -1,5 +1,6 @@
 // The road network's sections of world.bin (roadsbin.h).
 #include "roadsbin.h"
+#include <cstdio>
 #include <utility>
 
 namespace World {
@@ -139,6 +140,120 @@ bool readRoads(const WorldBinView& bin, RoadNetwork& out, std::vector<std::strin
         if (edgeIds) *edgeIds = std::move(edges);
     }
     out = std::move(net);
+    return true;
+}
+
+void writeRoadOverrides(const RoadOverrides& ov, WorldBinWriter& out) {
+    if (ov.empty()) return;
+    ByteWriter w;
+    w.putU32(kRoadOverridesSectionVersion);
+    w.putU32((u32)ov.edges.size());
+    for (const RoadOverrides::EdgeExtra& x : ov.edges) {
+        const float f[9] = {x.speed, x.laneWidth, x.median, x.kerbL, x.kerbR, x.parkingL, x.parkingR, x.sidewalkL, x.sidewalkR};
+        for (float v : f) w.putF32(v);
+        w.putU32(x.flags);
+    }
+    w.putU32((u32)ov.nodes.size());
+    for (const RoadOverrides::NodeRule& n : ov.nodes) {
+        w.putU32((u32)n.node);
+        w.putU32((u32)n.control | ((u32)n.flags << 8));
+        w.putF32(n.bulb);
+        for (const std::vector<int>* list : {&n.stops, &n.yields, &n.noRedTurn}) {
+            w.putU32((u32)list->size());
+            for (int e : *list) w.putU32((u32)e);
+        }
+    }
+    out.addCompressed("roads.overrides", w.bytes);
+}
+
+bool readRoadOverrides(const WorldBinView& bin, const RoadNetwork& roads, RoadOverrides& out, std::string* error) {
+    using namespace roadsbin_detail;
+    out = RoadOverrides();   // (left empty on failure: never half the lists)
+    if (!bin.find("roads.overrides")) return true;
+    std::vector<u8> bytes;
+    if (!bin.bytes("roads.overrides", bytes)) return fail(error, "world.bin's roads.overrides section is damaged");
+    ByteReader r(bytes.data(), bytes.size());
+    const u32 version = r.getU32();
+    if (version != kRoadOverridesSectionVersion)
+        return fail(error, "world.bin's roads.overrides section is version " + std::to_string(version) + ", not " + std::to_string(kRoadOverridesSectionVersion));
+    RoadOverrides ov;
+    const u32 n = r.getU32();
+    if (r.bad || n > (u32)(r.end - r.p) / 40u) return fail(error, "world.bin's roads.overrides section is truncated (edges)");
+    if (n != 0 && (size_t)n != roads.edges.size())
+        return fail(error, "world.bin's roads.overrides section is for " + std::to_string(n) + " edges, and its roads have " + std::to_string(roads.edges.size()));
+    ov.edges.resize(n);
+    for (RoadOverrides::EdgeExtra& x : ov.edges) {
+        x.speed = r.getF32();
+        x.laneWidth = r.getF32();
+        x.median = r.getF32();
+        x.kerbL = r.getF32();
+        x.kerbR = r.getF32();
+        x.parkingL = r.getF32();
+        x.parkingR = r.getF32();
+        x.sidewalkL = r.getF32();
+        x.sidewalkR = r.getF32();
+        x.flags = (u8)(r.getU32() & 255u);
+    }
+    const u32 rules = r.getU32();
+    if (r.bad || rules > (u32)(r.end - r.p) / 24u) return fail(error, "world.bin's roads.overrides section is truncated (node rules)");
+    ov.nodes.resize(rules);
+    for (u32 i = 0; i < rules; i++) {
+        RoadOverrides::NodeRule& x = ov.nodes[i];
+        x.node = (int)r.getU32();
+        const u32 bits = r.getU32();
+        x.control = (u8)(bits & 255u);
+        x.flags = (u8)((bits >> 8) & 255u);
+        x.bulb = r.getF32();
+        if (r.bad || x.node < 0 || (size_t)x.node >= roads.nodes.size() || x.control > RoadOverrides::CTRL_SIGNAL)
+            return fail(error, "world.bin's roads.overrides section: node rule " + std::to_string(i) + " names a node or control that isn't there");
+        for (std::vector<int>* list : {&x.stops, &x.yields, &x.noRedTurn}) {
+            const u32 k = r.getU32();
+            if (r.bad || k > (u32)(r.end - r.p) / 4u) return fail(error, "world.bin's roads.overrides section is truncated (node rule " + std::to_string(i) + ")");
+            list->resize(k);
+            for (int& e : *list) {
+                e = (int)r.getU32();
+                if (e < 0 || (size_t)e >= roads.edges.size())
+                    return fail(error, "world.bin's roads.overrides section: node rule " + std::to_string(i) + " names an edge that isn't there");
+            }
+        }
+    }
+    if (!r.done()) return fail(error, "world.bin's roads.overrides section has bytes past its end, or is truncated");
+    out = std::move(ov);
+    return true;
+}
+
+bool loadRoadsFile(const char* path, RoadNetwork& roads, RoadOverrides& ov, std::string* error, std::vector<std::string>* nodeIds,
+                   std::vector<std::string>* edgeIds) {
+    using namespace roadsbin_detail;
+    roads = RoadNetwork();
+    ov = RoadOverrides();
+    if (nodeIds) nodeIds->clear();
+    if (edgeIds) edgeIds->clear();
+    const std::string name = path ? path : "(no path)";
+    FILE* f = path ? fopen(path, "rb") : nullptr;
+    if (!f) return fail(error, "can't open " + name);
+    std::vector<u8> data;
+    long size = -1;
+    if (fseek(f, 0, SEEK_END) == 0) size = ftell(f);
+    bool ok = size >= 0 && fseek(f, 0, SEEK_SET) == 0;
+    if (ok) {
+        data.resize((size_t)size);
+        ok = data.empty() || fread(data.data(), 1, data.size(), f) == data.size();
+    }
+    fclose(f);
+    if (!ok) return fail(error, "can't read " + name);
+    WorldBinView view;
+    std::string why;
+    if (!view.open(data.data(), data.size(), &why)) return fail(error, name + ": " + why);
+    RoadNetwork net;
+    RoadOverrides o;
+    if (!readRoads(view, net, nodeIds, edgeIds, &why) || !readRoadOverrides(view, net, o, &why)) {
+        if (nodeIds) nodeIds->clear();
+        if (edgeIds) edgeIds->clear();
+        return fail(error, name + ": " + why);
+    }
+    roads = std::move(net);
+    ov = std::move(o);
     return true;
 }
 

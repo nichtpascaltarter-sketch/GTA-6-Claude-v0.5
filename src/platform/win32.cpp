@@ -19,6 +19,19 @@ namespace Platform {
 namespace {
 HWND g_hwnd = nullptr;
 InputState g_input;
+// Keys and buttons that went down and came up again within one frame's messages: the release waits for the next frame,
+// so the frame still sees the press. A tap shorter than a frame (or a remote tool's down and up in one batch) was lost.
+bool g_releaseNext[KEY_COUNT] = {};
+void inputPress(int vk) {
+    if (vk < 0 || vk >= KEY_COUNT) return;
+    g_input.keys[vk] = true;
+    g_releaseNext[vk] = false;
+}
+void inputRelease(int vk) {
+    if (vk < 0 || vk >= KEY_COUNT) return;
+    if (g_input.keys[vk] && !g_input.prevKeys[vk]) g_releaseNext[vk] = true;   // down since this frame began
+    else g_input.keys[vk] = false;
+}
 int g_width = 1280, g_height = 720;
 bool g_focus = true, g_resized = false, g_quit = false;
 bool g_mouseCaptured = false, g_fullscreen = false;
@@ -115,7 +128,10 @@ LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         }
         case WM_ACTIVATE:
             g_focus = LOWORD(wp) != WA_INACTIVE;
-            if (!g_focus) memset(g_input.keys, 0, sizeof(g_input.keys));
+            if (!g_focus) {
+                memset(g_input.keys, 0, sizeof(g_input.keys));
+                memset(g_releaseNext, 0, sizeof(g_releaseNext));
+            }
             applyMouseCapture();
             return 0;
         case WM_INPUT: {
@@ -138,7 +154,7 @@ LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         case WM_SYSKEYDOWN: {
             int vk = (int)wp;
             if (vk == VK_SHIFT) vk = (int)MapVirtualKeyA((lp >> 16) & 0xff, MAPVK_VSC_TO_VK_EX);
-            if (vk >= 0 && vk < KEY_COUNT) g_input.keys[vk] = true;
+            inputPress(vk);
             if (vk == VK_LSHIFT || vk == VK_RSHIFT) g_input.keys[VK_SHIFT] = true;
             if (vk == VK_LCONTROL || vk == VK_RCONTROL || (int)wp == VK_CONTROL) g_input.keys[VK_CONTROL] = true;
             g_input.lastInputWasPad = false;
@@ -154,7 +170,9 @@ LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
                 g_input.keys[VK_LSHIFT] = (GetKeyState(VK_LSHIFT) & 0x8000) != 0;
                 g_input.keys[VK_RSHIFT] = (GetKeyState(VK_RSHIFT) & 0x8000) != 0;
                 g_input.keys[VK_SHIFT] = g_input.keys[VK_LSHIFT] || g_input.keys[VK_RSHIFT];
-            } else if (vk >= 0 && vk < KEY_COUNT) g_input.keys[vk] = false;
+            } else {
+                inputRelease(vk);
+            }
             if ((int)wp == VK_CONTROL) { g_input.keys[VK_LCONTROL] = g_input.keys[VK_RCONTROL] = false; }
             if (msg == WM_SYSKEYUP) return 0;
             break;
@@ -162,14 +180,14 @@ LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         case WM_CHAR:
             if (wp >= 32 && wp < 127) g_input.textInput.push_back((char)wp);
             return 0;
-        case WM_LBUTTONDOWN: g_input.keys[VK_LBUTTON] = true; g_input.lastInputWasPad = false; SetCapture(hwnd); return 0;
-        case WM_LBUTTONUP: g_input.keys[VK_LBUTTON] = false; ReleaseCapture(); return 0;
-        case WM_RBUTTONDOWN: g_input.keys[VK_RBUTTON] = true; g_input.lastInputWasPad = false; return 0;
-        case WM_RBUTTONUP: g_input.keys[VK_RBUTTON] = false; return 0;
-        case WM_MBUTTONDOWN: g_input.keys[VK_MBUTTON] = true; return 0;
-        case WM_MBUTTONUP: g_input.keys[VK_MBUTTON] = false; return 0;
-        case WM_XBUTTONDOWN: g_input.keys[GET_XBUTTON_WPARAM(wp) == XBUTTON1 ? VK_XBUTTON1 : VK_XBUTTON2] = true; return TRUE;
-        case WM_XBUTTONUP: g_input.keys[GET_XBUTTON_WPARAM(wp) == XBUTTON1 ? VK_XBUTTON1 : VK_XBUTTON2] = false; return TRUE;
+        case WM_LBUTTONDOWN: inputPress(VK_LBUTTON); g_input.lastInputWasPad = false; SetCapture(hwnd); return 0;
+        case WM_LBUTTONUP: inputRelease(VK_LBUTTON); ReleaseCapture(); return 0;
+        case WM_RBUTTONDOWN: inputPress(VK_RBUTTON); g_input.lastInputWasPad = false; return 0;
+        case WM_RBUTTONUP: inputRelease(VK_RBUTTON); return 0;
+        case WM_MBUTTONDOWN: inputPress(VK_MBUTTON); return 0;
+        case WM_MBUTTONUP: inputRelease(VK_MBUTTON); return 0;
+        case WM_XBUTTONDOWN: inputPress(GET_XBUTTON_WPARAM(wp) == XBUTTON1 ? VK_XBUTTON1 : VK_XBUTTON2); return TRUE;
+        case WM_XBUTTONUP: inputRelease(GET_XBUTTON_WPARAM(wp) == XBUTTON1 ? VK_XBUTTON1 : VK_XBUTTON2); return TRUE;
         case WM_MOUSEWHEEL: g_input.wheelDelta += (float)GET_WHEEL_DELTA_WPARAM(wp) / WHEEL_DELTA; return 0;
         case WM_MOUSEMOVE: g_input.mousePos = vec2((float)(short)LOWORD(lp), (float)(short)HIWORD(lp)); break;
         case WM_SETCURSOR:
@@ -369,6 +387,11 @@ bool pumpMessages() {
 
 void beginFrameInput() {
     memcpy(g_input.prevKeys, g_input.keys, sizeof(g_input.keys));
+    for (int k = 0; k < KEY_COUNT; k++)   // (the taps that last frame saw pressed: released now)
+        if (g_releaseNext[k]) {
+            g_input.keys[k] = false;
+            g_releaseNext[k] = false;
+        }
     g_input.mouseDelta = vec2(0, 0);
     g_input.wheelDelta = 0;
     g_input.textInput.clear();

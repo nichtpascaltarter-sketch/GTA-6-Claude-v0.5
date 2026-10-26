@@ -430,7 +430,8 @@ static void testRefs() {
         EXPECT(fits == c.fits && names == c.names, "pattern %s, value %s: %s '%s'", c.pattern, c.value, fits ? "fits" : "doesn't fit", names.c_str());
     }
     const std::vector<Ntw::RefRule>* node = Ntw::refRules("roads", "node");
-    EXPECT(node && node->size() == 4 && !strcmp((*node)[0].key, "plan") && (*node)[0].pattern.alts.size() == 2, "refRules: roads node");
+    EXPECT(node && node->size() == 5 && !strcmp((*node)[0].key, "plan") && (*node)[0].pattern.alts.size() == 2 && !strcmp((*node)[4].key, "noredturn"),
+           "refRules: roads node");
     const std::vector<Ntw::RefRule>* junction = Ntw::refRules("roads", "junction");
     EXPECT(junction && junction->size() == 1 && !(*junction)[0].key, "refRules: a junction's id");
     const std::vector<Ntw::RefRule>* stair = Ntw::refRules("unit", "stair");

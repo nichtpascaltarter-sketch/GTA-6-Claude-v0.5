@@ -413,6 +413,7 @@ static void footPlanting(Animator& A, const AnimInput& in, float dt, Pose& p, bo
         for (int s = 0; s < 2; s++) {
             A.groundAhead[s] -= dzRoot;
             if (A.stairLand[s] > -8.f) A.stairLand[s] -= dzRoot;
+            if (A.flatLand[s] > -8.f) A.flatLand[s] -= dzRoot;
             if (A.liftGround[s] > -8.f) A.liftGround[s] -= dzRoot;
             if (A.stepScanHave[s])
                 for (int k = 0; k < kGroundScan; k++) A.stepG[s][k] -= dzRoot;
@@ -697,6 +698,9 @@ static void footPlanting(Animator& A, const AnimInput& in, float dt, Pose& p, bo
         A.stairLand[s] = stepped ? bestG : -9.f;
         A.stairBall[s] = stepped && bestBall;
         A.stairRear[s] = stepped ? bestRear : 9.f;
+        // (no step found near stairs - the way across the landing between two flights, onto the floor at the foot of one:
+        // the ground there, where it lands)
+        A.flatLand[s] = !stepped && bestCost < 1e8f && A.stairSeen < 1.5f ? gFoot : -9.f;
         if (stepped) A.stairSeen = 0.f;
         A.scanDone[s] = true;
     }
@@ -800,8 +804,10 @@ static void footPlanting(Animator& A, const AnimInput& in, float dt, Pose& p, bo
                         A.plantSlack[s] = 0.f;
                         // (on stairs without a tread fitted: at the higher of the near probe's ground - which runs ahead down
                         // a step, or lags behind up one - and the landing probe's under the forefoot; far short of a fitted
-                        // landing, the near probe's)
-                        if (A.stairSeen < 1.5f && A.stairLand[s] < -8.f) (s ? A.footR : A.footL) = Max(s ? A.footR : A.footL, A.groundAhead[s]);
+                        // landing, the near probe's. A step down onto flat ground its ground scan found - a landing, the floor
+                        // at the foot of a flight - lands on that: at a run both probes lag the swing by a tread or more)
+                        if (A.stairSeen < 1.5f && A.stairLand[s] < -8.f)
+                            (s ? A.footR : A.footL) = A.flatLand[s] > -8.f && A.flatLand[s] < A.liftGround[s] - 0.04f && atFit(s) ? A.flatLand[s] : Max(s ? A.footR : A.footL, A.groundAhead[s]);
                     }
                     // (a foot held since its toe-off stays on its footprint: the shown heel is this update's pose with the
                     // last update's correction, off by the pose's own move since)
@@ -926,6 +932,7 @@ static void footPlanting(Animator& A, const AnimInput& in, float dt, Pose& p, bo
         if (A.stepT[s] >= 0.f || A.planted[s] || A.footHold[s]) {
             A.stairShift[s] = 0.f;
             A.stairLand[s] = -9.f;
+            A.flatLand[s] = -9.f;
             A.stairBall[s] = false;
             A.scanDone[s] = false;
             A.wallPull[s] = vec3(0);
@@ -1955,7 +1962,7 @@ void Animator::init(const Skeleton* s, u32 variationSeed) {
         planted[k] = false;
         armRest[k] = quat();
         groundRaw[k] = groundAhead[k] = pivotW[k] = stairShift[k] = 0.f;
-        stairLand[k] = -9.f;
+        stairLand[k] = flatLand[k] = -9.f;
         stairRear[k] = 9.f;
         stairBall[k] = ballProbe[k] = false;
         scanDone[k] = false;
@@ -3239,7 +3246,7 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
             for (int s = 0; s < 2; s++) {
                 planted[s] = plantedPrev[s] = footHold[s] = probeAhead[s] = scanDone[s] = false;
                 stairShift[s] = 0.f;
-                stairLand[s] = -9.f;
+                stairLand[s] = flatLand[s] = -9.f;
                 stairRear[s] = 9.f;
                 wallPull[s] = vec3(0);
                 wallSeen[s] = wallScan[s] = wallCheck[s] = wallFlip[s] = false;

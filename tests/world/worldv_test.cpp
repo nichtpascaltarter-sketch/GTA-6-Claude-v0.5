@@ -11,16 +11,23 @@
 // Build and run from the repo root, as CI's GCC job does:
 //   g++ -std=c++17 -O2 -Wall -Wextra -Werror -fsanitize=undefined -fno-sanitize-recover=undefined
 //       tests/world/worldv_test.cpp -o /tmp/neontide-worldv-test && /tmp/neontide-worldv-test
-#include "../../tools/native_stubs.cpp"
+#include "../../tools/worldv_host.cpp"
 #include "../../src/core/math.cpp"
 #include "../../src/world/ntw.cpp"
 #include "../../src/world/ntwschema.cpp"
 #include "../../src/world/roadnet.cpp"
 #include "../../src/world/worldmodel.cpp"
 #include "../../src/world/worldmodel_roads.cpp"
+// the game's lane graph, built as the game builds it (validate_lanes.h). Its code is the AI agent's: until its set 21
+// casts it, one conditional there (lanes.cpp:1088) mixes an enum and a u8, which -Wextra rejects. Drop the pragma then.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wextra"
+#include "../../src/game/lanes.cpp"
+#pragma GCC diagnostic pop
 #include "../../src/world/validate.cpp"
 #include "../../src/world/validate_layout.cpp"
 #include "../../src/world/validate_roads.cpp"
+#include "../../src/world/validate_lanes.cpp"
 #include <chrono>
 #include <filesystem>
 #include <map>
@@ -578,6 +585,7 @@ static void testRoads() {
     }
     const char* R = "districts/cl/roads.ntw";
     const char* T = "transit/bus.8.ntw";
+    const char* P = "lib/signals/4way_proleft.ntw";
     const char* lastEdge = "edge cl.e0025 from=cl.n0016 to=tr.n00412 class=street lanes=1/1 shape=1600.00,365.50;1500.00,365.50\nend\n";
     const std::string after = lastEdge;   // records planted after the file's last one
     const std::string overlapping = after + "edge cl.e0027 from=cl.n0017 to=cl.n0020 class=street lanes=1/1 shape=1702.00,250.00;1704.00,330.00\nend\n"
@@ -631,6 +639,23 @@ static void testRoads() {
          {{R, "stopline edge=cl.e0007 at=6.50", "stopline edge=cl.e0007 at=200.00"},
           {R, "  connect from=cl.e0011:0 to=cl.e0007:0 turn=right\n", "  connect from=cl.e0011:0 to=cl.e0007:0 turn=right\n  ban from=cl.e0009 to=cl.e0007\n"}},
          {"districts/cl/roads.ntw:24 road.legs", "districts/cl/roads.ntw:27 road.legs"}},
+        // the lane graph: lanes that go on, and the signal plan against the node's movements and crossings
+        {"a custom junction that leaves two approaches no movement", {{R, "turns=no_uturn", "turns=custom"}},
+         {"districts/cl/roads.ntw:33 road.lanes", "districts/cl/roads.ntw:35 road.lanes"}},
+        {"a one-way street into a dead end", {{R, "to=cl.n0014 class=street lanes=1/1", "to=cl.n0014 class=street lanes=1/0"}}, {"districts/cl/roads.ntw:19 road.lanes"}},
+        // (road.moves reports it: a lane with a moves record gets exactly the turns it lists, and road.lanes leaves it be)
+        {"a lane whose only turn is a U-turn the junction bans",
+         {{R, "edge cl.e0015 from=cl.n0012 to=cl.n0017 class=street lanes=1/1 shape=1702.00,365.50;1702.00,250.00\nend\n",
+           "edge cl.e0015 from=cl.n0012 to=cl.n0017 class=street lanes=1/1 shape=1702.00,365.50;1702.00,250.00\n  moves at=n0 lanes=u\nend\n"}},
+         {"districts/cl/roads.ntw:36 road.moves"}},
+        {"a movement no phase gives a green", {{P, "moves=e_s,e_r,e_l,w_s", "moves=e_s,e_r,w_s"}}, {"districts/cl/roads.ntw:2 signal.cover"}},
+        {"the same movement, banned", {{P, "moves=e_s,e_r,e_l,w_s", "moves=e_s,e_r,w_s"}, {R, "  stopline edge=cl.e0007 at=6.50\n", "  stopline edge=cl.e0007 at=6.50\n  ban from=cl.e0011 to=cl.e0015\n"}},
+         {}},
+        {"a crossing no phase gives a walk", {{P, "walk=n,s", "walk=n"}}, {"districts/cl/roads.ntw:2 signal.cover"}},
+        {"a phase whose greens cross", {{P, "moves=n_s,n_r,n_l,s_s,s_r,s_l walk=e,w", "moves=n_s,n_r,n_l,s_s,s_r,s_l,e_s walk=e,w"}},
+         {"districts/cl/roads.ntw:2 signal.conflict", "districts/cl/roads.ntw:2 signal.conflict"}},
+        {"a protected left across a walk and the oncoming traffic", {{P, "moves=n_s,n_r,n_l,s_s", "moves=n_s,n_r,n_lp,s_s"}},
+         {"districts/cl/roads.ntw:2 signal.conflict", "districts/cl/roads.ntw:2 signal.conflict"}},
         // one network
         {"a piece of road on its own", {{R, lastEdge, piece.c_str()}}, {"districts/cl/roads.ntw:49 road.connected"}},
         {"a node with no edges", {{R, lastEdge, lone.c_str()}}, {"districts/cl/roads.ntw:47 road.connected"}},
@@ -650,7 +675,9 @@ static void testRoads() {
          {"transit/bus.8.ntw:2 transit.route", "districts/cl/roads.ntw:26 road.legs"}},
         {"a route through a banned turn", {{R, "  connect from=cl.e0011:0 to=cl.e0007:0 turn=right\n", "  connect from=cl.e0011:0 to=cl.e0007:0 turn=right\n  ban from=cl.e0011 to=cl.e0007\n"}},
          {"transit/bus.8.ntw:2 transit.route"}},
-        {"a route through a turn a custom junction doesn't connect", {{R, "  connect from=cl.e0011:0 to=cl.e0007:0 turn=right\n", ""}}, {"transit/bus.8.ntw:2 transit.route"}},
+        // (and the west and south approaches, which no connect leaves, have no movement at all: road.lanes)
+        {"a route through a turn a custom junction doesn't connect", {{R, "turns=no_uturn", "turns=custom"}, {R, "  connect from=cl.e0011:0 to=cl.e0007:0 turn=right\n", ""}},
+         {"transit/bus.8.ntw:2 transit.route", "districts/cl/roads.ntw:21 road.lanes", "districts/cl/roads.ntw:32 road.lanes", "districts/cl/roads.ntw:34 road.lanes"}},
         // the route walked edge to edge: where it enters an edge says where it leaves it, and the next edge starts there
         // (a direction once known isn't changed by the pair after it)
         {"a route that goes on from the junction it has left", {{T, "edges=cl.e0011,cl.e0007", "edges=cl.e0011,cl.e0007,cl.e0013"}},
@@ -723,7 +750,7 @@ static void testRoads() {
     Summary s;
     runWorld(std::string(kFixtures) + "/world", &s);
     EXPECT(s.roads == "worldv roads: 9 nodes, 10 edges (1.08 km), 1 junction, 1 signal plan, 1 transit line; authored: lanes 1, noswitch 1, moves 1, crossing 2, busstop 1, "
-                      "parkbay 1, nostop 1, loading 1, curbcut 1, junction 1, stopline 1, connect 2",
+                      "parkbay 1, nostop 1, loading 1, curbcut 1, junction 1, stopline 1, connect 2; lane graph: 20 lanes, 39 connectors, 58 walk nodes, 69 walk links",
            "the roads summary: %s", s.roads.c_str());
     runWorld(std::string(kFixtures) + "/plans", &s);
     EXPECT(s.roads.empty(), "a world with no roads has no roads summary");

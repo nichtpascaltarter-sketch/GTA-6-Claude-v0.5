@@ -107,7 +107,8 @@ std::vector<KindDef> build() {
         k.header = {F("district", VT_ID), F("scope", VT_WORD, -1, "trunk")};
         k.records.push_back(Rec("node", 2, false,
                                 {R("at", VT_POINT, 2), R("z", VT_NUM, 2), F("control", VT_WORD, -1, "none|stop|yield|signal"), F("plan", VT_ANY),
-                                 F("offset", VT_NUM, 1), F("approaches", VT_ANY), F("stops", VT_ANY), F("yield", VT_LIST), F("bulb", VT_ANY, 2)}));
+                                 F("offset", VT_NUM, 1), F("approaches", VT_ANY), F("stops", VT_ANY), F("yield", VT_LIST), F("bulb", VT_ANY, 2),
+                                 F("noredturn", VT_LIST)}));
         k.records.push_back(Rec("edge", 2, true,
                                 {R("from", VT_REF), R("to", VT_REF), R("class", VT_WORD, -1, "highway|boulevard|avenue|street|lane|rural|dirt|ramp"),
                                  F("name", VT_TEXT), R("lanes", VT_ANY), F("lanewidth", VT_NUM, 2), F("median", VT_ANY, 2), F("shoulder", VT_ANY, 2),
@@ -519,6 +520,7 @@ const std::vector<RefDef>& schemaRefs() {
             {"roads", "node", "approaches", "*:<edge>,..."},
             {"roads", "node", "stops", "all|<edge>,..."},
             {"roads", "node", "yield", "<edge>,..."},
+            {"roads", "node", "noredturn", "<edge>,..."},
             {"roads", "edge", "from", "<node>"},
             {"roads", "edge", "to", "<node>"},
             {"roads", "busstop", "shelter", "<prop>"},

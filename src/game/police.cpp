@@ -638,6 +638,7 @@ void escortStep(GameWorld& g, int id, float dt) {
     float turnR = ai_turn::ease(p.yaw, faceYaw, length(p.vel.xy()), p.aiming, 7.f, desired);   // (a walk's turn and pace: ai_turn)
     float dy = AI::wrapPi(faceYaw - p.yaw);
     p.yaw = AI::wrapPi(p.yaw + Clamp(dy, -turnR * dt, turnR * dt));
+    ai_pace::stairs(g, id, desired);   // (on a flight: a tread a step)
     g.movePed(p, desired, dt, false);
 }
 
@@ -835,6 +836,7 @@ void step(GameWorld& g, int id, float dt) {
     float turnR = ai_turn::ease(p.yaw, faceYaw, length(p.vel.xy()), p.aiming, 6.f, desired);   // (a walk's turn and pace: ai_turn)
     float dy = AI::wrapPi(faceYaw - p.yaw);
     p.yaw = AI::wrapPi(p.yaw + Clamp(dy, -turnR * dt, turnR * dt));
+    ai_pace::stairs(g, id, desired);   // (on a flight: a tread a step)
     g.movePed(p, desired, dt, false);
 }
 
@@ -1031,6 +1033,7 @@ void coverStep(GameWorld& g, int id, float dt) {
     float turnR = ai_turn::ease(p.yaw, faceYaw, length(p.vel.xy()), p.aiming, 6.f, desired);   // (a walk's turn and pace: ai_turn)
     float dy = AI::wrapPi(faceYaw - p.yaw);
     p.yaw = AI::wrapPi(p.yaw + Clamp(dy, -turnR * dt, turnR * dt));
+    ai_pace::stairs(g, id, desired);   // (on a flight: a tread a step)
     g.movePed(p, desired, dt, false);
 }
 
@@ -1161,6 +1164,7 @@ void step(GameWorld& g, int id, float dt) {
     float turnR = ai_turn::ease(p.yaw, faceYaw, length(p.vel.xy()), p.aiming, 6.f, desired);   // (a walk's turn and pace: ai_turn)
     float dy = AI::wrapPi(faceYaw - p.yaw);
     p.yaw = AI::wrapPi(p.yaw + Clamp(dy, -turnR * dt, turnR * dt));
+    ai_pace::stairs(g, id, desired);   // (on a flight: a tread a step)
     g.movePed(p, desired, dt, false);
 }
 
@@ -1460,6 +1464,7 @@ void step(GameWorld& g, int id, float dt) {
     float turnR = ai_turn::ease(p.yaw, faceYaw, length(p.vel.xy()), p.aiming, 6.f, desired);   // (a walk's turn and pace: ai_turn)
     float dy = AI::wrapPi(faceYaw - p.yaw);
     p.yaw = AI::wrapPi(p.yaw + Clamp(dy, -turnR * dt, turnR * dt));
+    ai_pace::stairs(g, id, desired);   // (on a flight: a tread a step)
     g.movePed(p, desired, dt, false);
 }
 
@@ -3456,6 +3461,7 @@ void GameWorld::aiPoliceBrain(int id, float dt) {
         float turnR = ai_turn::ease(p.yaw, faceYaw, length(p.vel.xy()), p.aiming, 8.f, desired);   // (a walk's turn and pace: ai_turn)
         float d = AI::wrapPi(faceYaw - p.yaw);
         p.yaw = AI::wrapPi(p.yaw + Clamp(d, -turnR * dt, turnR * dt));
+        ai_pace::stairs(*this, id, desired);   // (on a flight: a tread a step)
         movePed(p, desired, dt, false);
         return;
     }
@@ -3498,6 +3504,7 @@ void GameWorld::aiPoliceBrain(int id, float dt) {
         float turnR = ai_turn::ease(p.yaw, faceYaw, length(p.vel.xy()), p.aiming, 9.f, desired);   // (a walk's turn and pace: ai_turn)
         float d = AI::wrapPi(faceYaw - p.yaw);
         p.yaw = AI::wrapPi(p.yaw + Clamp(d, -turnR * dt, turnR * dt));
+        ai_pace::stairs(*this, id, desired);   // (on a flight: a tread a step)
         movePed(p, desired, dt, false);
         return;
     }
@@ -3583,6 +3590,7 @@ void GameWorld::aiPoliceBrain(int id, float dt) {
         float turnR = ai_turn::ease(p.yaw, faceYaw, length(p.vel.xy()), p.aiming, 9.f, desired);   // (a walk's turn and pace: ai_turn)
         float dyaw = AI::wrapPi(faceYaw - p.yaw);
         p.yaw = AI::wrapPi(p.yaw + Clamp(dyaw, -turnR * dt, turnR * dt));
+        ai_pace::stairs(*this, id, desired);   // (on a flight: a tread a step)
         movePed(p, desired, dt, false);
         return;
     }
@@ -3912,6 +3920,7 @@ void GameWorld::aiPoliceBrain(int id, float dt) {
     float turnR = ai_turn::ease(p.yaw, faceYaw, length(p.vel.xy()), p.aiming, 9.f, desired);   // (a walk's turn and pace: ai_turn)
     float dy = AI::wrapPi(faceYaw - p.yaw);
     p.yaw = AI::wrapPi(p.yaw + Clamp(dy, -turnR * dt, turnR * dt));
+    ai_pace::stairs(*this, id, desired);   // (on a flight: a tread a step)
     movePed(p, desired, dt, false);
     (void)pl;
     (void)stance;

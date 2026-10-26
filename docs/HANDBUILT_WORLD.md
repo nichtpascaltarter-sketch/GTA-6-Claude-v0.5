@@ -594,11 +594,19 @@ They are Python, run with `-I`, and never ship. The game doesn't know they exist
 - the terrain (stage 0);
 - the roads (stage 1), through the world model (`src/world/worldmodel.h`), with the world, district, signal and transit
   files they name. The roads go into world.bin's `roads` and `roads.ids` sections (`src/world/roadsbin.h`), which the
-  game reads in hand mode. The other kinds' sections come with their consumers;
+  game reads in hand mode. What they author beyond the network goes into `roads.overrides`
+  (`src/world/roadoverrides.h`) for the lane graph, one list at a time in the order agreed with the AI agent (section
+  12): so far each edge's widths and speed as written, else its class's, and each node's control, stops, yields,
+  no-red-turn approaches and bulb as written. Host tools read all three with `loadRoadsFile`. The compiler and worldv
+  name a node's legs and resolve its signal plan with one implementation (`worldmodel.h` `nodeLegs`, `resolvePlan`),
+  as the lane graph sees the legs. The other kinds' sections come with their consumers;
 - the terrain graded under the roads (step 5, section 3.3), with today's grading (`src/world/roadgrade.cpp`), stored
-  as a delta on the bake in world.bin's `terrain.grade`. The game adds it to the baked heights at load.
+  as a delta on the bake in world.bin's `terrain.grade`. The game adds it to the baked heights at load;
+- the blocks (stage 1's part 2), with the catalog: the parcels' ground, paint and pads, the plazas, and the dressing
+  (trees, plants, props and lights) in world.bin's `blocks` section (`src/world/blocksbin.h`), every height on the
+  graded ground. The parcels' grades are graded before the roads. Hand mode draws each cell's share.
 
-A block, building, places or library file stops the build until its compiler exists. Reference checks beyond what the
+A building, places or other library file stops the build until its compiler exists. Reference checks beyond what the
 compile needs (step 3) are worldv's, which CI runs on `world/`. The roads section stores floats for now; quantising it
 (step 6) is a size step for later.
 

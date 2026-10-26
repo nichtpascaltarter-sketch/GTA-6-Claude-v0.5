@@ -217,6 +217,9 @@ struct PedAI {
     vec2 detour = vec2(0.f);   // a straight walk (to a door, a prisoner to the car): the corner of a bench / planter in the
     float detourT = 0.f;       // way to go round first, and for how much longer at most (ai.cpp aiWalkRound) ...
     vec2 detourGoal = vec2(0.f);   // ... and the goal it was for (a walk somewhere else drops it)
+    float stairT = -1.f;       // a walk on a flight of stairs (ai.cpp ai_pace::stairs): on one until this game time,
+    float stairLook = -1.f;    // going up it (stairUp) or down; the next look at the ground along the way
+    bool stairUp = false;
     int handWith = -1;         // a couple walking hand in hand (pedai.cpp, set on both): the other one (peds.cpp holds the
     u32 handUid = 0;           // hands together: each one's grabTarget is the point between them) ...
     float handT = -1.f;        // ... last confirmed (game time; the companion renews it every frame they hold on)
@@ -701,5 +704,11 @@ inline float ease(float yaw, float faceYaw, float v, bool aiming, float rateMax,
 }
 
 }  // namespace ai_turn
+
+// A walk on a flight of stairs takes it one tread a step (ai.cpp): the pace asked for, capped there - after ai_turn,
+// before the step (pedai.cpp's walkers, ai.cpp's BRAIN_FOLLOW / BRAIN_GOTO, police.cpp's officers on foot)
+namespace ai_pace {
+void stairs(GameWorld& g, int id, vec2& desired);
+}
 
 }  // namespace Game

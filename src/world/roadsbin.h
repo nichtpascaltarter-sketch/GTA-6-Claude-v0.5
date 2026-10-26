@@ -11,8 +11,15 @@
 // order: missions, saves and tools name roads by id.
 // Reading rebuilds what follows from these: each node's edge list (in edge order, n0 before n1), the edges' cumulative
 // distances and lengths, and the spatial hash.
+// Section "roads.overrides" (WSK_LZ), what the roads author beyond the network (roadoverrides.h):
+//   version u32 (kRoadOverridesSectionVersion)
+//   edge count u32 (0, or the roads section's), then per edge: speed, laneWidth, median, kerbL, kerbR, parkingL,
+//     parkingR, sidewalkL, sidewalkR (f32), flags (u32)
+//   node rule count u32, then per rule: node (u32), control | flags << 8 (u32), bulb (f32), then the stops, the yields
+//     and the no-red-turn approaches, each a count (u32) and that many edges (u32)
 #pragma once
 #include "roads.h"
+#include "roadoverrides.h"
 #include "worldbin.h"
 #include <string>
 #include <vector>
@@ -20,6 +27,7 @@
 namespace World {
 
 constexpr u32 kRoadsSectionVersion = 1;
+constexpr u32 kRoadOverridesSectionVersion = 2;
 
 // Adds "roads" and, when the ids are given (one per node and one per edge), "roads.ids"
 void writeRoads(const RoadNetwork& rn, const std::vector<std::string>* nodeIds, const std::vector<std::string>* edgeIds, WorldBinWriter& out);
@@ -28,5 +36,20 @@ void writeRoads(const RoadNetwork& rn, const std::vector<std::string>* nodeIds, 
 // when the section is missing). False, with a reason, when "roads" is missing, damaged, of another version or
 // inconsistent (an edge naming a node that isn't there, fewer than 2 points).
 bool readRoads(const WorldBinView& bin, RoadNetwork& out, std::vector<std::string>* nodeIds, std::vector<std::string>* edgeIds, std::string* error);
+
+// Adds "roads.overrides" (nothing when `ov` is empty)
+void writeRoadOverrides(const RoadOverrides& ov, WorldBinWriter& out);
+
+// Reads "roads.overrides" into `out` (replacing it), for the network `roads` read from the same world.bin. False, with
+// a reason and `out` left empty, when the section is damaged, truncated, over-long, of another version or for another
+// network (another edge count, a node or edge that isn't there); true with `out` empty when there is none.
+bool readRoadOverrides(const WorldBinView& bin, const RoadNetwork& roads, RoadOverrides& out, std::string* error);
+
+// The roads of a world.bin file, read on the host without the game (tools/traffic_sim on the hand-built streets): its
+// "roads" into `roads` (hashed, ready for queries), "roads.overrides" into `ov`, and "roads.ids" into the ids when they
+// aren't nullptr. False, with a reason and everything left empty, when the file can't be read, isn't a world.bin, or a
+// section is missing or damaged. Link worldbin.cpp, lz.cpp and roadsbin.cpp, with roadnet.cpp (or roads.cpp).
+bool loadRoadsFile(const char* path, RoadNetwork& roads, RoadOverrides& ov, std::string* error, std::vector<std::string>* nodeIds = nullptr,
+                   std::vector<std::string>* edgeIds = nullptr);
 
 }  // namespace World

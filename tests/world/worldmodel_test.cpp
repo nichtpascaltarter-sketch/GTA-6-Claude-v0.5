@@ -4,7 +4,11 @@
 // - the findings on broken input (codes and lines), and files that don't parse or break the schema;
 // - the roads compile: widths, heights, flags, junction radii, cut-backs and control, seeds, the spatial hash, and
 //   the points a profile adds; the terrain graded under the roads (src/world/roadgrade.cpp), decks left alone;
-// - the roads through world.bin (src/world/roadsbin.h): back exactly as written, and damaged sections refused;
+// - the blocks: their records typed, the compile (ground, dressing, lamps, findings), the blocks section through
+//   world.bin (src/world/blocksbin.h), and a parcel's levelling (WorldMap::flattenPoly);
+// - the roads through world.bin (src/world/roadsbin.h): back exactly as written, and damaged sections refused; with
+//   what they author beyond the network (src/world/roadoverrides.h), and the host loader (loadRoadsFile);
+// - a node's legs, the turns between them and signal plans resolved on them (worldmodel.h nodeLegs, resolvePlan);
 // - the rooms' light state (src/world/roomlight.h): fixed test vectors, which the renderer's HLSL copy must match too,
 //   and the schedules' properties.
 // Build and run from the repo root, as CI's GCC job does:
@@ -22,10 +26,13 @@
 #include "../../src/world/lz.cpp"
 #include "../../src/world/worldbin.cpp"
 #include "../../src/world/roadsbin.cpp"
+#include "../../src/world/blocksbin.cpp"
+#include "../../src/world/worldmodel_blocks.cpp"
 #include "../../src/world/roomlight.h"
 #include <chrono>
 #include <cmath>
 #include <cstdio>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
 
@@ -184,6 +191,24 @@ static void testSamples() {
                m.parcels[0].poly.size() == 4 && m.parcels[0].front.cls == "edge" && m.parcels[0].frontSide == SIDE_RIGHT,
            "samples: parcel");
     EXPECT(m.lots.size() == 1 && m.lots[0].id == "cl.b014.lot1" && m.lots[0].levels == 1, "samples: lot");
+    {
+        const Parcel& p = m.parcels[0];
+        EXPECT(p.graded && same(p.grade, 3.45f) && same(p.blend, 2.f) && p.ground == "lawn" && p.paints.size() == 1 && p.paints[0].kind == "paving" &&
+                   p.paints[0].poly.size() == 4 && p.fences.size() == 1 && p.fences[0].kind.classes == "fence" &&
+                   p.fences[0].kind.text == "lib.fence.picket_white" && p.fences[0].line.size() == 2 && p.fences[0].gates.size() == 1 &&
+                   same(p.fences[0].gates[0].x, 6.f) && same(p.fences[0].gates[0].y, 1.f) && p.pads.empty(),
+               "samples: the parcel's grade, ground, paint and fence (the samples' catalog has no pieces: unresolved)");
+        EXPECT(m.plazas.size() == 1 && m.plazas[0].id == "cl.b014.pz1" && m.plazas[0].ground == "paving" && m.plazas[0].tags == std::vector<std::string>({"market"}) &&
+                   m.blocks[0].plazas.size() == 1,
+               "samples: plaza");
+        const std::vector<Dress>& d = m.dressing;
+        EXPECT(d.size() == 4 && m.blocks[0].dressing.size() == 4 && d[0].what == Dress::DRESS_TREE && d[0].kind.classes == "veg" &&
+                   d[0].kind.text == "lib.veg.royal_palm" && d[0].kind.target == -1 && same(d[0].h, 11.5f) && d[0].hasYaw &&
+                   same(d[0].yaw, 40.f) && d[1].what == Dress::DRESS_TREE && same(d[1].canopy, 8.f) && !d[1].hasYaw && d[2].what == Dress::DRESS_PROP &&
+                   d[2].kind.classes == "prop" && !d[2].hasZ && same(d[2].yaw, 180.f) && d[3].what == Dress::DRESS_LIGHT && d[3].kind.classes == "light" && d[3].hasZ &&
+                   same(d[3].z, 2.6f) && same(d[3].at.x, 1701.1f) && d[3].sched == "evening",
+               "samples: the dressing");
+    }
     EXPECT(m.buildings.size() == 1 && m.buildings[0].id == "cl.b014.h03" && m.buildings[0].block.target == 0 && m.buildings[0].parcel.cls == "parcel" &&
                m.buildings[0].plan.cls == "plan" && same(m.buildings[0].yaw, 90.f) && m.buildings[0].mirror && same(m.buildings[0].z, 3.45f),
            "samples: building");
@@ -499,6 +524,124 @@ static void testDeckEnds() {
             changed += map.height[(size_t)ty * kHeightRes + tx] != 9.f;
         }
     EXPECT(under > 0 && changed == 0, "deck ends: %d of %d texels under the deck changed", changed, under);
+}
+
+// The blocks compile, through world.bin, and a parcel's levelling
+static void testBlocks() {
+    const std::string catalog =
+        "ntw 1 catalog\n"
+        "piece lib.veg.palm code=PROP_PALM size=4.00x4.00x8.00 variants=4 collide=cylinder\n"
+        "piece lib.prop.bench code=PROP_BENCH size=1.80x0.60x0.90 variants=1 collide=box\n"
+        "piece lib.prop.mystery code=PROP_NOPE collide=none\n"
+        "piece lib.light.street_cobra code=PROP_STREETLIGHT size=0.40x2.40x8.80 variants=2 collide=cylinder\n"
+        "piece lib.light.porch_warm code=LIGHT_PORCH collide=none\n";
+    const std::string block =
+        "ntw 1 block id=cl.b001 district=cl\n"
+        "parcel cl.b001.p01 poly=100.00,100.00;140.00,100.00;140.00,130.00;100.00,130.00 use=residential grade=3.50 blend=4.00\n"
+        "  ground=lawn\n"
+        "  paint kind=paving poly=100.00,100.00;104.00,100.00;104.00,120.00;100.00,120.00\n"
+        "  paint kind=gravel poly=110.00,110.00;112.00,110.00\n"
+        "  pad poly=120.00,110.00;130.00,110.00;130.00,120.00;120.00,120.00 z=0.60 kind=deck\n"
+        "end\n"
+        "plaza cl.b001.pz1 poly=150.00,100.00;170.00,100.00;160.00,120.00 tags=market\n"
+        "tree kind=lib.veg.palm at=105.00,125.00 h=12.00 yaw=30.0\n"
+        "tree kind=lib.veg.palm at=115.00,125.00\n"
+        "prop kind=lib.prop.bench at=120.00,98.00 yaw=90.0\n"
+        "prop kind=lib.prop.mystery at=125.00,98.00\n"
+        "light kind=lib.light.street_cobra at=130.00,98.00\n"
+        "light kind=lib.light.porch_warm at=135.00,128.00,2.60 sched=evening\n";
+    Model m;
+    std::vector<Error> errors;
+    const bool ok = loadTexts({{"lib/catalog.ntw", catalog}, {"block.ntw", block}, {"world.ntw", "ntw 1 world\nworld palmera name=\"P\"\ndistrict cl name=\"C\"\n"}}, m, errors);
+    EXPECT(ok, "blocks: the test files load");
+    if (!ok) printErrors(m, errors);
+    BlocksOut out;
+    const bool compiled = compileBlocks(m, out, errors);
+    EXPECT(!compiled && errors.size() == 2 && countCode(errors, "block.kind") == 1 && countCode(errors, "block.shape") == 1, "blocks: the findings (%zu)", errors.size());
+    if (errors.size() != 2) printErrors(m, errors);
+    const HandBlocks& hb = out.blocks;
+    // the ground: the parcel's lawn, its paving (the gravel has 2 points), its deck, the plaza
+    EXPECT(out.pads.size() == 1 && same(out.pads[0].z, 3.5f) && same(out.pads[0].blend, 4.f) && hb.ground.size() == 4 && out.groundOnTerrain.size() == 4,
+           "blocks: %zu ground polygons, %zu pads", hb.ground.size(), out.pads.size());
+    if (hb.ground.size() == 4) {
+        EXPECT(hb.ground[0].kind == GK_LAWN && hb.ground[0].flat && same(hb.ground[0].z, 3.53f) && hb.ground[1].kind == GK_PAVING && same(hb.ground[1].z, 3.55f) &&
+                   hb.ground[2].kind == GK_DECK && hb.ground[2].flat && same(hb.ground[2].z, 4.16f) && !out.groundOnTerrain[2] && hb.ground[3].kind == GK_PAVING &&
+                   !hb.ground[3].flat && same(hb.ground[3].z, 0.04f) && hb.ground[3].poly.size() == 3,
+               "blocks: the ground's kinds and heights");
+    }
+    // the dressing: two palms, the bench, the street light's pole (the mystery piece left out)
+    EXPECT(hb.props.size() == 4, "blocks: %zu props", hb.props.size());
+    if (hb.props.size() == 4) {
+        const PropInstance &p0 = hb.props[0], &p1 = hb.props[1], &bench = hb.props[2], &pole = hb.props[3];
+        EXPECT(p0.type == PROP_PALM && same(p0.scale, 1.5f) && same(p0.yaw, 30.f * kDegToRad + kPi, 0.001f) && same(p0.pos.z, 0.f) && p1.type == PROP_PALM &&
+                   same(p1.scale, 1.f) && p1.variant < 4 && bench.type == PROP_BENCH && same(bench.yaw, 90.f * kDegToRad + kPi, 0.001f) && pole.type == PROP_STREETLIGHT &&
+                   same(pole.yaw, kPi * 0.5f, 0.001f) && same(pole.pos.x, 130.f) && same(pole.pos.y, 98.f),
+               "blocks: the props' types, scales and yaws");
+    }
+    // the lamps: the street light's head 2.2 m along its front (+y at yaw 0), 8.6 m up; the porch light at its at=
+    EXPECT(hb.lamps.size() == 2 && hb.lampSched.size() == 2 && out.lampGroundAt.size() == 2, "blocks: %zu lamps", hb.lamps.size());
+    if (hb.lamps.size() == 2) {
+        EXPECT(same(hb.lamps[0].pos.x, 130.f) && same(hb.lamps[0].pos.y, 100.2f) && same(hb.lamps[0].pos.z, 8.6f) && hb.lamps[0].type == 0 && hb.lampSched[0] == 11 &&
+                   same(hb.lamps[1].pos.z, 2.6f) && hb.lamps[1].type == 1 && hb.lampSched[1] == 12 && same(out.lampGroundAt[1].x, 135.f),
+               "blocks: the lamps' heads, types and schedules");
+    }
+    // through world.bin, exactly, and indexed by cell
+    WorldBinWriter w;
+    writeBlocks(hb, w);
+    const std::vector<u8> bin = w.finish();
+    WorldBinView view;
+    std::string why;
+    HandBlocks back;
+    EXPECT(view.open(bin.data(), bin.size(), &why) && readBlocks(view, back, &why), "blocks: read back (%s)", why.c_str());
+    bool same_ = back.ground.size() == hb.ground.size() && back.props.size() == hb.props.size() && back.lamps.size() == hb.lamps.size() && back.lampSched == hb.lampSched;
+    for (size_t i = 0; same_ && i < hb.ground.size(); i++)
+        same_ = back.ground[i].kind == hb.ground[i].kind && back.ground[i].flat == hb.ground[i].flat && back.ground[i].z == hb.ground[i].z &&
+                back.ground[i].poly.size() == hb.ground[i].poly.size() && memcmp(back.ground[i].poly.data(), hb.ground[i].poly.data(), hb.ground[i].poly.size() * sizeof(vec2)) == 0;
+    for (size_t i = 0; same_ && i < hb.props.size(); i++) {
+        const PropInstance &a = back.props[i], &b = hb.props[i];
+        same_ = a.pos == b.pos && a.yaw == b.yaw && a.scale == b.scale && a.type == b.type && a.variant == b.variant && a.flags == b.flags;
+    }
+    for (size_t i = 0; same_ && i < hb.lamps.size(); i++) {
+        const LightInstance &a = back.lamps[i], &b = hb.lamps[i];
+        same_ = a.pos == b.pos && a.color == b.color && a.radius == b.radius && a.dir == b.dir && a.cone == b.cone && a.type == b.type;
+    }
+    EXPECT(same_, "blocks: the section read back differs");
+    const size_t cell = (size_t)(int)floorf((100.f + kWorldHalf) / kCellSize) * kCellsPerSide + (size_t)(int)floorf((100.f + kWorldHalf) / kCellSize);
+    EXPECT(back.groundByCell.size() == (size_t)kCellsPerSide * kCellsPerSide && back.groundByCell[cell].size() == 4 && back.propsByCell[cell].size() == 4 &&
+               back.lampsByCell[cell].size() == 2,
+           "blocks: by cell");
+    // damaged: refused with a reason, nothing read; none: empty
+    std::vector<u8> payload;
+    EXPECT(view.bytes("blocks", payload) && payload.size() > 40, "blocks: the section's bytes");
+    for (int k = 0; k < 3; k++) {
+        std::vector<u8> bad = payload;
+        if (k == 0) bad.resize(bad.size() - 5);
+        if (k == 1) bad.push_back(0);
+        if (k == 2) bad[0] = 9;
+        WorldBinWriter w2;
+        w2.addCompressed("blocks", bad);
+        const std::vector<u8> b2 = w2.finish();
+        WorldBinView v2;
+        HandBlocks hb2;
+        why.clear();
+        EXPECT(v2.open(b2.data(), b2.size(), &why) && !readBlocks(v2, hb2, &why) && !why.empty() && hb2.props.empty() && hb2.ground.empty(),
+               "blocks: damaged section %d was read", k);
+    }
+    WorldBinWriter w3;
+    w3.add("terrain", WSK_RAW, std::vector<u8>(8, 0));
+    const std::vector<u8> b3 = w3.finish();
+    WorldBinView v3;
+    HandBlocks none;
+    EXPECT(v3.open(b3.data(), b3.size(), &why) && readBlocks(v3, none, &why) && none.props.empty() && none.propsByCell.size() == (size_t)kCellsPerSide * kCellsPerSide,
+           "blocks: a world.bin without them");
+    // a parcel's levelling: inside at its grade, the terrain again beyond the blend, between them a blend
+    WorldMap map;
+    const size_t n = (size_t)kHeightRes * kHeightRes;
+    map.height.assign(n, 3.f);
+    map.waterLevel.assign(n, kNoWater);
+    map.flattenPoly({vec2(-20.f, -20.f), vec2(20.f, -20.f), vec2(20.f, 20.f), vec2(-20.f, 20.f)}, 5.f, 16.f);
+    const float in = map.heightAt(0.f, 0.f), out1 = map.heightAt(60.f, 0.f), mid = map.heightAt(28.f, 0.f);
+    EXPECT(same(in, 5.f) && same(out1, 3.f) && mid > 3.05f && mid < 4.95f, "blocks: the parcel levelled %.2f inside, %.2f beyond, %.2f between", in, out1, mid);
 }
 
 static void testErrors() {
@@ -819,6 +962,312 @@ static void testRoadsSection() {
     EXPECT(view3.open(bin3.data(), bin3.size(), &why) && !readRoads(view3, none, nullptr, nullptr, &why), "roads section: a world.bin without one");
 }
 
+// What the roads author beyond the network (roadoverrides.h): each edge's widths and speed as written, else its
+// class's, in step with the network's widths; through world.bin exactly; damaged sections refused; the host loader
+static bool sameExtra(const RoadOverrides::EdgeExtra& a, const RoadOverrides::EdgeExtra& b) {
+    return a.speed == b.speed && a.laneWidth == b.laneWidth && a.median == b.median && a.kerbL == b.kerbL && a.kerbR == b.kerbR && a.parkingL == b.parkingL &&
+           a.parkingR == b.parkingR && a.sidewalkL == b.sidewalkL && a.sidewalkR == b.sidewalkR && a.flags == b.flags;
+}
+
+static bool sameRule(const RoadOverrides::NodeRule& a, const RoadOverrides::NodeRule& b) {
+    return a.node == b.node && a.control == b.control && a.flags == b.flags && a.bulb == b.bulb && a.stops == b.stops && a.yields == b.yields &&
+           a.noRedTurn == b.noRedTurn;
+}
+
+static void testRoadOverrides() {
+    Model m;
+    std::vector<Error> errors;
+    load(kWorld, m, errors);
+    RoadNetwork rn;
+    RoadIndex ix;
+    compileRoads(m, rn, ix, errors);
+    RoadOverrides ov;
+    compileRoadOverrides(m, ix, rn, ov);
+    EXPECT(errors.empty() && rn.edges.size() == 8 && ov.edges.size() == 8, "overrides: %zu edges for the test world's %zu", ov.edges.size(), rn.edges.size());
+    if (ov.edges.size() != rn.edges.size()) return;
+    // every edge: the network's symmetric widths are the wider side's
+    bool inStep = true;
+    for (size_t i = 0; i < rn.edges.size(); i++) {
+        const RoadEdge& e = rn.edges[i];
+        const RoadOverrides::EdgeExtra& x = ov.edges[i];
+        inStep = inStep && same(e.halfWidth, x.laneWidth * (float)(e.lanesF + e.lanesB) * 0.5f + x.median * 0.5f + Max(x.kerbL, x.kerbR)) &&
+                 same(e.sidewalk, Max(x.sidewalkL, x.sidewalkR)) && x.speed > 0.f && x.laneWidth > 0.f;
+    }
+    EXPECT(inStep, "overrides: the edges' widths and the network's disagree");
+    const auto extra = [&](const char* id) -> const RoadOverrides::EdgeExtra* {
+        const int mi = m.find("edge", id);
+        const int ri = mi >= 0 ? ix.roadEdge[(size_t)mi] : -1;
+        return ri >= 0 ? &ov.edges[(size_t)ri] : nullptr;
+    };
+    const RoadClassInfo& street = roadInfo(RC_STREET);
+    const RoadOverrides::EdgeExtra *e2 = extra("cl.e0002"), *e3 = extra("cl.e0003"), *e4 = extra("cl.e0004"), *sb3 = extra("sb.e0003"), *tr = extra("tr.e00001");
+    EXPECT(e2 && same(e2->speed, 11.f) && same(e2->laneWidth, street.laneWidth) && same(e2->median, street.median) && same(e2->kerbL, 2.4f) && same(e2->kerbR, 2.4f) &&
+               same(e2->parkingL, 2.4f) && same(e2->parkingR, 2.4f) && same(e2->sidewalkL, street.sidewalk) && e2->flags == 0,
+           "overrides: cl.e0002 (parking both sides, its own speed)");
+    EXPECT(e3 && same(e3->median, 1.5f) && e3->flags == RoadOverrides::EX_MEDIAN_BARRIER && same(e3->parkingL, -1.f) && same(e3->parkingR, -1.f) &&
+               same(e3->kerbL, street.shoulder) && same(e3->speed, street.speed),
+           "overrides: cl.e0003 (a median with its barrier; the class's kerbs)");
+    EXPECT(e4 && same(e4->sidewalkL, 1.8f) && same(e4->sidewalkR, 0.f) && sb3 && same(sb3->sidewalkL, 0.f) && same(sb3->sidewalkR, 0.f) && tr && same(tr->median, 4.f) &&
+               tr->flags == RoadOverrides::EX_MEDIAN_BARRIER,
+           "overrides: one sidewalk, none, and the causeway's median");
+    // the nodes that write a rule: cl.n0001's signal, cl.n0003's bulb, sb.n0001's yield, in network order
+    const auto roadNodeOf = [&](const char* id) { const int mi = m.find("node", id); return mi >= 0 ? ix.roadNode[(size_t)mi] : -1; };
+    const auto roadEdgeOf = [&](const char* id) { const int mi = m.find("edge", id); return mi >= 0 ? ix.roadEdge[(size_t)mi] : -1; };
+    bool sorted = true;
+    for (size_t i = 1; i < ov.nodes.size(); i++) sorted = sorted && ov.nodes[i - 1].node < ov.nodes[i].node;
+    const RoadOverrides::NodeRule* sig = nullptr;
+    const RoadOverrides::NodeRule* bulb = nullptr;
+    const RoadOverrides::NodeRule* yld = nullptr;
+    for (const RoadOverrides::NodeRule& r : ov.nodes) {
+        if (r.node == roadNodeOf("cl.n0001")) sig = &r;
+        if (r.node == roadNodeOf("cl.n0003")) bulb = &r;
+        if (r.node == roadNodeOf("sb.n0001")) yld = &r;
+    }
+    EXPECT(ov.nodes.size() == 3 && sorted && sig && sig->control == RoadOverrides::CTRL_SIGNAL && sig->flags == 0 && sig->stops.empty() && bulb &&
+               bulb->control == RoadOverrides::CTRL_AUTO && same(bulb->bulb, 8.f) && yld && yld->control == RoadOverrides::CTRL_YIELD &&
+               yld->yields == std::vector<int>({roadEdgeOf("sb.e0003")}),
+           "overrides: %zu node rules (a signal, a bulb, a yield)", ov.nodes.size());
+    {   // a lane width, a shoulder without parking, and a tunnel
+        const std::string roads =
+            "ntw 1 roads district=cl\n"
+            "node cl.n0001 at=0.00,0.00 z=4.00\n"
+            "node cl.n0002 at=0.00,100.00 z=4.00\n"
+            "edge cl.e0001 from=cl.n0001 to=cl.n0002 class=avenue lanes=2/1 lanewidth=3.10 shoulder=right:1.00 flags=tunnel\n"
+            "  shape=0.00,0.00;0.00,100.00\n"
+            "end\n";
+        Model t;
+        std::vector<Error> terr;
+        const bool ok = loadTexts({{"roads.ntw", roads}, {"world.ntw", "ntw 1 world\nworld palmera name=\"P\"\ndistrict cl name=\"C\"\n"}}, t, terr);
+        RoadNetwork tn;
+        RoadIndex tix;
+        RoadOverrides tov;
+        const bool compiled = ok && compileRoads(t, tn, tix, terr) && tn.edges.size() == 1;
+        if (compiled) compileRoadOverrides(t, tix, tn, tov);
+        if (!compiled) printErrors(t, terr);
+        const RoadOverrides::EdgeExtra* x = tov.edges.empty() ? nullptr : &tov.edges[0];
+        EXPECT(compiled && x && same(x->laneWidth, 3.1f) && same(x->kerbL, 0.f) && same(x->kerbR, 1.f) && same(x->parkingL, 0.f) && same(x->parkingR, 0.f) &&
+                   x->flags == RoadOverrides::EX_TUNNEL && same(x->speed, roadInfo(RC_AVENUE).speed) && same(tn.edges[0].halfWidth, 3.1f * 1.5f + roadInfo(RC_AVENUE).median * 0.5f + 1.f),
+               "overrides: a lane width, a shoulder on one side, a tunnel");
+    }
+
+    // through world.bin, to the bit
+    std::vector<std::string> nodeIds, edgeIds;
+    for (int mi : ix.nodeOf) nodeIds.push_back(m.nodes[(size_t)mi].id);
+    for (int mi : ix.edgeOf) edgeIds.push_back(m.edges[(size_t)mi].id);
+    WorldBinWriter w;
+    writeRoads(rn, &nodeIds, &edgeIds, w);
+    writeRoadOverrides(ov, w);
+    const std::vector<u8> bin = w.finish();
+    WorldBinView view;
+    std::string why;
+    RoadNetwork backNet;
+    RoadOverrides back;
+    EXPECT(view.open(bin.data(), bin.size(), &why) && view.find("roads.overrides") && readRoads(view, backNet, nullptr, nullptr, &why) &&
+               readRoadOverrides(view, backNet, back, &why),
+           "overrides: read back (%s)", why.c_str());
+    bool same_ = back.edges.size() == ov.edges.size() && back.nodes.size() == ov.nodes.size();
+    for (size_t i = 0; same_ && i < ov.edges.size(); i++) same_ = sameExtra(back.edges[i], ov.edges[i]);
+    for (size_t i = 0; same_ && i < ov.nodes.size(); i++) same_ = sameRule(back.nodes[i], ov.nodes[i]);
+    EXPECT(same_, "overrides: the section read back differs");
+
+    // none: empty; another network, damaged, truncated, over-long or another version: refused with a reason, nothing read
+    WorldBinWriter w0;
+    writeRoads(rn, nullptr, nullptr, w0);
+    writeRoadOverrides(RoadOverrides(), w0);
+    const std::vector<u8> bin0 = w0.finish();
+    WorldBinView v0;
+    RoadOverrides none;
+    none.edges.resize(3);
+    EXPECT(v0.open(bin0.data(), bin0.size(), &why) && !v0.find("roads.overrides") && readRoadOverrides(v0, rn, none, &why) && none.empty(),
+           "overrides: a world.bin without them");
+    RoadOverrides other;
+    RoadNetwork shorter = rn;
+    shorter.edges.pop_back();
+    why.clear();
+    EXPECT(!readRoadOverrides(view, shorter, other, &why) && !why.empty() && other.empty(), "overrides: read for another network");
+    size_t expect = 8 + 40 * ov.edges.size() + 4;
+    for (const RoadOverrides::NodeRule& r : ov.nodes) expect += 24 + 4 * (r.stops.size() + r.yields.size() + r.noRedTurn.size());
+    std::vector<u8> payload;
+    EXPECT(view.bytes("roads.overrides", payload) && payload.size() == expect, "overrides: the section's bytes (%zu, not %zu)", payload.size(), expect);
+    for (int k = 0; k < 3; k++) {
+        std::vector<u8> bad = payload;
+        if (k == 0) bad.resize(bad.size() - 3);
+        if (k == 1) bad.push_back(0);
+        if (k == 2) bad[0] = 9;
+        WorldBinWriter wb;
+        wb.addCompressed("roads.overrides", bad);
+        const std::vector<u8> b = wb.finish();
+        WorldBinView vb;
+        RoadOverrides hurt;
+        why.clear();
+        EXPECT(vb.open(b.data(), b.size(), &why) && !readRoadOverrides(vb, rn, hurt, &why) && !why.empty() && hurt.empty(),
+               "overrides: damaged section %d was read", k);
+    }
+
+    // the host loader: a world.bin file read back whole, with its ids; a missing file and one that isn't a world.bin
+    const std::string path = (std::filesystem::temp_directory_path() / "neontide_worldmodel_test_roads.bin").string();
+    {
+        std::ofstream f(path, std::ios::binary);
+        f.write((const char*)bin.data(), (std::streamsize)bin.size());
+    }
+    RoadNetwork fileNet;
+    RoadOverrides fileOv;
+    std::vector<std::string> fileNodes, fileEdges;
+    why.clear();
+    EXPECT(loadRoadsFile(path.c_str(), fileNet, fileOv, &why, &fileNodes, &fileEdges) && sameNetwork(fileNet, rn) && fileOv.edges.size() == ov.edges.size() &&
+               fileEdges == edgeIds && fileNodes == nodeIds,
+           "overrides: loadRoadsFile (%s)", why.c_str());
+    {
+        std::ofstream f(path, std::ios::binary);
+        f << "not a world.bin";
+    }
+    why.clear();
+    EXPECT(!loadRoadsFile(path.c_str(), fileNet, fileOv, &why) && !why.empty() && fileNet.edges.empty() && fileOv.empty(), "overrides: a file that isn't a world.bin");
+    std::filesystem::remove(path);
+    why.clear();
+    EXPECT(!loadRoadsFile(path.c_str(), fileNet, fileOv, &why) && !why.empty(), "overrides: a missing file");
+}
+
+// A node's legs (bearings, sectors, approaches=), the turns between them (a connect record's word winning), signal plans
+// resolved at a cross and at a T, and the nodes' rules: control, stops, yields, no-red-turn approaches and bulbs
+static void testLegsAndPlans() {
+    const std::string roads =
+        "ntw 1 roads district=cl\n"
+        "node cl.n0001 at=0.00,0.00 z=3.00 control=signal plan=lib.signal.cross4\n"
+        "node cl.n0002 at=0.00,100.00 z=3.00 control=yield yield=cl.e0001\n"
+        "node cl.n0003 at=100.00,0.00 z=3.00 control=signal plan=lib.signal.cross4 noredturn=cl.e0005,cl.e0002\n"
+        "node cl.n0004 at=0.00,-100.00 z=3.00 bulb=9.50\n"
+        "node cl.n0005 at=-100.00,0.00 z=3.00 control=stop stops=cl.e0004\n"
+        "node cl.n0006 at=100.00,100.00 z=3.00\n"
+        "node cl.n0007 at=100.00,-100.00 z=3.00\n"
+        "node cl.n0008 at=-100.00,-100.00 z=3.00 approaches=e:cl.e0007,x:cl.e0008,e:cl.e0008\n"
+        "node cl.n0009 at=-50.00,-14.00 z=3.00\n"
+        "node cl.n0010 at=-100.00,-200.00 z=3.00\n"
+        "edge cl.e0001 from=cl.n0001 to=cl.n0002 class=street lanes=1/1 shape=0.00,0.00;0.00,100.00\n"
+        "end\n"
+        "edge cl.e0002 from=cl.n0001 to=cl.n0003 class=street lanes=1/1 shape=0.00,0.00;100.00,0.00\n"
+        "end\n"
+        "edge cl.e0003 from=cl.n0001 to=cl.n0004 class=street lanes=1/1 shape=0.00,0.00;0.00,-100.00\n"
+        "end\n"
+        "edge cl.e0004 from=cl.n0001 to=cl.n0005 class=street lanes=1/1 shape=0.00,0.00;-100.00,0.00\n"
+        "end\n"
+        "edge cl.e0005 from=cl.n0003 to=cl.n0006 class=street lanes=1/1 shape=100.00,0.00;100.00,100.00\n"
+        "end\n"
+        "edge cl.e0006 from=cl.n0003 to=cl.n0007 class=street lanes=1/1 shape=100.00,0.00;100.00,-100.00\n"
+        "end\n"
+        "edge cl.e0007 from=cl.n0008 to=cl.n0009 class=street lanes=1/1 shape=-100.00,-100.00;-50.00,-14.00\n"
+        "end\n"
+        "edge cl.e0008 from=cl.n0008 to=cl.n0010 class=street lanes=1/1 shape=-100.00,-100.00;-100.00,-200.00\n"
+        "end\n"
+        "edge cl.e0009 from=cl.n0005 to=cl.n0008 class=street lanes=1/1 shape=-100.00,0.00;-100.00,-100.00\n"
+        "end\n"
+        "junction cl.n0001\n"
+        "  connect from=cl.e0002:0 to=cl.e0001:0 turn=left\n"
+        "end\n";
+    const std::string signal =
+        "ntw 1 signal id=lib.signal.cross4\n"
+        "plan cycle=60.0 legs=4\n"
+        "phase p1 green=24.0 amber=4.0 allred=2.0 moves=n_s,n_l,n_r,s_s,s_lp walk=e,w walktime=7.0 flash=10.0\n"
+        "phase p2 green=24.0 amber=4.0 allred=2.0 moves=e_s,e_l,w_s,w_r walk=n,s walktime=7.0 flash=10.0\n";
+    Model m;
+    std::vector<Error> errors;
+    const bool ok = loadTexts({{"roads.ntw", roads}, {"lib/signals/cross4.ntw", signal}, {"world.ntw", "ntw 1 world\nworld palmera name=\"P\"\ndistrict cl name=\"C\"\n"}},
+                              m, errors);
+    RoadNetwork rn;
+    RoadIndex ix;
+    const bool compiled = ok && compileRoads(m, rn, ix, errors) && rn.edges.size() == 9 && m.signals.size() == 1;
+    EXPECT(compiled, "legs: the test roads compile");
+    if (!compiled) {
+        printErrors(m, errors);
+        return;
+    }
+    const auto E = [&](const char* id) { const int mi = m.find("edge", id); return mi >= 0 ? ix.roadEdge[(size_t)mi] : -1; };
+    const auto N = [&](const char* id) { return m.find("node", id); };
+    const auto letterOf = [](const NodeLegs& L, int road) {
+        for (const NodeLeg& g : L.legs)
+            if (g.road == road) return g.letter;
+        return '?';
+    };
+    // the cross: one leg to a sector; the T: no east; approaches= gives the skewed leg (bearing 30, sector n) its e,
+    // skips x, and keeps e's first use
+    const NodeLegs cross = nodeLegs(m, ix, rn, N("cl.n0001")), tee = nodeLegs(m, ix, rn, N("cl.n0003")), skew = nodeLegs(m, ix, rn, N("cl.n0008"));
+    EXPECT(cross.legs.size() == 4 && letterOf(cross, E("cl.e0001")) == 'n' && letterOf(cross, E("cl.e0002")) == 'e' && letterOf(cross, E("cl.e0003")) == 's' &&
+               letterOf(cross, E("cl.e0004")) == 'w' && tee.legs.size() == 3 && letterOf(tee, E("cl.e0002")) == 'w' && letterOf(tee, E("cl.e0005")) == 'n' &&
+               letterOf(tee, E("cl.e0006")) == 's',
+           "legs: a cross and a T by their bearings");
+    const NodeLeg* skewed = nullptr;
+    for (const NodeLeg& g : skew.legs)
+        if (g.road == E("cl.e0007")) skewed = &g;
+    EXPECT(skewed && skewed->compass == 'n' && skewed->letter == 'e' && same(skewed->bearing, 30.2f, 0.5f) && letterOf(skew, E("cl.e0008")) == 's' &&
+               letterOf(skew, E("cl.e0009")) == 'n',
+           "legs: approaches= names the skewed leg (bearing %.1f)", skewed ? skewed->bearing : -1.f);
+    // turns: the lane graph's classes, and the connect record's word where it joins two edges
+    const NodeLeg *cn = nullptr, *ce = nullptr, *cs = nullptr, *cw = nullptr;
+    for (const NodeLeg& g : cross.legs) {
+        if (g.letter == 'n') cn = &g;
+        if (g.letter == 'e') ce = &g;
+        if (g.letter == 's') cs = &g;
+        if (g.letter == 'w') cw = &g;
+    }
+    EXPECT(cn && ce && cs && cw && legTurn(m, cross, *cn, *cs) == TURN_STRAIGHT && legTurn(m, cross, *cn, *ce) == TURN_LEFT && legTurn(m, cross, *cn, *cw) == TURN_RIGHT &&
+               legTurn(m, cross, *ce, *cn) == TURN_LEFT && legTurn(m, cross, *ce, *cs) == TURN_LEFT && legTurn(m, cross, *cw, *cs) == TURN_RIGHT,
+           "legs: the turns (e into n is a right, which the connect record makes a left)");
+    // the plan at the cross: everything resolves
+    ResolvedPlan rp;
+    resolvePlan(m, cross, m.signals[0], rp);
+    const auto has = [](const ResolvedPlan::Phase& ph, int from, int to, u8 turn, bool prot) {
+        for (const ResolvedPlan::Move& x : ph.moves)
+            if (x.from == from && x.to == to && x.turn == turn && x.isProtected == prot) return true;
+        return false;
+    };
+    EXPECT(rp.phases.size() == 2 && rp.unused.empty() && rp.phases[0].moves.size() == 5 && rp.phases[1].moves.size() == 5 &&
+               has(rp.phases[0], E("cl.e0001"), E("cl.e0003"), TURN_STRAIGHT, false) && has(rp.phases[0], E("cl.e0001"), E("cl.e0002"), TURN_LEFT, false) &&
+               has(rp.phases[0], E("cl.e0003"), E("cl.e0004"), TURN_LEFT, true) && has(rp.phases[1], E("cl.e0002"), E("cl.e0001"), TURN_LEFT, false) &&
+               has(rp.phases[1], E("cl.e0002"), E("cl.e0003"), TURN_LEFT, false) && has(rp.phases[1], E("cl.e0004"), E("cl.e0003"), TURN_RIGHT, false) &&
+               rp.phases[0].walks == std::vector<int>({E("cl.e0002"), E("cl.e0004")}) && rp.phases[1].walks == std::vector<int>({E("cl.e0001"), E("cl.e0003")}),
+           "legs: the plan at the cross (%zu unused)", rp.unused.size());
+    // and at the T: what names the missing east leg, or a turn the T hasn't, is unused
+    ResolvedPlan rt;
+    resolvePlan(m, tee, m.signals[0], rt);
+    EXPECT(rt.phases.size() == 2 && rt.unused == std::vector<std::string>({"n_l", "walk e", "e_s", "e_l", "w_s"}) && rt.phases[0].moves.size() == 4 &&
+               rt.phases[1].moves.size() == 1 && has(rt.phases[1], E("cl.e0002"), E("cl.e0006"), TURN_RIGHT, false) &&
+               has(rt.phases[0], E("cl.e0006"), E("cl.e0002"), TURN_LEFT, true),
+           "legs: the plan at the T (%zu unused)", rt.unused.size());
+
+    // the nodes' rules, as written, in network order
+    RoadOverrides ov;
+    compileRoadOverrides(m, ix, rn, ov);
+    const auto rule = [&](const char* id) -> const RoadOverrides::NodeRule* {
+        const int rni = ix.roadNode[(size_t)N(id)];
+        for (const RoadOverrides::NodeRule& r : ov.nodes)
+            if (r.node == rni) return &r;
+        return nullptr;
+    };
+    const RoadOverrides::NodeRule *r1 = rule("cl.n0001"), *r2 = rule("cl.n0002"), *r3 = rule("cl.n0003"), *r4 = rule("cl.n0004"), *r5 = rule("cl.n0005");
+    std::vector<int> nored = {E("cl.e0005"), E("cl.e0002")};
+    std::sort(nored.begin(), nored.end());
+    EXPECT(ov.nodes.size() == 5 && r1 && r1->control == RoadOverrides::CTRL_SIGNAL && r2 && r2->control == RoadOverrides::CTRL_YIELD &&
+               r2->yields == std::vector<int>({E("cl.e0001")}) && r3 && r3->noRedTurn == nored && r4 && r4->control == RoadOverrides::CTRL_AUTO &&
+               same(r4->bulb, 9.5f) && r5 && r5->control == RoadOverrides::CTRL_STOP && r5->flags == 0 && r5->stops == std::vector<int>({E("cl.e0004")}) &&
+               !rule("cl.n0006") && !rule("cl.n0008"),
+           "legs: %zu node rules", ov.nodes.size());
+    // through world.bin, and a rule naming a node that isn't there
+    WorldBinWriter w;
+    writeRoads(rn, nullptr, nullptr, w);
+    writeRoadOverrides(ov, w);
+    const std::vector<u8> bin = w.finish();
+    WorldBinView view;
+    std::string why;
+    RoadOverrides back;
+    bool same_ = view.open(bin.data(), bin.size(), &why) && readRoadOverrides(view, rn, back, &why) && back.nodes.size() == ov.nodes.size();
+    for (size_t i = 0; same_ && i < ov.nodes.size(); i++) same_ = sameRule(back.nodes[i], ov.nodes[i]);
+    EXPECT(same_, "legs: the node rules read back differ (%s)", why.c_str());
+    RoadNetwork fewer = rn;
+    fewer.nodes.resize(2);
+    why.clear();
+    EXPECT(!readRoadOverrides(view, fewer, back, &why) && !why.empty() && back.empty(), "legs: node rules read for a network without their nodes");
+}
+
 int main() {
     testDiscover();
     testSamples();
@@ -827,8 +1276,11 @@ int main() {
     testProfilePoints();
     testGrade();
     testDeckEnds();
+    testBlocks();
     testErrors();
     testRoadsSection();
+    testRoadOverrides();
+    testLegsAndPlans();
     testRoomLight();
     printf(gFails ? "worldmodel_test: %d FAILURES\n" : "worldmodel_test: all passed\n", gFails);
     return gFails ? 1 : 0;

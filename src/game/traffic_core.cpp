@@ -349,7 +349,12 @@ int TrafficCore::chooseConnector(Driver& d, int lane, bool fromCurrentLane) {
     // lane changes possible on this lane?  (short links: stay in lane)
     float room = L.u1 - (fromCurrentLane ? d.u : L.u0);
     bool routed = (d.mode == DM_ROUTE || d.mode == DM_EMERGENCY || d.hasDest) && !d.destEdges.empty();
-    int maxShift = room > 150.f ? 3 : (room > 90.f ? 2 : (room > 45.f ? 1 : 0));
+    // (on a motorway a lane change takes some 3.3 s at its speed and ends 12 m before the lane does: the short links
+    //  through an interchange leave no room for one - squeezed into one, a truck lagged it by a metre and swung on into
+    //  the median barrier: the harness's I-38 ramps, a Packhorse 26 at 26 m/s changing lanes in 43 m of an 89 m link)
+    const float per = (L.flags & LF_HIGHWAY) ? Max(45.f, G.pathSpeed(lane) * d.pers.speedFactor * 3.3f + 12.f) : 45.f;
+    int maxShift = room > per * 3.33f ? 3 : (room > per * 2.f ? 2 : (room > per ? 1 : 0));
+    const int maxShiftTown = room > 150.f ? 3 : (room > 90.f ? 2 : (room > 45.f ? 1 : 0));   // (a lane with no way on of its own)
     if (routed) maxShift = room > 100.f ? 3 : (room > 55.f ? 2 : (room > 25.f ? 1 : 0));   // a turn to make: change lanes sooner
     if (d.mode == DM_FLEE || d.mode == DM_EMERGENCY) maxShift = Min(maxShift, room > 60.f ? 1 : 0);
     struct Opt {
@@ -368,39 +373,45 @@ int TrafficCore::chooseConnector(Driver& d, int lane, bool fromCurrentLane) {
                 break;
             }
     }
-    for (int k = 0; k < gc && n < 48; k++) {
-        int li = gf + k;
-        if (abs(k - (int)L.index) > maxShift) continue;
-        for (int c : G.lanes[li].out) {
-            if (n >= 48) break;
-            const Connector& C = G.conns[c];
-            const Lane& T = G.lanes[C.to];
-            float w;
-            switch (C.turn) {
-                case TK_STRAIGHT: w = 1.f; break;
-                case TK_MERGE: w = 0.9f; break;
-                case TK_RIGHT: w = 0.42f; break;
-                case TK_LEFT: w = 0.36f; break;
-                default: w = 0.02f; break;
+    for (int pass = 0; pass < 2 && n == 0; pass++) {
+        if (pass == 1) {
+            if (maxShift >= maxShiftTown) break;
+            maxShift = maxShiftTown;
+        }
+        for (int k = 0; k < gc && n < 48; k++) {
+            int li = gf + k;
+            if (abs(k - (int)L.index) > maxShift) continue;
+            for (int c : G.lanes[li].out) {
+                if (n >= 48) break;
+                const Connector& C = G.conns[c];
+                const Lane& T = G.lanes[C.to];
+                float w;
+                switch (C.turn) {
+                    case TK_STRAIGHT: w = 1.f; break;
+                    case TK_MERGE: w = 0.9f; break;
+                    case TK_RIGHT: w = 0.42f; break;
+                    case TK_LEFT: w = 0.36f; break;
+                    default: w = 0.02f; break;
+                }
+                if ((T.flags & LF_DIRT) && !(L.flags & LF_DIRT)) w *= 0.08f;
+                if ((L.flags & LF_HIGHWAY) && !(T.flags & LF_HIGHWAY)) w *= 0.25f;       // mostly stay on the highway
+                if (!(L.flags & (LF_HIGHWAY | LF_RAMP)) && (T.flags & LF_RAMP)) w *= 0.5f;
+                // dead ends: only a turning circle at the end (blocked ones and long vehicles: avoid)
+                if (G.nodes[T.toNode].deadEnd) w *= (G.nodes[T.toNode].uturnBlocked || d.info.wheelbase > 3.3f) ? 0.001f : 0.2f;
+                if (T.flags & LF_NOTRAFFIC) w *= 0.01f;
+                // long vehicles avoid turns tighter than they can follow (the body would sweep into oncoming lanes)
+                if (d.info.wheelbase > 3.3f && C.minRadius < d.info.wheelbase / Max(sinf(d.info.maxSteer), 0.3f) * 1.05f) w *= 0.03f;
+                // prefer connectors from the lane we are in
+                int shift = abs(k - (int)L.index);
+                w *= shift == 0 ? 1.f : (shift == 1 ? 0.55f : 0.25f);
+                if (wantEdge >= 0) w = T.edge == wantEdge ? w * 100.f + 10.f : w * 0.01f;
+                if (d.mode == DM_FLEE) {
+                    vec2 endP = G.lanePos(C.to, T.u1).xy();
+                    float dd = length(endP - d.threat);
+                    w = (w + 0.2f) * (0.2f + dd * dd * 1e-4f);
+                }
+                opts[n++] = {c, w};
             }
-            if ((T.flags & LF_DIRT) && !(L.flags & LF_DIRT)) w *= 0.08f;
-            if ((L.flags & LF_HIGHWAY) && !(T.flags & LF_HIGHWAY)) w *= 0.25f;       // mostly stay on the highway
-            if (!(L.flags & (LF_HIGHWAY | LF_RAMP)) && (T.flags & LF_RAMP)) w *= 0.5f;
-            // dead ends: only a turning circle at the end (blocked ones and long vehicles: avoid)
-            if (G.nodes[T.toNode].deadEnd) w *= (G.nodes[T.toNode].uturnBlocked || d.info.wheelbase > 3.3f) ? 0.001f : 0.2f;
-            if (T.flags & LF_NOTRAFFIC) w *= 0.01f;
-            // long vehicles avoid turns tighter than they can follow (the body would sweep into oncoming lanes)
-            if (d.info.wheelbase > 3.3f && C.minRadius < d.info.wheelbase / Max(sinf(d.info.maxSteer), 0.3f) * 1.05f) w *= 0.03f;
-            // prefer connectors from the lane we are in
-            int shift = abs(k - (int)L.index);
-            w *= shift == 0 ? 1.f : (shift == 1 ? 0.55f : 0.25f);
-            if (wantEdge >= 0) w = T.edge == wantEdge ? w * 100.f + 10.f : w * 0.01f;
-            if (d.mode == DM_FLEE) {
-                vec2 endP = G.lanePos(C.to, T.u1).xy();
-                float dd = length(endP - d.threat);
-                w = (w + 0.2f) * (0.2f + dd * dd * 1e-4f);
-            }
-            opts[n++] = {c, w};
         }
     }
     if (n == 0) return -1;
@@ -1221,8 +1232,9 @@ void TrafficCore::laneChangeLogic(Driver& d, float v, float distToEnd) {
         int count = abs((int)G.lanes[need].index - (int)L.index);
         if (target < 0) return;
         d.indicator = step;
-        // (the change needs about a second and a half at this speed, finished 12 m before the lane ends)
-        float lcMin = Max(16.f, v * 1.5f);
+        // (the change needs about a second and a half at this speed, finished 12 m before the lane ends - a long vehicle
+        //  at motorway speed two and a half: in less it lags the change and swings on past the lane's line)
+        float lcMin = Max(16.f, v * (d.info.wheelbase > 3.3f && v > 15.f ? 2.5f : 1.5f));
         if (distToEnd < 10.f + v * 0.5f || (distToEnd - 12.f < lcMin && v > 12.f)) {
             // too late: take a movement available from this lane instead
             int c = chooseConnector(d, d.path, true);
@@ -1243,7 +1255,8 @@ void TrafficCore::laneChangeLogic(Driver& d, float v, float distToEnd) {
         else if (distToEnd < count * Max(22.f, v * 2.5f) + 15.f) d.speedCap = Min(d.speedCap, Max(v - 1.5f, 5.f));  // slow to find a gap
         return;
     }
-    if (d.lcCooldown > 0.f || L.count < 2 || distToEnd < 70.f || d.mode == DM_HOLD || d.mode == DM_PULLOVER) return;
+    // (by choice only with room for the whole change at this speed)
+    if (d.lcCooldown > 0.f || L.count < 2 || distToEnd < Max(70.f, (L.flags & LF_HIGHWAY) ? v * 3.3f + 12.f : 0.f) || d.mode == DM_HOLD || d.mode == DM_PULLOVER) return;
     // discretionary: overtake a slow leader
     float desired = G.lanes[d.path].speed * d.pers.speedFactor;
     if (d.obstDist < 45.f && d.obstSpeed < desired - d.pers.overtake && d.obstBody >= 0 && bodies[d.obstBody].kind == BK_CAR) {
@@ -1299,6 +1312,7 @@ void TrafficCore::plan(Driver& d, const Vehicles::VehicleState& s, vec2 pos, vec
     const float kCar = sinf(d.info.maxSteer) / Max(d.info.wheelbase, 1.f);   // tightest front-axle path at full lock
     // ---- walk the route: curvature, limits, corridor samples
     float vCurve = 99.f, vLimAhead = 99.f;
+    float kNear = 0.f;   // the tightest curvature within 30 m (meeting a wide vehicle: a bend there)
     Sample smp[96];
     int ns = 0;
     {
@@ -1320,6 +1334,7 @@ void TrafficCore::plan(Driver& d, const Vehicles::VehicleState& s, vec2 pos, vec
                     float x = acc + (uu - u);
                     if (x > lookDist) break;
                     float k = fabsf(G.pathCurv(path, uu));
+                    if (x < 30.f) kNear = Max(kNear, k);
                     if (k > 2e-4f) {
                         float vc = sqrtf(latAcc / k);
                         // near the tightest path this vehicle can steer: crawl (little tyre slip, time to correct)
@@ -1362,6 +1377,20 @@ void TrafficCore::plan(Driver& d, const Vehicles::VehicleState& s, vec2 pos, vec
     int obstB = -1;
     bool obstPed = false, obstBack = false;
     bool meetBig = false;   // a bus or a truck coming the other way close by (or we are one, meeting anything)
+    bool meetTight = false; // one coming the other way that leaves under 0.9 m between the bodies as they go
+    bool meetOnRoad = false;  // ... out on the road, not turning through a junction (the step over below)
+    // the paved strip beyond our lane on the kerb side of a two-way road (parking, a shoulder - from the edge's paved half
+    // width, so it holds for hand-built roads), anything in it from our tail to 30 m on, and the lane left ahead of us
+    float stripW = 0.f, laneHalfHere = 1.6f, laneLeft = 0.f;
+    if (d.path < NL && G.roads && G.lanes[d.path].right < 0 && !(G.lanes[d.path].flags & (LF_HIGHWAY | LF_RAMP | LF_ONEWAY | LF_BRIDGE))) {
+        const Lane& L = G.lanes[d.path];
+        const World::RoadEdge& E = G.roads->edges[L.edge];
+        if (E.lanesF > 0 && E.lanesB > 0 && !(E.flags & (World::RF_BRIDGE | World::RF_ELEVATED)))
+            stripW = E.halfWidth - fabsf(L.offset) - L.width * 0.5f;
+        laneHalfHere = L.width * 0.5f;
+        laneLeft = L.u1 - (d.u + front);
+    }
+    bool stripBusy = false;
     bool passing = false;   // the static blocker being driven round (passHost) is beside / just ahead, clear of our body
     thread_local std::vector<u32> seen;
     thread_local u32 seenStamp = 0;
@@ -1404,6 +1433,27 @@ void TrafficCore::plan(Driver& d, const Vehicles::VehicleState& s, vec2 pos, vec
             }
             if (bestD > 1e8f) return;
             if (fabsf(b.z - bestZ) > 3.2f) return;   // different level (bridge / elevated highway)
+            const vec2 bf = length2(b.fwd) > 0.5f ? b.fwd : vec2(0, 1);
+            const vec2 br = rightOf(bf);
+            // (anything in the strip on our right, from our tail to 30 m on: no stepping over into it)
+            if (stripW > 0.f && bestPath == d.path) {
+                const float along = bestX <= smp[0].x + 1e-3f ? dot(b.pos - smp[0].p, smp[0].t) : bestX;
+                const vec2 n0 = rightOf(bestT);
+                const float latLane = bestLat + bestShift + d.lat + d.nudge;
+                const float ext = b.halfLen * fabsf(dot(bf, n0)) + b.halfWid * fabsf(dot(br, n0));
+                if (along > -(d.info.rearLen + b.halfLen + 1.f) && along < 30.f && latLane + ext > laneHalfHere - 0.1f &&
+                    latLane - ext < laneHalfHere + stripW)
+                    stripBusy = true;
+            }
+            // (coming the other way and alongside us: the meeting is not over until the bodies are past each other)
+            if (bestX < 0.5f && b.kind != BK_PED && !(b.flags & BF_PARKED) && dot(bf, smp[0].t) < -0.5f) {
+                const float along = dot(b.pos - smp[0].p, smp[0].t);
+                const float lat = bestLat + bestShift + (bestPath == d.path ? d.nudge : 0.f);
+                if (along > -(d.info.rearLen + b.halfLen) && fabsf(lat) - myHW - b.halfWid < 0.9f) {
+                    meetTight = true;
+                    meetOnRoad |= b.driver >= 0 && b.driver < (int)drivers.size() ? drivers[b.driver].path < NL : bestPath < NL;
+                }
+            }
             // bodies whose center is behind our origin are followers / beside us: never obstacles
             {
                 float along0 = dot(b.pos - smp[0].p, smp[0].t);
@@ -1411,8 +1461,6 @@ void TrafficCore::plan(Driver& d, const Vehicles::VehicleState& s, vec2 pos, vec
                 if (bestX < 0.5f) return;
             }
             vec2 bt = bestT, bn = rightOf(bt);
-            vec2 bf = length2(b.fwd) > 0.5f ? b.fwd : vec2(0, 1);
-            vec2 br = rightOf(bf);
             float extN = b.halfLen * fabsf(dot(bf, bn)) + b.halfWid * fabsf(dot(br, bn));
             float extT = b.halfLen * fabsf(dot(bf, bt)) + b.halfWid * fabsf(dot(br, bt));
             // the static blocker we are driving round (drive(): passHost): judged by our own body pushed a little along
@@ -1449,6 +1497,16 @@ void TrafficCore::plan(Driver& d, const Vehicles::VehicleState& s, vec2 pos, vec
                 // (one on the move: a truck parked facing us across the street swings nothing, and keeping to the kerb for
                 // it pressed our corridor onto the cars parked on our side)
                 if ((b.halfLen > 3.6f || d.info.wheelbase > 3.8f) && bestX < 40.f && fabsf(bestLat) < half + 1.6f && !(b.flags & BF_PARKED)) meetBig = true;
+                // two wide bodies on a narrow road, under 0.9 m between them as they go: both crawl past (on a bend the
+                // long ones swing over the line - the harness's meeting test: a fire engine and a box truck on edge
+                // 2907's S-bend at Sol Beach touched at 8-11 m/s in 5 of 11 meetings, never where one was under 3 m/s)
+                // (seen 3 s off at the speed they close at: time to slow down before they meet)
+                // (from our lane's line, our own side step left out: else stepping over ended the meeting, and back)
+                if (!(b.flags & BF_PARKED) && bestX < Clamp((v - dot(b.vel, bt)) * 3.f, 20.f, 60.f) &&
+                    fabsf(bestLat + (bestPath == d.path ? d.nudge : 0.f)) - myHW - extN < 0.9f) {
+                    meetTight = true;
+                    meetOnRoad |= b.driver >= 0 && b.driver < (int)drivers.size() ? drivers[b.driver].path < NL : bestPath < NL;
+                }
             }
             float gap = Max(bestX - extT - front, 0.f);
             float vl = dot(b.vel, bt);
@@ -1535,6 +1593,7 @@ void TrafficCore::plan(Driver& d, const Vehicles::VehicleState& s, vec2 pos, vec
     d.obstBody = obstB;
     d.obstBacking = obstBack && obstGap < 7.f;
     if (passing) d.speedCap = Min(d.speedCap, 3.f);   // (round it at a crawl: a hand's width to spare)
+    if (meetTight) d.speedCap = Min(d.speedCap, kNear > 0.006f ? 3.f : 6.f);   // (past each other: a crawl on a bend)
     // ---- meeting a bus or a truck on a two-way road: keep to the kerb side of the lane while passing (a long body's
     //      nose swings over the line on a bend) - in the kerb lane, with no lane change or other side step going on
     if (meetBig && d.path < NL && G.lanes[d.path].right < 0 && d.lcLane < 0 && d.mode != DM_PULLOVER && d.passT <= 0.f &&
@@ -1543,6 +1602,31 @@ void TrafficCore::plan(Driver& d, const Vehicles::VehicleState& s, vec2 pos, vec
         if (room > 0.08f) {
             d.nudgeTarget = Min(room, 0.6f);
             d.nudgeTimer = 1.2f;
+        }
+    }
+    // ---- two wide bodies meeting on a narrow road (meetTight), the paved strip on our kerb side clear from our tail to
+    //      30 m on: step over into it, the right side 0.8 m past the lane's edge and 0.3 m short of the kerb - back in the
+    //      lane by its end. On a bend there is no room for both in their lanes (the harness's meeting test on edge 2907's
+    //      S-bend: two buses 0.9 m into each other there, touching at a crawl; held back to let the other through first,
+    //      both stopped nose to nose, each in the other's way, and stayed); with cars parked in the strip, the crawl alone.
+    //      Begun at a crawl only (a metre's step at 11 m/s is a swerve), and never into a strip fenced off for road works
+    //      (roadmesh.cpp's barriers stand 0.4 m past the lane's edge: the harness's highway run, a Stevedore stepping over
+    //      into them at 11 m/s). Not at a standstill (no step to be had; renewed there it kept the mutual-block side step
+    //      from ever starting), nor by a junction or for one turning through it (the I-38 ramps: a truck just out of
+    //      node 5038 held in its step for good by a coach turning left across its nose, the junction locked behind them)
+    const bool stepping = d.nudgeTarget > 0.61f && d.nudgeTimer > 0.f;
+    if (meetTight && meetOnRoad && stripW >= 1.4f && !stripBusy && laneLeft > 15.f && d.u - G.lanes[d.path].u0 > d.info.rearLen + 3.f &&
+        v > 0.5f && (v < 7.f || stepping) && d.lcLane < 0 && d.mode != DM_PULLOVER && d.passT <= 0.f) {
+        const float want = Min(laneHalfHere + 0.8f - myHW, laneHalfHere + stripW - 0.3f - myHW);
+        bool works = false;
+        const Lane& L = G.lanes[d.path];
+        for (float x = -d.info.rearLen - 2.f; x <= 30.f && !works; x += 4.f) {
+            const float uq = Clamp(d.u + x, L.u0, L.u1);
+            works = World::roadWorkZoneAt(G.pathPos(d.path, uq, laneHalfHere + 0.8f).xy());
+        }
+        if (!works && want > 0.1f && d.nudgeTarget >= 0.f && d.nudgeTarget <= want + 1e-3f) {   // (a wider side step goes on as it is)
+            d.nudgeTarget = want;
+            d.nudgeTimer = 1.5f;
         }
     }
     // ---- stops
@@ -1741,10 +1825,16 @@ void TrafficCore::plan(Driver& d, const Vehicles::VehicleState& s, vec2 pos, vec
     (void)dt;
 }
 
+// the lock the vehicle sim gives a full steering input at this speed (vehicle_sim_wheels.cpp carSteer: speed-sensitive,
+// on the highway only what the front tires can use) - the command is the wanted wheel angle over it. With the old
+// figures here (the full 1.25 g and 1.1 x the peak slip angle at any speed) the wheels turned only a third of the wanted
+// angle at motorway speed: the lane keeping went slack there, and trucks swung on past their line after a lane change -
+// into the I-38's median barrier
 float TrafficCore::maxSteerAt(const Driver& d, float v) const {
-    float aLat = 1.25f * Clamp(d.info.grip, 0.5f, 1.6f) * 9.81f;
+    const float hs = SmoothStep(8.f, 25.f, v);
+    float aLat = Lerp(1.25f, 1.05f, hs) * Clamp(d.info.grip, 0.5f, 1.6f) * 9.81f;
     float geo = atanf(d.info.wheelbase * aLat / Max(v * v, 1e-3f));
-    return Min(d.info.maxSteer, geo + d.info.alphaPeak * 1.1f);
+    return Min(d.info.maxSteer, geo + d.info.alphaPeak * Lerp(0.5f, 0.25f, hs));
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -2046,10 +2136,13 @@ void TrafficCore::control(Driver& d, const Vehicles::VehicleState& s, vec2 pos, 
         return;
     }
     // three-point turn: on a turn tighter than this vehicle can steer (a dead-end turning circle for a long wheelbase,
-    // a hairpin entered too fast) the nose runs wide at full lock; stop, back up on opposite lock, then go on
+    // a hairpin entered too fast) the nose runs wide at full lock; stop, back up on opposite lock, then go on. Full lock
+    // into the turn only (+ steer = right, + curvature = left): one back-up that brought the nose round past the way has
+    // the steering out of the turn to straighten up - read as running wide, a pickup at a dead end's circle (node 4870,
+    // Calle Luna) backed up on the wrong lock twice, out of the circle, 7 m off the road and lost there
     if (d.path >= NL && fabsf(c.steer) > 0.97f && vF < 5.f && vF > -0.5f && d.vTarget > 0.5f && d.obstDist > 3.f && d.kturns < 5) {
         float kP = G.pathCurv(d.path, d.u);
-        float outward = kP > 0.03f ? d.latErr : (kP < -0.03f ? -d.latErr : 0.f);   // + = outside of the turn
+        float outward = kP > 0.03f && c.steer < 0.f ? d.latErr : (kP < -0.03f && c.steer > 0.f ? -d.latErr : 0.f);   // + = outside of the turn
         d.kturnT = outward > 1.2f ? d.kturnT + dt : 0.f;
         if (d.kturnT > 0.35f && rearClear(d, pos, fwd, 2.5f)) {
             d.recoverTimer = 4.f;

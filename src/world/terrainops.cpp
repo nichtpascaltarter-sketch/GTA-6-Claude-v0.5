@@ -91,4 +91,51 @@ void WorldMap::flattenRect(vec2 c, vec2 ax, float hx, float hy, float z, float b
         }
 }
 
+namespace terrainops_detail {
+
+inline bool insidePoly(const std::vector<vec2>& poly, vec2 p) {
+    bool in = false;
+    for (size_t i = 0, j = poly.size() - 1; i < poly.size(); j = i++) {
+        const vec2 a = poly[i], b = poly[j];
+        if ((a.y > p.y) != (b.y > p.y) && p.x < (b.x - a.x) * (p.y - a.y) / (b.y - a.y) + a.x) in = !in;
+    }
+    return in;
+}
+
+inline float distToPoly(const std::vector<vec2>& poly, vec2 p) {
+    float d = 1e30f;
+    for (size_t i = 0, j = poly.size() - 1; i < poly.size(); j = i++) d = Min(d, distPointSegment2D(p, poly[j], poly[i]));
+    return d;
+}
+
+}  // namespace terrainops_detail
+
+void WorldMap::flattenPoly(const std::vector<vec2>& poly, float z, float blend) {
+    using namespace terrainops_detail;
+    if (poly.size() < 3) return;
+    vec2 mn = poly[0], mx = poly[0];
+    for (const vec2& p : poly) {
+        mn = vmin(mn, p);
+        mx = vmax(mx, p);
+    }
+    mn -= vec2(blend);
+    mx += vec2(blend);
+    int x0 = Max(0, (int)floorf(worldToTexel(mn.x))), x1 = Min(kHeightRes - 1, (int)ceilf(worldToTexel(mx.x)));
+    int y0 = Max(0, (int)floorf(worldToTexel(mn.y))), y1 = Min(kHeightRes - 1, (int)ceilf(worldToTexel(mx.y)));
+    for (int ty = y0; ty <= y1; ty++)
+        for (int tx = x0; tx <= x1; tx++) {
+            const vec2 p(texelToWorld(tx), texelToWorld(ty));
+            const size_t idx = (size_t)ty * kHeightRes + tx;
+            if (waterLevel[idx] > kNoWater + 1.f && height[idx] < waterLevel[idx] && z > waterLevel[idx]) continue;
+            if (insidePoly(poly, p)) {
+                height[idx] = z;
+                continue;
+            }
+            if (blend <= 0.f) continue;
+            const float d = distToPoly(poly, p);
+            if (d < blend) height[idx] = Lerp(height[idx], z, SmoothStep(blend, 0.f, d));
+        }
+}
+
+
 }  // namespace World

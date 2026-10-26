@@ -8,10 +8,13 @@
 // world-frame geometry (footprints, entrances, colliders) comes in v1, behind the same Model.
 //
 // Host tools only. Link: ntw.cpp, ntwschema.cpp and worldmodel.cpp for the loader; compileRoads() adds
-// worldmodel_roads.cpp, roadnet.cpp (or roads.cpp, which includes it) and src/core/math.cpp.
+// worldmodel_roads.cpp, roadnet.cpp (or roads.cpp, which includes it) and src/core/math.cpp; compileBlocks()
+// worldmodel_blocks.cpp and blocksbin.cpp.
 #pragma once
 #include "ntw.h"
 #include "roads.h"
+#include "roadoverrides.h"
+#include "blocksbin.h"
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -94,6 +97,7 @@ struct Node {
     std::vector<std::pair<std::string, Ref>> approaches;   // compass letter -> edge
     bool stopsAll = false;
     std::vector<Ref> stops, yields;    // the approaches that stop / give way
+    std::vector<Ref> noRedTurn;        // the approaches where turning right on red isn't allowed
     float bulb = 0.f;                  // a dead end's turning-circle radius (0: none written)
     std::vector<int> edges;            // the edges at it (Model::edges, in their order)
     int junction = -1;                 // its junction record (Model::junctions), -1: none
@@ -288,6 +292,27 @@ struct Anchor {
 
 // ------------------------------------------------------------- blocks, buildings and the library (typed further in v1)
 
+// A parcel's records: its ground's paint, its pads and its fences
+struct GroundPaint {
+    Src src;
+    std::string kind;                  // lawn, paving, gravel, dirt, sand, planting
+    std::vector<vec2> poly;
+};
+
+struct Pad {                           // a level slab
+    Src src;
+    std::vector<vec2> poly;
+    float z = 0.f;                     // above the parcel's grade; without one, above the terrain under its centre
+    std::string kind;                  // paving, concrete, deck
+};
+
+struct Fence {
+    Src src;
+    Ref kind;                          // lib.fence.*
+    std::vector<vec2> line;
+    std::vector<vec2> gates;           // (distance along the line, width)
+};
+
 struct Parcel {
     std::string id;                    // cl.b014.p03
     Src src;
@@ -296,6 +321,39 @@ struct Parcel {
     std::string use;
     Ref front;                         // front=<edge>:<side>: the street it faces
     Side frontSide = SIDE_RIGHT;
+    bool graded = false;               // grade= written: the ground is levelled to it, blending out over `blend` m
+    float grade = 0.f, blend = 0.f;
+    std::string ground;                // its ground (lawn, paving, ...); empty: the terrain's own
+    std::vector<GroundPaint> paints;
+    std::vector<Pad> pads;
+    std::vector<Fence> fences;
+};
+
+struct Plaza {                         // an open paved area
+    std::string id;                    // cl.b014.pz1 (optional)
+    Src src;
+    int block = -1;
+    std::vector<vec2> poly;
+    std::string ground;                // empty: paving
+    std::vector<std::string> tags;
+};
+
+// The dressing of a block: its trees, plants, props and lights. They have no ids: nothing refers to one.
+struct Dress {
+    enum Kind : u8 { DRESS_TREE, DRESS_PLANT, DRESS_PROP, DRESS_LIGHT };
+    Kind what = DRESS_PROP;
+    Src src;
+    int block = -1;
+    Ref kind;                          // lib.veg.* (trees and plants), lib.prop.*, lib.light.*
+    vec2 at = vec2(0.f);
+    bool hasZ = false;                 // a prop's z=, a light's at=x,y,z: the height above the graded ground (0 without)
+    float z = 0.f;
+    bool hasYaw = false;
+    float yaw = 0.f;                   // degrees, as written
+    float h = 0.f, canopy = 0.f;       // trees: height and canopy width; 0: the piece's own
+    float scale = 1.f;                 // plants
+    int look = 0;                      // props: the piece's mesh variant
+    std::string sched;                 // lights: dusk, evening, night, always, never (empty: dusk)
 };
 
 struct Lot {
@@ -311,6 +369,7 @@ struct Block {
     int file = -1;
     Ref district;
     std::vector<int> parcels, lots;    // indices in Model::parcels and Model::lots, in file order
+    std::vector<int> plazas, dressing; // indices in Model::plazas and Model::dressing, in file order
 };
 
 struct Building {
@@ -333,6 +392,11 @@ struct LibItem {
     Src src;
     int file = -1;
     int record = -1;                   // the record in the file (palettes and catalog pieces); -1: the whole file
+    // catalog pieces: what builds them, as the catalog writes it
+    std::string code;                  // the C++ enum (PROP_PALM) or function
+    vec3 size = vec3(0.f);             // size=WxDxH; 0: unknown
+    int variants = 0;
+    std::string collide;               // box, cylinder, none
 };
 
 // ------------------------------------------------------------------------------------------------------------ the model
@@ -371,6 +435,8 @@ struct Model {
     std::vector<Anchor> anchors;
     std::vector<Block> blocks;
     std::vector<Parcel> parcels;
+    std::vector<Plaza> plazas;
+    std::vector<Dress> dressing;
     std::vector<Lot> lots;
     std::vector<Building> buildings;
     std::vector<LibItem> library;
@@ -422,7 +488,7 @@ struct RoadIndex {
 //   else 0, signal 2; the spatial hash.
 // The authored overrides (lane counts and uses, moves, kerb stretches, junction records, plans, the yield and stop
 // lists, bulbs, speeds, the per-side widths) stay on the Model's edges, nodes and junctions, reached through `index`;
-// LaneGraph reads them once its build takes them (the AI agent's API).
+// compileRoadOverrides gives the lane graph those it reads so far.
 // Errors:
 // - road.node: the edge's from= or to= names no node (worldv's ref.missing);
 // - road.loop: from= and to= are one node;
@@ -431,6 +497,95 @@ struct RoadIndex {
 //   their nodes' z.
 // An edge with an error is left out, and the rest compiles. False when it reported anything.
 bool compileRoads(const Model& model, RoadNetwork& out, RoadIndex& index, std::vector<Error>& errors);
+
+// What the compiled roads author beyond the network, for the lane graph (roadoverrides.h), one list per step as it
+// grows: so far each edge's EdgeExtra (its widths and speed as written, else its class's) and each node's NodeRule
+// (control, stops, yields, no-red-turn approaches and bulb, as written). Reads what compileRoads compiled (`net` and
+// `index`); references that name nothing are left out (worldv reports them); reports nothing itself.
+void compileRoadOverrides(const Model& model, const RoadIndex& index, const RoadNetwork& net, RoadOverrides& out);
+
+// ------------------------------------------------------------------------------------------ legs and signal plans
+
+// A node's legs as the lane graph sees them (src/game/lanes.cpp), one implementation for worldc and worldv: each road
+// edge at the node, in the road node's edge order, with
+// - its direction from the node to the point max(cut-back, 4 m) along it (at most half its length), in its own s;
+// - its bearing, degrees clockwise from north (y), and compass sector: n [315, 45), e [45, 135), s [135, 225),
+//   w [225, 315), a bearing on a boundary going to the clockwise sector;
+// - its letter: the one approaches= gives it (a letter's first use and an edge's; a letter other than n, e, s or w is
+//   skipped), else its sector.
+struct NodeLeg {
+    int road = -1;                     // RoadNetwork edge
+    int edge = -1;                     // Model edge
+    bool outgoing = false;             // the edge starts at the node: its fwd lanes leave, its bwd lanes arrive
+    int in = 0, out = 0;               // the network's lanes arriving at the node along it, and leaving
+    vec2 dir = vec2(0.f);              // unit, from the node out along the edge
+    float bearing = 0.f;
+    char compass = 'n', letter = 'n';
+};
+struct NodeLegs {
+    int node = -1;                     // Model node
+    std::vector<NodeLeg> legs;
+    bool interchange = false;          // highway and ramp legs meet: only movements along the carriageway
+    bool gradeSeparated = false;       // 4 legs or more, all highway: no turns
+};
+NodeLegs nodeLegs(const Model& model, const RoadIndex& index, const RoadNetwork& net, int node);
+
+// The turn from leg a (arriving) into leg b (leaving), as the lane graph classes it: TURN_LEFT, TURN_STRAIGHT or
+// TURN_RIGHT past 35 degrees either way, or 0 where it makes no movement: back round through more than 140 degrees,
+// across a motorway's carriageways, or a turn at a grade-separated node. At a node of 2 legs every movement is straight.
+// A junction's connect record joining the two edges gives its turn instead (TURN_UTURN for uturn).
+u8 legTurn(const Model& model, const NodeLegs& legs, const NodeLeg& a, const NodeLeg& b);
+
+// A signal plan resolved at a node: each phase's movements, `<letter>_<turn>[p]`, as every movement from the leg with
+// that letter (lanes arriving) into a leg with lanes leaving whose turn (legTurn) is the one written; and its walks as
+// the legs they cross. What names no leg there (a 4-leg plan's west at a T) goes to `unused`.
+struct ResolvedPlan {
+    struct Move {
+        int from = -1, to = -1;            // RoadNetwork edges: arriving along `from`, leaving along `to`
+        u8 turn = 0;                       // RoadTurn
+        bool isProtected = false;
+    };
+    struct Phase {
+        std::vector<Move> moves;           // sorted by from, then to
+        std::vector<int> walks;            // the RoadNetwork edges crossed, sorted
+    };
+    std::vector<Phase> phases;             // the plan's, in order
+    std::vector<std::string> unused;       // "w_s", "walk w": as written, in the plan's order
+};
+void resolvePlan(const Model& model, const NodeLegs& legs, const SignalPlan& plan, ResolvedPlan& out);
+
+// ------------------------------------------------------------------------------------------------------ blocks compile
+
+struct BlockPad {                      // a level the terrain is graded to: a parcel's grade=
+    std::vector<vec2> poly;
+    float z = 0.f;                     // absolute
+    float blend = 0.f;                 // m beyond the polygon back to the terrain
+};
+
+// What compileBlocks makes, for worldc. Heights in `blocks` are still above the ground wherever its records stand on
+// it: worldc grades the terrain (the pads, then the roads), then adds the ground's height (or a sidewalk's, where one
+// runs) to every prop, at its position, and to every lamp, at its fixture's (lampGroundAt), and to the pads that
+// stand on the terrain (groundOnTerrain: at their centroid).
+struct BlocksOut {
+    HandBlocks blocks;
+    std::vector<BlockPad> pads;
+    std::vector<vec2> lampGroundAt;    // per lamp
+    std::vector<u8> groundOnTerrain;   // per ground polygon: 1 for a level one whose z is above the terrain
+};
+
+// Compiles the blocks' parcels, plazas and dressing into the game's blocks (blocksbin.h):
+// - the ground: each parcel's ground= over its polygon, then its paint over that, level on its grade= when it has one
+//   (a pad for the grading, blending out over blend= m), else on the terrain; its pads as level polygons, z above the
+//   graded ground; each plaza (paving without ground=);
+// - the dressing: a prop for each tree, plant and prop, of its piece's code= (a PropType's name: catalogcodes.h),
+//   trees scaled to h= by the piece's size= height, plants by scale=; trees and plants without yaw= turn, and vary
+//   among the piece's variants=, by their position; each light its fixture's prop and lamp (catalogcodes.h
+//   lampSpec), lit at dusk unless sched= says evening (the porch timer), always or never;
+// - yaw turned from the catalog's frame (+y forward) to the game's (catalogcodes.h propYawOffset).
+// Findings: block.shape (a polygon with fewer than 3 points), block.kind (a code= the game doesn't build, a ground
+// kind it doesn't know), block.size (a tree scaled below 0.2 or above 5 of its piece). Records naming nothing are
+// worldv's to report, and left out here. False when it reported anything.
+bool compileBlocks(const Model& model, BlocksOut& out, std::vector<Error>& errors);
 
 }  // namespace Hand
 }  // namespace World

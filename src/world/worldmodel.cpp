@@ -463,6 +463,7 @@ struct Loader {
         if (std::string(r.value("stops", "")) == "all") n.stopsAll = true;
         else n.stops = refs(r, "stops");
         n.yields = refs(r, "yield");
+        n.noRedTurn = refs(r, "noredturn");
         if (const Ntw::Field* f = r.field("bulb"))
             if (!toFloat(f->value, &n.bulb) || n.bulb <= 0.f) {
                 badValue(*f, "node " + n.id, "a radius in metres");
@@ -723,6 +724,38 @@ struct Loader {
                     if (it[0].parts[1] == "left") p.frontSide = SIDE_LEFT;
                     else if (it[0].parts[1] != "right") badValue(*r.field("front"), "parcel " + p.id, "<edge>:left or <edge>:right");
                 }
+                p.graded = r.has("grade");
+                p.grade = num(r, "grade");
+                p.blend = num(r, "blend");
+                p.ground = text(r, "ground");
+                for (const Ntw::Record& c : r.children) {
+                    if (c.type == "paint") {
+                        GroundPaint g;
+                        g.src = at(c.line);
+                        g.kind = text(c, "kind");
+                        g.poly = points(c, "poly");
+                        p.paints.push_back(g);
+                    } else if (c.type == "pad") {
+                        Pad g;
+                        g.src = at(c.line);
+                        g.poly = points(c, "poly");
+                        g.z = num(c, "z");
+                        g.kind = text(c, "kind");
+                        p.pads.push_back(g);
+                    } else if (c.type == "fence") {
+                        Fence g;
+                        g.src = at(c.line);
+                        g.kind = ref(c, "kind");
+                        g.line = points(c, "line");
+                        if (const Ntw::Field* f = c.field("gate")) {
+                            const std::vector<std::string> parts = splitAt(f->value, ':');
+                            float a = 0.f, w = 0.f;
+                            if (parts.size() == 2 && toFloat(parts[0], &a) && toFloat(parts[1], &w)) g.gates.push_back(vec2(a, w));
+                            else badValue(*f, "fence", "<at>:<width>");
+                        }
+                        p.fences.push_back(g);
+                    }
+                }
                 define(p.id, "parcel", (int)m.parcels.size());
                 b.parcels.push_back((int)m.parcels.size());
                 m.parcels.push_back(p);
@@ -735,8 +768,54 @@ struct Loader {
                 define(l.id, "lot", (int)m.lots.size());
                 b.lots.push_back((int)m.lots.size());
                 m.lots.push_back(l);
-            } else if (r.type == "path" || r.type == "plaza" || r.type == "spot") {
-                define(r.id, r.type == "path" ? "path" : r.type == "plaza" ? "plaza" : "spot", -1);
+            } else if (r.type == "plaza") {
+                Plaza z;
+                z.id = r.id;
+                z.src = at(r.line);
+                z.block = bi;
+                z.poly = points(r, "poly");
+                z.ground = text(r, "ground");
+                z.tags = list(r, "tags");
+                define(z.id, "plaza", (int)m.plazas.size());
+                b.plazas.push_back((int)m.plazas.size());
+                m.plazas.push_back(z);
+            } else if (r.type == "tree" || r.type == "plant" || r.type == "prop" || r.type == "light") {
+                Dress d;
+                d.what = r.type == "tree" ? Dress::DRESS_TREE : r.type == "plant" ? Dress::DRESS_PLANT : r.type == "prop" ? Dress::DRESS_PROP : Dress::DRESS_LIGHT;
+                d.src = at(r.line);
+                d.block = bi;
+                d.kind = ref(r, "kind");
+                d.hasYaw = r.has("yaw");
+                d.yaw = num(r, "yaw");
+                if (d.what == Dress::DRESS_LIGHT) {
+                    // at=x,y on the ground, or x,y,z
+                    const Ntw::Field* f = r.field("at");
+                    vec3 p3(0.f);
+                    if (f && Ntw::toPoint3(f->value, &p3)) {
+                        d.at = p3.xy();
+                        d.hasZ = true;
+                        d.z = p3.z;
+                    } else if (f && !Ntw::toPoint(f->value, &d.at)) {
+                        badValue(*f, "light", "x,y or x,y,z");
+                    }
+                    d.sched = text(r, "sched");
+                } else {
+                    d.at = point(r, "at");
+                }
+                if (d.what == Dress::DRESS_TREE) {
+                    d.h = num(r, "h");
+                    d.canopy = num(r, "canopy");
+                } else if (d.what == Dress::DRESS_PLANT) {
+                    d.scale = num(r, "scale", 1.f);
+                } else if (d.what == Dress::DRESS_PROP) {
+                    d.hasZ = r.has("z");
+                    d.z = num(r, "z");
+                    d.look = integer(r, "look");
+                }
+                b.dressing.push_back((int)m.dressing.size());
+                m.dressing.push_back(d);
+            } else if (r.type == "path" || r.type == "spot") {
+                define(r.id, r.type == "path" ? "path" : "spot", -1);
             }
         }
         m.blocks.push_back(b);
@@ -792,6 +871,14 @@ struct Loader {
                 for (const char* c : kCategories)
                     if (p.size() == 3 && p[0] == "lib" && p[1] == c) cls = c;
                 libItem(r.id, cls, r.line, (int)i);
+                LibItem& it = m.library.back();
+                it.code = text(r, "code");
+                it.variants = integer(r, "variants");
+                it.collide = text(r, "collide");
+                if (const Ntw::Field* f = r.field("size")) {   // WxDxH
+                    const std::vector<std::string> d = splitAt(f->value, 'x');
+                    if (d.size() != 3 || !toFloat(d[0], &it.size.x) || !toFloat(d[1], &it.size.y) || !toFloat(d[2], &it.size.z)) badValue(*f, "piece " + r.id, "WxDxH");
+                }
             }
         } else if (const Ntw::Field* h = doc->headerField("id")) {
             libItem(h->value, k.c_str(), 1, -1);
@@ -850,6 +937,7 @@ struct Loader {
             for (auto& a : n.approaches) resolve(a.second);
             for (Ref& r : n.stops) resolve(r);
             for (Ref& r : n.yields) resolve(r);
+            for (Ref& r : n.noRedTurn) resolve(r);
         }
         for (size_t i = 0; i < m.edges.size(); i++) {
             Edge& e = m.edges[i];
@@ -888,7 +976,11 @@ struct Loader {
             resolve(a.edge);
         }
         for (Block& b : m.blocks) resolve(b.district);
-        for (Parcel& p : m.parcels) resolve(p.front);
+        for (Parcel& p : m.parcels) {
+            resolve(p.front);
+            for (Fence& f : p.fences) resolve(f.kind);
+        }
+        for (Dress& d : m.dressing) resolve(d.kind);
         for (Building& b : m.buildings) {
             resolve(b.block);
             resolve(b.parcel);

@@ -3,7 +3,8 @@
 // - ids against their patterns and for uniqueness, and each file's path against its ids;
 // - that every reference resolves to a record of the right kind;
 // - the library items' rooms, doors and stairs, and the plans' floors;
-// - the roads, their signal plans and the transit lines on them (a world run adds a roads summary line).
+// - the roads, their signal plans and the transit lines on them, and the lane graph the game builds from them (a world
+//   run adds a roads summary line).
 // What's wrong is listed as file:line diagnostics with a check id (--checks lists them). Errors fail the run (exit
 // code 1); warnings are only listed.
 // Build from the repo root:  g++ -std=c++17 -O2 -I. tools/worldv.cpp -o build/worldv
@@ -13,16 +14,23 @@
 //                            build/worldv --checks                   (the check ids)
 // --incremental reuses the cache's results for every file whose content is unchanged; each world run rewrites the
 // cache. --only reports one file, the files under a directory, or the file that defines an id.
-#include "tools/native_stubs.cpp"
+#include "tools/worldv_host.cpp"
 #include "src/core/math.cpp"
 #include "src/world/ntw.cpp"
 #include "src/world/ntwschema.cpp"
 #include "src/world/roadnet.cpp"
 #include "src/world/worldmodel.cpp"
 #include "src/world/worldmodel_roads.cpp"
+// the game's lane graph, built as the game builds it (validate_lanes.h). Its code is the AI agent's: until its set 21
+// casts it, one conditional there (lanes.cpp:1088) mixes an enum and a u8, which -Wextra rejects. Drop the pragma then.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wextra"
+#include "src/game/lanes.cpp"
+#pragma GCC diagnostic pop
 #include "src/world/validate.cpp"
 #include "src/world/validate_layout.cpp"
 #include "src/world/validate_roads.cpp"
+#include "src/world/validate_lanes.cpp"
 #include <string>
 #include <thread>
 #include <vector>

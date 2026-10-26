@@ -26,10 +26,14 @@ to one is a change to both, in the same commit.
   `1` is the version of the format and of the kind (section 7). `<kind>` is one of the kinds of section 9.
 - Files are kept in canonical form (section 6). `tools/ntwfmt` writes it, `ntwfmt --check` reports files that aren't in
   it, and the validator refuses them.
-- `tools/worldc` compiles the kinds as their compilers arrive. So far that is the terrain, and the roads with the world,
+- `tools/worldc` compiles the kinds as their compilers arrive. So far that is the terrain; the roads with the world,
   district, signal and transit files they name: the roads go into world.bin's roads sections (src/world/roadsbin.h),
-  and the terrain is graded under them.
-  A block, building, places or library file stops the build ("no compiler for ... files yet") until its compiler
+  with what the lane graph reads beyond the network so far (each edge's `lanewidth`, `median`, `shoulder`, `parking`,
+  `sidewalk`, `speed` and `tunnel`, else its class's; each node's `control`, `stops`, `yield`, `noredturn` and `bulb`:
+  src/world/roadoverrides.h), and the terrain is graded under them; and the blocks with the catalog: their parcels,
+  plazas and dressing go into the blocks section (src/world/blocksbin.h), and the parcels' grades into the grading
+  (section 9.5).
+  A building, places or other library file stops the build ("no compiler for ... files yet") until its compiler
   exists. The validator checks every kind already.
 
 ## 2. Lines and records
@@ -305,7 +309,7 @@ Header: `district` id (a district's streets) or `scope=trunk`.
 
 | Record | Id | Block | Fields |
 |---|---|---|---|
-| `node` | req | no | `at` point 2 req, `z` number 2 req, `control` word `none`/`stop`/`yield`/`signal` (none: priority by road class; stop: every approach stops, or those in `stops`; yield: the approaches in `yield` give way), `plan` reference or `auto` (signals: a `signal` plan; `auto`, the default, derives one as today), `offset` number 1 (s into the plan's cycle), `approaches` compound `n:<edge>,e:<edge>,...` (which leg each compass letter of the plan names, where the bearings leave doubt), `stops` `all` or a list of edges, `yield` list of edges, `bulb` number 2 (a dead end's turning-circle radius; without one, long vehicles avoid the dead end) |
+| `node` | req | no | `at` point 2 req, `z` number 2 req, `control` word `none`/`stop`/`yield`/`signal` (none: priority by road class; stop: every approach stops, or those in `stops`; yield: the approaches in `yield` give way), `plan` reference or `auto` (signals: a `signal` plan; `auto`, the default, derives one as today), `offset` number 1 (s into the plan's cycle), `approaches` compound `n:<edge>,e:<edge>,...` (which leg each compass letter of the plan names, where the bearings leave doubt), `stops` `all` or a list of edges, `yield` list of edges, `bulb` number 2 (a dead end's turning-circle radius; without one, long vehicles avoid the dead end), `noredturn` list of edges (signals: the approaches where turning right on red isn't allowed; on the others drivers may, after stopping) |
 | `edge` | req | yes: the records below it, `lanes` to `sign` | `from` reference req, `to` reference req, `class` word `highway`/`boulevard`/`avenue`/`street`/`lane`/`rural`/`dirt`/`ramp` req, `name` text, `lanes` compound `F/B` req (lanes `fwd` and `bwd`: `3/0` is one-way), `lanewidth` number 2, `median` compound `W` or `W:barrier` (2; a barrier stops U-turns, crossing on foot and jaywalking), `shoulder` compound `left:W`, `right:W` or `both:W` (2), `parking` compound `none` or as `shoulder`, `sidewalk` compound (as `parking`), `speed` number 1 (m/s), `flags` list of `bridge`, `elevated`, `unpaved`, `tunnel`, `shape` points 2 req (the centreline, from the `from` node to the `to` node), `profile` compound `s:z;s:z...` (2): the height by distance |
 | `lanes` | none | no | `from`, `to` number 2 or `end`, `dir` word `fwd`/`bwd` req, `count` integer req, `add` word `left`/`right`, `drop` word `left`/`right`, `taper` number 2: one direction's lane count over a stretch. `add` and `drop` say which side gains or loses the lane, over the taper: turn pockets, merges, acceleration and deceleration lanes |
 | `lane` | none | no | `dir` word req, `index` integer, `left` or `right` req, `use` word `bus`/`streetcar`/`bike`/`general` req, `from`, `to`: a lane kept for one use over a stretch |
@@ -381,6 +385,19 @@ Header: `id` id req, `district` id req.
 | `lot` | req | yes: `row`, `ramp` | `entry` compound `<edge>:<at>:<side>` req (2; the curb cut it is entered by), `exit` compound (as `entry`; the entry without it), `levels` integer (1): a car park |
 | `row` | none | no | `line` points 2 req, `bays` integer req, `w` number 2, `len` number 2, `yaw` number 1, `level` integer (0): a row of bays along the line, with its aisle |
 | `ramp` | none | no | `from` integer req, `to` integer req (levels), `line` points 2 req |
+
+What the blocks compiler (src/world/worldmodel.h compileBlocks) reads so far, and requires:
+- A parcel's `ground` covers its polygon, and its `paint` lies over that. A parcel with `grade` is level at it, and
+  the terrain blends back over `blend` metres outside it; its pads are level slabs `z` above the grade. Without
+  `grade` the ground follows the graded terrain, and a pad stands `z` above the terrain under its centre. A `plaza`
+  is paved unless its `ground` says otherwise. Polygons need 3 points or more.
+- Trees, plants and props are the catalog pieces their `kind` names, built by the piece's `code`. A tree's `h`
+  scales its piece by the piece's `size` height, and a plant's `scale` scales it; trees and plants without `yaw`
+  turn, and vary among the piece's `variants`, by their position, so that a row of them never repeats. A `light`
+  is its fixture's piece and lamp (a street light's lamp hangs 2.2 m forward, 8.6 m up), or a lamp alone where its
+  piece is one: on at dusk, or by its `sched`.
+- Every z is above the graded ground, or above the sidewalk or road where one runs under the record.
+- Fences, paths, steps, spots and lots are read and checked, and compile later (with the walk graph and parking).
 
 **Spot kinds.** Outdoors: `bench`, `wall_sit`, `steps_sit`, `lean`, `smoke`, `phone`, `busstop_wait`, `queue`, `window`,
 `atm`, `vending`, `cafe_seat`, `bar_stool`, `busk`, `vendor`, `guard`, `door_staff`, `watch_view`, `fish`, `exercise`,

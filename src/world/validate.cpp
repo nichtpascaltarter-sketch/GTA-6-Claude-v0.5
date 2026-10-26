@@ -80,6 +80,10 @@ const std::vector<CheckInfo> kChecks = {
     {"busstop.kerb", "a bus stop on a highway or ramp, at a kerb no lanes run along, or with no sidewalk to wait on"},
     {"transit.route", "a line's route edges don't meet, run against a one-way edge, or take a turn the junction doesn't allow"},
     {"transit.stop", "a line stops at a bus stop off its route or on the far kerb (warning: routes= and the line's stops disagree)"},
+    // on the lane graph the game builds from the roads (validate_lanes.h)
+    {"road.lanes", "a lane leads nowhere at the node it runs into: no road with lanes goes on, or the junction's or the edge's records leave it no movement"},
+    {"signal.cover", "a signal plan never gives one of its node's movements a green, or one of its crossings a walk"},
+    {"signal.conflict", "a phase lets two movements whose paths meet go together with neither a permissive turn, or gives a walk across traffic that doesn't yield"},
 };
 
 // ---------------------------------------------------------------------------------------------------- small helpers
