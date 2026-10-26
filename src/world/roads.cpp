@@ -1,4 +1,5 @@
 #include "roads.h"
+#include "blocksbin.h"
 #include "sites.h"
 #include "transit.h"
 #include "../core/noise.h"
@@ -2921,6 +2922,11 @@ bool RoadNetwork::surfaceHeight(vec2 p, float* z, float maxZ) const {
     bool found = roadSurfaceHeight(p, &bestZ, maxZ);
     float pz;
     if (gSites && gSites->padHeight(p, &pz, maxZ) && pz > bestZ) {
+        bestZ = pz;
+        found = true;
+    }
+    // the hand-built world's level ground: pads, decks and levelled parcels (blocksbin.h; none in the procedural world)
+    if (gHandBlocks && gHandBlocks->padHeight(p, &pz, maxZ) && pz > bestZ) {
         bestZ = pz;
         found = true;
     }

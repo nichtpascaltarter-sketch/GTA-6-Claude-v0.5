@@ -587,5 +587,26 @@ struct BlocksOut {
 // worldv's to report, and left out here. False when it reported anything.
 bool compileBlocks(const Model& model, BlocksOut& out, std::vector<Error>& errors);
 
+// The baked terrain as worldc reads it from world/terrain: the heights and water the roads and parcels are graded into
+struct BakedTerrain {
+    bool ok = false;
+    int res = 0;
+    float cell = 0.f, originX = 0.f, originY = 0.f, heightUnit = 0.f;
+    std::vector<i16> height, water;    // the grids' values
+    std::vector<float> levels;         // water class c's level is levels[c - 1]
+};
+
+// The terrain graded under the parcels and the roads (docs/HANDBUILT_WORLD.md section 3.3), as worldc writes it: the
+// parcels' grades first, then today's road grading (src/world/roadgrade.cpp), so the roads' cut still wins at the kerb;
+// stored as a delta on the bake in the height layer's unit, an i16 grid like the height layer ("terrain.grade"). The
+// game adds it to the baked heights at load, and computes the splat from the result. Then the blocks go on the graded
+// ground: every prop and lamp at the ground's height, or a sidewalk's or road's where one runs (within 3 m above it),
+// and the level polygons that stand on the terrain; and into the blocks section. `report` gets worldc's line on the
+// grading. With no roads and nothing in the blocks (no ground, dressing, lamps or graded parcels) there is nothing to
+// do: true, nothing written. False, with a reason, when the baked terrain isn't the game's grid or the grading doesn't
+// encode.
+bool placeOnTerrain(const BakedTerrain& baked, const RoadNetwork& roads, const std::vector<std::vector<vec2>>& decks, BlocksOut& blocks,
+                    WorldBinWriter& out, std::string* error, std::string* report);
+
 }  // namespace Hand
 }  // namespace World

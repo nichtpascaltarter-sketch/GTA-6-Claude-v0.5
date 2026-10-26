@@ -5,7 +5,9 @@
 // - the roads compile: widths, heights, flags, junction radii, cut-backs and control, seeds, the spatial hash, and
 //   the points a profile adds; the terrain graded under the roads (src/world/roadgrade.cpp), decks left alone;
 // - the blocks: their records typed, the compile (ground, dressing, lamps, findings), the blocks section through
-//   world.bin (src/world/blocksbin.h), and a parcel's levelling (WorldMap::flattenPoly);
+//   world.bin (src/world/blocksbin.h), a parcel's levelling (WorldMap::flattenPoly), the level ground that people and
+//   vehicles stand on (HandBlocks::padHeight), and the grading written for a parcel that only grades the terrain
+//   (Hand::placeOnTerrain);
 // - the roads through world.bin (src/world/roadsbin.h): back exactly as written, and damaged sections refused; with
 //   what they author beyond the network (src/world/roadoverrides.h), and the host loader (loadRoadsFile);
 // - a node's legs, the turns between them and signal plans resolved on them (worldmodel.h nodeLegs, resolvePlan);
@@ -25,6 +27,7 @@
 #include "../../src/world/worldmodel_roads.cpp"
 #include "../../src/world/lz.cpp"
 #include "../../src/world/worldbin.cpp"
+#include "../../src/world/gridcodec.cpp"
 #include "../../src/world/roadsbin.cpp"
 #include "../../src/world/blocksbin.cpp"
 #include "../../src/world/worldmodel_blocks.cpp"
@@ -610,6 +613,34 @@ static void testBlocks() {
     EXPECT(back.groundByCell.size() == (size_t)kCellsPerSide * kCellsPerSide && back.groundByCell[cell].size() == 4 && back.propsByCell[cell].size() == 4 &&
                back.lampsByCell[cell].size() == 2,
            "blocks: by cell");
+    // the level ground people and vehicles stand on: the deck's top on the deck, the levelled lawn beside it, nothing
+    // off the parcel (the terrain answers there); under a lower limit, the highest level below it
+    float onDeck = 0.f, beside = 0.f, under = 0.f, off = 0.f;
+    const bool deckHit = back.padHeight(vec2(125.f, 115.f), &onDeck, 100.f), lawnHit = back.padHeight(vec2(110.f, 125.f), &beside, 100.f),
+               underHit = back.padHeight(vec2(125.f, 115.f), &under, 4.f), offHit = back.padHeight(vec2(95.f, 115.f), &off, 100.f);
+    EXPECT(deckHit && same(onDeck, 4.16f) && lawnHit && same(beside, 3.53f) && underHit && same(under, 3.53f) && !offHit,
+           "blocks: the level ground (%d %.2f on the deck, %d %.2f beside it, %d %.2f under 4 m, %d off the parcel)", deckHit, onDeck, lawnHit, beside, underHit, under,
+           offHit);
+    {   // a pad across a cell's edge (x = 256) answers on both sides of it, and a draped polygon never does
+        HandBlocks edge;
+        GroundPoly pad;
+        pad.kind = GK_CONCRETE;
+        pad.flat = 1;
+        pad.z = 6.f;
+        pad.poly = {vec2(250.f, 100.f), vec2(262.f, 100.f), vec2(262.f, 110.f), vec2(250.f, 110.f)};
+        edge.ground.push_back(pad);
+        GroundPoly draped = pad;
+        draped.flat = 0;
+        draped.z = 9.f;
+        draped.poly = {vec2(300.f, 100.f), vec2(310.f, 100.f), vec2(310.f, 110.f)};
+        edge.ground.push_back(draped);
+        edge.index();
+        float left = 0.f, right = 0.f, dz = 0.f;
+        const bool l = edge.padHeight(vec2(255.f, 105.f), &left, 100.f), r = edge.padHeight(vec2(259.f, 105.f), &right, 100.f),
+                   d = edge.padHeight(vec2(307.f, 102.f), &dz, 100.f);
+        EXPECT(l && same(left, 6.f) && r && same(right, 6.f) && !d && edge.groundByCell.size() == edge.levelByCell.size(),
+               "blocks: a pad across a cell's edge (%d %d), a draped polygon (%d)", l, r, d);
+    }
     // damaged: refused with a reason, nothing read; none: empty
     std::vector<u8> payload;
     EXPECT(view.bytes("blocks", payload) && payload.size() > 40, "blocks: the section's bytes");
@@ -642,6 +673,59 @@ static void testBlocks() {
     map.flattenPoly({vec2(-20.f, -20.f), vec2(20.f, -20.f), vec2(20.f, 20.f), vec2(-20.f, 20.f)}, 5.f, 16.f);
     const float in = map.heightAt(0.f, 0.f), out1 = map.heightAt(60.f, 0.f), mid = map.heightAt(28.f, 0.f);
     EXPECT(same(in, 5.f) && same(out1, 3.f) && mid > 3.05f && mid < 4.95f, "blocks: the parcel levelled %.2f inside, %.2f beyond, %.2f between", in, out1, mid);
+}
+
+// A world without roads whose one parcel only grades the terrain (grade= and blend=, without ground, paint, pads or
+// dressing): its grading is still written ("terrain.grade"), the parcel at its grade and the terrain elsewhere as baked.
+// With nothing at all, nothing is written.
+static void testGradeOnly() {
+    const std::string block =
+        "ntw 1 block id=cl.b001 district=cl\n"
+        "parcel cl.b001.p01 poly=100.00,100.00;140.00,100.00;140.00,130.00;100.00,130.00 use=vacant grade=5.00 blend=4.00\n"
+        "end\n";
+    Model m;
+    std::vector<Error> errors;
+    const bool ok = loadTexts({{"block.ntw", block}, {"world.ntw", "ntw 1 world\nworld palmera name=\"P\"\ndistrict cl name=\"C\"\n"}}, m, errors);
+    BlocksOut out;
+    const bool compiled = ok && compileBlocks(m, out, errors);
+    EXPECT(compiled && out.pads.size() == 1 && out.blocks.ground.empty() && out.blocks.props.empty() && out.blocks.lamps.empty(),
+           "grade only: the parcel compiles to a pad alone (%zu pads, %zu ground)", out.pads.size(), out.blocks.ground.size());
+    if (!compiled) printErrors(m, errors);
+    BakedTerrain baked;   // the game's grid, level at 3 m, dry
+    baked.ok = true;
+    baked.res = kHeightRes;
+    baked.cell = kHeightCell;
+    baked.originX = baked.originY = -kWorldHalf;
+    baked.heightUnit = 0.01f;
+    baked.height.assign((size_t)kHeightRes * kHeightRes, (i16)300);
+    baked.water.assign(baked.height.size(), (i16)0);
+    const RoadNetwork none;
+    WorldBinWriter w;
+    std::string why, report;
+    const bool placed = placeOnTerrain(baked, none, {}, out, w, &why, &report);
+    const std::vector<u8> bin = w.finish();
+    WorldBinView view;
+    std::vector<i16> delta;
+    GridInfo info;
+    const WorldBinView::Section* grade = placed && view.open(bin.data(), bin.size(), &why) ? view.find("terrain.grade") : nullptr;
+    const bool written = grade && grade->kind == WSK_GRID && decodeGrid(grade->data, grade->size, delta, &info) && info.width == kHeightRes &&
+                         info.height == kHeightRes && delta.size() == baked.height.size();   // (as the game reads it: handworld.cpp)
+    EXPECT(written && report.find("and parcels") != std::string::npos, "grade only: terrain.grade written (%s; %s)", why.c_str(), report.c_str());
+    if (written) {
+        const auto at = [&](float x, float y) {
+            const int i = (int)floorf((x + kWorldHalf) / kHeightCell), j = (int)floorf((y + kWorldHalf) / kHeightCell);
+            return (int)delta[(size_t)j * kHeightRes + (size_t)i];
+        };
+        EXPECT(at(120.f, 115.f) == 200 && at(-5000.f, 5000.f) == 0, "grade only: %d under the parcel (200: 2 m up to its grade), %d far from it", at(120.f, 115.f),
+               at(-5000.f, 5000.f));
+    }
+    BlocksOut empty;
+    WorldBinWriter w2;
+    const bool nothing = placeOnTerrain(baked, none, {}, empty, w2, &why, &report);
+    const std::vector<u8> bin2 = w2.finish();
+    WorldBinView view2;
+    EXPECT(nothing && view2.open(bin2.data(), bin2.size(), &why) && !view2.find("terrain.grade") && !view2.find("blocks") && report.empty(),
+           "grade only: with nothing to grade, nothing written");
 }
 
 static void testErrors() {
@@ -1277,6 +1361,7 @@ int main() {
     testGrade();
     testDeckEnds();
     testBlocks();
+    testGradeOnly();
     testErrors();
     testRoadsSection();
     testRoadOverrides();

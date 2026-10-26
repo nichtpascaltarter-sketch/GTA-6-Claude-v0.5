@@ -1,7 +1,8 @@
 // The hand-built world's blocks as the game uses them (docs/HANDBUILT_WORLD.md section 4.5): the ground's paint and
 // pads, and the dressing (trees, plants, street furniture and lights). tools/worldc.cpp compiles them from the block
 // files into world.bin's "blocks" section (worldmodel.h compileBlocks), with every height already on the graded terrain;
-// the game reads them back in hand mode (handworld.cpp), and generateCell draws each cell's share (cellgen.cpp).
+// the game reads them back in hand mode (handworld.cpp), generateCell draws each cell's share (cellgen.cpp), and
+// RoadNetwork::surfaceHeight stands people and vehicles on the level ground (padHeight).
 //
 // Section "blocks" (WSK_LZ), little-endian:
 //   version u32 (kBlocksSectionVersion)
@@ -36,9 +37,36 @@ struct HandBlocks {
     std::vector<LightInstance> lamps;
     std::vector<u8> lampSched;         // per lamp: its RoomSchedule (roomlight.h), for the renderer's switching later
 
-    // Each cell's share (index cy * kCellsPerSide + cx): a polygon by its centroid, a prop or a lamp by its position
-    std::vector<std::vector<int>> groundByCell, propsByCell, lampsByCell;
+    // Each cell's share (index cy * kCellsPerSide + cx): a polygon by its centroid, a prop or a lamp by its position.
+    // And the level ground (the flat polygons: pads, decks, levelled parcels and their paint) by every cell its outline
+    // reaches, edges included, for padHeight
+    std::vector<std::vector<int>> groundByCell, propsByCell, lampsByCell, levelByCell;
     void index();
+
+    // The level ground's top at p: the highest flat polygon covering p whose z is at or below maxZ. False where none
+    // does (the terrain, the roads and the sites answer there). A raised pad then has a step at its edge, which people
+    // and vehicles climb or are stopped by as at a kerb.
+    bool padHeight(vec2 p, float* z, float maxZ) const {
+        const int cx = (int)floorf((p.x + kWorldHalf) / kCellSize), cy = (int)floorf((p.y + kWorldHalf) / kCellSize);
+        if (cx < 0 || cy < 0 || cx >= kCellsPerSide || cy >= kCellsPerSide || levelByCell.empty()) return false;
+        bool found = false;
+        float best = -1e9f;
+        for (int gi : levelByCell[(size_t)cy * kCellsPerSide + cx]) {
+            const GroundPoly& g = ground[(size_t)gi];
+            if (g.z > maxZ || g.z <= best) continue;
+            bool in = false;   // (even-odd)
+            for (size_t i = 0, j = g.poly.size() - 1; i < g.poly.size(); j = i++) {
+                const vec2 a = g.poly[i], b = g.poly[j];
+                if ((a.y > p.y) != (b.y > p.y) && p.x < a.x + (p.y - a.y) * (b.x - a.x) / (b.y - a.y)) in = !in;
+            }
+            if (in) {
+                best = g.z;
+                found = true;
+            }
+        }
+        if (found) *z = best;
+        return found;
+    }
 };
 
 // Adds "blocks" (nothing when `blocks` is empty)

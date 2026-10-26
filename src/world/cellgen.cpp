@@ -554,6 +554,28 @@ void groundTri(const WorldMap& map, const GroundPoly& g, vec2 a, vec2 b, vec2 c,
     m.tri(idx[0], idx[1], idx[2]);
 }
 
+// A level polygon's sides, where it stands 10 cm or more above the terrain (a raised pad or deck): from its top down
+// into the ground along each edge, so the step that the ground query gives it (padHeight) is seen
+void groundSides(const WorldMap& map, const GroundPoly& g, vec3 org, u32 color, MeshData& m) {
+    const size_t n = g.poly.size();
+    if (!g.flat || n < 3) return;
+    float area = 0.f;
+    for (size_t i = 0, j = n - 1; i < n; j = i++) area += g.poly[j].x * g.poly[i].y - g.poly[i].x * g.poly[j].y;
+    const u32 mat = g.kind == GK_DECK ? makeMat(MAT_WOOD) : makeMat(MAT_CONCRETE);
+    for (size_t i = 0; i < n; i++) {
+        const vec2 a = g.poly[i], b = g.poly[(i + 1) % n];
+        const vec2 d = b - a;
+        const float len = length(d);
+        if (len < 0.01f) continue;
+        const float ga = map.heightAt(a.x, a.y), gb = map.heightAt(b.x, b.y);
+        if (g.z < Min(ga, gb) + 0.1f) continue;
+        const vec2 outward = (area > 0.f ? vec2(d.y, -d.x) : vec2(-d.y, d.x)) * (1.f / len);
+        const vec3 ta(a, g.z), tb(b, g.z), ba(a, Min(ga, g.z) - 0.05f), bb(b, Min(gb, g.z) - 0.05f);
+        m.quadFacing(ba - org, bb - org, tb - org, ta - org, vec2(0.f, 0.f), vec2(len, 0.f), vec2(len, g.z - bb.z), vec2(0.f, g.z - ba.z), color, mat,
+                     vec3(outward, 0.f));
+    }
+}
+
 }  // namespace handblocks_detail
 
 // A cell's share of the hand-built world's blocks: the ground's paint and pads (every LOD; draped polygons follow the
@@ -570,6 +592,7 @@ void buildHandBlocksCell(const HandBlocks& hb, const WorldMap& map, int cx, int 
         const u32 mat = groundMaterial(g.kind);
         const u32 color = g.kind == GK_PLANTING ? packRGBA8(0.55f, 0.45f, 0.38f, 1.f) : packRGBA8(1.f, 1.f, 1.f, 1.f);
         for (size_t t = 0; t + 2 < tris.size(); t += 3) groundTri(map, g, tris[t], tris[t + 1], tris[t + 2], detail ? 4.f : 1e9f, org, color, mat, out.opaque, 0);
+        groundSides(map, g, org, packRGBA8(1.f, 1.f, 1.f, 1.f), out.opaque);
     }
     if (!detail) return;
     for (int pi : hb.propsByCell[cell]) out.props.push_back(hb.props[(size_t)pi]);

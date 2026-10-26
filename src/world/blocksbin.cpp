@@ -37,12 +37,26 @@ void HandBlocks::index() {
     groundByCell.assign(cells, {});
     propsByCell.assign(cells, {});
     lampsByCell.assign(cells, {});
+    levelByCell.assign(cells, {});
     for (size_t i = 0; i < ground.size(); i++) {
         vec2 c(0.f);
         for (const vec2& p : ground[i].poly) c += p;
         if (ground[i].poly.empty()) continue;
         const int k = cellOf(c * (1.f / (float)ground[i].poly.size()));
         if (k >= 0) groundByCell[(size_t)k].push_back((int)i);
+        if (!ground[i].flat || ground[i].poly.size() < 3) continue;
+        // the level ground: in every cell its outline's box reaches, a little past its edges
+        vec2 lo(1e30f), hi(-1e30f);
+        for (const vec2& p : ground[i].poly) {
+            lo = vmin(lo, p);
+            hi = vmax(hi, p);
+        }
+        const int x0 = Clamp((int)floorf((lo.x - 0.05f + kWorldHalf) / kCellSize), 0, kCellsPerSide - 1),
+                  x1 = Clamp((int)floorf((hi.x + 0.05f + kWorldHalf) / kCellSize), 0, kCellsPerSide - 1);
+        const int y0 = Clamp((int)floorf((lo.y - 0.05f + kWorldHalf) / kCellSize), 0, kCellsPerSide - 1),
+                  y1 = Clamp((int)floorf((hi.y + 0.05f + kWorldHalf) / kCellSize), 0, kCellsPerSide - 1);
+        for (int y = y0; y <= y1; y++)
+            for (int x = x0; x <= x1; x++) levelByCell[(size_t)y * kCellsPerSide + x].push_back((int)i);
     }
     for (size_t i = 0; i < props.size(); i++) {
         const int k = cellOf(props[i].pos.xy());

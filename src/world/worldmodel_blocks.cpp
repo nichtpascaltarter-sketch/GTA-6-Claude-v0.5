@@ -1,7 +1,9 @@
 // The blocks compile (worldmodel.h compileBlocks): parcels, plazas and dressing into the game's blocks (blocksbin.h).
 #include "worldmodel.h"
 #include "catalogcodes.h"
+#include "gridcodec.h"
 #include "roomlight.h"
+#include "worldmap.h"
 #include "../core/rng.h"
 #include <cmath>
 #include <cstdio>
@@ -146,6 +148,69 @@ bool compileBlocks(const Model& model, BlocksOut& out, std::vector<Error>& error
         hb.props.push_back(pi);
     }
     return errors.size() == errorsBefore;
+}
+
+bool placeOnTerrain(const BakedTerrain& baked, const RoadNetwork& roads, const std::vector<std::vector<vec2>>& decks, BlocksOut& blocks,
+                    WorldBinWriter& out, std::string* error, std::string* report) {
+    HandBlocks& hb = blocks.blocks;
+    if (report) report->clear();
+    // (a parcel that only grades the terrain, with no ground or dressing, is still something to do: its pad)
+    if (roads.edges.empty() && hb.ground.empty() && hb.props.empty() && hb.lamps.empty() && blocks.pads.empty()) return true;
+    const auto fail = [error](const char* why) {
+        if (error) *error = why;
+        return false;
+    };
+    if (!baked.ok || baked.res != kHeightRes || baked.cell != kHeightCell || baked.originX != -kWorldHalf || baked.originY != -kWorldHalf ||
+        baked.height.size() != (size_t)kHeightRes * kHeightRes || baked.water.size() != baked.height.size())
+        return fail("the roads and blocks can't be graded into the terrain: its grid isn't the game's");
+    const size_t n = baked.height.size();
+    WorldMap map;
+    map.height.resize(n);
+    map.waterLevel.resize(n);
+    for (size_t i = 0; i < n; i++) {
+        map.height[i] = (float)baked.height[i] * baked.heightUnit;
+        const int c = baked.water[i];
+        map.waterLevel[i] = c <= 0 || c > (int)baked.levels.size() ? kNoWater : baked.levels[(size_t)c - 1];
+    }
+    for (const BlockPad& p : blocks.pads) map.flattenPoly(p.poly, p.z, p.blend);
+    gradeTerrainForRoads(roads, map, &decks);
+    std::vector<i16> delta(n, 0);
+    size_t changed = 0;
+    float largest = 0.f;
+    for (size_t i = 0; i < n; i++) {
+        const int bakedZ = baked.height[i];
+        const int graded = Clamp((int)floorf(map.height[i] / baked.heightUnit + 0.5f), -32768, 32767);
+        delta[i] = (i16)Clamp(graded - bakedZ, -32768, 32767);
+        if (delta[i] != 0) changed++;
+        largest = Max(largest, fabsf((float)delta[i] * baked.heightUnit));
+    }
+    std::vector<u8> bytes;
+    if (!encodeGrid(delta.data(), kHeightRes, kHeightRes, GRID_I16, bytes)) return fail("the graded terrain doesn't encode");
+    out.add("terrain.grade", WSK_GRID, bytes);
+    if (report) {
+        char line[200];
+        snprintf(line, sizeof(line), "worldc: terrain graded under the roads%s: %zu texels changed, by up to %.2f m (%zu KB)", blocks.pads.empty() ? "" : " and parcels",
+                 changed, largest, bytes.size() / 1024);
+        *report = line;
+    }
+    // the blocks on the graded ground: the graded heights as the game will have them (to the height layer's unit)
+    for (size_t i = 0; i < n; i++) map.height[i] = (float)(baked.height[i] + delta[i]) * baked.heightUnit;
+    const auto groundAt = [&](vec2 p) {
+        const float g = map.heightAt(p.x, p.y);
+        float s = 0.f;
+        return !roads.edges.empty() && roads.roadSurfaceHeight(p, &s, g + 3.f) && s > g ? s : g;
+    };
+    for (PropInstance& p : hb.props) p.pos.z += groundAt(p.pos.xy());
+    for (size_t i = 0; i < hb.lamps.size() && i < blocks.lampGroundAt.size(); i++) hb.lamps[i].pos.z += groundAt(blocks.lampGroundAt[i]);
+    for (size_t i = 0; i < hb.ground.size() && i < blocks.groundOnTerrain.size(); i++) {
+        if (!blocks.groundOnTerrain[i]) continue;
+        vec2 c(0.f);
+        for (const vec2& q : hb.ground[i].poly) c += q;
+        c = c * (1.f / (float)hb.ground[i].poly.size());
+        hb.ground[i].z += map.heightAt(c.x, c.y);
+    }
+    writeBlocks(hb, out);
+    return true;
 }
 
 }  // namespace Hand

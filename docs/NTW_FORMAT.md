@@ -373,7 +373,7 @@ Header: `id` id req, `district` id req.
 | `parcel` | req | yes: `paint`, `fence`, `pad` | `poly` points 2 req, `use` word `residential`/`commercial`/`mixed`/`industrial`/`civic`/`park`/`parking`/`vacant` req, `grade` number 2 (pad height), `blend` number 2 (m), `ground` word (its default ground: `lawn`, `paving`, `gravel`, `dirt`, `sand`, `planting`), `front` compound `<edge>:<side>` |
 | `paint` | none | no | `kind` word (as `ground`) req, `poly` points 2 req |
 | `fence` | none | no | `kind` reference req, `line` points 2 req, `gate` compound `<at>:<width>` (2): a gate at that distance along the line |
-| `pad` | none | no | `poly` points 2 req, `z` number 2 req, `kind` word `paving`/`concrete`/`deck` req: a level slab in the parcel |
+| `pad` | none | no | `poly` points 2 req, `z` number 2 req, `kind` word `paving`/`concrete`/`deck` req: a level slab in the parcel, which people and vehicles stand on; raised, its sides are a step at its edge |
 | `plaza` | optional | no | `poly` points 2 req, `ground` word, `tags` list: an open paved area where people mill about; the walk graph crosses it on its paths |
 | `path` | req | no | `line` points 2 req, `w` number 2 req, `kind` word `walk`/`plaza`/`alley`/`trail`/`boardwalk`/`footbridge`/`underpass` req, `profile` compound `s:z;...` (2): the height along it, for footbridges and underpasses |
 | `steps` | none | no | `line` points 2 req (from the bottom), `w` number 2 req, `treads` integer, `rise` number 2: outdoor steps (plazas, porches), climbed a tread at a time |

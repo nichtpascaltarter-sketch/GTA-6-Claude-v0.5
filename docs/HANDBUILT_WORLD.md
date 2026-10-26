@@ -604,7 +604,9 @@ They are Python, run with `-I`, and never ship. The game doesn't know they exist
   as a delta on the bake in world.bin's `terrain.grade`. The game adds it to the baked heights at load;
 - the blocks (stage 1's part 2), with the catalog: the parcels' ground, paint and pads, the plazas, and the dressing
   (trees, plants, props and lights) in world.bin's `blocks` section (`src/world/blocksbin.h`), every height on the
-  graded ground. The parcels' grades are graded before the roads. Hand mode draws each cell's share.
+  graded ground. The parcels' grades are graded before the roads, and a parcel that only grades the terrain is graded
+  too. Hand mode draws each cell's share, a raised pad with its sides, and people and vehicles stand on the level
+  ground (pads, decks and levelled parcels: `HandBlocks::padHeight`, through `RoadNetwork::surfaceHeight`).
 
 A building, places or other library file stops the build until its compiler exists. Reference checks beyond what the
 compile needs (step 3) are worldv's, which CI runs on `world/`. The roads section stores floats for now; quantising it
