@@ -35,7 +35,7 @@ Region WorldMap::regionAt(float x, float y) const {
     return (Region)region[(size_t)iy * kHeightRes + ix];
 }
 
-void WorldMap::flattenAlong(vec2 a, vec2 b, float za, float zb, float halfWidth, float blend) {
+void WorldMap::flattenAlong(vec2 a, vec2 b, float za, float zb, float halfWidth, float blend, bool capA, bool capB) {
     float reach = halfWidth + blend;
     vec2 mn = vmin(a, b) - vec2(reach), mx = vmax(a, b) + vec2(reach);
     int x0 = Max(0, (int)floorf(worldToTexel(mn.x))), x1 = Min(kHeightRes - 1, (int)ceilf(worldToTexel(mx.x)));
@@ -46,6 +46,7 @@ void WorldMap::flattenAlong(vec2 a, vec2 b, float za, float zb, float halfWidth,
             float t;
             float d = distPointSegment2D(p, a, b, &t);
             if (d > reach) continue;
+            if ((!capA && t <= 0.f) || (!capB && t >= 1.f)) continue;   // (beyond a square end)
             float z = Lerp(za, zb, t);
             size_t idx = (size_t)ty * kHeightRes + tx;
             float k = SmoothStep(reach, halfWidth, d);
@@ -55,7 +56,7 @@ void WorldMap::flattenAlong(vec2 a, vec2 b, float za, float zb, float halfWidth,
         }
 }
 
-void WorldMap::lowerAlong(vec2 a, vec2 b, float za, float zb, float flat, float reach, float slope) {
+void WorldMap::lowerAlong(vec2 a, vec2 b, float za, float zb, float flat, float reach, float slope, bool capA, bool capB) {
     vec2 mn = vmin(a, b) - vec2(reach), mx = vmax(a, b) + vec2(reach);
     int x0 = Max(0, (int)floorf(worldToTexel(mn.x))), x1 = Min(kHeightRes - 1, (int)ceilf(worldToTexel(mx.x)));
     int y0 = Max(0, (int)floorf(worldToTexel(mn.y))), y1 = Min(kHeightRes - 1, (int)ceilf(worldToTexel(mx.y)));
@@ -65,6 +66,7 @@ void WorldMap::lowerAlong(vec2 a, vec2 b, float za, float zb, float flat, float 
             float t;
             float d = distPointSegment2D(p, a, b, &t);
             if (d > reach) continue;
+            if ((!capA && t <= 0.f) || (!capB && t >= 1.f)) continue;
             float z = Lerp(za, zb, t) + Max(0.f, d - flat) * slope;
             size_t idx = (size_t)ty * kHeightRes + tx;
             if (height[idx] > z) height[idx] = z;

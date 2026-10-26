@@ -591,6 +591,9 @@ static void testRoads() {
     const std::string piece = after + "node cl.n0020 at=2000.00,600.00 z=3.00\nnode cl.n0021 at=2100.00,600.00 z=3.00\n"
                                       "edge cl.e0027 from=cl.n0020 to=cl.n0021 class=street lanes=1/1 shape=2000.00,600.00;2100.00,600.00\nend\n";
     const std::string lone = after + "node cl.n0020 at=2000.00,600.00 z=3.00\n";
+    // a second street between cl.n0015 and cl.n0018, east of cl.e0023
+    const std::string parallel = after + "edge cl.e0027 from=cl.n0015 to=cl.n0018 class=street lanes=1/1\n"
+                                          "  shape=1800.00,365.50;1860.00,380.00;1860.00,470.00;1800.00,481.00\nend\n";
     const char* skewed = "shape=1600.00,365.50;1600.00,481.00";
     const char* skewedTo = "shape=1600.00,365.50;1560.00,380.00;1600.00,481.00";
     const char* bus9 = "ntw 1 transit line=bus.9 kind=bus name=\"9 Test\"\nroute edges=cl.e0011,cl.e0007\n";
@@ -648,6 +651,17 @@ static void testRoads() {
         {"a route through a banned turn", {{R, "  connect from=cl.e0011:0 to=cl.e0007:0 turn=right\n", "  connect from=cl.e0011:0 to=cl.e0007:0 turn=right\n  ban from=cl.e0011 to=cl.e0007\n"}},
          {"transit/bus.8.ntw:2 transit.route"}},
         {"a route through a turn a custom junction doesn't connect", {{R, "  connect from=cl.e0011:0 to=cl.e0007:0 turn=right\n", ""}}, {"transit/bus.8.ntw:2 transit.route"}},
+        // the route walked edge to edge: where it enters an edge says where it leaves it, and the next edge starts there
+        // (a direction once known isn't changed by the pair after it)
+        {"a route that goes on from the junction it has left", {{T, "edges=cl.e0011,cl.e0007", "edges=cl.e0011,cl.e0007,cl.e0013"}},
+         {"transit/bus.8.ntw:2 transit.route"}},
+        {"a route on through the same junction", {{T, "edges=cl.e0011,cl.e0007", "edges=cl.e0011,cl.e0007,cl.e0009"}}, {}},
+        {"a one-way street the route runs against, then a street it doesn't reach",
+         {{R, "lanes=1/1 shape=1600.00,365.50;1600.00,481.00", "lanes=1/0 shape=1600.00,365.50;1600.00,481.00"},
+          {T, "edges=cl.e0011,cl.e0007", "edges=cl.e0007,cl.e0019,cl.e0021,cl.e0019"}},
+         {"transit/bus.8.ntw:2 transit.route", "transit/bus.8.ntw:2 transit.route"}},
+        {"a route over two streets between the same two nodes, its way known from the next street",
+         {{R, lastEdge, parallel.c_str()}, {T, "edges=cl.e0011,cl.e0007", "edges=cl.e0023,cl.e0027,cl.e0023,cl.e0011,cl.e0007"}}, {}},
         {"a stop on the far kerb", {{R, "busstop cl.bus.08 at=40.00 side=right", "busstop cl.bus.08 at=40.00 side=left"}}, {"transit/bus.8.ntw:3 transit.stop"}},
         {"a stop whose routes= names another line", {{R, "routes=bus.8", "routes=bus.9"}, {"transit/bus.9.ntw", nullptr, bus9}},
          {"transit/bus.8.ntw:3 transit.stop", "districts/cl/roads.ntw:13 transit.stop"}},
@@ -694,6 +708,15 @@ static void testRoads() {
                 found = d.severity == SEV_WARNING && d.line == 2 &&
                         d.message == "node cl.n0012: it has 3 legs (n, e and w), and plan lib.signal.4way_proleft suits junctions of 4: its greens and walks for the south leg go unused";
         EXPECT(found, "a T junction on a 4-way plan");
+        fs::remove_all(world.parent_path());
+    }
+    {   // a route that goes on from the junction it has left: the message says where the route is
+        const fs::path world = copyWorld("roads_route");
+        EXPECT(apply(world, {T, "edges=cl.e0011,cl.e0007", "edges=cl.e0011,cl.e0007,cl.e0013"}), "edit");
+        bool found = false;
+        for (const Diagnostic& d : runWorld(world.generic_string()))
+            found = found || (d.check == "transit.route" && d.message == "line bus.8: the route leaves cl.e0007 at cl.n0013, where cl.e0013 doesn't start");
+        EXPECT(found, "the route's message");
         fs::remove_all(world.parent_path());
     }
     // the summary line, in a world run with roads only

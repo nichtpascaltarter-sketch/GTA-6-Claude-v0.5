@@ -645,29 +645,64 @@ void transitChecks(const Model& m, Out& o) {
         if (t.routeEdges.empty()) continue;
         const Src routeAt = t.routeEdges.front().src;
         const std::string what = "line " + t.id + ": ";
-        // the direction of each pass: +1 fwd (from node to to node), -1 bwd, 0 unknown
+        // The direction of each pass: +1 fwd (from node to to node), -1 bwd, 0 unknown. The route is walked edge to edge:
+        // once it is known where the route enters an edge, it leaves by the other end, and the next edge must start
+        // there; a direction once known is never changed. Where it isn't known (the first edge, after a break), the node
+        // an edge shares with the next one says where the route leaves it: one shared node does, two (two edges between
+        // the same nodes) leave it open until the next pair says.
         std::vector<int> dir(t.routeEdges.size(), 0);
-        for (size_t i = 0; i + 1 < t.routeEdges.size(); i++) {
-            const int a = t.routeEdges[i].target, b = t.routeEdges[i + 1].target;
-            if (a < 0 || b < 0 || a == b) continue;
-            const Edge &ea = m.edges[(size_t)a], &eb = m.edges[(size_t)b];
-            const bool toTo = ea.to.target >= 0 && (ea.to.target == eb.from.target || ea.to.target == eb.to.target);
-            const bool fromTo = ea.from.target >= 0 && (ea.from.target == eb.from.target || ea.from.target == eb.to.target);
-            if (!toTo && !fromTo) {
-                o.error(routeAt, "transit.route", what + "the route goes from " + ea.id + " to " + eb.id + ", which don't meet");
-                continue;
-            }
-            if (toTo == fromTo) continue;   // (two edges between the same nodes: either way)
-            dir[i] = toTo ? 1 : -1;
-            const int shared = toTo ? ea.to.target : ea.from.target;
-            dir[i + 1] = eb.from.target == shared ? 1 : -1;   // (the next pair sets it again from where the route leaves it)
-            const Junction* j = junctionOf(m, shared);
-            const std::string turn = "the route turns from " + ea.id + " into " + eb.id + " at " + m.nodes[(size_t)shared].id;
+        const auto turnCheck = [&](int a, int b, int node) {
+            if (a == b) return;   // (a U-turn on one edge)
+            const Junction* j = junctionOf(m, node);
+            const std::string turn = "the route turns from " + m.edges[(size_t)a].id + " into " + m.edges[(size_t)b].id + " at " + m.nodes[(size_t)node].id;
             if (banned(j, a, b)) o.error(routeAt, "transit.route", what + turn + ", which its junction bans");
             else if (j && j->turns == "custom") {
                 bool connect = false;
                 for (const Junction::Connect& c : j->connects) connect = connect || (c.fromEdge.target == a && c.toEdge.target == b);
                 if (!connect) o.error(routeAt, "transit.route", what + turn + ", and the junction takes only its connect records (turns=custom), none of them that turn");
+            }
+        };
+        int at = -1;   // the node the route has reached, -1: not known
+        for (size_t i = 0; i < t.routeEdges.size(); i++) {
+            const int a = t.routeEdges[i].target;
+            if (a < 0) {
+                at = -1;
+                continue;
+            }
+            const Edge& ea = m.edges[(size_t)a];
+            if (at >= 0) {
+                const int prev = t.routeEdges[i - 1].target;   // (at >= 0: the edge before is known)
+                if (ea.from.target == at || ea.to.target == at) {
+                    dir[i] = ea.from.target == at ? 1 : -1;
+                    turnCheck(prev, a, at);
+                    at = ea.from.target == at ? ea.to.target : ea.from.target;
+                    continue;
+                }
+                o.error(routeAt, "transit.route", what + "the route leaves " + m.edges[(size_t)prev].id + " at " + m.nodes[(size_t)at].id + ", where " + ea.id + " doesn't start");
+                at = -1;   // (and this edge's way is read afresh from the next one)
+            }
+            const int b = i + 1 < t.routeEdges.size() ? t.routeEdges[i + 1].target : -1;
+            if (b < 0 || b == a) continue;
+            const Edge& eb = m.edges[(size_t)b];
+            const bool leaveTo = ea.to.target >= 0 && (ea.to.target == eb.from.target || ea.to.target == eb.to.target);
+            const bool leaveFrom = ea.from.target >= 0 && (ea.from.target == eb.from.target || ea.from.target == eb.to.target);
+            if (!leaveTo && !leaveFrom) {
+                o.error(routeAt, "transit.route", what + "the route goes from " + ea.id + " to " + eb.id + ", which don't meet");
+                continue;
+            }
+            if (leaveTo && leaveFrom) continue;   // (two edges between the same nodes: either way, for now)
+            dir[i] = leaveTo ? 1 : -1;
+            at = leaveTo ? ea.to.target : ea.from.target;
+            // the edge before, if its way was left open (it and this one join the same two nodes): it ends where this
+            // one starts
+            const int entry = leaveTo ? ea.from.target : ea.to.target;
+            const int prev = i > 0 ? t.routeEdges[i - 1].target : -1;
+            if (prev >= 0 && prev != a && dir[i - 1] == 0) {
+                const Edge& ep = m.edges[(size_t)prev];
+                if (ep.from.target == entry || ep.to.target == entry) {
+                    dir[i - 1] = ep.to.target == entry ? 1 : -1;
+                    turnCheck(prev, a, entry);
+                }
             }
         }
         for (size_t i = 0; i < t.routeEdges.size(); i++) {

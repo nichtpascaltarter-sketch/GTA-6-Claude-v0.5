@@ -459,6 +459,48 @@ static void testGrade() {
     EXPECT(plain.heightAt(0.f, 84.f) < 5.f, "grade: without the decks the hill stays (%.2f)", plain.heightAt(0.f, 84.f));
 }
 
+// A deck whose ends fall inside a segment (Codex's case on PR #57): a straight 200 m street with no other points and a deck
+// from 90 to 110 m, on ground at 9 m. Before, the grading judged the whole segment by its midpoint, on the deck, and left
+// the road buried for all 200 m. Now the ground is graded off the deck on both sides, and nothing under it changes.
+static void testDeckEnds() {
+    const std::string roads =
+        "ntw 1 roads district=cl\n"
+        "node cl.n0001 at=0.00,0.00 z=4.00\n"
+        "node cl.n0002 at=200.00,0.00 z=4.00\n"
+        "edge cl.e0001 from=cl.n0001 to=cl.n0002 class=street lanes=1/1 shape=0.00,0.00;200.00,0.00\n"
+        "  deck from=90.00 to=110.00 kind=bridge\n"
+        "end\n";
+    Model m;
+    std::vector<Error> errors;
+    const bool ok = loadTexts({{"roads.ntw", roads}, {"world.ntw", "ntw 1 world\nworld palmera name=\"P\"\ndistrict cl name=\"C\"\n"}}, m, errors);
+    RoadNetwork rn;
+    RoadIndex ix;
+    if (!ok || !compileRoads(m, rn, ix, errors) || rn.edges.size() != 1 || rn.edges[0].pts.size() != 2) {
+        EXPECT(false, "deck ends: the test street compiles, one segment");
+        printErrors(m, errors);
+        return;
+    }
+    std::vector<std::vector<vec2>> decks(1);
+    for (const Deck& d : m.edges[(size_t)ix.edgeOf[0]].decks) decks[0].push_back(vec2(d.from, d.to));
+    WorldMap map;
+    const size_t n = (size_t)kHeightRes * kHeightRes;
+    map.height.assign(n, 9.f);
+    map.waterLevel.assign(n, kNoWater);
+    gradeTerrainForRoads(rn, map, &decks);
+    const float at50 = map.heightAt(50.f, 0.f), at150 = map.heightAt(150.f, 0.f);
+    EXPECT(same(at50, 3.7f, 0.01f) && same(at150, 3.7f, 0.01f), "deck ends: graded off the deck: %.2f at s=50, %.2f at s=150", at50, at150);
+    // every texel whose centre is under the deck (90 to 110 m along it), across the street and its blends: untouched
+    int changed = 0, under = 0;
+    for (int ty = (int)worldToTexel(-40.f); ty <= (int)worldToTexel(40.f); ty++)
+        for (int tx = (int)worldToTexel(80.f); tx <= (int)worldToTexel(120.f); tx++) {
+            const float x = texelToWorld(tx);
+            if (x < 90.f || x > 110.f) continue;
+            under++;
+            changed += map.height[(size_t)ty * kHeightRes + tx] != 9.f;
+        }
+    EXPECT(under > 0 && changed == 0, "deck ends: %d of %d texels under the deck changed", changed, under);
+}
+
 static void testErrors() {
     const std::string roads =
         "ntw 1 roads district=cl\n"
@@ -784,6 +826,7 @@ int main() {
     testCompile();
     testProfilePoints();
     testGrade();
+    testDeckEnds();
     testErrors();
     testRoadsSection();
     testRoomLight();
