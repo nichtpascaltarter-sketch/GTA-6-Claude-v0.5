@@ -2,6 +2,7 @@
 #include "roads.h"
 #include "buildings.h"
 #include "sites.h"
+#include "handworld.h"
 #include "../render/mesh.h"
 #include "worldtypes.h"
 
@@ -72,6 +73,8 @@ struct RoadCellOutput {
     std::vector<CollisionBox> collision;  // deck parapets, guardrails, railings, street furniture
     MeshData street;    // LOD0-only street dressing: overhead lines, span wires, strain poles, tree grates, road plates
     bool detail = true; // LOD0 cell: furniture, props, lights and street dressing are built
+    bool dressing = true;   // the procedural street dressing (furniture, trees, street lights, utility lines, works zones);
+                            // off in the hand-built world, whose block files place them (docs/HANDBUILT_WORLD.md, D2)
 };
 
 // Oriented collision slab along a road segment: lateral band [lat0, lat1] (right = +), from z0 to z0 + h above the road
@@ -880,8 +883,9 @@ void dressCell(const RoadNetwork& net, const WorldMap& map, int cx, int cy, cons
 }  // namespace street_dressing
 
 // Road works query for the gameplay layer (parked-car spawns, traffic): true inside a works zone's closed parking strip.
+// The works zones are procedural dressing, so the hand-built world has none.
 bool roadWorkZoneAt(vec2 p) {
-    if (!gRoads || !gMap) return false;
+    if (!gRoads || !gMap || isHandWorld()) return false;
     float s = 0.f, d = 0.f, sideL = 0.f;
     int ei = gRoads->nearestEdge(p, 14.f, &s, &d, &sideL);
     if (ei < 0) return false;
@@ -1376,7 +1380,7 @@ void buildRoadCell(const RoadNetwork& net, const WorldMap& map, int cx, int cy, 
     }
     // ---------------------------------------------------------------- Street furniture, trees, utility lines (LOD0)
     // (wider candidate set: a boulevard just outside the cell still has its outer sidewalk inside it)
-    if (out.detail) {
+    if (out.detail && out.dressing) {
         std::vector<int> dcand;
         net.edgesInRect(org - vec2(24.f), org + vec2(kCellSize + 24.f), dcand);
         street_dressing::dressCell(net, map, cx, cy, dcand, out);

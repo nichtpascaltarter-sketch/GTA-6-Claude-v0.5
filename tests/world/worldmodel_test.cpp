@@ -2,7 +2,8 @@
 // - discovery, and the loader on the format's samples (tests/world/fixtures/samples, each kind typed);
 // - a two-district world (tests/world/fixtures/model, worldv-clean): the tables, their order, the references;
 // - the findings on broken input (codes and lines), and files that don't parse or break the schema;
-// - the roads compile: widths, heights, flags, junction radii, cut-backs and control, seeds, the spatial hash;
+// - the roads compile: widths, heights, flags, junction radii, cut-backs and control, seeds, the spatial hash, and
+//   the points a profile adds; the terrain graded under the roads (src/world/roadgrade.cpp), decks left alone;
 // - the roads through world.bin (src/world/roadsbin.h): back exactly as written, and damaged sections refused;
 // - the rooms' light state (src/world/roomlight.h): fixed test vectors, which the renderer's HLSL copy must match too,
 //   and the schedules' properties.
@@ -14,6 +15,8 @@
 #include "../../src/world/ntw.cpp"
 #include "../../src/world/ntwschema.cpp"
 #include "../../src/world/roadnet.cpp"
+#include "../../src/world/terrainops.cpp"
+#include "../../src/world/roadgrade.cpp"
 #include "../../src/world/worldmodel.cpp"
 #include "../../src/world/worldmodel_roads.cpp"
 #include "../../src/world/lz.cpp"
@@ -163,7 +166,8 @@ static void testSamples() {
                same(m.signals[0].phases[1].walkTime, 7.f) && same(m.signals[0].phases[2].flash, 12.f) && same(m.signals[0].phases[0].green, 14.f),
            "samples: signal plan");
     EXPECT(m.transit.size() == 1 && m.transit[0].id == "bus.8" && m.transit[0].kind == "bus" && m.transit[0].name == "8 Calle Ocho" &&
-               m.transit[0].routeEdges.size() == 2 && m.transit[0].routeEdges[0].cls == "edge" && m.transit[0].routeEdges[1].target == -1 &&
+               m.transit[0].routeEdges.size() == 2 && m.transit[0].routeEdges[0].target == -1 && m.transit[0].routeEdges[0].classes == "edge" &&
+               m.transit[0].routeEdges[1].cls == "edge" && m.transit[0].routeEdges[1].target == m.find("edge", "cl.e0007") && m.transit[0].routeEdges[1].target >= 0 &&
                m.transit[0].stops.size() == 1 && m.transit[0].stops[0].busStop.target == bs && same(m.transit[0].headway, 600.f) && same(m.transit[0].last, 23.5f),
            "samples: transit bus.8");
     EXPECT(m.places.size() == 1 && m.places[0].id == "place.mari_apartment" && m.places[0].building.text == "cl.b014.m01" && m.places[0].building.target == -1 &&
@@ -358,6 +362,102 @@ static void testCompile() {
 }
 
 // --------------------------------------------------------------------------------------------------------- findings
+
+// A profile that bends between two shape points puts a point there, so the polyline carries it: a bridge deck on a
+// straight shape, and a break between the points of a longer shape (the one on a shape point adds none)
+static void testProfilePoints() {
+    const std::string roads =
+        "ntw 1 roads district=cl\n"
+        "node cl.n0001 at=0.00,0.00 z=4.00\n"
+        "node cl.n0002 at=0.00,180.00 z=4.10\n"
+        "node cl.n0003 at=200.00,0.00 z=3.00\n"
+        "node cl.n0004 at=400.00,0.00 z=3.40\n"
+        "edge cl.e0001 from=cl.n0001 to=cl.n0002 class=boulevard lanes=2/2 shape=0.00,0.00;0.00,180.00\n"
+        "  profile=0.00:4.00;40.00:5.50;140.00:5.50;180.00:4.10\n"
+        "  deck from=30.00 to=150.00 kind=bridge\n"
+        "end\n"
+        "edge cl.e0002 from=cl.n0003 to=cl.n0004 class=street lanes=1/1 shape=200.00,0.00;300.00,0.00;400.00,0.00\n"
+        "  profile=0.00:3.00;100.00:3.20;150.00:4.00;200.00:3.40\n"
+        "end\n";
+    Model m;
+    std::vector<Error> errors;
+    const bool ok = loadTexts({{"roads.ntw", roads}, {"world.ntw", "ntw 1 world\nworld palmera name=\"P\"\ndistrict cl name=\"C\"\n"}}, m, errors);
+    RoadNetwork rn;
+    RoadIndex ix;
+    const bool compiled = ok && compileRoads(m, rn, ix, errors) && rn.edges.size() == 2;
+    EXPECT(compiled, "profile points: the test roads compile");
+    if (!compiled) {
+        printErrors(m, errors);
+        return;
+    }
+    const RoadEdge& deck = rn.edges[0];
+    EXPECT(deck.pts.size() == 4 && same(deck.pts[1].y, 40.f) && same(deck.pts[1].z, 5.5f) && same(deck.pts[2].y, 140.f) && same(deck.pts[2].z, 5.5f) &&
+               same(deck.pts[3].z, 4.1f) && same(deck.dist[1], 40.03f, 0.01f) && (deck.flags & RF_BRIDGE),
+           "profile points: the deck's %zu points", deck.pts.size());
+    const RoadEdge& st = rn.edges[1];
+    EXPECT(st.pts.size() == 4 && same(st.pts[1].x, 300.f) && same(st.pts[1].z, 3.2f) && same(st.pts[2].x, 350.f) && same(st.pts[2].z, 4.f) && same(st.pts[3].x, 400.f),
+           "profile points: the street's %zu points", st.pts.size());
+}
+
+// The terrain graded under the roads (roadgrade.cpp), as worldc runs it, on a plateau a metre above them: the ground
+// under a street is cut to just below it and stays the plateau beyond its verge; a bridge's ramps sit on graded ground,
+// and its deck leaves the ground under it alone: a hill and a river
+static void testGrade() {
+    const std::string roads =
+        "ntw 1 roads district=cl\n"
+        "node cl.n0001 at=0.00,0.00 z=4.00\n"
+        "node cl.n0002 at=200.00,0.00 z=4.00\n"
+        "node cl.n0003 at=0.00,180.00 z=4.00\n"
+        "edge cl.e0001 from=cl.n0001 to=cl.n0002 class=street lanes=1/1 shape=0.00,0.00;200.00,0.00\n"
+        "end\n"
+        "edge cl.e0002 from=cl.n0001 to=cl.n0003 class=street lanes=1/1 shape=0.00,0.00;0.00,180.00\n"
+        "  profile=0.00:4.00;40.00:5.00;140.00:5.00;180.00:4.00\n"
+        "  deck from=40.00 to=140.00 kind=bridge\n"
+        "end\n";
+    Model m;
+    std::vector<Error> errors;
+    const bool ok = loadTexts({{"roads.ntw", roads}, {"world.ntw", "ntw 1 world\nworld palmera name=\"P\"\ndistrict cl name=\"C\"\n"}}, m, errors);
+    RoadNetwork rn;
+    RoadIndex ix;
+    if (!ok || !compileRoads(m, rn, ix, errors) || rn.edges.size() != 2) {
+        EXPECT(false, "grade: the test roads compile");
+        printErrors(m, errors);
+        return;
+    }
+    std::vector<std::vector<vec2>> decks(rn.edges.size());
+    for (size_t i = 0; i < ix.edgeOf.size(); i++)
+        for (const Deck& d : m.edges[(size_t)ix.edgeOf[i]].decks) decks[i].push_back(vec2(d.from, d.to));
+    WorldMap map;
+    const size_t n = (size_t)kHeightRes * kHeightRes;
+    map.height.assign(n, 5.f);
+    map.waterLevel.assign(n, kNoWater);
+    // under the deck, 36 m and more from its ends: a hill (9 m) and a river (bed -3 m, water at 0)
+    for (int ty = (int)worldToTexel(60.f); ty <= (int)worldToTexel(130.f); ty++)
+        for (int tx = (int)worldToTexel(-20.f); tx <= (int)worldToTexel(20.f); tx++) {
+            const float x = texelToWorld(tx), y = texelToWorld(ty);
+            if (fabsf(x) > 12.f) continue;
+            const size_t i = (size_t)ty * kHeightRes + tx;
+            if (y >= 76.f && y <= 92.f) map.height[i] = 9.f;
+            if (y >= 100.f && y <= 116.f) {
+                map.height[i] = -3.f;
+                map.waterLevel[i] = 0.f;
+            }
+        }
+    gradeTerrainForRoads(rn, map, &decks);
+    const float under = map.heightAt(100.f, 0.f), beyond = map.heightAt(100.f, 40.f), face = map.heightAt(100.f, 20.f);
+    EXPECT(same(under, 3.7f, 0.01f) && same(beyond, 5.f) && face > 3.75f && face < 5.f, "grade: the street: under it %.2f, its cut face %.2f, beyond %.2f", under, face, beyond);
+    const float ramp = map.heightAt(0.f, 20.f), hill = map.heightAt(0.f, 84.f), river = map.heightAt(0.f, 108.f);
+    EXPECT(same(ramp, 4.2f, 0.01f) && same(hill, 9.f) && same(river, -3.f), "grade: the bridge: under its ramp %.2f, the hill %.2f, the river %.2f", ramp, hill, river);
+    // without the decks, today's rule grades under the deck: the hill goes
+    WorldMap plain = map;
+    for (int ty = (int)worldToTexel(60.f); ty <= (int)worldToTexel(130.f); ty++)
+        for (int tx = (int)worldToTexel(-20.f); tx <= (int)worldToTexel(20.f); tx++) {
+            const float x = texelToWorld(tx), y = texelToWorld(ty);
+            if (fabsf(x) <= 12.f && y >= 76.f && y <= 92.f) plain.height[(size_t)ty * kHeightRes + tx] = 9.f;
+        }
+    gradeTerrainForRoads(rn, plain);
+    EXPECT(plain.heightAt(0.f, 84.f) < 5.f, "grade: without the decks the hill stays (%.2f)", plain.heightAt(0.f, 84.f));
+}
 
 static void testErrors() {
     const std::string roads =
@@ -682,6 +782,8 @@ int main() {
     testSamples();
     testWorld();
     testCompile();
+    testProfilePoints();
+    testGrade();
     testErrors();
     testRoadsSection();
     testRoomLight();

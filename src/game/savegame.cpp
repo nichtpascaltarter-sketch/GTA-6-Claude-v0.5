@@ -1,5 +1,6 @@
 // Save games: versioned binary files in %LOCALAPPDATA%\NeonTide\saves\slotN.sav
 #include "gameworld.h"
+#include "../world/handworld.h"
 
 namespace Game {
 
@@ -93,6 +94,7 @@ float GameWorld::completion() const {
 }
 
 bool GameWorld::saveGame(int slot, const std::string& title) {
+    if (World::isHandWorld()) return false;   // (saves don't record their world yet: docs/HANDBUILT_WORLD.md 10.2)
     Ped* pl = playerPed();
     if (!pl) return false;
     Writer w;
@@ -207,6 +209,7 @@ bool GameWorld::readSlotInfo(int slot, UI::SaveSlotInfo& info) const {
 }
 
 bool GameWorld::loadGame(int slot) {
+    if (World::isHandWorld()) return false;   // (nor can a procedural save load into the hand-built world)
     std::vector<u8> data;
     if (!readFile(slotPath(slot), data)) return false;
     Reader r{data.data(), data.data() + data.size() - 4};

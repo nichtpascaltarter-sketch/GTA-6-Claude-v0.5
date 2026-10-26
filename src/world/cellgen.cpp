@@ -471,14 +471,14 @@ void buildOpenLot(const OpenLot& L, const WorldMap& map, bool detail, vec3 org, 
 }
 
 void generateCell(int cx, int cy, bool detail, CellGeometry& out) {
-    // the hand-built world generates nothing (docs/HANDBUILT_WORLD.md section 7.2): stage 0 has the terrain only, which
-    // the renderer draws from the height map
-    if (isHandWorld()) return;
     const WorldMap& map = *gMap;
     vec2 org2 = cellOrigin(cx, cy);
     vec3 org(org2, 0);
     RoadCellOutput roads;
     roads.detail = detail;
+    // the hand-built world (docs/HANDBUILT_WORLD.md section 7.2) has its authored roads so far, without the procedural
+    // street dressing: its block files will place the furniture, trees and street lights (decision D2)
+    roads.dressing = !isHandWorld();
     buildRoadCell(*gRoads, map, cx, cy, roads);
     out.opaque.append(roads.road);
     if (detail) out.opaque.append(roads.street);
@@ -489,6 +489,8 @@ void generateCell(int cx, int cy, bool detail, CellGeometry& out) {
         out.props.insert(out.props.end(), roads.props.begin(), roads.props.end());
         out.lights.insert(out.lights.end(), roads.lights.begin(), roads.lights.end());
     }
+    // (and nothing procedural beyond its roads: no buildings, lots, scattered vegetation or sites)
+    if (isHandWorld()) return;
     const int cps = kCellsPerSide;
     const BuildingSet& bs = *gBuildings;
     for (int bi : bs.cellLists[(size_t)cy * cps + cx]) {

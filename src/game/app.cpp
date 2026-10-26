@@ -232,7 +232,8 @@ struct App {
         }
         if (const char* ff = Platform::argValue("fog")) env.fogDensity = (float)atof(ff);
 #ifdef HAVE_GAMEPLAY
-        if (!World::isHandWorld()) game.init(&renderer, &env, &map, &roads, &buildings);   // (stage 0's hand world has nothing to play)
+        // (the hand-built world plays once it has streets, stage 1's pilot; its terrain alone has nothing to play)
+        if (!World::isHandWorld() || !roads.edges.empty()) game.init(&renderer, &env, &map, &roads, &buildings);
         game.rig.footFirstPerson = Platform::hasArg("firstperson");   // start in the on-foot first-person view (tests)
         if (const char* ws = Platform::argValue("weaponshowcase")) {   // --weaponshowcase x,y,z (test render of every gun)
             double x = 0, y = 0, z = 0;
@@ -260,7 +261,13 @@ struct App {
         if (!shots.empty() || Platform::argValue("viewer")) {
             showDebug = !autotest || Platform::hasArg("debugtext");
         } else if (World::isHandWorld()) {
-            LOG("Hand world: stage 0 holds the terrain only; free camera, no menu and no game");
+            // the hand-built world never opens the main menu, whose saves don't tell the two worlds apart yet
+            // (docs/HANDBUILT_WORLD.md 10.2): --play or --autoplay starts a new game on its streets, else the free camera
+#ifdef HAVE_GAMEPLAY
+            if (!roads.edges.empty() && (Platform::hasArg("play") || !autoplay.empty())) startNewGame();
+            else
+#endif
+                LOG("Hand world: %s; free camera, no menu", roads.edges.empty() ? "no streets yet, so no game" : "--play starts a game on its streets");
         } else {
 #ifdef HAVE_GAMEPLAY
             if (Platform::hasArg("play") || !autoplay.empty()) startNewGame();
@@ -7102,6 +7109,16 @@ struct App {
 #endif
                 break;
             case UI::MA_QUIT_TO_MENU:
+                if (World::isHandWorld()) {   // (the hand-built world has no main menu, see init: the free camera, F9 plays on)
+                    menu.screen = UI::MENU_NONE;
+                    game.paused = false;
+#ifdef HAVE_AUDIO
+                    Audio::setPaused(false);
+#endif
+                    state = AS_FREECAM;
+                    cam = game.rig.cam;
+                    break;
+                }
                 openMainMenu();
                 break;
             case UI::MA_QUIT_GAME:

@@ -27,7 +27,8 @@ to one is a change to both, in the same commit.
 - Files are kept in canonical form (section 6). `tools/ntwfmt` writes it, `ntwfmt --check` reports files that aren't in
   it, and the validator refuses them.
 - `tools/worldc` compiles the kinds as their compilers arrive. So far that is the terrain, and the roads with the world,
-  district, signal and transit files they name: the roads go into world.bin's roads sections (src/world/roadsbin.h).
+  district, signal and transit files they name: the roads go into world.bin's roads sections (src/world/roadsbin.h),
+  and the terrain is graded under them.
   A block, building, places or library file stops the build ("no compiler for ... files yet") until its compiler
   exists. The validator checks every kind already.
 
@@ -515,7 +516,7 @@ Header: `line` id req, `kind` word `skyline`/`bus`/`ferry`/`streetcar` req, `nam
 
 | Record | Id | Fields |
 |---|---|---|
-| `route` | none | `edges` list (bus, streetcar: road edges in order), `pts` points 2 (SkyLine and ferries: the path), `profile` compound `s:z;...` (2) |
+| `route` | none | `edges` list (bus, streetcar: the road edges of the line's whole run, in travel order; a line that runs both ways lists the way back too. Each stop is on the right-hand kerb of a pass along its edge), `pts` points 2 (SkyLine and ferries: the path), `profile` compound `s:z;...` (2) |
 | `station` | req | `at` point 2 req, `z` number 2, `name` text req, `side` word |
 | `stop` | req | `busstop` reference req: a bus stop of a road edge |
 | `pier` | req | `at` point 2 req, `yaw` number 1 req, `name` text req |

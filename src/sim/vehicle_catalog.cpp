@@ -292,6 +292,8 @@ inline void archMinivan(CarDef& d, float L = 5.1f, float W = 1.99f, float H = 1.
 }
 
 // ------------------------------------------------------------------------------------------------
+// (Adding a model: its headlamps at night are LED or halogen by game/gameworld.cpp headlampIsLED - a dated model, a
+// '70s car or the boxy old Tanuki, is named there to get halogen; premium makers and sports/emergency classes get LED.)
 // Models: compacts
 inline void mdlMinnow(VehicleModel& o) {
     o.name = "Minnow"; o.maker = "Sakaki"; o.cls = VC_COMPACT;

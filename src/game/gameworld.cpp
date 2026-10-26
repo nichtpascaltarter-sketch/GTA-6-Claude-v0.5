@@ -17,7 +17,7 @@ mat3 frameFromForward(vec3 fwd, vec3 upHint) {
 // Headlamp technology of a vehicle, for its beam and its lens (dynamic.hlsl lightBits 64): LED (cool white) on current
 // and premium models, halogen (warm) on the dated ones - the '70s muscle car and pickup, the boxy old SUV; everyday
 // models mix, decided by the car's uid so the same car always looks the same (fleet trucks, buses, vans and cabs
-// lean to halogen).
+// lean to halogen). A new dated model goes on the name list below (sim/vehicle_catalog.cpp points here).
 bool headlampIsLED(const Vehicles::VehicleModel& m, u32 uid) {
     if (m.name.find('\'') != std::string::npos || m.name == "Tanuki") return false;
     switch (m.cls) {
@@ -429,7 +429,13 @@ void GameWorld::submitRender() {
         u32 bits = 0;
         bool driven = v.seats[0] >= 0;
         if (v.lightsOn) bits |= 1u;
-        if (driven && (v.ctl.brake > 0.1f && s.forwardSpeed() > 0.5f)) bits |= 2u;
+        // brake lamps: braking, or held at a standstill in a drive gear with no throttle (a queue at a red: the sim's
+        // pedal at a standstill is reverse, so traffic holds with the handbrake - the driver's foot is on the brake)
+        // (a far traffic car on rails - dummy mode, physics asleep - moves at its driver's vDummy, its body at rest)
+        const AI::Driver* td = traffic.get(vi);
+        float vFwd = td && td->dummy ? td->vDummy : s.forwardSpeed();
+        bool held = driven && s.gear >= 0 && fabsf(vFwd) < 0.5f && v.ctl.throttle < 0.05f && !isAircraft(vi) && !isBoat(vi);
+        if ((driven && v.ctl.brake > 0.1f && s.forwardSpeed() > 0.5f) || held) bits |= 2u;
         if (driven && s.gear < 0) bits |= 4u;
         if (v.indicator < 0 || v.indicator == 2 || v.alarm) bits |= 8u;    // 2 = hazard lights (both sides)
         if (v.indicator == 1 || v.indicator == 2 || v.alarm) bits |= 16u;
@@ -598,7 +604,10 @@ void GameWorld::submitRender() {
         const Vehicles::VehicleModel& spec = vassets[v.model].spec;
         mat3 R = v.sim.body.rotMat();
         bool driven = v.seats[0] >= 0;
-        bool brake = driven && v.ctl.brake > 0.1f && v.sim.forwardSpeed() > 0.5f;
+        const AI::Driver* td = traffic.get(lc.id);
+        float vFwd = td && td->dummy ? td->vDummy : v.sim.forwardSpeed();   // (dummy mode: see above)
+        bool held = driven && v.sim.gear >= 0 && fabsf(vFwd) < 0.5f && v.ctl.throttle < 0.05f && !isAircraft(lc.id) && !isBoat(lc.id);
+        bool brake = (driven && v.ctl.brake > 0.1f && v.sim.forwardSpeed() > 0.5f) || held;   // (the lens: bits & 2 above)
         bool reversing = driven && v.sim.gear < 0;
         bool lowBeam = !isAircraft(lc.id) && !isBoat(lc.id);
         vec3 headC = (headlampIsLED(spec, v.uid) ? kHeadLED : kHeadHalogen) * (night ? 9000.f : 3000.f);

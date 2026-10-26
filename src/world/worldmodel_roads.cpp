@@ -80,11 +80,12 @@ bool compileRoads(const Model& model, RoadNetwork& out, RoadIndex& index, std::v
                                           ") to " + b.id + " (" + xy(b.at) + ")");
             continue;
         }
-        // heights by the distance along the shape in plan: the profile's, else straight from node to node
+        // heights by the distance along the shape in plan: the profile's, else straight from node to node. The points are
+        // the shape's, and one more wherever the profile bends between two of them, so that the polyline carries the
+        // profile (the road mesher and the grading run straight from point to point).
         std::vector<float> s(m.shape.size(), 0.f);
         for (size_t k = 1; k < m.shape.size(); k++) s[k] = s[k - 1] + length(m.shape[k] - m.shape[k - 1]);
         const float planLength = s.back();
-        std::vector<float> z(m.shape.size());
         if (!m.profile.empty()) {
             bool rising = m.profile.size() >= 2;
             for (size_t k = 1; rising && k < m.profile.size(); k++) rising = m.profile[k].x > m.profile[k - 1].x;
@@ -97,10 +98,21 @@ bool compileRoads(const Model& model, RoadNetwork& out, RoadIndex& index, std::v
                                                 metres(m.profile.front().y) + " and " + metres(m.profile.back().y));
                 continue;
             }
-            for (size_t k = 0; k < z.size(); k++) z[k] = profileAt(m.profile, s[k]);
-        } else {
-            for (size_t k = 0; k < z.size(); k++) z[k] = Lerp(a.z, b.z, s[k] / planLength);
         }
+        std::vector<vec2> plan;
+        std::vector<float> planS;
+        for (size_t k = 0; k < m.shape.size(); k++) {
+            plan.push_back(m.shape[k]);
+            planS.push_back(s[k]);
+            if (k + 1 == m.shape.size()) break;
+            for (const vec2& pr : m.profile)
+                if (pr.x > s[k] + 0.05f && pr.x < s[k + 1] - 0.05f) {
+                    plan.push_back(lerp(m.shape[k], m.shape[k + 1], (pr.x - s[k]) / (s[k + 1] - s[k])));
+                    planS.push_back(pr.x);
+                }
+        }
+        std::vector<float> z(plan.size());
+        for (size_t k = 0; k < z.size(); k++) z[k] = m.profile.empty() ? Lerp(a.z, b.z, planS[k] / planLength) : profileAt(m.profile, planS[k]);
         z.front() = a.z;   // (every edge meets its nodes at their height)
         z.back() = b.z;
 
@@ -122,7 +134,7 @@ bool compileRoads(const Model& model, RoadNetwork& out, RoadIndex& index, std::v
         e.halfWidth = laneW * (e.lanesF + e.lanesB) * 0.5f + median * 0.5f + kerbW;
         e.sidewalk = m.sidewalkL >= 0.f ? Max(m.sidewalkL, m.sidewalkR) : ri.sidewalk;
         if (e.sidewalk <= 0.f) e.flags |= RF_NOSIDEWALK;
-        for (size_t k = 0; k < m.shape.size(); k++) e.pts.push_back(vec3(m.shape[k].x, m.shape[k].y, z[k]));
+        for (size_t k = 0; k < plan.size(); k++) e.pts.push_back(vec3(plan[k].x, plan[k].y, z[k]));
         e.dist.assign(e.pts.size(), 0.f);
         for (size_t k = 1; k < e.pts.size(); k++) e.dist[k] = e.dist[k - 1] + length(e.pts[k] - e.pts[k - 1]);
         e.length = e.dist.back();

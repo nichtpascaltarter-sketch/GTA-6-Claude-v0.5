@@ -1,0 +1,43 @@
+ntw 1 roads district=cl
+# the checks of one roads file on its own, on the world model's typing of it (src/world/validate_roads.h)
+node cl.n0001 at=0.00,0.00 z=3.00
+node cl.n0002 at=100.00,0.00 z=3.00 bulb=0.00 # expect value.form
+node cl.n0003 at=100.00,50.00 z=3.00
+node cl.n0004 at=150.00,50.00 z=3.00
+node cl.n0005 at=200.00,50.00 z=3.00
+node cl.n0006 at=250.00,50.00 z=3.00
+edge cl.e0001 from=cl.n0001 to=cl.n0002 class=street lanes=1/1 shape=0.00,0.00;100.00,0.00
+  lanes from=20.00 to=10.00 dir=fwd count=2 # expect road.along
+  lanes from=50.00 to=end dir=fwd count=2
+  lanes from=60.00 to=80.00 dir=fwd count=3 # expect road.along
+  moves at=n1 lanes=l,s,r # expect road.moves
+  moves at=n1 lanes=l,sr # expect road.moves
+  moves at=n0 lanes=lx # expect road.moves
+  crossing at=120.00 kind=zebra # expect road.along
+  busstop cl.bus.01 at=-5.00 side=right # expect road.along
+  parkbay from=10.00 to=30.00 side=right kind=parallel # expect parking.clash parking.clash
+  nostop from=25.00 to=40.00 side=right why=hydrant
+  curbcut at=31.00 side=right w=4.00
+  parkbay from=60.00 to=90.00 side=left kind=parallel
+  parkbay from=80.00 to=95.00 side=left kind=parallel # expect parking.clash
+  nostop from=50.00 to=45.00 side=left # expect road.along
+  deck from=0.00 to=0.00 kind=bridge # expect road.along
+  sign at=101.00 side=right kind=name value="Test St" # expect road.along
+  curbcut at=1.00 side=left w=4.00 # expect road.along
+end
+edge cl.e0002 from=cl.n0002 to=cl.n0003 class=street lanes=2/0 shape=100.00,0.00;100.00,50.00
+  moves at=n0 lanes=l # expect road.moves
+  busstop cl.bus.02 at=10.00 side=left # expect busstop.kerb
+end
+edge cl.e0003 from=cl.n0003 to=cl.n0004 class=rural lanes=1/1 shape=100.00,50.00;150.00,50.00
+  busstop cl.bus.03 at=20.00 side=right # expect busstop.kerb
+  busstop cl.bus.04 at=30.00 side=right wait=130.00,53.00:3.00
+end
+edge cl.e0004 from=cl.n0004 to=cl.n0005 class=ramp lanes=1/0 shape=150.00,50.00;200.00,50.00
+  busstop cl.bus.05 at=5.00 side=right # expect busstop.kerb
+end
+edge cl.e0005 from=cl.n0005 to=cl.n0006 class=street lanes=2 shape=200.00,50.00;250.00,50.00 # expect value.form
+  lane dir=fwd index=x use=bike # expect value.form
+end
+edge cl.e0006 from=cl.n0006 to=cl.n0001 class=street lanes=1/1 median=1.00:wall shape=250.00,50.00;0.00,0.00 # expect value.form
+end
