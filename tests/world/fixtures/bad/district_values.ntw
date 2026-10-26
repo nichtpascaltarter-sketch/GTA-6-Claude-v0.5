@@ -1,0 +1,2 @@
+ntw 1 district district=cl
+zone cl.ocho.nights kind=density poly=0.00,0.00;10.00,0.00;10.00,10.00 peds=1.00,1.00 days=fri,fun # expect value.form value.form

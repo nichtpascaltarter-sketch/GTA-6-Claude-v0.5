@@ -22,8 +22,9 @@ bool selectWorldKind(const char* value, std::string* error);
 // The world.bin the build embedded (the RCDATA resource NT_WORLD); nullptr in host tools and in exes built without one
 const u8* embeddedWorldBin(size_t* size);
 
-// Fills `map` from world.bin's terrain sections (heights, water, regions, coast distance, outlines and channels), then
-// recomputes the splat. False with a reason on anything missing or malformed.
+// Fills `map` from world.bin's terrain sections (heights, water, regions, coast distance, outlines and channels), and
+// the grading under the roads where worldc wrote one ("terrain.grade"), then recomputes the splat. False with a
+// reason on anything missing or malformed.
 bool loadHandTerrain(const WorldBinView& bin, WorldMap& map, std::string* error);
 
 // The load on the loading thread: world.bin from `worldFile` when one is given (development: --worldfile=<path>), else

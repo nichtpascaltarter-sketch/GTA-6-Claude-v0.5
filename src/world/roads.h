@@ -106,6 +106,11 @@ struct RoadNetwork {
     void buildHash();
 };
 
+// The terrain graded under a network's roads (roadgrade.cpp): generate() runs it on today's world, and the world
+// compiler on the hand-built world's baked terrain (docs/HANDBUILT_WORLD.md section 3.3). `decks`, per edge, lists the
+// stretches on structures (plan metres from its n0, as x..y), where the ground isn't graded.
+void gradeTerrainForRoads(const RoadNetwork& net, WorldMap& map, const std::vector<std::vector<vec2>>* decks = nullptr);
+
 extern RoadNetwork* gRoads;
 
 // True inside the closed parking strip of a road-works zone (roadmesh.cpp street dressing); parked-car spawns keep clear.

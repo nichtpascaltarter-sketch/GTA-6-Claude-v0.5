@@ -3,7 +3,8 @@
 // the exe as the RCDATA resource NT_WORLD (with the world.rc written next to it). What it compiles so far:
 // - the baked terrain (stage 0);
 // - the roads (stage 1), through the world model (src/world/worldmodel.h), with the world, district, signal and transit
-//   files they name: the roads sections (src/world/roadsbin.h). The other kinds' sections come with their consumers.
+//   files they name: the roads sections (src/world/roadsbin.h), and the terrain graded under them ("terrain.grade").
+//   The other kinds' sections come with their consumers.
 // Blocks, buildings, places and the library are errors until their compilers exist.
 // Build from the repo root:  g++ -std=c++17 -O2 -I. tools/worldc.cpp -o build/worldc
 // Run from the repo root:    build/worldc [--world=world] [--out=build/gen/world.bin]
@@ -17,6 +18,8 @@
 #include "src/world/worldbin.cpp"
 #include "src/core/math.cpp"
 #include "src/world/roadnet.cpp"
+#include "src/world/terrainops.cpp"
+#include "src/world/roadgrade.cpp"
 #include "src/world/worldmodel.cpp"
 #include "src/world/worldmodel_roads.cpp"
 #include "src/world/roadsbin.cpp"
@@ -119,6 +122,16 @@ struct LayerSpec {
     std::vector<u8> bytes;
 };
 
+// The baked terrain as compileTerrain read it: the heights and water the roads are graded into (gradeTerrain)
+struct BakedTerrain {
+    bool ok = false;
+    int res = 0;
+    float cell = 0.f, originX = 0.f, originY = 0.f, heightUnit = 0.f;
+    std::vector<i16> height, water;   // the grids' values
+    std::vector<float> levels;        // water class c's level is levels[c - 1]
+};
+BakedTerrain gBaked;
+
 // world/terrain/terrain.ntw and its grids -> the terrain record and the four grid sections
 bool compileTerrain(const Source& src, WorldBinWriter& out) {
     const std::string& file = src.path;
@@ -176,6 +189,8 @@ bool compileTerrain(const Source& src, WorldBinWriter& out) {
             char hex[17];
             snprintf(hex, sizeof(hex), "%016llx", (unsigned long long)gi.hash);
             if (strcmp(hex, r.value("hash", "")) != 0) error(file, r.line, std::string("layer ") + L->id + ": the grid's hash is " + hex + ", the file says " + r.value("hash", ""));
+            if (r.id == "height") gBaked.height = values;
+            else if (r.id == "water") gBaked.water = values;
             const int want = r.id == "coast" ? (int)coastRes : (int)res;
             if (gi.width != want || gi.height != want)
                 error(path, 0, "the grid is " + std::to_string(gi.width) + " x " + std::to_string(gi.height) + ", not " + std::to_string(want));
@@ -249,6 +264,13 @@ bool compileTerrain(const Source& src, WorldBinWriter& out) {
     t.bytes.insert(t.bytes.end(), channels.bytes.begin(), channels.bytes.end());
     out.addCompressed("terrain", t.bytes);
     for (const LayerSpec& l : layers) out.add(l.section, WSK_GRID, l.bytes);
+    gBaked.ok = true;
+    gBaked.res = (int)res;
+    gBaked.cell = (float)cell;
+    gBaked.originX = origin.x;
+    gBaked.originY = origin.y;
+    gBaked.heightUnit = (float)hUnit;
+    for (const auto& lv : levels) gBaked.levels.push_back((float)lv.second);
     printf("worldc: terrain %dx%d at %.0f m, %zu water levels, %u outlines, %u channels\n", (int)res, (int)res, cell, levels.size(), outlineCount, channelCount);
     return true;
 }
@@ -256,8 +278,10 @@ bool compileTerrain(const Source& src, WorldBinWriter& out) {
 // The kinds the world model reads in stage 1: the roads, and the files they name
 bool modelKind(const std::string& k) { return k == "world" || k == "district" || k == "roads" || k == "signal" || k == "transit"; }
 
-// Those files through the world model: the roads compiled into the roads sections. Moves the files' documents out.
-bool compileModel(std::vector<Source>& files, const std::vector<size_t>& which, WorldBinWriter& out) {
+// Those files through the world model: the roads compiled into the roads sections, and into `roads` and `decks` (per
+// edge, its stretches on structures) for the grading. Moves the files' documents out.
+bool compileModel(std::vector<Source>& files, const std::vector<size_t>& which, WorldBinWriter& out, RoadNetwork& roads,
+                  std::vector<std::vector<vec2>>& decks) {
     const int errorsBefore = gErrors;
     std::vector<Hand::File> parsed;
     for (size_t i : which) {
@@ -271,7 +295,6 @@ bool compileModel(std::vector<Source>& files, const std::vector<size_t>& which, 
     Hand::Model model;
     std::vector<Hand::Error> errs;
     Hand::loadParsed(std::move(parsed), model, errs);
-    RoadNetwork roads;
     Hand::RoadIndex index;
     Hand::compileRoads(model, roads, index, errs);
     for (const Hand::Error& e : errs) {
@@ -280,6 +303,9 @@ bool compileModel(std::vector<Source>& files, const std::vector<size_t>& which, 
     }
     if (gErrors != errorsBefore) return false;
     if (roads.nodes.empty() && roads.edges.empty()) return true;
+    decks.assign(roads.edges.size(), {});
+    for (size_t i = 0; i < index.edgeOf.size(); i++)
+        for (const Hand::Deck& d : model.edges[(size_t)index.edgeOf[i]].decks) decks[i].push_back(vec2(d.from, d.to));
     std::vector<std::string> nodeIds, edgeIds;
     for (int mi : index.nodeOf) nodeIds.push_back(model.nodes[(size_t)mi].id);
     for (int mi : index.edgeOf) edgeIds.push_back(model.edges[(size_t)mi].id);
@@ -288,6 +314,46 @@ bool compileModel(std::vector<Source>& files, const std::vector<size_t>& which, 
     for (const RoadNode& n : roads.nodes) lights += n.control == 2;
     printf("worldc: roads %zu nodes, %zu edges, %d signalised; %zu districts, %zu signal plans, %zu transit lines\n", roads.nodes.size(), roads.edges.size(), lights,
            model.districts.size(), model.signals.size(), model.transit.size());
+    return true;
+}
+
+// The terrain graded under the roads (docs/HANDBUILT_WORLD.md section 3.3): today's grading (src/world/roadgrade.cpp)
+// run on the baked heights, and stored as a delta on the bake in the height layer's unit, an i16 grid like the height
+// layer ("terrain.grade"). The game adds it to the baked heights at load, and computes the splat from the result.
+bool gradeTerrain(const RoadNetwork& roads, const std::vector<std::vector<vec2>>& decks, WorldBinWriter& out) {
+    if (roads.edges.empty()) return true;
+    if (!gBaked.ok || gBaked.res != kHeightRes || gBaked.cell != kHeightCell || gBaked.originX != -kWorldHalf || gBaked.originY != -kWorldHalf ||
+        gBaked.height.size() != (size_t)kHeightRes * kHeightRes || gBaked.water.size() != gBaked.height.size()) {
+        error(gWorld, 0, "the roads can't be graded into the terrain: its grid isn't the game's");
+        return false;
+    }
+    const size_t n = gBaked.height.size();
+    WorldMap map;
+    map.height.resize(n);
+    map.waterLevel.resize(n);
+    for (size_t i = 0; i < n; i++) {
+        map.height[i] = (float)gBaked.height[i] * gBaked.heightUnit;
+        const int c = gBaked.water[i];
+        map.waterLevel[i] = c <= 0 || c > (int)gBaked.levels.size() ? kNoWater : gBaked.levels[(size_t)c - 1];
+    }
+    gradeTerrainForRoads(roads, map, &decks);
+    std::vector<i16> delta(n, 0);
+    size_t changed = 0;
+    float largest = 0.f;
+    for (size_t i = 0; i < n; i++) {
+        const int baked = gBaked.height[i];
+        const int graded = Clamp((int)floorf(map.height[i] / gBaked.heightUnit + 0.5f), -32768, 32767);
+        delta[i] = (i16)Clamp(graded - baked, -32768, 32767);
+        if (delta[i] != 0) changed++;
+        largest = Max(largest, fabsf((float)delta[i] * gBaked.heightUnit));
+    }
+    std::vector<u8> bytes;
+    if (!encodeGrid(delta.data(), kHeightRes, kHeightRes, GRID_I16, bytes)) {
+        error(gWorld, 0, "the graded terrain doesn't encode");
+        return false;
+    }
+    out.add("terrain.grade", WSK_GRID, bytes);
+    printf("worldc: terrain graded under the roads: %zu texels changed, by up to %.2f m (%zu KB)\n", changed, largest, bytes.size() / 1024);
     return true;
 }
 
@@ -334,7 +400,11 @@ int run() {
         }
     }
     if (terrains != 1 && !gErrors) error(gWorld, 0, "no world/terrain/terrain.ntw");
-    if (!gErrors && !modelFiles.empty()) compileModel(files, modelFiles, out);
+    if (!gErrors && !modelFiles.empty()) {
+        RoadNetwork roads;
+        std::vector<std::vector<vec2>> decks;
+        if (compileModel(files, modelFiles, out, roads, decks)) gradeTerrain(roads, decks, out);
+    }
     if (gErrors) {
         fprintf(stderr, "worldc: %d error(s); %s not written\n", gErrors, gOut.c_str());
         return 1;

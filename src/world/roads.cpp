@@ -4,6 +4,7 @@
 #include "../core/noise.h"
 #include <unordered_map>
 #include "roadnet.cpp"   // the network's data and queries (the hand-built roads' compiler links it alone)
+#include "roadgrade.cpp"   // the terrain graded under the roads (shared with the compiler too)
 
 namespace World {
 
@@ -2903,51 +2904,8 @@ void RoadNetwork::generate(WorldMap& map) {
     // ============================================================= Intersections: radius, cut-backs, control
     finishJunctions();
 
-    // ============================================================= Terrain flattening along at-grade roads
-    for (auto& e : edges) {
-        if (e.cls == RC_HIGHWAY && (e.flags & RF_ELEVATED)) continue;
-        for (size_t i = 0; i + 1 < e.pts.size(); i++) {
-            vec3 a = e.pts[i], c = e.pts[i + 1];
-            float ga = map.heightAt(a.x, a.y), gc = map.heightAt(c.x, c.y);
-            // skip bridge spans (deck well above ground)
-            if (a.z - ga > 3.f && c.z - gc > 3.f) continue;
-            float hw = e.halfWidth + e.sidewalk + 1.5f;
-            map.flattenAlong(a.xy(), c.xy(), a.z - 0.3f, c.z - 0.3f, hw, 14.f);
-        }
-    }
-    // dead-end turning bulbs sit on the ground (at the lower of the road's heights across them: the road may still climb into it)
-    auto bulbGround = [&](const RoadNode& nd) {
-        const RoadEdge& e = edges[nd.edges[0]];
-        float br = bulbRadius(nd);
-        vec3 back = e.n1 == (int)(&nd - &nodes[0]) ? e.posAt(e.length - br) : e.posAt(br);
-        return Min(nd.z, back.z) - 0.3f;
-    };
-    for (auto& nd : nodes) {
-        if (nd.radius > 0 && !nd.highway) map.flattenAlong(nd.p, nd.p + vec2(0.01f, 0), nd.z - 0.3f, nd.z - 0.3f, nd.radius + 4.f, 12.f);
-        float br = bulbRadius(nd);
-        if (br > 0.f) {
-            float zg = bulbGround(nd);
-            map.flattenAlong(nd.p, nd.p + vec2(0.01f, 0), zg, zg, br + edges[nd.edges[0]].sidewalk + 1.5f, 12.f);
-        }
-    }
-    // Roads are never buried (later flattening, embankment blends and node discs raise the terrain around their neighbours):
-    // cut the terrain to just below every road, flat one heightmap texel beyond the sidewalk so the bilinear terrain cannot
-    // rise into the verge, then a cut face. Only lowers terrain; where roads at different heights overlap in plan, the higher
-    // one ends up on a deck (the road mesher gives it parapets and piers).
-    for (auto& e : edges)
-        for (size_t i = 0; i + 1 < e.pts.size(); i++) {
-            vec3 a = e.pts[i], c = e.pts[i + 1];
-            float flat = e.halfWidth + e.sidewalk + kHeightCell;
-            map.lowerAlong(a.xy(), c.xy(), a.z - 0.3f, c.z - 0.3f, flat, flat + 10.f, 0.7f);
-        }
-    for (auto& nd : nodes) {
-        if (nd.radius > 0) map.lowerAlong(nd.p, nd.p + vec2(0.01f, 0), nd.z - 0.3f, nd.z - 0.3f, nd.radius + kHeightCell, nd.radius + kHeightCell + 10.f, 0.7f);
-        float br = bulbRadius(nd);
-        if (br > 0.f) {
-            float r = br + edges[nd.edges[0]].sidewalk + kHeightCell, zg = bulbGround(nd);
-            map.lowerAlong(nd.p, nd.p + vec2(0.01f, 0), zg, zg, r, r + 10.f, 0.7f);
-        }
-    }
+    // ============================================================= Terrain flattening along at-grade roads (roadgrade.cpp)
+    gradeTerrainForRoads(*this, map);
     map.recomputeSplat();
     buildHash();
     int lights = 0;

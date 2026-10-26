@@ -1,0 +1,4 @@
+ntw 1 signal id=lib.signal.bad_plan
+plan cycle=70.0 legs=5 # expect signal.plan signal.plan
+phase p1 green=20.0 amber=3.0 allred=2.0 moves=n_s,n_s,x_l,e_lp,e_l walk=n,q walktime=20.0 flash=10.0 # expect signal.plan signal.plan signal.plan signal.plan signal.plan
+phase p2 green=30.0 amber=3.0 allred=2.0 moves=s_s,s_rp walk=e,w walktime=7.0 flash=10.0

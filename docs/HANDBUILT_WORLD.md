@@ -594,7 +594,9 @@ They are Python, run with `-I`, and never ship. The game doesn't know they exist
 - the terrain (stage 0);
 - the roads (stage 1), through the world model (`src/world/worldmodel.h`), with the world, district, signal and transit
   files they name. The roads go into world.bin's `roads` and `roads.ids` sections (`src/world/roadsbin.h`), which the
-  game reads in hand mode. The other kinds' sections come with their consumers.
+  game reads in hand mode. The other kinds' sections come with their consumers;
+- the terrain graded under the roads (step 5, section 3.3), with today's grading (`src/world/roadgrade.cpp`), stored
+  as a delta on the bake in world.bin's `terrain.grade`. The game adds it to the baked heights at load.
 
 A block, building, places or library file stops the build until its compiler exists. Reference checks beyond what the
 compile needs (step 3) are worldv's, which CI runs on `world/`. The roads section stores floats for now; quantising it

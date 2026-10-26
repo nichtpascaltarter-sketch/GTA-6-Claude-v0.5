@@ -1,5 +1,5 @@
 // Tests for worldv, the world validator (src/world/validate.h, tools/worldv.cpp). They cover:
-// - the reference patterns;
+// - the reference patterns (ntwschema.h's, which worldv and the world model share);
 // - each check on texts in memory;
 // - the fixtures:
 //   - tests/world/fixtures/samples: the format's samples, which are clean when checked as files;
@@ -12,10 +12,15 @@
 //   g++ -std=c++17 -O2 -Wall -Wextra -Werror -fsanitize=undefined -fno-sanitize-recover=undefined
 //       tests/world/worldv_test.cpp -o /tmp/neontide-worldv-test && /tmp/neontide-worldv-test
 #include "../../tools/native_stubs.cpp"
+#include "../../src/core/math.cpp"
 #include "../../src/world/ntw.cpp"
 #include "../../src/world/ntwschema.cpp"
+#include "../../src/world/roadnet.cpp"
+#include "../../src/world/worldmodel.cpp"
+#include "../../src/world/worldmodel_roads.cpp"
 #include "../../src/world/validate.cpp"
 #include "../../src/world/validate_layout.cpp"
+#include "../../src/world/validate_roads.cpp"
 #include <chrono>
 #include <filesystem>
 #include <map>
@@ -102,26 +107,29 @@ static bool isItemKind(const char* kind) { return !strcmp(kind, "layout") || !st
 
 static void testPatterns() {
     using namespace validate_detail;
-    std::vector<std::vector<Named>> g;
-    const Pattern edgeSide = parsePattern("<edge>:*");
-    EXPECT(matchPattern(edgeSide, "cl.e0007:right", g) && g.size() == 1 && g[0].size() == 1 && g[0][0].cls == "edge" && g[0][0].id == "cl.e0007", "<edge>:*");
-    EXPECT(!matchPattern(edgeSide, "cl.e0007", g) && !matchPattern(edgeSide, "cl.e0007:", g) && !matchPattern(edgeSide, "cl.e0007:a:b", g), "<edge>:* misses");
-    const Pattern stops = parsePattern("all|<edge>,...");
-    EXPECT(matchPattern(stops, "all", g) && g.size() == 1 && g[0].empty(), "all");
-    EXPECT(matchPattern(stops, "cl.e0007,cl.e0009", g) && g.size() == 2 && g[1][0].id == "cl.e0009", "a list");
-    EXPECT(!matchPattern(stops, "cl.e0007,,cl.e0009", g) && !matchPattern(stops, "Cl.e1", g), "list misses");
-    const Pattern leads = parsePattern("out:<.room>|<.room>:out|<.room>:<.room>");
-    EXPECT(matchPattern(leads, "out:living", g) && g[0].size() == 1 && g[0][0].cls == ".room", "out:room");
-    EXPECT(matchPattern(leads, "lobby:stair", g) && g[0].size() == 2, "room:room");
-    EXPECT(!matchPattern(leads, "living", g), "a lone room");
-    const Pattern forSpot = parsePattern("<busstop>|<building>:<f.door|f.counter>");
-    EXPECT(matchPattern(forSpot, "cl.b014.s07:f0.d1", g) && g[0].size() == 2 && g[0][1].cls == "f.door|f.counter", "building:floor element");
-    EXPECT(matchPattern(forSpot, "cl.bus.08", g) && g[0][0].cls == "busstop", "a bus stop");
-    const Pattern allow = parsePattern("<unit|fitout>,...");
-    EXPECT(matchPattern(allow, "lib.unit.walkup.*,lib.fitout.cafe_a", g) && g.size() == 2 && g[0][0].id == "lib.unit.walkup.*", "a family");
-    EXPECT(!matchPattern(allow, "lib.unit.*x", g), "a bad family");
-    const Pattern lot = parsePattern("<edge>:*:*");
-    EXPECT(matchPattern(lot, "cl.e0007:72.00:right", g) && !matchPattern(lot, "cl.e0007:right", g), "<edge>:*:*");
+    using Ntw::matchRefs;
+    using Ntw::parseRefPattern;
+    std::vector<std::vector<Ntw::RefName>> g;
+    const Ntw::RefPattern edgeSide = parseRefPattern("<edge>:*");
+    EXPECT(matchRefs(edgeSide, "cl.e0007:right", g) && g.size() == 1 && g[0].size() == 1 && g[0][0].cls == "edge" && g[0][0].id == "cl.e0007", "<edge>:*");
+    EXPECT(!matchRefs(edgeSide, "cl.e0007", g) && !matchRefs(edgeSide, "cl.e0007:", g) && !matchRefs(edgeSide, "cl.e0007:a:b", g), "<edge>:* misses");
+    const Ntw::RefPattern stops = parseRefPattern("all|<edge>,...");
+    EXPECT(matchRefs(stops, "all", g) && g.size() == 1 && g[0].empty(), "all");
+    EXPECT(matchRefs(stops, "cl.e0007,cl.e0009", g) && g.size() == 2 && g[1][0].id == "cl.e0009", "a list");
+    EXPECT(!matchRefs(stops, "cl.e0007,,cl.e0009", g) && !matchRefs(stops, "Cl.e1", g), "list misses");
+    const Ntw::RefPattern leads = parseRefPattern("out:<.room>|<.room>:out|<.room>:<.room>");
+    EXPECT(matchRefs(leads, "out:living", g) && g[0].size() == 1 && g[0][0].cls == ".room", "out:room");
+    EXPECT(matchRefs(leads, "lobby:stair", g) && g[0].size() == 2, "room:room");
+    EXPECT(!matchRefs(leads, "living", g), "a lone room");
+    const Ntw::RefPattern forSpot = parseRefPattern("<busstop>|<building>:<f.door|f.counter>");
+    EXPECT(matchRefs(forSpot, "cl.b014.s07:f0.d1", g) && g[0].size() == 2 && g[0][1].cls == "f.door|f.counter", "building:floor element");
+    EXPECT(matchRefs(forSpot, "cl.bus.08", g) && g[0][0].cls == "busstop", "a bus stop");
+    const Ntw::RefPattern allow = parseRefPattern("<unit|fitout>,...");
+    EXPECT(matchRefs(allow, "lib.unit.walkup.*,lib.fitout.cafe_a", g) && g.size() == 2 && g[0][0].id == "lib.unit.walkup.*", "a family");
+    EXPECT(!matchRefs(allow, "lib.unit.*x", g), "a bad family");
+    const Ntw::RefPattern lot = parseRefPattern("<edge>:*:*");
+    EXPECT(matchRefs(lot, "cl.e0007:72.00:right", g) && !matchRefs(lot, "cl.e0007:right", g), "<edge>:*:*");
+    EXPECT(Ntw::refRules("roads", "edge") && Ntw::refRules("roads", "edge")->size() == 2 && !Ntw::refRules("roads", "nosuchtype"), "the rules by kind and type");
 
     EXPECT(numbered("cl.n0012", "cl.n", 4) && numbered("cl.n12345", "cl.n", 4) && !numbered("cl.n012", "cl.n", 4) && !numbered("cl.n00a2", "cl.n", 4) &&
                !numbered("cl.e0012", "cl.n", 4),
@@ -152,10 +160,10 @@ static void testPatterns() {
                                            "fitout",   "set",   "facade", "signal", "palette", "kit",  "prop", "veg",      "light", "fence"};
     const std::set<std::string> elements = {"wall", "room", "door", "window", "stair", "lift", "slot", "counter", "light", "spot"};
     for (const Ntw::RefDef& d : Ntw::schemaRefs()) {
-        const Pattern p = parsePattern(d.pattern);
+        const Ntw::RefPattern p = parseRefPattern(d.pattern);
         EXPECT(!p.alts.empty(), "%s/%s: an empty pattern", d.kind, d.type);
-        for (const PatAlt& a : p.alts)
-            for (const PatPart& part : a.parts) {
+        for (const Ntw::RefAlt& a : p.alts)
+            for (const Ntw::RefPart& part : a.parts) {
                 EXPECT(part.kind != 'l' || !part.text.empty(), "%s/%s %s: an empty part in %s", d.kind, d.type, d.key ? d.key : "(id)", d.pattern);
                 if (part.kind != 'r') continue;
                 const std::vector<std::string> cs = split(part.text, '|');
@@ -468,7 +476,7 @@ static void testPlants() {
     const std::vector<Plant> plants = {
         {"an edge to no node", {{"districts/cl/roads.ntw", "to=cl.n0013 class=street name", "to=cl.n0099 class=street name"}}, {"districts/cl/roads.ntw:6 ref.missing"}},
         {"a curb cut to a path", {{"districts/cl/roads.ntw", "to=cl.b014.lot1", "to=cl.b014.pa1"}}, {"districts/cl/roads.ntw:17 ref.kind"}},
-        {"a junction at no node", {{"districts/cl/roads.ntw", "junction cl.n0012", "junction cl.n0016"}}, {"districts/cl/roads.ntw:23 ref.missing"}},
+        {"a junction at no node", {{"districts/cl/roads.ntw", "junction cl.n0012", "junction cl.n0099"}}, {"districts/cl/roads.ntw:23 ref.missing"}},
         {"a front without its side", {{"districts/cl/blocks/b014/block.ntw", "front=cl.e0007:right", "front=cl.e0007"}}, {"districts/cl/blocks/b014/block.ntw:3 ref.form"}},
         {"a queue for another building's missing door",
          {{"districts/cl/blocks/b014/block.ntw", "for=cl.b014.s07:f0.d1", "for=cl.b014.s07:f0.d7"}},
@@ -484,9 +492,10 @@ static void testPlants() {
         // the door= of a missing building isn't reported twice
         {"an anchor at a missing building", {{"places/places.ntw", "building=cl.b031.x01", "building=cl.b031.x09"}}, {"places/places.ntw:3 ref.missing"}},
         {"an anchor in a missing district", {{"places/places.ntw", "anchor cl.ev.busk1", "anchor zz.ev.busk1"}}, {"places/places.ntw:4 ref.missing"}},
+        // (and bus.8 then has no stop at cl.bus.08, which its routes= says it has)
         {"a stop and a route edge that don't exist",
-         {{"transit/bus.8.ntw", "busstop=cl.bus.08", "busstop=cl.bus.09"}, {"transit/bus.8.ntw", "edges=cl.e0007,cl.e0011", "edges=cl.e0007,cl.e0012"}},
-         {"transit/bus.8.ntw:2 ref.missing", "transit/bus.8.ntw:3 ref.missing"}},
+         {{"transit/bus.8.ntw", "busstop=cl.bus.08", "busstop=cl.bus.09"}, {"transit/bus.8.ntw", "edges=cl.e0011,cl.e0007", "edges=cl.e0012,cl.e0007"}},
+         {"transit/bus.8.ntw:2 ref.missing", "transit/bus.8.ntw:3 ref.missing", "districts/cl/roads.ntw:13 transit.stop"}},
         {"a trunk node that doesn't exist", {{"districts/cl/district.ntw", "node=tr.n00412", "node=tr.n00413"}}, {"districts/cl/district.ntw:9 ref.missing"}},
         {"a building twice", {{"districts/cl/blocks/b014/s08.ntw", nullptr, "ntw 1 building id=cl.b014.s07 block=cl.b014 parcel=cl.b014.p04\n"}},
          {"districts/cl/blocks/b014/s08.ntw:1 id.path", "districts/cl/blocks/b014/s08.ntw:1 id.unique"}},
@@ -548,6 +557,181 @@ static void testPlants() {
         }
         fs::remove_all(world.parent_path());
     }
+}
+
+// ------------------------------------------------------------------------------------------------------ the roads
+
+// The checks across the road network (validate_roads.h), planted in copies of the fixture world: its Calle Luna streets
+// round two blocks, a signalled 4-way junction (cl.n0012), a two-way stop (cl.n0013), the way out to the trunk, and bus.8
+// west along cl.e0011 and north up cl.e0007 to its stop on the right-hand kerb
+static void testRoads() {
+    {   // the helpers
+        using namespace validate_detail;
+        EXPECT(headerKind("ntw 1 roads district=cl\n") == "roads" && headerKind("# a comment\n\n  # another\nntw 1 signal id=lib.signal.x\nplan cycle=1.0\n") == "signal" &&
+                   headerKind("\xEF\xBB\xBFntw 1 world\n") == "world" && headerKind("node cl.n0001\n") == "" && headerKind("") == "" && headerKind("ntw 1") == "",
+               "header kinds");
+        using namespace roads_detail;
+        EXPECT(compassOf(0.f) == 'n' && compassOf(44.9f) == 'n' && compassOf(45.f) == 'e' && compassOf(180.f) == 's' && compassOf(300.f) == 'w' && compassOf(315.f) == 'n',
+               "compass sectors");
+        EXPECT(moveName("n_l") && moveName("e_sp") && moveName("w_u") && !moveName("n_x") && !moveName("q_l") && !moveName("n_lpp") && !moveName("nl"), "movement names");
+        EXPECT(fmt(-0.001f) == "0.00" && fmt(12.345f, 1) == "12.3" && listed({"a", "b", "c"}) == "a, b and c" && listed({"a"}) == "a", "formatting");
+    }
+    const char* R = "districts/cl/roads.ntw";
+    const char* T = "transit/bus.8.ntw";
+    const char* lastEdge = "edge cl.e0025 from=cl.n0016 to=tr.n00412 class=street lanes=1/1 shape=1600.00,365.50;1500.00,365.50\nend\n";
+    const std::string after = lastEdge;   // records planted after the file's last one
+    const std::string overlapping = after + "edge cl.e0027 from=cl.n0017 to=cl.n0020 class=street lanes=1/1 shape=1702.00,250.00;1704.00,330.00\nend\n"
+                                            "node cl.n0020 at=1704.00,330.00 z=3.30\n";
+    const std::string crossing = after + "edge cl.e0027 from=cl.n0017 to=cl.n0020 class=street lanes=1/1 shape=1702.00,250.00;1650.00,250.00;1650.00,420.00\nend\n"
+                                         "node cl.n0020 at=1650.00,420.00 z=3.30\n";
+    const std::string bridge = after + "edge cl.e0027 from=cl.n0017 to=cl.n0020 class=street lanes=1/1 shape=1702.00,250.00;1650.00,250.00;1650.00,420.00\nend\n"
+                                       "node cl.n0020 at=1650.00,420.00 z=12.00\n";
+    const std::string boxed = overlapping + "junction cl.n0017 box=1690.00,245.00;1715.00,245.00;1715.00,335.00;1690.00,335.00\nend\n";
+    const std::string banTurn = after + "junction cl.n0013\n  ban from=cl.e0007 to=cl.e0019\nend\n";
+    const std::string piece = after + "node cl.n0020 at=2000.00,600.00 z=3.00\nnode cl.n0021 at=2100.00,600.00 z=3.00\n"
+                                      "edge cl.e0027 from=cl.n0020 to=cl.n0021 class=street lanes=1/1 shape=2000.00,600.00;2100.00,600.00\nend\n";
+    const std::string lone = after + "node cl.n0020 at=2000.00,600.00 z=3.00\n";
+    // a second street between cl.n0015 and cl.n0018, east of cl.e0023
+    const std::string parallel = after + "edge cl.e0027 from=cl.n0015 to=cl.n0018 class=street lanes=1/1\n"
+                                          "  shape=1800.00,365.50;1860.00,380.00;1860.00,470.00;1800.00,481.00\nend\n";
+    const char* skewed = "shape=1600.00,365.50;1600.00,481.00";
+    const char* skewedTo = "shape=1600.00,365.50;1560.00,380.00;1600.00,481.00";
+    const char* bus9 = "ntw 1 transit line=bus.9 kind=bus name=\"9 Test\"\nroute edges=cl.e0011,cl.e0007\n";
+    const std::vector<Plant> plants = {
+        // the roads compile's findings
+        {"an edge back to its own node",
+         {{R, "to=cl.n0014 class=street lanes=1/1 shape=1702.00,481.00;1702.00,600.00", "to=cl.n0013 class=street lanes=1/1 shape=1702.00,481.00;1750.00,540.00;1702.00,481.00"}},
+         {"districts/cl/roads.ntw:19 road.loop", "districts/cl/roads.ntw:4 road.connected"}},
+        {"a shape that misses its node", {{R, "shape=1702.00,481.00;1702.00,600.00", "shape=1702.00,481.00;1702.00,610.00"}}, {"districts/cl/roads.ntw:19 road.shape"}},
+        {"a profile that misses its node's height", {{R, "profile=0.00:3.40;115.50:3.55", "profile=0.00:3.40;115.50:3.80"}}, {"districts/cl/roads.ntw:6 road.profile"}},
+        // carriageways on each other, or across each other with no node
+        {"a second street laid along one", {{R, lastEdge, overlapping.c_str()}}, {"districts/cl/roads.ntw:35 road.overlap"}},
+        {"the same, inside an authored junction box", {{R, lastEdge, boxed.c_str()}}, {}},
+        {"streets that cross with no node", {{R, lastEdge, crossing.c_str()}}, {"districts/cl/roads.ntw:33 road.overlap"}},
+        {"a street that bridges another", {{R, lastEdge, bridge.c_str()}}, {}},
+        // each lane's turns at the node it arrives at
+        {"a left turn into a one-way street the wrong way", {{R, "lanes=1/1 shape=1702.00,481.00;1600.00,481.00", "lanes=0/1 shape=1702.00,481.00;1600.00,481.00"}},
+         {"districts/cl/roads.ntw:10 road.moves"}},
+        {"a left turn the junction bans", {{R, lastEdge, banTurn.c_str()}}, {"districts/cl/roads.ntw:10 road.moves"}},
+        // compass sectors and approaches=
+        {"two legs in one compass sector", {{R, skewed, skewedTo}}, {"districts/cl/roads.ntw:29 road.sector"}},
+        {"the same legs told apart by approaches=",
+         {{R, skewed, skewedTo}, {R, "node cl.n0016 at=1600.00,365.50 z=3.30", "node cl.n0016 at=1600.00,365.50 z=3.30 approaches=n:cl.e0021,e:cl.e0013,w:cl.e0025"}},
+         {}},
+        {"approaches= naming a street away from the node", {{R, "offset=12.0", "offset=12.0 approaches=n:cl.e0009"}},
+         {"districts/cl/roads.ntw:2 road.legs", "districts/cl/roads.ntw:2 road.sector"}},
+        {"approaches= with a letter that isn't one, and a letter twice", {{R, "offset=12.0", "offset=12.0\n  approaches=x:cl.e0007,n:cl.e0007,n:cl.e0011"}},
+         {"districts/cl/roads.ntw:2 road.sector", "districts/cl/roads.ntw:2 road.sector"}},
+        {"approaches= naming one street twice", {{R, "offset=12.0", "offset=12.0\n  approaches=n:cl.e0007,s:cl.e0007"}}, {"districts/cl/roads.ntw:2 road.sector"}},
+        // what the junction records name
+        {"a connect to a lane the edge doesn't have, and a head facing away",
+         {{R, "connect from=cl.e0011:0 to=cl.e0007:0 turn=right", "connect from=cl.e0011:0 to=cl.e0007:1 turn=right\n  head at=1704.00,372.00,5.50 faces=cl.e0007:fwd"}},
+         {"districts/cl/roads.ntw:26 road.legs", "districts/cl/roads.ntw:27 road.legs"}},
+        {"a stop line off its edge, and a ban from a street away from the junction",
+         {{R, "stopline edge=cl.e0007 at=6.50", "stopline edge=cl.e0007 at=200.00"},
+          {R, "  connect from=cl.e0011:0 to=cl.e0007:0 turn=right\n", "  connect from=cl.e0011:0 to=cl.e0007:0 turn=right\n  ban from=cl.e0009 to=cl.e0007\n"}},
+         {"districts/cl/roads.ntw:24 road.legs", "districts/cl/roads.ntw:27 road.legs"}},
+        // one network
+        {"a piece of road on its own", {{R, lastEdge, piece.c_str()}}, {"districts/cl/roads.ntw:49 road.connected"}},
+        {"a node with no edges", {{R, lastEdge, lone.c_str()}}, {"districts/cl/roads.ntw:47 road.connected"}},
+        {"the trunk node left unjoined", {{R, lastEdge, ""}}, {}},
+        // a signal plan on its node
+        {"a plan at a stop", {{R, "control=stop stops=", "control=stop plan=lib.signal.4way_proleft stops="}}, {"districts/cl/roads.ntw:3 signal.node"}},
+        {"an offset past the cycle", {{R, "offset=12.0", "offset=95.0"}}, {"districts/cl/roads.ntw:2 signal.node"}},
+        // (a warning: a T junction can run a 4-way plan; and cl.n0017 is left with no edges)
+        {"a 4-leg plan at a 3-leg junction", {{R, "edge cl.e0015 from=cl.n0012 to=cl.n0017 class=street lanes=1/1 shape=1702.00,365.50;1702.00,250.00\nend\n", ""}},
+         {"districts/cl/roads.ntw:2 signal.node", "districts/cl/roads.ntw:30 road.connected"}},
+        {"a 3-leg plan at a 4-leg junction", {{"lib/signals/4way_proleft.ntw", "legs=4", "legs=3"}}, {"districts/cl/roads.ntw:2 signal.node"}},
+        {"approaches= that leaves the plan's north leg out", {{R, "offset=12.0", "offset=12.0 approaches=s:cl.e0007"}},
+         {"districts/cl/roads.ntw:2 road.sector", "districts/cl/roads.ntw:2 signal.node"}},
+        // transit on the roads
+        {"route edges that don't meet", {{T, "edges=cl.e0011,cl.e0007", "edges=cl.e0011,cl.e0009"}}, {"transit/bus.8.ntw:2 transit.route", "transit/bus.8.ntw:3 transit.stop"}},
+        {"a route against a one-way street", {{R, "lanes=1/1 shape=1702.00,365.50;1800.00,365.50", "lanes=1/0 shape=1702.00,365.50;1800.00,365.50"}},
+         {"transit/bus.8.ntw:2 transit.route", "districts/cl/roads.ntw:26 road.legs"}},
+        {"a route through a banned turn", {{R, "  connect from=cl.e0011:0 to=cl.e0007:0 turn=right\n", "  connect from=cl.e0011:0 to=cl.e0007:0 turn=right\n  ban from=cl.e0011 to=cl.e0007\n"}},
+         {"transit/bus.8.ntw:2 transit.route"}},
+        {"a route through a turn a custom junction doesn't connect", {{R, "  connect from=cl.e0011:0 to=cl.e0007:0 turn=right\n", ""}}, {"transit/bus.8.ntw:2 transit.route"}},
+        // the route walked edge to edge: where it enters an edge says where it leaves it, and the next edge starts there
+        // (a direction once known isn't changed by the pair after it)
+        {"a route that goes on from the junction it has left", {{T, "edges=cl.e0011,cl.e0007", "edges=cl.e0011,cl.e0007,cl.e0013"}},
+         {"transit/bus.8.ntw:2 transit.route"}},
+        {"a route on through the same junction", {{T, "edges=cl.e0011,cl.e0007", "edges=cl.e0011,cl.e0007,cl.e0009"}}, {}},
+        {"a one-way street the route runs against, then a street it doesn't reach",
+         {{R, "lanes=1/1 shape=1600.00,365.50;1600.00,481.00", "lanes=1/0 shape=1600.00,365.50;1600.00,481.00"},
+          {T, "edges=cl.e0011,cl.e0007", "edges=cl.e0007,cl.e0019,cl.e0021,cl.e0019"}},
+         {"transit/bus.8.ntw:2 transit.route", "transit/bus.8.ntw:2 transit.route"}},
+        {"a route over two streets between the same two nodes, its way known from the next street",
+         {{R, lastEdge, parallel.c_str()}, {T, "edges=cl.e0011,cl.e0007", "edges=cl.e0023,cl.e0027,cl.e0023,cl.e0011,cl.e0007"}}, {}},
+        {"a stop on the far kerb", {{R, "busstop cl.bus.08 at=40.00 side=right", "busstop cl.bus.08 at=40.00 side=left"}}, {"transit/bus.8.ntw:3 transit.stop"}},
+        {"a stop whose routes= names another line", {{R, "routes=bus.8", "routes=bus.9"}, {"transit/bus.9.ntw", nullptr, bus9}},
+         {"transit/bus.8.ntw:3 transit.stop", "districts/cl/roads.ntw:13 transit.stop"}},
+    };
+    for (const Plant& p : plants) {
+        const fs::path world = copyWorld("roads");
+        bool applied = true;
+        for (const Edit& e : p.edits) applied = apply(world, e) && applied;
+        EXPECT(applied, "%s: an edit didn't apply", p.name);
+        std::vector<std::string> want(p.want.begin(), p.want.end());
+        const std::vector<Diagnostic> ds = runWorld(world.generic_string());
+        std::vector<std::string> got = brief(ds, world.generic_string());
+        std::sort(want.begin(), want.end());
+        std::sort(got.begin(), got.end());
+        EXPECT(got == want, "%s: the findings differ", p.name);
+        if (got != want) {
+            for (const Diagnostic& d : ds) printf("    found: %s\n", formatDiagnostic(d).c_str());
+            for (const std::string& w : want) printf("    wanted: %s\n", w.c_str());
+        }
+        fs::remove_all(world.parent_path());
+    }
+    // what the findings say, on two of them
+    {
+        const fs::path world = copyWorld("roads_text");
+        EXPECT(apply(world, {R, lastEdge, overlapping.c_str()}) && apply(world, {R, "busstop cl.bus.08 at=40.00 side=right", "busstop cl.bus.08 at=40.00 side=left"}), "edits");
+        const std::vector<Diagnostic> ds = runWorld(world.generic_string());
+        std::set<std::string> text;
+        for (const Diagnostic& d : ds) text.insert(d.message);
+        const std::string w = world.generic_string();
+        EXPECT(text.count("edge cl.e0015 and edge cl.e0027 (" + w + "/districts/cl/roads.ntw:47) lie on each other for 78 m from 1702.00,329.00: their carriageways overlap "
+                          "outside the junctions"),
+               "the overlap's message");
+        EXPECT(text.count("stop s1: bus stop cl.bus.08 is on cl.e0007's left kerb, and the line runs along cl.e0007 only from cl.n0012 to cl.n0013, with that kerb on its left"),
+               "the far kerb's message");
+        if (text.size() != 2) dump(ds);
+        fs::remove_all(world.parent_path());
+    }
+    {   // a T junction on a 4-way plan: a warning
+        const fs::path world = copyWorld("roads_t");
+        EXPECT(apply(world, {R, "edge cl.e0015 from=cl.n0012 to=cl.n0017 class=street lanes=1/1 shape=1702.00,365.50;1702.00,250.00\nend\n", ""}), "edit");
+        bool found = false;
+        for (const Diagnostic& d : runWorld(world.generic_string()))
+            if (d.check == "signal.node")
+                found = d.severity == SEV_WARNING && d.line == 2 &&
+                        d.message == "node cl.n0012: it has 3 legs (n, e and w), and plan lib.signal.4way_proleft suits junctions of 4: its greens and walks for the south leg go unused";
+        EXPECT(found, "a T junction on a 4-way plan");
+        fs::remove_all(world.parent_path());
+    }
+    {   // a route that goes on from the junction it has left: the message says where the route is
+        const fs::path world = copyWorld("roads_route");
+        EXPECT(apply(world, {T, "edges=cl.e0011,cl.e0007", "edges=cl.e0011,cl.e0007,cl.e0013"}), "edit");
+        bool found = false;
+        for (const Diagnostic& d : runWorld(world.generic_string()))
+            found = found || (d.check == "transit.route" && d.message == "line bus.8: the route leaves cl.e0007 at cl.n0013, where cl.e0013 doesn't start");
+        EXPECT(found, "the route's message");
+        fs::remove_all(world.parent_path());
+    }
+    // the summary line, in a world run with roads only
+    Summary s;
+    runWorld(std::string(kFixtures) + "/world", &s);
+    EXPECT(s.roads == "worldv roads: 9 nodes, 10 edges (1.08 km), 1 junction, 1 signal plan, 1 transit line; authored: lanes 1, noswitch 1, moves 1, crossing 2, busstop 1, "
+                      "parkbay 1, nostop 1, loading 1, curbcut 1, junction 1, stopline 1, connect 2",
+           "the roads summary: %s", s.roads.c_str());
+    runWorld(std::string(kFixtures) + "/plans", &s);
+    EXPECT(s.roads.empty(), "a world with no roads has no roads summary");
+    Options opt;
+    opt.files.push_back(std::string(kFixtures) + "/world");
+    std::vector<Diagnostic> ds;
+    run(opt, ds, s);
+    EXPECT(s.roads.empty(), "a file run has no roads summary");
 }
 
 // ------------------------------------------------------------------------------------- cache, --only and threads
@@ -670,6 +854,7 @@ int main() {
     testPlanPass();
     testRelativeStairs();
     testPlants();
+    testRoads();
     testCache();
     testOnly();
     testThreads();

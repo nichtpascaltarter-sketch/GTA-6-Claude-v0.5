@@ -1,7 +1,9 @@
 // worldv, the world validator (docs/HANDBUILT_WORLD.md section 9.1). It checks the hand-built world's .ntw files:
 // - each file against its kind's schema and the canonical form (docs/NTW_FORMAT.md);
 // - ids, and the paths that ids give their files (sections 5 and 8);
-// - the references between records, within a file and across the world.
+// - the references between records, within a file and across the world;
+// - the library items' rooms, doors and stairs, and a plan's floors (validate_layout.h);
+// - the roads, their signal plans and the transit lines on them, on the world model (validate_roads.h).
 // Findings are diagnostics with a file, a line, a severity and a stable check id. Errors fail a run, and warnings are
 // only listed. Host tools only (tools/worldv.cpp and the tests): nothing here goes into the game.
 #pragma once
@@ -55,6 +57,7 @@ struct Summary {
     bool world = true;          // a world run (not a file run)
     bool onlyMatched = true;    // false: --only named no file, directory or id (nothing was reported)
     bool cacheWritten = true;   // false: the cache couldn't be written (the run's results stand)
+    std::string roads;          // a world run with roads: the roads summary line (validate_roads.h formatRoadCounts)
 };
 
 // Runs the checks and returns the diagnostics sorted by file and line

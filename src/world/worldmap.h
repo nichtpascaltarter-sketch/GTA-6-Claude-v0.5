@@ -85,11 +85,12 @@ struct WorldMap {
     float beachSand(float x, float y) const;
     bool isWater(float x, float y) const { float w = waterAt(x, y); return w > kNoWater + 1 && w > heightAt(x, y); }
     // Modify terrain to follow a road surface: sets height inside `halfWidth`, blends to
-    // original height over `blend` meters beyond it.
-    void flattenAlong(vec2 a, vec2 b, float za, float zb, float halfWidth, float blend);
+    // original height over `blend` meters beyond it. Round at both ends, unless capA or capB is false: then that end is
+    // cut square, and nothing beyond it changes (where the road goes onto a deck).
+    void flattenAlong(vec2 a, vec2 b, float za, float zb, float halfWidth, float blend, bool capA = true, bool capB = true);
     // Cut (never raise) the terrain along a road: at most the road height (za..zb) within `flat`, then a cut face rising
-    // at `slope` out to `reach`.
-    void lowerAlong(vec2 a, vec2 b, float za, float zb, float flat, float reach, float slope);
+    // at `slope` out to `reach`. The ends as flattenAlong's.
+    void lowerAlong(vec2 a, vec2 b, float za, float zb, float flat, float reach, float slope, bool capA = true, bool capB = true);
     void flattenRect(vec2 center, vec2 axisX, float hx, float hy, float z, float blend);
     void recomputeSplat();  // after flattening
 

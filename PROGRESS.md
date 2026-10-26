@@ -151,6 +151,9 @@ Everything (code, models, textures, animation, audio, music, voices, map) is gen
   beam; tail lamps leave only a faint red tint while brake lamps flare red on the road; reversing lamps light the
   ground behind the car; with Reduce Flashing the siren bar pulses slowly instead of strobing (light and lens). Up to
   24 cars cast light (was 14): beyond ~40 m each lamp pair is one light, cross-faded over 36-44 m so nothing pops.
+- Dappled sunlight and held brake lamps (shadow.hlsli, game/gameworld.cpp): sunlight through gaps in the leaves
+  falls as soft spots instead of rings (the soft-shadow filter's taps now cover its whole disc, not an annulus), and
+  cars waiting at a red or in a queue show their brake lamps (held in a drive gear with no throttle).
 - Audio (src/audio, done by agent): WASAPI mixer (192 voices, 3D, doppler, reverb, ducking), 79 synthesized SFX,
   9 engine kinds, sirens/horns/skids/rotors/boats, ambience beds, procedural music engine, 9 radio stations with DJs,
   ads and talk (live timelines), dynamic mission score. Formant TTS voices (src/audio/speech*).

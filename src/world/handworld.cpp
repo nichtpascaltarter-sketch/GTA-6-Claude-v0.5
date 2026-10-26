@@ -172,6 +172,15 @@ bool loadHandTerrain(const WorldBinView& bin, WorldMap& map, std::string* error)
     map.smallIslands = islands;
     map.lakePoly = lake;
     map.channels = channels;
+    // the terrain graded under the roads (docs/HANDBUILT_WORLD.md section 3.3): worldc's delta on the bake, in the height
+    // layer's unit; the splat follows the graded heights
+    if (const WorldBinView::Section* g = bin.find("terrain.grade")) {
+        std::vector<i16> delta;
+        GridInfo gi;
+        if (g->kind != WSK_GRID || !decodeGrid(g->data, g->size, delta, &gi) || gi.width != kHeightRes || gi.height != kHeightRes || gi.type != GRID_I16)
+            return fail(error, "world.bin section terrain.grade is damaged");
+        for (size_t i = 0; i < n; i++) map.height[i] = (float)(layers[0].values[i] + delta[i]) * t.heightUnit;
+    }
     map.recomputeSplat();
     return true;
 }
