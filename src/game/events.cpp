@@ -535,6 +535,9 @@ void GameWorld::updateEvents(float dt) {
                         WalkSpot ws;
                         if (!sidewalkSpot(*this, ringPoint(ha, pp, fwd, 28.f, 55.f), 30.f, ws)) break;
                         vec3 spot = walkOffset(*this, ws, 0.f, ws.halfWidth * 0.85f);   // (against the building side)
+                        // (a wall to sit against: a building's facade within reach - none on a street without buildings)
+                        const World::BuildingSet* bs = buildings ? buildings : World::gBuildings;
+                        if (!bs || !bs->pointInBuilding(spot.xy() + ws.outward * 0.7f, 0.5f)) break;
                         if (!hiddenFrom(*this, spot, 22.f, warm)) break;
                         int id = spawnActor(*this, spot, AI::dirYaw(-ws.outward), ha, 0, FAC_CIVILIAN, PR_CIVILIAN, evId);
                         if (id < 0) break;

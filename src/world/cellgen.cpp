@@ -3,6 +3,7 @@
 #include "sites.h"
 #include "handworld.h"
 #include "blocksbin.h"
+#include "roadoverrides.h"
 #include "../render/mesh.h"
 #include "worldtypes.h"
 
@@ -16,7 +17,7 @@ struct CellGeometry {
     std::vector<CollisionBox> collision;
 };
 
-void buildRoadCell(const RoadNetwork& net, const WorldMap& map, int cx, int cy, RoadCellOutput& out);
+void buildRoadCell(const RoadNetwork& net, const RoadOverrides* ov, const WorldMap& map, int cx, int cy, RoadCellOutput& out);
 void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& map, bool detail, vec3 org, MeshData& m,
                        std::vector<CollisionBox>* col, std::vector<PropInstance>* props, std::vector<LightInstance>* lights);
 
@@ -608,7 +609,7 @@ void generateCell(int cx, int cy, bool detail, CellGeometry& out) {
     // the hand-built world (docs/HANDBUILT_WORLD.md section 7.2) has its authored roads so far, without the procedural
     // street dressing: its block files will place the furniture, trees and street lights (decision D2)
     roads.dressing = !isHandWorld();
-    buildRoadCell(*gRoads, map, cx, cy, roads);
+    buildRoadCell(*gRoads, gRoadOverrides, map, cx, cy, roads);   // (the overrides: the hand-built roads' lanes as built)
     out.opaque.append(roads.road);
     if (detail) out.opaque.append(roads.street);
     // deck parapets, median barriers and guardrails collide at every LOD (vehicles far from the camera stay on the decks)

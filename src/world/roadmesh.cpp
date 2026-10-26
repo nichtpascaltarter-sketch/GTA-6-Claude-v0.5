@@ -1,5 +1,6 @@
 // Road geometry generation per streaming cell.
 #include "roads.h"
+#include "roadoverrides.h"
 #include "buildings.h"
 #include "sites.h"
 #include "handworld.h"
@@ -489,10 +490,11 @@ bool edgeWorkZone(const RoadNetwork& net, int ei, const Profile& pf, int side, f
 struct SpanApproach {
     vec2 dir;
     vec3 cutPt;
-    float hw, sw;
+    float hwL, hwR, swL, swR;   // each side's kerb line and sidewalk, left and right looking out from the node
     int edge;
     bool outgoing;
     float radius;
+    float laneW, median;        // the lanes' width and the median as built
 };
 
 bool spanWireSignals(const RoadNetwork& net, const RoadNode& nd, const std::vector<SpanApproach>& ap, const WorldMap& map, RoadCellOutput& out, vec2 org) {
@@ -504,7 +506,7 @@ bool spanWireSignals(const RoadNetwork& net, const RoadNode& nd, const std::vect
         const SpanApproach& A = ap[i];
         const SpanApproach& B = ap[(i + 1) % n];
         vec2 lA = perp(A.dir), lB = perp(B.dir);
-        vec2 p1 = A.cutPt.xy() + lA * A.hw, p2 = B.cutPt.xy() - lB * B.hw;
+        vec2 p1 = A.cutPt.xy() + lA * A.hwL, p2 = B.cutPt.xy() - lB * B.hwR;
         vec2 C = (p1 + p2) * 0.5f;
         float den = cross(A.dir, B.dir);
         if (fabsf(den) > 0.15f) {
@@ -515,7 +517,7 @@ bool spanWireSignals(const RoadNetwork& net, const RoadNode& nd, const std::vect
         vec2 q = p1 * 0.25f + C * 0.5f + p2 * 0.25f;
         vec2 outw = q - nd.p;
         outw = length2(outw) > 1e-4f ? normalize(outw) : A.dir;
-        float swc = Min(A.sw, B.sw);
+        float swc = Min(A.swL, B.swR);
         vec2 pp = q + outw * (swc > 0.5f ? Min(swc * 0.5f, 1.3f) : 1.8f);
         float z = Lerp(A.cutPt.z, B.cutPt.z, 0.5f) + (swc > 0.5f ? 0.15f : 0.f);
         bool ok = !net.onPavement(pp, z, 0.35f) && !(gBuildings && gBuildings->pointInBuilding(pp, 0.5f)) && !(gSites && gSites->blocksVegetation(pp));
@@ -551,9 +553,8 @@ bool spanWireSignals(const RoadNetwork& net, const RoadNode& nd, const std::vect
         if (e.cls == RC_HIGHWAY || e.cls == RC_RAMP) continue;
         int nIn = A.outgoing ? e.lanesB : e.lanesF;
         if (nIn <= 0) continue;
-        const RoadClassInfo& ri = roadInfo(e.cls);
         bool twoWay = e.lanesF > 0 && e.lanesB > 0;
-        float inLat = twoWay ? ri.median * 0.5f + nIn * ri.laneWidth * 0.5f : 0.f;
+        float inLat = twoWay ? A.median * 0.5f + nIn * A.laneW * 0.5f : 0.f;
         vec2 l = perp(A.dir);
         vec2 Q = A.cutPt.xy() + l * inLat;
         float den = cross(D, -A.dir);
@@ -897,7 +898,7 @@ bool roadWorkZoneAt(vec2 p) {
     return fabsf(s - sc) < 13.f && d < e.halfWidth + 0.5f;
 }
 
-void buildRoadCell(const RoadNetwork& net, const WorldMap& map, int cx, int cy, RoadCellOutput& out) {
+void buildRoadCell(const RoadNetwork& net, const RoadOverrides* ov, const WorldMap& map, int cx, int cy, RoadCellOutput& out) {
     vec2 org = cellOrigin(cx, cy);
     std::vector<int> cand;
     net.edgesInRect(org - vec2(4.f), org + vec2(kCellSize + 4.f), cand);
@@ -915,11 +916,16 @@ void buildRoadCell(const RoadNetwork& net, const WorldMap& map, int cx, int cy, 
         if (secs.size() < 2) continue;
         bool unpaved = (e.flags & RF_UNPAVED) != 0;
         u32 surf = unpaved ? matDirt : ((e.seed & 3) == 0 ? matAsphaltOld : matAsphalt);
-        float hw = e.halfWidth;
-        float sw = e.sidewalk;
+        // each side's kerb line and sidewalk (the hand-built roads' own: RoadEdge::halfWidthSide; the procedural world's
+        // are symmetric), and the lanes' width and the median as built (the overrides', else the class's), as the lane
+        // graph lays the lanes out
+        const float hwL = e.halfWidthSide(-1), hwR = e.halfWidthSide(1);
+        const float swL = e.sidewalkSide(-1), swR = e.sidewalkSide(1);
+        const RoadOverrides::EdgeExtra* ex = ov && ov->edges.size() == net.edges.size() ? &ov->edges[(size_t)ei] : nullptr;
+        const float lanesW = ex ? ex->laneWidth : ri.laneWidth;
+        const float medianW = ex ? ex->median : ri.median;
         bool hwy = e.cls == RC_HIGHWAY || e.cls == RC_RAMP;
         bool twoWay = e.lanesB > 0 && e.lanesF > 0;
-        float lanesW = ri.laneWidth;
         for (size_t i = 0; i + 1 < secs.size(); i++) {
             const Section& a = secs[i];
             const Section& b = secs[i + 1];
@@ -933,39 +939,41 @@ void buildRoadCell(const RoadNetwork& net, const WorldMap& map, int cx, int cy, 
             bool deck = (a.c.z - groundA > 2.2f) || (b.c.z - groundB > 2.2f);
             // ---------- road surface
             {
-                vec3 l0 = sectionPoint(a, -hw) - o3, r0 = sectionPoint(a, hw) - o3;
-                vec3 l1 = sectionPoint(b, -hw) - o3, r1 = sectionPoint(b, hw) - o3;
+                vec3 l0 = sectionPoint(a, -hwL) - o3, r0 = sectionPoint(a, hwR) - o3;
+                vec3 l1 = sectionPoint(b, -hwL) - o3, r1 = sectionPoint(b, hwR) - o3;
                 // uv: u across (meters from left), v along (meters); colour alpha = carriageway width / 64 m, so
-                // the terrain shader can place the right-hand kerb's drains and gutter grime at u = 2 hw
-                u32 surfCol = packRGBA8(1.f, 1.f, 1.f, Saturate(hw * (2.f / 64.f)));
-                out.road.quadFacing(r0, r1, l1, l0, vec2(2 * hw, a.s), vec2(2 * hw, b.s), vec2(0, b.s), vec2(0, a.s), surfCol, surf, vec3(0, 0, 1));
+                // the terrain shader can place the right-hand kerb's drains and gutter grime at u = the width
+                const float wid = hwL + hwR;
+                u32 surfCol = packRGBA8(1.f, 1.f, 1.f, Saturate(wid * (1.f / 64.f)));
+                out.road.quadFacing(r0, r1, l1, l0, vec2(wid, a.s), vec2(wid, b.s), vec2(0, b.s), vec2(0, a.s), surfCol, surf, vec3(0, 0, 1));
             }
             // ---------- sides: sidewalks+curbs, or shoulders/skirts, or bridge barriers
             for (int side = -1; side <= 1; side += 2) {
                 float sgn = (float)side;
-                if (sw > 0.f && !(hwy)) {
+                const float hwS = side > 0 ? hwR : hwL, swS = side > 0 ? swR : swL;   // (this side's)
+                if (swS > 0.f && !(hwy)) {
                     // curb face
-                    vec3 c0 = sectionPoint(a, sgn * hw) - o3, c1 = sectionPoint(b, sgn * hw) - o3;
+                    vec3 c0 = sectionPoint(a, sgn * hwS) - o3, c1 = sectionPoint(b, sgn * hwS) - o3;
                     vec3 up(0, 0, 0.15f);
                     out.road.quadFacing(c0, c1, c1 + up, c0 + up, vec2(a.s, 0), vec2(b.s, 0), vec2(b.s, 0.15f), vec2(a.s, 0.15f), white, matCurb, a.right * -sgn);
                     // sidewalk top
-                    vec3 i0 = sectionPoint(a, sgn * hw, 0.15f) - o3, i1 = sectionPoint(b, sgn * hw, 0.15f) - o3;
-                    vec3 x0 = sectionPoint(a, sgn * (hw + sw), 0.15f) - o3, x1 = sectionPoint(b, sgn * (hw + sw), 0.15f) - o3;
-                    out.road.quadFacing(i0, x0, x1, i1, vec2(0, a.s), vec2(sw, a.s), vec2(sw, b.s), vec2(0, b.s), white, matSidewalk, vec3(0, 0, 1));
+                    vec3 i0 = sectionPoint(a, sgn * hwS, 0.15f) - o3, i1 = sectionPoint(b, sgn * hwS, 0.15f) - o3;
+                    vec3 x0 = sectionPoint(a, sgn * (hwS + swS), 0.15f) - o3, x1 = sectionPoint(b, sgn * (hwS + swS), 0.15f) - o3;
+                    out.road.quadFacing(i0, x0, x1, i1, vec2(0, a.s), vec2(swS, a.s), vec2(swS, b.s), vec2(0, b.s), white, matSidewalk, vec3(0, 0, 1));
                     // outer skirt down into the terrain
                     vec3 s0 = x0 - vec3(0, 0, 0.9f), s1 = x1 - vec3(0, 0, 0.9f);
                     out.road.quadFacing(x0, x1, s1, s0, vec2(a.s, 0), vec2(b.s, 0), vec2(b.s, 1), vec2(a.s, 1), white, matConcrete, a.right * sgn);
                 } else if (!deck) {
                     // shoulder skirt so the terrain never shows a gap
-                    vec3 x0 = sectionPoint(a, sgn * hw) - o3, x1 = sectionPoint(b, sgn * hw) - o3;
-                    vec3 s0 = sectionPoint(a, sgn * (hw + 1.2f), -0.6f) - o3, s1 = sectionPoint(b, sgn * (hw + 1.2f), -0.6f) - o3;
+                    vec3 x0 = sectionPoint(a, sgn * hwS) - o3, x1 = sectionPoint(b, sgn * hwS) - o3;
+                    vec3 s0 = sectionPoint(a, sgn * (hwS + 1.2f), -0.6f) - o3, s1 = sectionPoint(b, sgn * (hwS + 1.2f), -0.6f) - o3;
                     u32 m = unpaved ? matDirt : matDirt;
                     out.road.quadFacing(x0, s0, s1, x1, vec2(0, a.s), vec2(1.2f, a.s), vec2(1.2f, b.s), vec2(0, b.s), white, m, vec3(0, 0, 1));
                 }
                 if (!deck && !unpaved) {
                     // Falls beside embankments and approaches: steel W-beam guardrail (no sidewalk) or a pedestrian railing at
                     // the outer sidewalk edge, per sub-span where the ground drops more than 1 m below the road edge
-                    float edgeLat = hw + (sw > 0.f && !hwy ? sw : 0.f);
+                    float edgeLat = hwS + (swS > 0.f && !hwy ? swS : 0.f);
                     float segLen = b.s - a.s;
                     int nsub = Max(1, (int)ceilf(segLen / 6.f));   // short sub-spans: a merge beside one end opens only its own
                     for (int q = 0; q < nsub; q++) {
@@ -996,7 +1004,7 @@ void buildRoadCell(const RoadNetwork& net, const WorldMap& map, int cx, int cy, 
                         vec3 A0 = lerp(sectionPoint(a, sgn * (edgeLat + 0.3f)), sectionPoint(b, sgn * (edgeLat + 0.3f)), t0) - o3;
                         vec3 A1 = lerp(sectionPoint(a, sgn * (edgeLat + 0.3f)), sectionPoint(b, sgn * (edgeLat + 0.3f)), t1) - o3;
                         vec3 rs = a.right * sgn;
-                        bool railing = sw > 0.f && !hwy;
+                        bool railing = swS > 0.f && !hwy;
                         float zb = railing ? 0.15f : 0.f;
                         vec3 lo = vec3(0, 0, zb + (railing ? 0.95f : 0.55f)), hi = vec3(0, 0, zb + (railing ? 1.05f : 0.87f));
                         // rail band facing the road and its back
@@ -1029,7 +1037,7 @@ void buildRoadCell(const RoadNetwork& net, const WorldMap& map, int cx, int cy, 
                 if (deck) {
                     // Barrier walls on the deck edges, in sub-spans; open where another road's pavement continues beside the deck
                     float bw = 0.35f, bh = 0.95f;
-                    float lat = sgn * (hw + (sw > 0 && !hwy ? sw : 0.f) + bw * 0.5f);
+                    float lat = sgn * (hwS + (swS > 0 && !hwy ? swS : 0.f) + bw * 0.5f);
                     int nsub = Max(1, (int)ceilf((b.s - a.s) / 5.f));
                     vec3 rAB = normalize(a.right + b.right);
                     for (int q = 0; q < nsub; q++) {
@@ -1056,7 +1064,7 @@ void buildRoadCell(const RoadNetwork& net, const WorldMap& map, int cx, int cy, 
                         out.road.quadFacing(p0, p1, p1 + up, p0 + up, vec2(s0, 0), vec2(s1, 0), vec2(s1, bh), vec2(s0, bh), white, matConcrete, a.right * -sgn);
                     }
                     // Deck side face down to the slab bottom
-                    float outerLat = sgn * (hw + (sw > 0 && !hwy ? sw : 0.f) + bw);
+                    float outerLat = sgn * (hwS + (swS > 0 && !hwy ? swS : 0.f) + bw);
                     vec3 d0 = sectionPoint(a, outerLat) - o3, d1 = sectionPoint(b, outerLat) - o3;
                     vec3 dn(0, 0, -1.3f);
                     out.road.quadFacing(d0, d1, d1 + dn, d0 + dn, vec2(a.s, 0), vec2(b.s, 0), vec2(b.s, 1.3f), vec2(a.s, 1.3f), white, matConcrete, a.right * sgn);
@@ -1064,10 +1072,11 @@ void buildRoadCell(const RoadNetwork& net, const WorldMap& map, int cx, int cy, 
             }
             if (deck) {
                 // Deck underside
-                float outer = hw + (sw > 0 && !hwy ? sw : 0.f) + 0.35f;
-                vec3 l0 = sectionPoint(a, -outer, -1.3f) - o3, r0 = sectionPoint(a, outer, -1.3f) - o3;
-                vec3 l1 = sectionPoint(b, -outer, -1.3f) - o3, r1 = sectionPoint(b, outer, -1.3f) - o3;
-                out.road.quadFacing(l0, l1, r1, r0, vec2(0, a.s), vec2(0, b.s), vec2(2 * outer, b.s), vec2(2 * outer, a.s), white, matConcrete, vec3(0, 0, -1));
+                const float outerL = hwL + (swL > 0 && !hwy ? swL : 0.f) + 0.35f, outerR = hwR + (swR > 0 && !hwy ? swR : 0.f) + 0.35f;
+                const float outer = Max(outerL, outerR);   // (the piers: as wide as the wider side)
+                vec3 l0 = sectionPoint(a, -outerL, -1.3f) - o3, r0 = sectionPoint(a, outerR, -1.3f) - o3;
+                vec3 l1 = sectionPoint(b, -outerL, -1.3f) - o3, r1 = sectionPoint(b, outerR, -1.3f) - o3;
+                out.road.quadFacing(l0, l1, r1, r0, vec2(0, a.s), vec2(0, b.s), vec2(outerL + outerR, b.s), vec2(outerL + outerR, a.s), white, matConcrete, vec3(0, 0, -1));
                 // Pillars every ~32 m
                 float spacing = hwy ? 34.f : 28.f;
                 int k0 = (int)ceilf(a.s / spacing), k1 = (int)floorf(b.s / spacing);
@@ -1095,8 +1104,8 @@ void buildRoadCell(const RoadNetwork& net, const WorldMap& map, int cx, int cy, 
                 }
             }
             // ---------- Median for boulevards: raised planted strip
-            if (ri.median > 0.f && !hwy && twoWay) {
-                float mw = ri.median * 0.5f;
+            if (medianW > 0.f && !hwy && twoWay) {
+                float mw = medianW * 0.5f;
                 vec3 up(0, 0, 0.18f);
                 for (int side = -1; side <= 1; side += 2) {
                     vec3 c0 = sectionPoint(a, side * mw) - o3, c1 = sectionPoint(b, side * mw) - o3;
@@ -1117,7 +1126,7 @@ void buildRoadCell(const RoadNetwork& net, const WorldMap& map, int cx, int cy, 
             }
             // ---------- Lane markings
             if (!unpaved && e.cls != RC_LANE) {
-                float medianHalf = (ri.median > 0.f && twoWay) ? ri.median * 0.5f : 0.f;
+                float medianHalf = (medianW > 0.f && twoWay) ? medianW * 0.5f : 0.f;
                 float laneStart = medianHalf;  // lanes start next to the median / center line
                 if (!twoWay) laneStart = -lanesW * e.lanesF * 0.5f;
                 // Center line (two-way without median)
@@ -1198,7 +1207,7 @@ void buildRoadCell(const RoadNetwork& net, const WorldMap& map, int cx, int cy, 
             float ang;
             vec2 dir;
             vec3 cutPt;
-            float hw, sw;
+            float hwL, hwR, swL, swR;   // each side's kerb line and sidewalk, left and right looking out from the node
             int edge;
             bool outgoing;  // edge starts at this node
         };
@@ -1214,8 +1223,11 @@ void buildRoadCell(const RoadNetwork& net, const WorldMap& map, int cx, int cy, 
             A.ang = atan2f(d.y, d.x);
             A.dir = d;
             A.cutPt = p;
-            A.hw = e.halfWidth;
-            A.sw = e.sidewalk;
+            // looking out from the node along an edge that leaves it is looking fwd; along one that arrives, bwd
+            A.hwL = e.halfWidthSide(out0 ? -1 : 1);
+            A.hwR = e.halfWidthSide(out0 ? 1 : -1);
+            A.swL = e.sidewalkSide(out0 ? -1 : 1);
+            A.swR = e.sidewalkSide(out0 ? 1 : -1);
             A.edge = ei;
             A.outgoing = out0;
             ap.push_back(A);
@@ -1230,8 +1242,8 @@ void buildRoadCell(const RoadNetwork& net, const WorldMap& map, int cx, int cy, 
             const Approach& B = ap[(i + 1) % n];
             vec2 lA = perp(A.dir), lB = perp(B.dir);
             // approach i: right point then left point (CCW around the node)
-            vec3 Ar = A.cutPt + vec3(-lA * A.hw, 0.f), Al = A.cutPt + vec3(lA * A.hw, 0.f);
-            vec3 Br = B.cutPt + vec3(-lB * B.hw, 0.f);
+            vec3 Ar = A.cutPt + vec3(-lA * A.hwR, 0.f), Al = A.cutPt + vec3(lA * A.hwL, 0.f);
+            vec3 Br = B.cutPt + vec3(-lB * B.hwR, 0.f);
             poly.push_back(Ar);
             poly.push_back(Al);
             // Corner curve from Al to Br via the intersection of the two road edge lines
@@ -1246,7 +1258,7 @@ void buildRoadCell(const RoadNetwork& net, const WorldMap& map, int cx, int cy, 
             }
             std::vector<vec3> inner, outer;
             int segs = curved ? 6 : 1;
-            float swc = Min(A.sw, B.sw);
+            float swc = Min(A.swL, B.swR);   // (the corner joins A's left sidewalk and B's right one)
             for (int k = 1; k < segs; k++) {
                 float t = (float)k / segs;
                 vec2 q = p1 * ((1 - t) * (1 - t)) + C * (2 * (1 - t) * t) + p2 * (t * t);
@@ -1335,9 +1347,8 @@ void buildRoadCell(const RoadNetwork& net, const WorldMap& map, int cx, int cy, 
                 const RoadEdge& e = net.edges[A.edge];
                 if (e.cls == RC_HIGHWAY || e.cls == RC_RAMP) continue;
                 vec2 l = perp(A.dir);
-                float w = A.hw;
-                // zebra: stripes 0.5 m wide, along the approach direction, 3 m long
-                for (float x = -w + 0.6f; x < w - 0.3f; x += 1.1f) {
+                // zebra: stripes 0.5 m wide, along the approach direction, 3 m long, kerb to kerb
+                for (float x = -A.hwR + 0.6f; x < A.hwL - 0.3f; x += 1.1f) {
                     vec3 c0 = A.cutPt + vec3(l * x + A.dir * 0.8f, 0.03f) - o3;
                     vec3 c1 = A.cutPt + vec3(l * (x + 0.55f) + A.dir * 0.8f, 0.03f) - o3;
                     vec3 c2 = c1 + vec3(A.dir * 3.f, 0), c3 = c0 + vec3(A.dir * 3.f, 0);
@@ -1347,15 +1358,20 @@ void buildRoadCell(const RoadNetwork& net, const WorldMap& map, int cx, int cy, 
                 vec3 s0 = A.cutPt + vec3(A.dir * 4.4f, 0.03f) - o3;
                 vec3 s1 = s0 + vec3(A.dir * 0.45f, 0);
                 // incoming lanes are on the -l side of the outward direction
-                vec3 a0 = s0 + vec3(l * 0.2f, 0), a1 = s0 + vec3(l * (-(w - 0.3f)), 0);
-                vec3 b0 = s1 + vec3(l * 0.2f, 0), b1 = s1 + vec3(l * (-(w - 0.3f)), 0);
+                vec3 a0 = s0 + vec3(l * 0.2f, 0), a1 = s0 + vec3(l * (-(A.hwR - 0.3f)), 0);
+                vec3 b0 = s1 + vec3(l * 0.2f, 0), b1 = s1 + vec3(l * (-(A.hwR - 0.3f)), 0);
                 out.decals.quadFacing(a0, a1, b1, b0, vec2(0, 0), vec2(1, 0), vec2(1, 1), vec2(0, 1), white, matWhite, vec3(0, 0, 1));
             }
             // Span-wire signals outside the downtown cores (South Florida style); mast arms and stop signs otherwise
             bool spanDone = false;
             if (nd.control == 2 && out.detail && street_dressing::profileFor(map.regionAt(nd.p.x, nd.p.y)).span) {
                 std::vector<street_dressing::SpanApproach> sa;
-                for (const Approach& A : ap) sa.push_back({A.dir, A.cutPt, A.hw, A.sw, A.edge, A.outgoing, nd.radius});
+                for (const Approach& A : ap) {
+                    const RoadOverrides::EdgeExtra* ax = ov && ov->edges.size() == net.edges.size() ? &ov->edges[(size_t)A.edge] : nullptr;
+                    const RoadClassInfo& ai = roadInfo(net.edges[A.edge].cls);
+                    sa.push_back({A.dir, A.cutPt, A.hwL, A.hwR, A.swL, A.swR, A.edge, A.outgoing, nd.radius, ax ? ax->laneWidth : ai.laneWidth,
+                                  ax ? ax->median : ai.median});
+                }
                 spanDone = street_dressing::spanWireSignals(net, nd, sa, map, out, org);
             }
             // Traffic lights / stop signs at corners
@@ -1366,8 +1382,8 @@ void buildRoadCell(const RoadNetwork& net, const WorldMap& map, int cx, int cy, 
                 vec2 l = perp(A.dir);
                 PropInstance pi;
                 // right side of the incoming traffic (which drives toward the node on the lane at -l side)
-                vec2 pos = A.cutPt.xy() + A.dir * 1.5f - l * (A.hw + Max(A.sw * 0.5f, 0.8f));
-                pi.pos = vec3(pos, A.cutPt.z + (A.sw > 0 ? 0.15f : 0.f));
+                vec2 pos = A.cutPt.xy() + A.dir * 1.5f - l * (A.hwR + Max(A.swR * 0.5f, 0.8f));
+                pi.pos = vec3(pos, A.cutPt.z + (A.swR > 0 ? 0.15f : 0.f));
                 pi.yaw = atan2f(-A.dir.y, -A.dir.x);
                 pi.scale = 1.f;
                 pi.type = nd.control == 2 ? PROP_TRAFFIC_LIGHT : PROP_STOP_SIGN;

@@ -6,7 +6,14 @@
 //   g++ -O2 -std=c++17 -I src -DTS_SPLIT -DTS_PART_WORLD -c tools/traffic_sim.cpp -o /tmp/ts_world.o
 //   g++ -O2 -std=c++17 -I src -DTS_SPLIT -DTS_PART_AI -c tools/traffic_sim.cpp -o /tmp/ts_ai.o
 //   g++ /tmp/ts_world.o /tmp/ts_ai.o -o /tmp/traffic_sim -lpthread
-// Usage: traffic_sim [--lanes X Y R out.ppm] [--sim X Y R] [--cars N] [--peds N] [--minutes M] [--plot out.ppm]
+// Usage: traffic_sim [--worldbin world.bin] [--lanes X Y R out.ppm] [--sim X Y R] [--cars N] [--peds N] [--minutes M]
+//        [--plot out.ppm]
+// --worldbin (first): the hand-built world's roads from a world.bin (build/gen/world.bin after build.sh) with what they
+// author beyond the network (roadoverrides.h), on the procedural terrain the bake came from, with no buildings or sites
+// (as the game's --world=hand); everything else as usual
+#if __has_include("../src/world/roadoverrides.h")
+#define TS_HAND 1   // (a tree with the host road loader, World::loadRoadsFile)
+#endif
 #if !defined(TS_SPLIT) || defined(TS_PART_WORLD)
 #include "native_stubs.cpp"
 #include "../src/core/math.cpp"
@@ -86,6 +93,11 @@
 #include "../src/sim/physics.cpp"
 #include "../src/sim/vehicle_models.cpp"
 #include "../src/sim/vehicle_sim.cpp"
+#ifdef TS_HAND
+#include "../src/world/lz.cpp"
+#include "../src/world/worldbin.cpp"
+#include "../src/world/roadsbin.cpp"
+#endif
 // generate detailed collision cells (buildings, street furniture) around a point
 void tsLoadCells(Phys::CollisionWorld& cw, vec2 c, float r) {
     int cx0 = (int)floorf((c.x - r + World::kWorldHalf) / World::kCellSize), cx1 = (int)floorf((c.x + r + World::kWorldHalf) / World::kCellSize);
@@ -115,6 +127,10 @@ void tsLoadCells(Phys::CollisionWorld& cw, vec2 c, float r) {
 #include "../src/world/sites.h"
 #endif
 void tsLoadCells(Phys::CollisionWorld& cw, vec2 c, float r);
+#endif
+#ifdef TS_HAND
+#include "../src/world/roadsbin.h"
+#include "../src/world/handworld.h"
 #endif
 #include "../src/game/lanes.cpp"
 #include "../src/game/traffic_core.cpp"
@@ -202,6 +218,44 @@ struct World3 {
         Phys::gCollision = &cw;
         lg.build(roads);
     }
+#ifdef TS_HAND
+    // (a lane graph that reads the overrides gets them; an older one, a base build for comparison, builds without)
+    template <typename G>
+    static auto buildLanes(G& g, const World::RoadNetwork& r, const World::RoadOverrides* o, int) -> decltype(g.build(r, o), void()) {
+        g.build(r, o);
+    }
+    template <typename G>
+    static void buildLanes(G& g, const World::RoadNetwork& r, const World::RoadOverrides*, long) {
+        g.build(r);
+    }
+    World::RoadOverrides ov;
+    // the hand-built world (--worldbin): its roads and overrides read from a world.bin, the terrain the bake came from,
+    // no sites (the generator laid out the procedural world's: plaza walks, pads, structures) and an empty building set
+    // with its cell lists, as the game's hand mode sets them up
+    bool buildHand(const char* path) {
+        map.generate();
+        World::gMap = &map;
+#if __has_include("../src/world/sites.h")
+        if (World::gSites) *World::gSites = World::SiteSet();
+#endif
+        std::string err;
+        std::vector<std::string> nodeIds, edgeIds;
+        if (!World::loadRoadsFile(path, roads, ov, &err, &nodeIds, &edgeIds)) {
+            LOG("--worldbin %s: %s", path, err.c_str());
+            return false;
+        }
+        World::gWorldKind = World::WorldKind::Hand;
+        World::gRoads = &roads;
+        World::gRoadOverrides = &ov;
+        buildings.cellLists.assign((size_t)World::kCellsPerSide * World::kCellsPerSide, {});
+        buildings.openCellLists.assign((size_t)World::kCellsPerSide * World::kCellsPerSide, {});
+        World::gBuildings = &buildings;
+        Phys::gCollision = &cw;
+        LOG("--worldbin %s: %zu road nodes, %zu edges (%zu with overrides)", path, roads.nodes.size(), roads.edges.size(), ov.edges.size());
+        buildLanes(lg, roads, &ov, 0);
+        return true;
+    }
+#endif
     void loadCells(vec2 c, float r) { tsLoadCells(cw, c, r); }
 };
 
@@ -214,15 +268,17 @@ void drawRoads(Canvas& cv, const World3& w) {
         for (size_t k = 0; k + 1 < e.pts.size(); k++) {
             vec2 a = e.pts[k].xy(), b = e.pts[k + 1].xy();
             vec2 t = normalize(b - a), n(t.y, -t.x);
-            float hw = e.halfWidth;
+            const float hwL = e.halfWidthSide(-1), hwR = e.halfWidthSide(1);   // (each side's kerb line)
             // asphalt band
-            int steps = Max(1, (int)(hw * 2.f * cv.scale));
+            int steps = Max(1, (int)((hwL + hwR) * cv.scale));
             for (int s = 0; s <= steps; s++) {
-                float o = -hw + 2.f * hw * s / steps;
+                float o = -hwL + (hwL + hwR) * s / steps;
                 cv.line(a + n * o, b + n * o, vec3(0.2f, 0.2f, 0.22f), 1.f);
             }
-            if (e.sidewalk > 0.f)
-                for (int sd = -1; sd <= 1; sd += 2) cv.line(a + n * (sd * (hw + e.sidewalk * 0.5f)), b + n * (sd * (hw + e.sidewalk * 0.5f)), vec3(0.3f, 0.3f, 0.3f), 0.6f);
+            for (int sd = -1; sd <= 1; sd += 2) {
+                const float hw = sd > 0 ? hwR : hwL, sw = e.sidewalkSide(sd);
+                if (sw > 0.f) cv.line(a + n * (sd * (hw + sw * 0.5f)), b + n * (sd * (hw + sw * 0.5f)), vec3(0.3f, 0.3f, 0.3f), 0.6f);
+            }
         }
     }
 }
@@ -501,14 +557,20 @@ struct Sim {
             for (int guard = 0; guard < 6 && w->lg.lanes[lane].right >= 0; guard++) lane = w->lg.lanes[lane].right;
             const AI::Lane& L = w->lg.lanes[lane];
             if (L.cls != World::RC_STREET && L.cls != World::RC_AVENUE && L.cls != World::RC_LANE) continue;
+#ifndef TS_NO_SECTIONS
+            // (population.cpp's rule: the parking along this lane's kerb - the class's shoulder, or as authored)
+            const float parkW = w->lg.parkWidth(lane), parkLat = w->lg.parkLat(lane);
+#else
             const World::RoadClassInfo& info = World::roadInfo((World::RoadClass)L.cls);
-            if (info.shoulder < 1.8f || L.u1 - L.u0 < 30.f) continue;
+            const float parkW = info.shoulder, parkLat = L.width * 0.5f + info.shoulder * 0.5f;
+#endif
+            if (parkW < 1.8f || L.u1 - L.u0 < 30.f) continue;
             u = Clamp(u, L.u0 + 9.f, L.u1 - 12.f);
             bool nearStop = false;
             for (float bs : L.busStops)
                 if (fabsf(bs - u) < 18.f) nearStop = true;
             if (nearStop) continue;
-            float lat = L.width * 0.5f + info.shoulder * 0.5f;
+            float lat = parkLat;
             vec3 c = w->lg.lanePos(lane, u, lat);
             if (World::roadWorkZoneAt(c.xy())) continue;
             bool close = false;
@@ -524,7 +586,7 @@ struct Sim {
                     break;
                 }
             }
-            if (m < 0 || models[m].boxHalf.x > info.shoulder * 0.5f + 0.1f) continue;
+            if (m < 0 || models[m].boxHalf.x > parkW * 0.5f + 0.1f) continue;
             vec2 t = w->lg.laneTangent(lane, u);
             SimCar pc;
             pc.used = true;
@@ -1730,8 +1792,15 @@ using namespace TS;
 int main(int argc, char** argv) {
     Jobs::init(Max(1, Min(3, (int)std::thread::hardware_concurrency() - 1)));
     static World3 w;
-    w.build();
-    for (int i = 1; i < argc; i++) {
+    int firstArg = 1;
+#ifdef TS_HAND
+    if (argc > 2 && !strcmp(argv[1], "--worldbin")) {
+        if (!w.buildHand(argv[2])) return 1;
+        firstArg = 3;
+    } else
+#endif
+        w.build();
+    for (int i = firstArg; i < argc; i++) {
         if (!strcmp(argv[i], "--probe") && i + 2 < argc) {
             vec2 p((float)atof(argv[i + 1]), (float)atof(argv[i + 2]));
             printf("pointInBuilding(%.1f, %.1f): margin 0 -> %d, margin 1.8 -> %d\n", p.x, p.y, (int)World::gBuildings->pointInBuilding(p, 0.f), (int)World::gBuildings->pointInBuilding(p, 1.8f));
@@ -1982,6 +2051,7 @@ int main(int argc, char** argv) {
                         const World::RoadEdge& E = R.edges[ei];
                         if (E.pts.size() < 2) continue;
                         float best = 1e9f, bz = 0.f, bs = 0.f;
+                        bool bright = false;   // (the side of the edge it is on: the carriageway reaches that side's kerb)
                         for (size_t s = 0; s + 1 < E.pts.size(); s++) {
                             vec2 q0 = E.pts[s].xy(), dq = E.pts[s + 1].xy() - q0;
                             float l2 = Max(dot(dq, dq), 1e-6f), f = Clamp(dot(q - q0, dq) / l2, 0.f, 1.f);
@@ -1990,9 +2060,11 @@ int main(int argc, char** argv) {
                                 best = dd;
                                 bz = Lerp(E.pts[s].z, E.pts[s + 1].z, f);
                                 bs = E.dist.size() > s + 1 ? Lerp(E.dist[s], E.dist[s + 1], f) : 0.f;
+                                bright = cross(dq, q - q0) < 0.f;
                             }
                         }
-                        if (bs < E.cut0 || bs > E.length - E.cut1 || best > E.halfWidth - 0.8f || fabsf(bz - q3.z) > 2.f) continue;
+                        const float kerbHere = E.halfWidthSide(bright ? 1 : -1);
+                        if (bs < E.cut0 || bs > E.length - E.cut1 || best > kerbHere - 0.8f || fabsf(bz - q3.z) > 2.f) continue;
                         if (he.other < 0) {
                             he.other = ei;
                             he.at = q;
@@ -2038,6 +2110,47 @@ int main(int argc, char** argv) {
             printf("walk links checked: %d\n", (int)G.walkLinks.size());
             continue;
         }
+#ifndef TS_NO_SECTIONS
+        if (!strcmp(argv[i], "--sections")) {
+            // each edge's cross-section as the lane graph has it (authored in hand mode: listed where its sides differ or
+            // its lane width, median or limit is not the class's), and the walk graph and parking against it: sidewalk
+            // links off their side's sidewalk centre line, the kerb lanes that park by side of the edge
+            const AI::LaneGraph& G = w.lg;
+            int authored = 0, listed = 0, offLink = 0, sidewalkLinks = 0, parkLanes[2] = {0, 0}, kerbLanes[2] = {0, 0};
+            for (int ei = 0; ei < (int)G.sections.size() && ei < (int)w.roads.edges.size(); ei++) {
+                const AI::EdgeSection& S = G.sections[ei];
+                const World::RoadEdge& E = w.roads.edges[ei];
+                const World::RoadClassInfo& ri = World::roadInfo(E.cls);
+                authored += S.authored;
+                const bool sides = fabsf(S.kerb[0] - S.kerb[1]) > 0.01f || fabsf(S.walk[0] - S.walk[1]) > 0.01f || fabsf(S.park[0] - S.park[1]) > 0.01f;
+                const bool own = fabsf(S.laneWidth - ri.laneWidth) > 0.01f || fabsf(S.speed - ri.speed) > 0.01f || S.median > 0.f || S.flags;
+                if (S.authored && (sides || own)) {
+                    listed++;
+                    printf("edge %d (%s, %s, %d+%d lanes): lane %.2f median %.2f limit %.1f flags %d | kerb line L %.2f R %.2f (half width %.2f) | sidewalk L %.2f R %.2f (%.2f) | parking L %.2f R %.2f\n",
+                           ei, E.name.c_str(), ri.name, (int)E.lanesF, (int)E.lanesB, S.laneWidth, S.median, S.speed, (int)S.flags, S.kerb[0], S.kerb[1], E.halfWidth,
+                           S.walk[0], S.walk[1], E.sidewalk, S.park[0], S.park[1]);
+                }
+            }
+            for (const AI::WalkLink& L : G.walkLinks) {
+                if (L.kind != AI::WL_SIDEWALK || L.edge < 0 || L.edge >= (int)G.sections.size()) continue;
+                const AI::EdgeSection& S = G.sections[L.edge];
+                const int es = L.lat > 0.f ? 1 : 0;
+                const float want = (es ? 1.f : -1.f) * (S.kerb[es] + S.walk[es] * 0.5f);
+                sidewalkLinks++;
+                if (fabsf(L.lat - want) > 0.01f) offLink++;
+            }
+            for (int li = 0; li < (int)G.lanes.size(); li++) {
+                const AI::Lane& L = G.lanes[li];
+                if (L.right >= 0 || (L.flags & (AI::LF_HIGHWAY | AI::LF_RAMP))) continue;
+                const int es = L.dir > 0 ? 1 : 0;   // (the edge's side the lane's kerb is on)
+                kerbLanes[es]++;
+                if (G.parkWidth(li) >= 1.8f) parkLanes[es]++;
+            }
+            printf("sections: %d edges, %d authored, %d listed; sidewalk links %d, off their side's centre line %d; kerb lanes parking: left %d of %d, right %d of %d\n",
+                   (int)G.sections.size(), authored, listed, sidewalkLinks, offLink, parkLanes[0], kerbLanes[0], parkLanes[1], kerbLanes[1]);
+            continue;
+        }
+#endif
         if (!strcmp(argv[i], "--sites") && i + 3 < argc) {
             // site elements near a point (venue anchors for the population: gates, terminals, docks, ramps)
             vec2 p((float)atof(argv[i + 1]), (float)atof(argv[i + 2]));

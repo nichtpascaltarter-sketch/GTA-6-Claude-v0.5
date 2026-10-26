@@ -9,7 +9,8 @@
 //   vehicles stand on (HandBlocks::padHeight), and the grading written for a parcel that only grades the terrain
 //   (Hand::placeOnTerrain);
 // - the roads through world.bin (src/world/roadsbin.h): back exactly as written, and damaged sections refused; with
-//   what they author beyond the network (src/world/roadoverrides.h), and the host loader (loadRoadsFile);
+//   what they author beyond the network (src/world/roadoverrides.h), each side's kerb line, sidewalk and parking
+//   (applyRoadSides, RoadEdge::halfWidthSide), and the host loader (loadRoadsFile);
 // - a node's legs, the turns between them and signal plans resolved on them (worldmodel.h nodeLegs, resolvePlan);
 // - the rooms' light state (src/world/roomlight.h): fixed test vectors, which the renderer's HLSL copy must match too,
 //   and the schedules' properties.
@@ -1074,10 +1075,35 @@ static void testRoadOverrides() {
     for (size_t i = 0; i < rn.edges.size(); i++) {
         const RoadEdge& e = rn.edges[i];
         const RoadOverrides::EdgeExtra& x = ov.edges[i];
-        inStep = inStep && same(e.halfWidth, x.laneWidth * (float)(e.lanesF + e.lanesB) * 0.5f + x.median * 0.5f + Max(x.kerbL, x.kerbR)) &&
+        inStep = inStep &&
+                 same(e.halfWidth, Max(roadKerbLine(x.laneWidth, x.median, e.lanesF, e.lanesB, x.kerbL, -1), roadKerbLine(x.laneWidth, x.median, e.lanesF, e.lanesB, x.kerbR, 1))) &&
                  same(e.sidewalk, Max(x.sidewalkL, x.sidewalkR)) && x.speed > 0.f && x.laneWidth > 0.f;
     }
     EXPECT(inStep, "overrides: the edges' widths and the network's disagree");
+    // each side's own (applyRoadSides): the kerb lines where the lane graph lays the lanes out, the wider side's exactly
+    // the network's; and nothing without overrides
+    RoadNetwork sided = rn;
+    applyRoadSides(ov, sided);
+    bool sides = true;
+    for (size_t i = 0; i < sided.edges.size(); i++) {
+        const RoadEdge& e = sided.edges[i];
+        const RoadOverrides::EdgeExtra& x = ov.edges[i];
+        for (int sd = -1; sd <= 1; sd += 2)
+            sides = sides && same(e.halfWidthSide(sd), roadKerbLine(x.laneWidth, x.median, e.lanesF, e.lanesB, sd > 0 ? x.kerbR : x.kerbL, sd), 1e-4f) &&
+                    same(e.sidewalkSide(sd), sd > 0 ? x.sidewalkR : x.sidewalkL, 1e-4f) && e.halfWidthSide(sd) <= e.halfWidth && e.sidewalkSide(sd) <= e.sidewalk;
+        sides = sides && (e.halfWidthSide(-1) == e.halfWidth || e.halfWidthSide(1) == e.halfWidth) && (e.sidewalkSide(-1) == e.sidewalk || e.sidewalkSide(1) == e.sidewalk);
+    }
+    RoadNetwork plain = rn;
+    applyRoadSides(RoadOverrides(), plain);
+    for (const RoadEdge& e : plain.edges) sides = sides && e.kerbTrim[0] == 0.f && e.kerbTrim[1] == 0.f && e.walkTrim[0] == 0.f && e.walkTrim[1] == 0.f;
+    EXPECT(sides, "overrides: each side's kerb line and sidewalk");
+    {   // the procedural world's edges have no sides of their own: each is the network's, to the bit
+        RoadEdge e;
+        e.halfWidth = 5.3f;
+        e.sidewalk = 3.1f;
+        EXPECT(e.halfWidthSide(-1) == e.halfWidth && e.halfWidthSide(1) == e.halfWidth && e.sidewalkSide(-1) == e.sidewalk && e.sidewalkSide(1) == e.sidewalk,
+               "overrides: an edge without sides of its own");
+    }
     const auto extra = [&](const char* id) -> const RoadOverrides::EdgeExtra* {
         const int mi = m.find("edge", id);
         const int ri = mi >= 0 ? ix.roadEdge[(size_t)mi] : -1;
@@ -1094,6 +1120,17 @@ static void testRoadOverrides() {
     EXPECT(e4 && same(e4->sidewalkL, 1.8f) && same(e4->sidewalkR, 0.f) && sb3 && same(sb3->sidewalkL, 0.f) && same(sb3->sidewalkR, 0.f) && tr && same(tr->median, 4.f) &&
                tr->flags == RoadOverrides::EX_MEDIAN_BARRIER,
            "overrides: one sidewalk, none, and the causeway's median");
+    // a one-way edge's lanes are centred on its shape, so its kerb lines are too; its sidewalk is on its left only
+    const int ri4 = m.find("edge", "cl.e0004") >= 0 ? ix.roadEdge[(size_t)m.find("edge", "cl.e0004")] : -1;
+    const RoadEdge* lane4 = ri4 >= 0 ? &sided.edges[(size_t)ri4] : nullptr;
+    const RoadClassInfo& laneCls = roadInfo(RC_LANE);
+    EXPECT(lane4 && lane4->lanesF == 1 && lane4->lanesB == 0 && same(lane4->halfWidthSide(-1), laneCls.laneWidth * 0.5f + laneCls.shoulder) &&
+               same(lane4->halfWidthSide(1), lane4->halfWidthSide(-1)) && same(lane4->sidewalkSide(-1), 1.8f) && same(lane4->sidewalkSide(1), 0.f),
+           "overrides: a one-way lane's sides (centred kerb lines, a sidewalk on its left)");
+    // the parking along each side: as written; where nothing is, the whole kerb strip when it is 1.8 m or more
+    EXPECT(e2 && same(e2->parkingOn(-1), 2.4f) && same(e2->parkingOn(1), 2.4f) && e3 && same(e3->parkingOn(-1), street.shoulder) && same(e3->parkingOn(1), street.shoulder) &&
+               e4 && same(e4->parkingOn(-1), 0.f) && same(e4->parkingOn(1), 0.f) && laneCls.shoulder < 1.8f && street.shoulder >= 1.8f,
+           "overrides: the parking along each side");
     // the nodes that write a rule: cl.n0001's signal, cl.n0003's bulb, sb.n0001's yield, in network order
     const auto roadNodeOf = [&](const char* id) { const int mi = m.find("node", id); return mi >= 0 ? ix.roadNode[(size_t)mi] : -1; };
     const auto roadEdgeOf = [&](const char* id) { const int mi = m.find("edge", id); return mi >= 0 ? ix.roadEdge[(size_t)mi] : -1; };
@@ -1129,9 +1166,31 @@ static void testRoadOverrides() {
         if (compiled) compileRoadOverrides(t, tix, tn, tov);
         if (!compiled) printErrors(t, terr);
         const RoadOverrides::EdgeExtra* x = tov.edges.empty() ? nullptr : &tov.edges[0];
+        // two-way, 2/1: two lanes right of the shape and one left, each side's kerb beyond its own lanes; the network's
+        // half width is the right side's
+        const float med = roadInfo(RC_AVENUE).median * 0.5f;
         EXPECT(compiled && x && same(x->laneWidth, 3.1f) && same(x->kerbL, 0.f) && same(x->kerbR, 1.f) && same(x->parkingL, 0.f) && same(x->parkingR, 0.f) &&
-                   x->flags == RoadOverrides::EX_TUNNEL && same(x->speed, roadInfo(RC_AVENUE).speed) && same(tn.edges[0].halfWidth, 3.1f * 1.5f + roadInfo(RC_AVENUE).median * 0.5f + 1.f),
+                   x->flags == RoadOverrides::EX_TUNNEL && same(x->speed, roadInfo(RC_AVENUE).speed) && same(tn.edges[0].halfWidth, 3.1f * 2.f + med + 1.f),
                "overrides: a lane width, a shoulder on one side, a tunnel");
+        if (compiled && x) {
+            applyRoadSides(tov, tn);
+            EXPECT(same(tn.edges[0].halfWidthSide(-1), 3.1f + med) && same(tn.edges[0].halfWidthSide(1), 3.1f * 2.f + med + 1.f) &&
+                       tn.edges[0].halfWidthSide(1) == tn.edges[0].halfWidth && same(x->parkingOn(-1), 0.f) && same(x->parkingOn(1), 0.f),
+                   "overrides: a 2/1 edge's sides (%.2f, %.2f), and no parking beside a shoulder= alone", tn.edges[0].halfWidthSide(-1), tn.edges[0].halfWidthSide(1));
+            // the network's queries take the side a point is on (the edge runs north, so its right is east): the right
+            // kerb at 7.2 m and its sidewalk to 10.7 m; the left kerb at 3.1 m and its sidewalk to 6.6 m
+            tn.buildHash();
+            const auto surface = [&](float x, float* z) { return tn.roadSurfaceHeight(vec2(x, 50.f), z, 100.f); };
+            float zr = 0.f, zrw = 0.f, zl = 0.f, zlw = 0.f, zout = 0.f;
+            const bool right = surface(6.9f, &zr), rightWalk = surface(7.7f, &zrw), beyondRight = surface(11.2f, &zout), left = surface(-2.9f, &zl),
+                       leftWalk = surface(-3.6f, &zlw), beyondLeft = surface(-6.9f, &zout);
+            EXPECT(right && same(zr, 4.f) && rightWalk && same(zrw, 4.15f) && !beyondRight && left && same(zl, 4.f) && leftWalk && same(zlw, 4.15f) && !beyondLeft,
+                   "overrides: the surface on each side (%d %.2f, %d %.2f, %d; %d %.2f, %d %.2f, %d)", right, zr, rightWalk, zrw, beyondRight, left, zl, leftWalk,
+                   zlw, beyondLeft);
+            EXPECT(tn.onPavement(vec2(6.9f, 50.f), 4.f, 0.f, -1, 1.f) && !tn.onPavement(vec2(-3.6f, 50.f), 4.f, 0.f, -1, 1.f) && tn.nearRoad(vec2(10.5f, 50.f), 0.f) &&
+                       !tn.nearRoad(vec2(-6.9f, 50.f), 0.f),
+                   "overrides: the pavement and the road's reach on each side");
+        }
     }
 
     // through world.bin, to the bit
@@ -1198,8 +1257,12 @@ static void testRoadOverrides() {
     RoadOverrides fileOv;
     std::vector<std::string> fileNodes, fileEdges;
     why.clear();
-    EXPECT(loadRoadsFile(path.c_str(), fileNet, fileOv, &why, &fileNodes, &fileEdges) && sameNetwork(fileNet, rn) && fileOv.edges.size() == ov.edges.size() &&
-               fileEdges == edgeIds && fileNodes == nodeIds,
+    const bool fileRead = loadRoadsFile(path.c_str(), fileNet, fileOv, &why, &fileNodes, &fileEdges);
+    bool fileSides = fileNet.edges.size() == sided.edges.size();   // (with each side's widths applied)
+    for (size_t i = 0; fileSides && i < sided.edges.size(); i++)
+        for (int k = 0; k < 2; k++)
+            fileSides = fileSides && fileNet.edges[i].kerbTrim[k] == sided.edges[i].kerbTrim[k] && fileNet.edges[i].walkTrim[k] == sided.edges[i].walkTrim[k];
+    EXPECT(fileRead && sameNetwork(fileNet, rn) && fileSides && fileOv.edges.size() == ov.edges.size() && fileEdges == edgeIds && fileNodes == nodeIds,
            "overrides: loadRoadsFile (%s)", why.c_str());
     {
         std::ofstream f(path, std::ios::binary);

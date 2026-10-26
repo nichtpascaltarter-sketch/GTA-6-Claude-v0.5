@@ -3210,14 +3210,15 @@ void GameWorld::updatePopulation(float dt) {
         for (int guard = 0; guard < 6 && laneGraph.lanes[lane].right >= 0; guard++) lane = laneGraph.lanes[lane].right;
         const AI::Lane& L = laneGraph.lanes[lane];
         if (L.cls != World::RC_STREET && L.cls != World::RC_AVENUE && L.cls != World::RC_LANE) continue;
-        const World::RoadClassInfo& info = World::roadInfo((World::RoadClass)L.cls);
-        if (info.shoulder < 1.8f || L.u1 - L.u0 < 30.f) continue;
+        // (the parking along this lane's kerb: the class's shoulder, or that side's as the world authors it)
+        const float parkW = laneGraph.parkWidth(lane);
+        if (parkW < 1.8f || L.u1 - L.u0 < 30.f) continue;
         u = Clamp(u, L.u0 + 9.f, L.u1 - 12.f);
         bool nearStop = false;
         for (float bs : L.busStops)
             if (fabsf(bs - u) < 18.f) nearStop = true;
         if (nearStop) continue;
-        float lat = L.width * 0.5f + info.shoulder * 0.5f;
+        float lat = laneGraph.parkLat(lane);
         vec3 c = laneGraph.lanePos(lane, u, lat);
         if (World::roadWorkZoneAt(c.xy())) continue;   // the parking strip is fenced off for road works
         if (!warm && inCameraView(c + vec3(0, 0, 1.f), 4.f) && length(c.xy() - pp.xy()) < 110.f) continue;
@@ -3239,7 +3240,7 @@ void GameWorld::updatePopulation(float dt) {
         }
         // (no wider than the strip with 0.1 m over at each side: with half a metre allowed, a Parcel P70 or a Compactor
         // parked there stood up to 0.5 m into the lane)
-        if (model < 0 || vassets[model].spec.boxHalf.x > info.shoulder * 0.5f + 0.1f) continue;
+        if (model < 0 || vassets[model].spec.boxHalf.x > parkW * 0.5f + 0.1f) continue;
         vec2 t = laneGraph.laneTangent(lane, u);
         int vid = spawnVehicle(model, dvec3(c.x, c.y, c.z + 0.25f), AI::dirYaw(t) + (hashToFloat(hash32(h * 9u)) - 0.5f) * 0.05f, false);
         if (vid < 0) continue;

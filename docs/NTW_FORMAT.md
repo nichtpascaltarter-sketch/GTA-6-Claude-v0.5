@@ -342,13 +342,18 @@ What the roads compiler (src/world/worldmodel.h) reads, and requires:
 - `shoulder`, `parking` and `sidewalk` describe both sides: the side a compound doesn't name has none
   (`parking=left:2.40` leaves the right without parking). Unwritten, they take the class's widths, as `lanewidth`,
   `median` and `speed` do. The class has one kerb width for shoulder and parking together, which either field
-  replaces; on one side the two add up.
+  replaces; on one side the two add up. Where neither is written, cars park along the whole kerb strip if it is 1.8 m
+  or more, as today; where either is, only along `parking`.
+- Each side of an edge has its own kerb line and sidewalk. A two-way edge's lanes run out from its `shape` each way
+  (`lanes=2/1`: two lanes right of it looking from `from` to `to`, one left), with the `median` between; a one-way
+  edge's lanes are centred on its `shape`. Beyond each side's lanes lies its kerb strip, then its sidewalk.
 - `lanes` is at most 8 each way. A `deck` puts the edge on a structure, as `flags=bridge` does.
 - A node's `control` replaces the derived one. Today's lane graph knows priority by road class, stop signs on every
   approach and signals: `yield`, and `stop` on only some approaches, run as priority by road class until it reads the
   `yield` and `stops` lists.
-- Today's `RoadNetwork` has one width for both sides of a road, so the wider side counts there until the lane graph
-  reads both. An edge's dressing seed comes from its id, so adding an edge changes no other edge's.
+- `RoadNetwork`'s width and sidewalk are an edge's wider side's; each side's own reach the mesher and the lane graph
+  through `RoadEdge::halfWidthSide` and `sidewalkSide` (src/world/roads.h). An edge's dressing seed comes from its id,
+  so adding an edge changes no other edge's.
 
 **Kind `signal`**: lib/signals/<name>.ntw, header `id` id req. A plan's phases run in order, each for its `green`, then
 its `amber`, then its `allred`.

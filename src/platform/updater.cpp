@@ -68,6 +68,8 @@ bool g_restart = false;          // "Restart now" chosen
 bool g_noCheck = false;          // no check this session (an update was just installed but does not report its commit)
 bool g_allowLocalHttp = false;   // --update-url
 int g_lastSetting = -1;          // Automatic Updates as the menus last showed it (-1 before the first menu frame)
+Installed g_installed;           // the update this start installed (readInstalled), until takeInstalled
+bool g_haveInstalled = false;
 
 // Log lines that may come from the check thread: none once the game shuts down (the log closes, then static
 // destruction runs while a detached check may still be waiting on the network or a build)
@@ -482,6 +484,42 @@ std::string takeUpdatedFrom() {
     return isCommitSha(v) || v == "unknown" ? v : std::string();
 }
 
+// The new build's first start: <exe>.updated.json, the record the install kept, says what the update brought (the main
+// menu's "Updated to", takeInstalled). Deleted whatever it holds; it counts only when it names this build's commit and,
+// when the old build started this one (`from`, NEONTIDE_UPDATED_FROM), the commit it came from.
+void readInstalled(const std::string& from) {
+    std::wstring exe = exePath(), path = exe + L".updated.json";
+    if (exe.empty() || !fileExists(path)) return;
+    Platform::initLog(false);   // (this start's log, as the window's start would open it)
+    std::string text;
+    PendingInfo info;
+    bool ok = readSmallFile(path, text, 256u << 10) && pendingFromJson(text, info);
+    if (!DeleteFileW(path.c_str())) {
+        DWORD e = GetLastError();
+        LOG("Updater: could not delete %s (error %lu)", narrow(path).c_str(), e);
+    }
+    if (!ok) {
+        LOG("Updater: the record of the installed update is unreadable");
+        return;
+    }
+    if (info.commit != NT_COMMIT || (!from.empty() && info.from != from)) {
+        LOG("Updater: the record of an installed update (%s over %s) is not for this start", commitLabel(info.commit).c_str(),
+            commitLabel(info.from).c_str());
+        return;
+    }
+    g_installed = Installed();
+    g_installed.commit = shortCommit(info.commit);
+    for (const PullRequest& pr : info.pulls) {
+        std::string line = "#" + std::to_string(pr.number) + " " + asciiText(pr.title);   // (the record can be edited)
+        if (line.size() > 150) line = line.substr(0, 147) + "...";
+        g_installed.pulls.push_back(line);
+    }
+    g_installed.commits = info.commits;
+    g_haveInstalled = true;
+    LOG("Updater: this start installed %s over %s (%d pull request%s)", g_installed.commit.c_str(), commitLabel(info.from).c_str(),
+        (int)info.pulls.size(), info.pulls.size() == 1 ? "" : "s");
+}
+
 // ------------------------------------------------------------------------------------------------------------------
 // Install
 // Deletes <exe>.old from the last update, once the new version has shown it starts (its window and device are up).
@@ -537,7 +575,9 @@ bool installPending(const std::wstring& exe, std::string& commit) {
         LOG("Updater: could not put %s in place (error %lu): it installs at a later start", label.c_str(), e);
         return false;
     }
-    DeleteFileW(meta.c_str());
+    // the record stays for the new build's first start (its main menu says what the update brought, readInstalled);
+    // when it cannot be kept it is deleted as before
+    if (!MoveFileExW(meta.c_str(), (exe + L".updated.json").c_str(), MOVEFILE_REPLACE_EXISTING)) DeleteFileW(meta.c_str());
     commit = info.commit;
     LOG("Updater: installed %s over %s (%s)", label.c_str(), commitLabel(NT_COMMIT).c_str(), narrow(exe).c_str());
     return true;
@@ -1198,6 +1238,8 @@ bool beforeStart(int& exitCode) {
         }
     }
     bool test = Platform::hasArg("update-test");
+    // the new build's first start reads what the update brought (automated runs leave the record alone)
+    if (!test && !automatedRun()) readInstalled(from);
     if (!test && skipReason(false)[0]) return false;   // nothing else: automated runs open their log as before
     Platform::initLog(false);
     std::wstring exe = exePath();
@@ -1222,6 +1264,14 @@ bool beforeStart(int& exitCode) {
 }
 
 bool isAutomatedRun() { return automatedRun(); }
+
+bool takeInstalled(Installed& out) {
+    if (!g_haveInstalled) return false;
+    g_haveInstalled = false;
+    out = g_installed;
+    g_installed = Installed();
+    return true;
+}
 
 void startCheck() {
     if (g_noCheck) {   // (keeps <exe>.old: the update installed does not report its commit)

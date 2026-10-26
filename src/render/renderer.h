@@ -31,6 +31,7 @@ struct Environment {
     vec2 windDir = vec2(0.7f, 0.7f);
     float lightning = 0.f;    // flash intensity
     float gameSeconds = 0.f;  // continuous clock for animation
+    u32 gameDay = 1;          // the game day (1 on a new game; day % 7: 0 Monday): room light schedules (world/roomlight.h)
 };
 
 // Matches FrameCB in shaders/common.hlsli
@@ -286,6 +287,8 @@ public:
     bool moonLight = false;
     float nightFactor = 0.f;
     float sunElevation = 0.f;    // degrees above the horizon
+    u32 roomNightLevel = 0;      // how dark it is outside for the room lights, 0..255 (roomNight())
+    u32 roomNight() const { return roomNightLevel; }   // world/roomlight.h roomLight's `night`, the same for CPU and GPU
     bool cameraInInterior() const;  // camera inside one of this frame's interior volumes
     float urbanEnclosure = 0.f;  // smoothed urban density around the camera (ambient bounce model)
     vec3 cityGlow = vec3(0.f);   // smoothed light pollution: x amount, yz direction bias (sky glow at night)

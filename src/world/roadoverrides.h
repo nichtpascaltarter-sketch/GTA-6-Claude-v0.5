@@ -22,21 +22,35 @@ namespace World {
 
 enum RoadTurn : u8 { TURN_LEFT = 1, TURN_STRAIGHT = 2, TURN_RIGHT = 4, TURN_UTURN = 8 };   // masks
 
+// One side's kerb line, its offset from the edge's shape (m): side -1 the left and +1 the right looking fwd. A two-way
+// edge's lanes run out from the shape each way, a one-way edge's are centred on it, as the lane graph lays them out
+// (src/game/lanes.cpp); beyond the lanes lies that side's kerb strip (shoulder and parking).
+inline float roadKerbLine(float laneWidth, float median, int lanesF, int lanesB, float kerb, int side) {
+    if (lanesF > 0 && lanesB > 0) return laneWidth * (float)(side > 0 ? lanesF : lanesB) + median * 0.5f + kerb;
+    return laneWidth * (float)(lanesF + lanesB) * 0.5f + median * 0.5f + kerb;
+}
+
 struct RoadOverrides {
     // One per RoadNetwork edge, by edge index: its widths and limit as built, which RoadNetwork's symmetric halfWidth
     // and sidewalk can't hold. Every value is the one to use: as written in roads.ntw, else the class's (roadInfo).
-    // RoadNetwork's halfWidth is laneWidth * (lanesF + lanesB) / 2 + median / 2 + the wider of kerbL and kerbR, and
-    // its sidewalk is the wider of sidewalkL and sidewalkR.
+    // RoadNetwork's halfWidth is the wider side's kerb line (roadKerbLine), and its sidewalk the wider of sidewalkL and
+    // sidewalkR. Each side's own are the RoadEdge's halfWidthSide and sidewalkSide (roadsbin.h applyRoadSides).
     struct EdgeExtra {
         float speed = 0.f;                 // m/s
         float laneWidth = 0.f;             // m
         float median = 0.f;                // m; 0: a painted centre line
         float kerbL = 0.f, kerbR = 0.f;    // m of paved width beyond the outer lane on each side, seen looking fwd:
                                            // shoulder= plus parking= where either is written, else the class's shoulder
-        float parkingL = -1.f, parkingR = -1.f;   // m of that kept for parking, along the kerb; 0: none (written as
-                                           // parking=none or for the other side); -1: not written, so today's rule
+        float parkingL = -1.f, parkingR = -1.f;   // m of that kept for parking, along the kerb; 0: none (parking=none,
+                                           // the other side's, or a shoulder= alone); -1: neither written (parkingOn)
         float sidewalkL = 0.f, sidewalkR = 0.f;   // m; 0: none
         u8 flags = 0;                      // EX_*
+        // The parking along one side (m of the kerb strip, at the kerb): as written; where nothing is (-1), the whole
+        // strip when it is 1.8 m or more, as the lane graph parks today
+        float parkingOn(int side) const {
+            const float p = side > 0 ? parkingR : parkingL, kerb = side > 0 ? kerbR : kerbL;
+            return p >= 0.f ? p : (kerb >= 1.8f ? kerb : 0.f);
+        }
     };
     enum : u8 {
         EX_MEDIAN_BARRIER = 1,             // median=W:barrier: no U-turns, no crossing it on foot, no jaywalking across

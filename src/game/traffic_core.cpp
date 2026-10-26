@@ -548,7 +548,8 @@ void TrafficCore::setDestination(Driver& d, vec2 dest) {
             if (e.cls == World::RC_DIRT && d.mode != DM_FLEE) continue;
             if (!canTurn(n, st >> 1, ei)) continue;
             int ns = ei * 2 + (dir < 0 ? 1 : 0);
-            float c = gcost[st] + e.length / Max(World::roadInfo(e.cls).speed, 5.f) * 12.f;
+            const float lim = ei < (int)G.sections.size() ? G.sections[ei].speed : World::roadInfo(e.cls).speed;   // (as built)
+            float c = gcost[st] + e.length / Max(lim, 5.f) * 12.f;
             touch(ns);
             if (c < gcost[ns]) {
                 gcost[ns] = c;
@@ -1379,14 +1380,14 @@ void TrafficCore::plan(Driver& d, const Vehicles::VehicleState& s, vec2 pos, vec
     bool meetBig = false;   // a bus or a truck coming the other way close by (or we are one, meeting anything)
     bool meetTight = false; // one coming the other way that leaves under 0.9 m between the bodies as they go
     bool meetOnRoad = false;  // ... out on the road, not turning through a junction (the step over below)
-    // the paved strip beyond our lane on the kerb side of a two-way road (parking, a shoulder - from the edge's paved half
-    // width, so it holds for hand-built roads), anything in it from our tail to 30 m on, and the lane left ahead of us
+    // the paved strip beyond our lane on the kerb side of a two-way road (parking, a shoulder: out to that side's kerb in
+    // the lane graph's cross-section of the edge, which has each side's own where the world authors them), anything in it
+    // from our tail to 30 m on, and the lane left ahead of us
     float stripW = 0.f, laneHalfHere = 1.6f, laneLeft = 0.f;
     if (d.path < NL && G.roads && G.lanes[d.path].right < 0 && !(G.lanes[d.path].flags & (LF_HIGHWAY | LF_RAMP | LF_ONEWAY | LF_BRIDGE))) {
         const Lane& L = G.lanes[d.path];
         const World::RoadEdge& E = G.roads->edges[L.edge];
-        if (E.lanesF > 0 && E.lanesB > 0 && !(E.flags & (World::RF_BRIDGE | World::RF_ELEVATED)))
-            stripW = E.halfWidth - fabsf(L.offset) - L.width * 0.5f;
+        if (E.lanesF > 0 && E.lanesB > 0 && !(E.flags & (World::RF_BRIDGE | World::RF_ELEVATED))) stripW = G.kerbStrip(d.path);
         laneHalfHere = L.width * 0.5f;
         laneLeft = L.u1 - (d.u + front);
     }
@@ -2396,14 +2397,15 @@ void TrafficCore::drive(int vid, Vehicles::VehicleState& s, float dt, DriveOut& 
         // median and its barrier); right of the kerb lane the hard shoulder of a motorway or ramp, in town only our own
         // lane (the strip has the parked cars in it)
         const World::RoadEdge& E = g->roads->edges[L.edge];
-        const World::RoadClassInfo& ri = World::roadInfo(E.cls);
+        const EdgeSection& ES = g->sections[L.edge];
         const bool edgeOneWay = E.lanesF == 0 || E.lanesB == 0;   // (the edge carries one direction only)
-        const bool oncomingL = L.left < 0 && !edgeOneWay && ri.median <= 0.f && !(L.flags & (LF_HIGHWAY | LF_RAMP | LF_ONEWAY));
+        const bool oncomingL = L.left < 0 && !edgeOneWay && ES.median <= 0.f && !(ES.flags & EdgeSection::ES_MEDIAN_BARRIER) &&
+                               !(L.flags & (LF_HIGHWAY | LF_RAMP | LF_ONEWAY));
         const bool shoulders = (L.flags & (LF_RAMP | LF_HIGHWAY)) != 0;
         const float inLane = laneHalf - myHW - 0.1f;
         const float widthL = L.left >= 0 ? g->lanes[L.left].width : L.width, widthR = L.right >= 0 ? g->lanes[L.right].width : L.width;
-        const float roomL = (L.left >= 0 || oncomingL) ? laneHalf + widthL - myHW - 0.2f : laneHalf - myHW + (edgeOneWay ? ri.shoulder : 0.f) - 0.3f;
-        const float roomR = L.right >= 0 ? laneHalf + widthR - myHW - 0.2f : laneHalf - myHW + (shoulders ? ri.shoulder : 0.f) - 0.3f;
+        const float roomL = (L.left >= 0 || oncomingL) ? laneHalf + widthL - myHW - 0.2f : laneHalf - myHW + (edgeOneWay ? g->shoulderOf(d.path, -1) : 0.f) - 0.3f;
+        const float roomR = L.right >= 0 ? laneHalf + widthR - myHW - 0.2f : laneHalf - myHW + (shoulders ? g->shoulderOf(d.path, 1) : 0.f) - 0.3f;
         const bool okL = -sL <= roomL, okR = sR <= roomR;
         float shift = 0.f;
         if (okL && (!okR || -sL <= sR)) shift = sL;

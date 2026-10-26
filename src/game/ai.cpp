@@ -2,6 +2,8 @@
 // police dispatch, ambient events, pedestrian brains and traffic drivers, and exposes the signal phases to gameplay and
 // rendering. The engine-independent cores live in lanes.cpp / traffic_core.cpp / pednav.cpp (ai_core.h).
 #include "gameworld.h"
+#include "../world/handworld.h"
+#include "../world/roadoverrides.h"
 #include <functional>
 
 namespace Game {
@@ -443,7 +445,9 @@ bool aiBuildingDoorAway(const GameWorld& g, vec2 p, vec2 threat, float r, vec3& 
 // ------------------------------------------------------------------------------------------------------------------
 void GameWorld::initAI() {
     if (ai.ready || !roads) return;
-    laneGraph.build(*roads);
+    // (the hand-built world's roads with what they author beyond the network - kerbs and sidewalks per side, their own
+    //  lane widths and limits; the procedural world has none)
+    laneGraph.build(*roads, World::isHandWorld() ? World::gRoadOverrides : nullptr);
     traffic.init(&laneGraph);
     pedNav.init(&laneGraph, &traffic);
     ai.ready = true;

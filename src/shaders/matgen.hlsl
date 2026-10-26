@@ -423,12 +423,16 @@ Surf genMetalRoof(float2 uv) {
     float fx = frac(uv.x * ribs);
     float rib = smoothstep(0.42, 0.5, fx) * smoothstep(0.58, 0.5, fx);
     float corr = sin(uv.x * ribs * TWO_PI * 3.0) * 0.5 + 0.5;
-    float rust = smoothstep(0.55, 0.85, tfbm(uv, 3, 5, 0.55) * 0.5 + 0.5);
+    // Rust: a few broad, soft patches (a low-frequency mask, so the 2.5 m tile doesn't repeat rows of spots), mostly in
+    // the valleys where water stands rather than on the crests, dark reddish brown (iron oxide) and hardly rougher than
+    // the steel. Light, very rough patches read as pale speckles: at the material's metalness they caught a blur of the
+    // bright sky that the glossier steel round them didn't (and occluding their specular makes dark spots instead).
+    float rust = smoothstep(0.6, 0.9, tfbm(uv, 2, 4, 0.5) * 0.5 + 0.5) * lerp(1.0, 0.45, rib);
     s.height = lerp(corr * 0.4, 1.0, rib);
     float3 c = lerp(gColorA.rgb, gColorB.rgb, tfbm(uv, 2, 3, 0.5) * 0.5 + 0.5);
-    c = lerp(c, gColorC.rgb, rust * 0.7);
+    c = lerp(c, gColorC.rgb * 0.5, rust * 0.6);
     s.albedo = c;
-    s.rough = lerp(0.35, 0.85, rust);
+    s.rough = lerp(0.35, 0.45, rust);
     s.ao = 0.85 + corr * 0.15;
     return s;
 }

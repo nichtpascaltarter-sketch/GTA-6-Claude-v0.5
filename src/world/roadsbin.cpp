@@ -222,6 +222,20 @@ bool readRoadOverrides(const WorldBinView& bin, const RoadNetwork& roads, RoadOv
     return true;
 }
 
+void applyRoadSides(const RoadOverrides& ov, RoadNetwork& roads) {
+    if (ov.edges.size() != roads.edges.size()) return;
+    for (size_t i = 0; i < roads.edges.size(); i++) {
+        RoadEdge& e = roads.edges[i];
+        const RoadOverrides::EdgeExtra& x = ov.edges[i];
+        for (int k = 0; k < 2; k++) {
+            const int side = k == 0 ? -1 : 1;
+            const float line = roadKerbLine(x.laneWidth, x.median, e.lanesF, e.lanesB, k == 0 ? x.kerbL : x.kerbR, side);
+            e.kerbTrim[k] = Max(e.halfWidth - line, 0.f);
+            e.walkTrim[k] = Max(e.sidewalk - (k == 0 ? x.sidewalkL : x.sidewalkR), 0.f);
+        }
+    }
+}
+
 bool loadRoadsFile(const char* path, RoadNetwork& roads, RoadOverrides& ov, std::string* error, std::vector<std::string>* nodeIds,
                    std::vector<std::string>* edgeIds) {
     using namespace roadsbin_detail;
@@ -252,6 +266,7 @@ bool loadRoadsFile(const char* path, RoadNetwork& roads, RoadOverrides& ov, std:
         if (edgeIds) edgeIds->clear();
         return fail(error, name + ": " + why);
     }
+    applyRoadSides(o, net);
     roads = std::move(net);
     ov = std::move(o);
     return true;
