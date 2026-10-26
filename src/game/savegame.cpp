@@ -205,6 +205,49 @@ bool GameWorld::readSlotInfo(int slot, UI::SaveSlotInfo& info) const {
     r.str(info.timestamp);
     r.str(info.detail);
     info.used = r.ok;
+    if (r.ok) {
+        // past the header, read as loadGame reads it: where it was saved and the play time (the main menu's line under
+        // Continue). Both stay unknown when the body is cut short.
+        Reader b = r;
+        float f = 0.f;
+        int day = 0;
+        dvec3 pos;
+        b.pod(f);   // time of day
+        b.pod(day);
+        b.pod(f);   // cloud cover
+        b.pod(f);   // rain
+        b.pod(pos);
+        b.pod(f);   // yaw
+        b.pod(f);   // health
+        b.pod(f);   // armor
+        for (int i = 0; i < WPN_COUNT; i++) {
+            u8 has = 0;
+            int ammo = 0, clip = 0;
+            b.pod(has);
+            b.pod(ammo);
+            b.pod(clip);
+        }
+        u8 wpn = 0;
+        b.pod(wpn);
+        PlayerInfo pi;
+        b.pod(pi.money);
+        b.pod(pi.distanceWalked);
+        b.pod(pi.distanceDriven);
+        b.pod(pi.kills);
+        b.pod(pi.copsKilled);
+        b.pod(pi.vehiclesStolen);
+        b.pod(pi.headshots);
+        b.pod(pi.shotsFired);
+        b.pod(pi.shotsHit);
+        b.pod(pi.deaths);
+        b.pod(pi.arrests);
+        b.pod(pi.maxWanted);
+        b.pod(pi.playTime);
+        if (b.ok && std::isfinite(pos.x) && std::isfinite(pos.y) && std::isfinite(pi.playTime) && pi.playTime >= 0.0) {
+            info.playSeconds = pi.playTime;
+            info.savedAt = vec2((float)pos.x, (float)pos.y);
+        }
+    }
     return r.ok;
 }
 

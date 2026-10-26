@@ -50,8 +50,13 @@ struct RoadEdge {
     RoadClass cls = RC_STREET;
     u8 flags = 0;
     u8 lanesF = 1, lanesB = 1;  // lanes in direction n0->n1 / n1->n0
-    float halfWidth = 4.f;      // paved half width (incl. shoulders/parking)
-    float sidewalk = 0.f;
+    float halfWidth = 4.f;      // paved half width (incl. shoulders/parking): the wider side's
+    float sidewalk = 0.f;       // the wider side's
+    // How much narrower each side is than halfWidth and sidewalk, [0] the left and [1] the right looking fwd (n0 to n1):
+    // the hand-built roads' own widths, set from their overrides (roadsbin.h applyRoadSides). 0 in the procedural world,
+    // whose edges are symmetric. Read them through halfWidthSide and sidewalkSide.
+    float kerbTrim[2] = {0.f, 0.f};
+    float walkTrim[2] = {0.f, 0.f};
     std::vector<vec3> pts;      // centerline polyline (with z), pts.front() at n0, pts.back() at n1
     std::vector<float> dist;    // cumulative distance
     float length = 0;
@@ -61,6 +66,11 @@ struct RoadEdge {
     // Evaluate position / tangent at distance s along the edge
     vec3 posAt(float s) const;
     vec3 tangentAt(float s) const;
+    // One side's kerb line (its paved half width: the shape to the kerb) and its sidewalk width, side -1 the left and
+    // +1 the right looking fwd. The mesher draws them, and the lane graph's walks, crosswalks, bus stops and parking
+    // read them, so the two agree by construction. Exactly halfWidth and sidewalk in the procedural world.
+    float halfWidthSide(int side) const { return halfWidth - kerbTrim[side > 0 ? 1 : 0]; }
+    float sidewalkSide(int side) const { return sidewalk - walkTrim[side > 0 ? 1 : 0]; }
 };
 
 // Where a street that ran out onto a beach now ends (generate() pulls such dead ends back off the sand): the node the way on

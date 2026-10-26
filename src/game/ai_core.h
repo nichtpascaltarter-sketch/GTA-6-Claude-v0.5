@@ -14,6 +14,10 @@
 #include "../sim/vehicle_sim.h"
 #include "../core/rng.h"
 
+namespace World {
+struct RoadOverrides;   // (roadoverrides.h: what the hand-built world authors beyond the RoadNetwork)
+}
+
 namespace AI {
 
 // =====================================================================================================================
@@ -88,7 +92,8 @@ struct Approach {
     bool crosswalk = false;
     float cut = 0.f;          // intersection box cut-back along the edge
     float crossS = 0.f;       // distance from the node (along the edge) of the crosswalk center line
-    float hw = 0.f, sw = 0.f; // paved half width, sidewalk width
+    float hw = 0.f, sw = 0.f; // paved half width, sidewalk width (the wider side's)
+    float hwS[2] = {0.f, 0.f}, swS[2] = {0.f, 0.f};   // the same on each side: [0] clockwise, [1] counter-clockwise
     std::vector<int> inLanes, outLanes;
 };
 
@@ -146,8 +151,26 @@ struct ScenarioPoint {
     float u = 0.f;     // bus stops: lane coordinate of the stop
 };
 
+// A road edge's cross-section as built, its sides seen looking along it (n0 -> n1): [0] left, [1] right. The kerb lines
+// and sidewalks are the edge's own per side (RoadEdge::halfWidthSide / sidewalkSide, what the mesher draws: symmetric in
+// the procedural world); the lane width, median, limit and parking are RoadOverrides' EdgeExtra where the world authors
+// one (the hand-built world), else the road class's, as the lane graph has always used them.
+struct EdgeSection {
+    enum : u8 { ES_MEDIAN_BARRIER = 1, ES_TUNNEL = 2 };
+    float laneWidth = 3.2f;
+    float median = 0.f;               // between the two directions (0: a painted line)
+    float speed = 12.f;               // limit, m/s
+    float kerb[2] = {0.f, 0.f};       // the kerb line: lateral distance from the edge's centre line to the kerb
+    float park[2] = {-1.f, -1.f};     // the part of the paved strip inside the kerb kept for parking, along the kerb
+                                      // (EdgeExtra::parkingOn); -1: not authored, the class's rule (its shoulder)
+    float walk[2] = {0.f, 0.f};       // sidewalk width (0: none)
+    u8 flags = 0;                     // ES_*
+    bool authored = false;            // from EdgeExtra
+};
+
 struct LaneGraph {
     const World::RoadNetwork* roads = nullptr;
+    std::vector<EdgeSection> sections;    // per road edge
     std::vector<Lane> lanes;
     std::vector<Connector> conns;
     std::vector<NodeInfo> nodes;
@@ -166,7 +189,8 @@ struct LaneGraph {
     std::vector<std::vector<int>> laneHash, walkHash;
     double buildSeconds = 0.0;
 
-    void build(const World::RoadNetwork& rn);
+    // ov: the hand-built world's authored road data (nullptr, or empty: everything derived, as always)
+    void build(const World::RoadNetwork& rn, const World::RoadOverrides* ov = nullptr);
     int pathCount() const { return (int)lanes.size() + (int)conns.size(); }
     bool isLane(int path) const { return path >= 0 && path < (int)lanes.size(); }
     const Connector& conn(int path) const { return conns[path - (int)lanes.size()]; }
@@ -186,6 +210,13 @@ struct LaneGraph {
     // nearest lane to p with travel direction roughly along `heading` (use vec2(0) for any), -1 if none in range
     int nearestLane(vec2 p, vec2 heading, float maxDist, float* uOut, float* latOut = nullptr, u8 excludeFlags = LF_NOTRAFFIC) const;
     int laneOf(int edge, int dir, int index) const;
+    // the kerb side of a lane: the paved strip between its edge and the kerb on side s of travel (+1 right, -1 left;
+    // meaningful for the outermost lane on that side), and the parking along the kerb on its right - how wide, and the
+    // lateral offset (right of travel, from the lane's centre) of a parked car's centre
+    float kerbStrip(int lane, int s = 1) const;
+    float shoulderOf(int lane, int s) const;   // the strip for a side step: authored, else the class's shoulder
+    float parkWidth(int lane) const;
+    float parkLat(int lane) const;
     // signals
     SignalState movementSignal(int node, int approach, int turn, double time) const;
     PedSignal pedSignal(int node, int approach, double time) const;

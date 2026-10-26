@@ -154,6 +154,11 @@ Everything (code, models, textures, animation, audio, music, voices, map) is gen
 - Dappled sunlight and held brake lamps (shadow.hlsli, game/gameworld.cpp): sunlight through gaps in the leaves
   falls as soft spots instead of rings (the soft-shadow filter's taps now cover its whole disc, not an annulus), and
   cars waiting at a red or in a queue show their brake lamps (held in a drive gear with no throttle).
+- Metal roofs and room light schedules (matgen.hlsl; roomlight.hlsli, render/roomlight_test.cpp): corrugated metal
+  roofs and shed walls rust in a few faint, dark patches along the valleys instead of pale speckles; the shaders have
+  the room light schedules (roomlight.hlsli: world/roomlight.h's roomLight in HLSL, checked bit for bit against the C++
+  by --roomlighttest), ready for the facades' lit windows, with the frame's game day (Environment::gameDay) and
+  darkness (Renderer::roomNight()).
 - Audio (src/audio, done by agent): WASAPI mixer (192 voices, 3D, doppler, reverb, ducking), 79 synthesized SFX,
   9 engine kinds, sirens/horns/skids/rotors/boats, ambience beds, procedural music engine, 9 radio stations with DJs,
   ads and talk (live timelines), dynamic mission score. Formant TTS voices (src/audio/speech*).

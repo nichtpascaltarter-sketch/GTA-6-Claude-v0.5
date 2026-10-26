@@ -131,8 +131,9 @@ bool compileRoads(const Model& model, RoadNetwork& out, RoadIndex& index, std::v
         const float laneW = m.laneWidth > 0.f ? m.laneWidth : ri.laneWidth;
         const float median = m.median >= 0.f ? m.median : ri.median;
         const bool kerbWritten = m.shoulderL >= 0.f || m.parkingL >= 0.f;   // (a written compound sets both sides)
-        const float kerbW = Max(kerbSide(m.shoulderL, m.parkingL, kerbWritten, ri.shoulder), kerbSide(m.shoulderR, m.parkingR, kerbWritten, ri.shoulder));
-        e.halfWidth = laneW * (e.lanesF + e.lanesB) * 0.5f + median * 0.5f + kerbW;
+        // the paved half width: the wider side's kerb line (each side's own is applyRoadSides', from the overrides)
+        const float kerbL = kerbSide(m.shoulderL, m.parkingL, kerbWritten, ri.shoulder), kerbR = kerbSide(m.shoulderR, m.parkingR, kerbWritten, ri.shoulder);
+        e.halfWidth = Max(roadKerbLine(laneW, median, e.lanesF, e.lanesB, kerbL, -1), roadKerbLine(laneW, median, e.lanesF, e.lanesB, kerbR, 1));
         e.sidewalk = m.sidewalkL >= 0.f ? Max(m.sidewalkL, m.sidewalkR) : ri.sidewalk;
         if (e.sidewalk <= 0.f) e.flags |= RF_NOSIDEWALK;
         for (size_t k = 0; k < plan.size(); k++) e.pts.push_back(vec3(plan[k].x, plan[k].y, z[k]));

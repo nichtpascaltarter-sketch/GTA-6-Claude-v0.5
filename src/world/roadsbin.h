@@ -45,10 +45,17 @@ void writeRoadOverrides(const RoadOverrides& ov, WorldBinWriter& out);
 // network (another edge count, a node or edge that isn't there); true with `out` empty when there is none.
 bool readRoadOverrides(const WorldBinView& bin, const RoadNetwork& roads, RoadOverrides& out, std::string* error);
 
+// Each side's own kerb line and sidewalk from the overrides into the network's edges (RoadEdge::halfWidthSide and
+// sidewalkSide): the wider side's are halfWidth and sidewalk already, so only the narrower side is trimmed. Nothing
+// changes where `ov` has no edges (the procedural world, or a world.bin without overrides). The game (handworld.cpp),
+// the compiler (worldc) and loadRoadsFile apply it as they read the roads.
+void applyRoadSides(const RoadOverrides& ov, RoadNetwork& roads);
+
 // The roads of a world.bin file, read on the host without the game (tools/traffic_sim on the hand-built streets): its
-// "roads" into `roads` (hashed, ready for queries), "roads.overrides" into `ov`, and "roads.ids" into the ids when they
-// aren't nullptr. False, with a reason and everything left empty, when the file can't be read, isn't a world.bin, or a
-// section is missing or damaged. Link worldbin.cpp, lz.cpp and roadsbin.cpp, with roadnet.cpp (or roads.cpp).
+// "roads" into `roads` (hashed, ready for queries, with each side's widths applied: applyRoadSides), "roads.overrides"
+// into `ov`, and "roads.ids" into the ids when they aren't nullptr. False, with a reason and everything left empty,
+// when the file can't be read, isn't a world.bin, or a section is missing or damaged. Link worldbin.cpp, lz.cpp and
+// roadsbin.cpp, with roadnet.cpp (or roads.cpp).
 bool loadRoadsFile(const char* path, RoadNetwork& roads, RoadOverrides& ov, std::string* error, std::vector<std::string>* nodeIds = nullptr,
                    std::vector<std::string>* edgeIds = nullptr);
 

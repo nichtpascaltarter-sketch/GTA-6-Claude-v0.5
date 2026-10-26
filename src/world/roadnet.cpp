@@ -139,6 +139,7 @@ bool RoadNetwork::roadSurfaceHeight(vec2 p, float* z, float maxZ) const {
         // misclassified lane points near polyline vertices as the raised sidewalk of the neighboring segment)
         float bestD = 1e30f, bestZe = 0.f, bestS = 0.f;
         bool beyondEnd = false;
+        int side = 1;   // the side p is on, looking fwd (each side has its own kerb line and sidewalk: RoadEdge::halfWidthSide)
         for (size_t k = 0; k + 1 < e.pts.size(); k++) {
             float t;
             float d = distPointSegment2D(p, e.pts[k].xy(), e.pts[k + 1].xy(), &t);
@@ -147,14 +148,16 @@ bool RoadNetwork::roadSurfaceHeight(vec2 p, float* z, float maxZ) const {
                 bestZe = Lerp(e.pts[k].z, e.pts[k + 1].z, t);
                 bestS = Lerp(e.dist[k], e.dist[k + 1], t);
                 beyondEnd = (k == 0 && t <= 0.f) || (k + 2 == e.pts.size() && t >= 1.f);
+                side = cross(e.pts[k + 1].xy() - e.pts[k].xy(), p - e.pts[k].xy()) < 0.f ? 1 : -1;
             }
         }
         // inside a junction (before the cut-backs) only the pavement counts: the corner sidewalks are the junction's own,
         // and an approach's sidewalk band there would reach over the other approaches' lanes; nor does a sidewalk reach
         // past the edge's end (over the road that continues from there)
         bool inJunction = bestS < e.cut0 || bestS > e.length - e.cut1;
-        if (bestD <= e.halfWidth + ((inJunction || beyondEnd) ? 0.f : e.sidewalk)) {
-            float zz = bestZe + (bestD > e.halfWidth ? 0.15f : 0.f);
+        const float hw = e.halfWidthSide(side);
+        if (bestD <= hw + ((inJunction || beyondEnd) ? 0.f : e.sidewalkSide(side))) {
+            float zz = bestZe + (bestD > hw ? 0.15f : 0.f);
             if (zz <= maxZ && zz > bestZ) {
                 bestZ = zz;
                 found = true;
@@ -219,11 +222,11 @@ bool RoadNetwork::onPavement(vec2 p, float z, float margin, int ignoreEdge, floa
         }
         if (ei == ignoreEdge) continue;
         if (e.flags & RF_UNPAVED) continue;
-        float r = e.halfWidth + margin;
         for (size_t k = 0; k + 1 < e.pts.size(); k++) {
             float t;
             float d = distPointSegment2D(p, e.pts[k].xy(), e.pts[k + 1].xy(), &t);
-            if (d < r && fabsf(Lerp(e.pts[k].z, e.pts[k + 1].z, t) - z) < zTol) return true;
+            const int side = cross(e.pts[k + 1].xy() - e.pts[k].xy(), p - e.pts[k].xy()) < 0.f ? 1 : -1;   // (looking fwd)
+            if (d < e.halfWidthSide(side) + margin && fabsf(Lerp(e.pts[k].z, e.pts[k + 1].z, t) - z) < zTol) return true;
         }
     }
     return false;
@@ -234,9 +237,10 @@ bool RoadNetwork::nearRoad(vec2 p, float margin) const {
     edgesInRect(p - vec2(margin + 30.f), p + vec2(margin + 30.f), cand);
     for (int ei : cand) {
         const RoadEdge& e = edges[ei];
-        float r = e.halfWidth + e.sidewalk + margin;
-        for (size_t k = 0; k + 1 < e.pts.size(); k++)
-            if (distPointSegment2D(p, e.pts[k].xy(), e.pts[k + 1].xy()) < r) return true;
+        for (size_t k = 0; k + 1 < e.pts.size(); k++) {
+            const int side = cross(e.pts[k + 1].xy() - e.pts[k].xy(), p - e.pts[k].xy()) < 0.f ? 1 : -1;   // (looking fwd)
+            if (distPointSegment2D(p, e.pts[k].xy(), e.pts[k + 1].xy()) < e.halfWidthSide(side) + e.sidewalkSide(side) + margin) return true;
+        }
         for (int nn : {e.n0, e.n1}) {
             float br = bulbRadius(nodes[nn]);
             if (br > 0.f && length(p - nodes[nn].p) < br + e.sidewalk + margin) return true;

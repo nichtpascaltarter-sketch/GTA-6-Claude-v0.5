@@ -23,6 +23,8 @@
 // else checks, downloads, builds and verifies one, without a window, and exits (0 pending or installed, 1 no update,
 // 2 not built).
 #pragma once
+#include <string>
+#include <vector>
 
 namespace UI {
 struct MenuState;
@@ -37,6 +39,17 @@ bool beforeStart(int& exitCode);
 void startCheck();
 // A test run (--autotest, --benchmark, --shot ...): no updates, and no first-start setup page
 bool isAutomatedRun();
+// The update this start installed, for the main menu's "Updated to": the install keeps the record as
+// <exe>.updated.json, and the new build's first start reads it and deletes it, whatever it holds (automated runs leave
+// it alone). It counts only when it names this build's commit and, when the old build started this one, the commit
+// it came from. True once, with its commit's 7 digits and its pull requests as printable lines ("#56 A setup page on
+// the first start"), newest first.
+struct Installed {
+    std::string commit;
+    std::vector<std::string> pulls;
+    int commits = 0;   // the commits it brought
+};
+bool takeInstalled(Installed& out);
 // Every menu frame, after Menus::update: fills the update notice for the next frame, follows Settings > Gameplay >
 // Automatic Updates, opens the build log or the help page, and turns "Restart now" into MA_QUIT_GAME (the restart
 // follows shutdown)

@@ -84,6 +84,8 @@ struct Internal {
     std::string lastTip;
     // feedback
     float denyT = 10.f;
+    // the main menu's "Updated to" panel: its top, eased (the line under the version comes and goes)
+    float updatedY = -1.f;
 };
 
 Internal I;
@@ -151,7 +153,8 @@ TextStyle style(FontId f, float size, u32 color, Align al = ALIGN_LEFT) {
 
 // ------------------------------------------------------------------------------------------------------------------
 // Shared drawing
-void drawLogo(float x, float y, float size, float alpha, float t, bool centered) {
+// `pulse` (0..1) lets the neon glow breathe slowly, NEON and TIDE a little out of step; 0 holds it steady
+void drawLogo(float x, float y, float size, float alpha, float t, bool centered, float pulse = 0.f) {
     float sc = size / 100.f;
     TextStyle a = style(FONT_TITLE, size, withAlpha(kPink, alpha));
     a.skew = 0.16f;
@@ -163,10 +166,11 @@ void drawLogo(float x, float y, float size, float alpha, float t, bool centered)
     float wa = textWidth(w1, a), wb = textWidth(w2, b);
     float total = wa + gap + wb;
     float x0 = centered ? x - total * 0.5f : x;
+    float g1 = 1.f + 0.32f * pulse * sinf(t * 1.85f), g2 = 1.f + 0.32f * pulse * sinf(t * 1.85f - 2.2f);
     // back glow
     setAdditive(true);
-    circleSoft(x0 + wa * 0.5f, y + size * 0.55f, size * 0.9f, size * 1.1f, C(1.f, 0.15f, 0.55f, 0.22f * alpha));
-    circleSoft(x0 + wa + gap + wb * 0.5f, y + size * 0.55f, size * 0.9f, size * 1.1f, C(0.1f, 0.7f, 1.f, 0.20f * alpha));
+    circleSoft(x0 + wa * 0.5f, y + size * 0.55f, size * 0.9f, size * 1.1f, C(1.f, 0.15f, 0.55f, 0.22f * alpha * g1));
+    circleSoft(x0 + wa + gap + wb * 0.5f, y + size * 0.55f, size * 0.9f, size * 1.1f, C(0.1f, 0.7f, 1.f, 0.20f * alpha * g2));
     setAdditive(false);
     // drop shadow
     TextStyle sh = a;
@@ -176,15 +180,15 @@ void drawLogo(float x, float y, float size, float alpha, float t, bool centered)
     // chrome-ish gradients with neon glow
     a.color = withAlpha(C(1.f, 0.62f, 0.86f), alpha);
     a.colorBottom = withAlpha(C(1.f, 0.10f, 0.50f), alpha);
-    a.glow = size * 0.08f;
-    a.glowColor = C(1.f, 0.2f, 0.6f, 0.55f * alpha);
+    a.glow = size * 0.08f * (0.8f + 0.2f * g1);
+    a.glowColor = C(1.f, 0.2f, 0.6f, Min(1.f, 0.55f * alpha * g1));
     a.outline = Max(1.f, size * 0.018f);
     a.outlineColor = withAlpha(C(1.f, 0.9f, 0.97f), 0.9f * alpha);
     text(x0, y, w1, a);
     b.color = withAlpha(C(0.70f, 0.98f, 1.f), alpha);
     b.colorBottom = withAlpha(C(0.10f, 0.55f, 1.f), alpha);
-    b.glow = size * 0.08f;
-    b.glowColor = C(0.1f, 0.8f, 1.f, 0.5f * alpha);
+    b.glow = size * 0.08f * (0.8f + 0.2f * g2);
+    b.glowColor = C(0.1f, 0.8f, 1.f, Min(1.f, 0.5f * alpha * g2));
     b.outline = a.outline;
     b.outlineColor = withAlpha(C(0.9f, 1.f, 1.f), 0.9f * alpha);
     text(x0 + wa + gap, y, w2, b);
@@ -596,7 +600,41 @@ std::vector<std::string> fitLines(const std::string& str, const TextStyle& st, f
     return lines;
 }
 
-MenuAction drawUpdateCorner(const MenuState& st, const Layout& L, const Nav& n, float a, float t) {
+// "Updated to <commit>", the update this start installed, with up to 3 of its pull requests (then "and N more") in a
+// panel at the right edge from y. Returns the panel's height.
+float drawUpdatedPanel(const UpdatedNotice& u, const Layout& L, float y, float a) {
+    float sc = L.s;
+    float w = 520.f * sc, pad = 22.f * sc, inner = w - 2.f * pad, lineH = 18.f * sc * 1.25f;
+    TextStyle ts = style(FONT_HEADING, 22.f * sc, withAlpha(kWhite, a)), cs = style(FONT_BODY, 18.f * sc, withAlpha(kTextDim, a));
+    ts.tracking = 0.08f;
+    std::vector<std::string> lines;
+    for (size_t i = 0; i < u.pulls.size() && lines.size() < 3; i++) {
+        std::vector<std::string> l = fitLines(u.pulls[i], cs, inner, 1);
+        if (!l.empty()) lines.push_back(l[0]);
+    }
+    size_t pullLines = lines.size();
+    if (u.pulls.size() > pullLines) lines.push_back(StrFormat("and %d more", (int)(u.pulls.size() - pullLines)));
+    else if (u.pulls.empty() && u.commits > 0) lines.push_back(StrFormat("%d new commit%s", u.commits, u.commits == 1 ? "" : "s"));
+    float h = pad + 26.f * sc + pad;
+    if (!lines.empty()) h += 10.f * sc + (float)lines.size() * lineH;
+    float x = L.right - w;
+    panel(x, y, w, h, a);
+    roundRect(x, y + 14.f * sc, 4.f * sc, h - 28.f * sc, 2.f * sc, withAlpha(kPink, a));
+    float tw = text(x + pad, y + pad, "UPDATED TO ", ts);
+    TextStyle cts = ts;
+    cts.color = withAlpha(kCyan, a);
+    text(x + pad + tw, y + pad, u.commit.c_str(), cts);
+    float ly = y + pad + 26.f * sc + 10.f * sc;
+    for (size_t i = 0; i < lines.size(); i++) {
+        TextStyle ls = cs;
+        if (i >= pullLines) ls.color = withAlpha(kTextMute, a);
+        text(x + pad, ly, lines[i].c_str(), ls);
+        ly += lineH;
+    }
+    return h;
+}
+
+MenuAction drawUpdateCorner(const MenuState& st, const Layout& L, const Nav& n, float a, float t, float dt) {
     MenuAction act;
     float sc = L.s;
     // the version, a dot and the commit it was built from
@@ -611,11 +649,22 @@ MenuAction drawUpdateCorner(const MenuState& st, const Layout& L, const Nav& n, 
     }
     text(vx, vy, "Version " NT_VERSION, vs);
     const UpdateNotice& u = st.update;
-    if (u.kind == UPD_NONE) return act;
+    float py = L.top + 22.f * sc;   // the top of the panels below
     if (u.kind == UPD_CHECKING) {   // only a line under the version
         text(L.right, vy + 22.f * sc, "Checking for updates...", vs);
-        return act;
+        py += 26.f * sc;
     }
+    // the first start after an update says once what it brought (fading in, and out once dismissed)
+    const UpdatedNotice& un = st.updated;
+    if (!un.commit.empty()) {
+        if (I.updatedY < 0.f) I.updatedY = py;
+        I.updatedY = approachExp(I.updatedY, py, 10.f, dt);
+        float ua = a * Saturate(un.shown / 0.3f) * (un.closing < 0.f ? 1.f : 1.f - Saturate(un.closing / 0.3f));
+        py = I.updatedY + drawUpdatedPanel(un, L, I.updatedY, ua) + 12.f * sc;
+    } else {
+        I.updatedY = -1.f;
+    }
+    if (u.kind == UPD_NONE || u.kind == UPD_CHECKING) return act;
     bool working = u.kind == UPD_DOWNLOADING || u.kind == UPD_UNPACKING || u.kind == UPD_BUILDING, ready = u.kind == UPD_READY;
     const char* title = "UPDATE AVAILABLE";
     std::string message, right;
@@ -645,7 +694,7 @@ MenuAction drawUpdateCorner(const MenuState& st, const Layout& L, const Nav& n, 
     float h = pad + 26.f * sc + pad + (working ? 22.f * sc : 62.f * sc);
     if (!changes.empty()) h += 10.f * sc + (float)changes.size() * lineH;
     if (!msg.empty()) h += 8.f * sc + (float)msg.size() * lineH;
-    float x = L.right - w, y = L.top + 22.f * sc;
+    float x = L.right - w, y = py;
     panel(x, y, w, h, a);
     roundRect(x, y + 14.f * sc, 4.f * sc, h - 28.f * sc, 2.f * sc, withAlpha(updateAccent(u), a));
     // the title, and the build's time or the download's size at its right
@@ -714,45 +763,171 @@ void drawUpdateLine(const MenuState& st, const Layout& L, float a) {
 // Main menu
 struct MainItem { const char* label; int id; };
 
+// The main menu's sounds on a move, a confirm and a back: the audio system's own UI sounds (the menu test builds
+// without audio)
+enum MainSound { SND_MOVE = 0, SND_CONFIRM, SND_BACK };
+void mainSound(MainSound s) {
+#ifdef HAVE_AUDIO
+    static const ::Audio::Sfx kIds[3] = {::Audio::SFX_UI_MOVE, ::Audio::SFX_UI_SELECT, ::Audio::SFX_UI_BACK};
+    static const float kVolumes[3] = {0.4f, 0.6f, 0.5f};
+    ::Audio::play2D(kIds[s], kVolumes[s]);
+#else
+    (void)s;
+#endif
+}
+
+// A key, mouse button, pad button or the wheel pressed this frame, a stick or trigger pushed, or the mouse moved
+bool anyInput(const Nav& n) {
+    if (!n.in) return false;
+    const InputState& in = *n.in;
+    for (int k = 1; k < KEY_COUNT; k++)
+        if (in.pressed(k)) return true;
+    const GamepadState& p = in.pad;
+    return (p.buttons & ~p.prevButtons) != 0 || in.wheelDelta != 0.f || n.mouseMoved || length(p.leftStick) > 0.5f ||
+           length(p.rightStick) > 0.5f || p.leftTrigger > 0.5f || p.rightTrigger > 0.5f;
+}
+
+// Days since 1970-01-01 of a calendar date (proleptic Gregorian)
+long daysFromCivil(int y, int m, int d) {
+    if (m <= 2) y--;
+    long era = (y >= 0 ? y : y - 399) / 400;
+    long yoe = y - era * 400;
+    long doy = (153L * (m > 2 ? m - 3 : m + 9) + 2) / 5 + d - 1;
+    long doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+    return era * 146097 + doe - 719468;
+}
+
+// When a save was made, from its time "2026-10-24 21:05" (local): "Saved today 21:05", "Saved yesterday 21:05",
+// "Saved Oct 24" this year, else "Saved Oct 24, 2025" ("Saved <the stored text>" when it is not such a time)
+std::string savedWhen(const std::string& stamp) {
+    int y = 0, mo = 0, d = 0, h = 0, mi = 0;
+    if (sscanf(stamp.c_str(), "%d-%d-%d %d:%d", &y, &mo, &d, &h, &mi) != 5 || mo < 1 || mo > 12 || d < 1 || d > 31)
+        return stamp.empty() ? std::string() : "Saved " + stamp;
+    static const char* const kMonths[12] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+    SYSTEMTIME now;
+    GetLocalTime(&now);
+    long ago = daysFromCivil(now.wYear, now.wMonth, now.wDay) - daysFromCivil(y, mo, d);
+    if (ago == 0) return StrFormat("Saved today %02d:%02d", h, mi);
+    if (ago == 1) return StrFormat("Saved yesterday %02d:%02d", h, mi);
+    if (y == now.wYear) return StrFormat("Saved %s %d", kMonths[mo - 1], d);
+    return StrFormat("Saved %s %d, %d", kMonths[mo - 1], d, y);
+}
+
+// The line under CONTINUE about the save it loads, as parts in the order they show: its mission, where it was saved,
+// the play time and when it was saved. A save whose body could not be read for the play time and place shows its
+// header's in-game day and completion instead. `keep` ranks the parts (0 is dropped last when the line is too long).
+void continueParts(const SaveSlotInfo& si, std::vector<std::string>& parts, std::vector<int>& keep) {
+    parts.clear();
+    keep.clear();
+    std::string mission = si.title;
+    for (const char* kind : {"Autosave - ", "Quick Save - "})
+        if (mission.compare(0, strlen(kind), kind) == 0) mission = mission.substr(strlen(kind));
+    if (!mission.empty()) { parts.push_back(mission); keep.push_back(0); }
+    if (si.playSeconds >= 0.0) {
+        std::string area = fabsf(si.savedAt.x) < 1e8f && fabsf(si.savedAt.y) < 1e8f ? mapDistrictAt(si.savedAt) : std::string();
+        if (!area.empty() && area != mission) { parts.push_back(area); keep.push_back(3); }
+        int minutes = (int)(si.playSeconds / 60.0);
+        parts.push_back(minutes >= 60 ? StrFormat("%dh %02dm played", minutes / 60, minutes % 60) : StrFormat("%dm played", minutes));
+        keep.push_back(2);
+    } else {
+        // the header's "12.3% complete  |  $5,000  |  Day 3, 21:40": the day and the completion
+        std::string day, done;
+        for (size_t i = 0; i < si.detail.size();) {
+            size_t e = si.detail.find('|', i);
+            if (e == std::string::npos) e = si.detail.size();
+            std::string p = si.detail.substr(i, e - i);
+            i = e + 1;
+            while (!p.empty() && p.front() == ' ') p.erase(0, 1);
+            while (!p.empty() && p.back() == ' ') p.pop_back();
+            if (p.compare(0, 4, "Day ") == 0) day = p;
+            else if (p.size() > 9 && p.compare(p.size() - 9, 9, " complete") == 0) done = p;
+        }
+        if (!day.empty()) { parts.push_back(day); keep.push_back(2); }
+        if (!done.empty()) { parts.push_back(done); keep.push_back(3); }
+    }
+    std::string when = savedWhen(si.timestamp);
+    if (!when.empty()) { parts.push_back(when); keep.push_back(1); }
+}
+
+// Draws parts in one line from (x, y) with small dots between them, at most maxW wide: the parts ranked last go first,
+// then the first one is shortened
+void drawDotLine(float x, float y, std::vector<std::string> parts, std::vector<int> keep, const TextStyle& st, float maxW, float sc) {
+    float gap = 26.f * sc;
+    auto width = [&]() {
+        float w = 0.f;
+        for (size_t i = 0; i < parts.size(); i++) w += textWidth(parts[i].c_str(), st) + (i ? gap : 0.f);
+        return w;
+    };
+    while (parts.size() > 2 && width() > maxW) {
+        size_t worst = 0;
+        for (size_t i = 1; i < parts.size(); i++)
+            if (keep[i] > keep[worst]) worst = i;
+        parts.erase(parts.begin() + (std::ptrdiff_t)worst);
+        keep.erase(keep.begin() + (std::ptrdiff_t)worst);
+    }
+    if (!parts.empty() && width() > maxW) {
+        float rest = width() - textWidth(parts[0].c_str(), st);
+        std::vector<std::string> l = fitLines(parts[0], st, Max(maxW - rest, 40.f * sc), 1);
+        parts[0] = l.empty() ? std::string() : l[0];
+    }
+    for (size_t i = 0; i < parts.size(); i++) {
+        if (i) {
+            circle(x + gap * 0.5f, y + st.size * 0.62f, 2.f * sc, st.color);
+            x += gap;
+        }
+        x += text(x, y, parts[i].c_str(), st);
+    }
+}
+
 MenuAction drawMain(MenuState& st, const Layout& L, const Nav& n, float dt, float t) {
     MenuAction act;
     float sc = L.s;
     float a = easeOutCubic(I.screenT / 0.5f);
-    fullBackdrop(L, 1.f, 0.55f, 0.35f);
+    // The city behind a light frosted blur, the left side kept readable by the gradient. While the game's menu camera
+    // closes its cover (a place streaming in, the cut between two drifts), the blur thickens and darkens into navy.
+    float cover = Saturate(st.sceneCover);
+    fullBackdrop(L, Lerp(0.3f, 1.f, Saturate(cover * 1.6f)), Lerp(0.85f, 0.55f, cover), Lerp(0.12f, 1.f, cover * cover));
     gradientRectH(0, 0, L.W * 0.62f, L.H, C(0.02f, 0.02f, 0.07f, 0.88f), C(0.02f, 0.02f, 0.07f, 0.f));
     vignette(L, 1.f);
     // decorative sun disc behind the logo
     setAdditive(true);
     circleSoft(L.left + 330.f * sc, L.H * 0.25f, 230.f * sc, 260.f * sc, C(1.f, 0.25f, 0.5f, 0.10f * a));
     setAdditive(false);
-    drawLogo(L.left + 6.f * sc, L.H * 0.13f + (1.f - a) * -20.f * sc, 136.f * sc, a, t, false);
+    // the logo's neon breathes slowly (steady with Reduce Flashing)
+    drawLogo(L.left + 6.f * sc, L.H * 0.13f + (1.f - a) * -20.f * sc, 136.f * sc, a, t, false, uiOptions().reduceFlashing ? 0.f : 1.f);
+    // Continue comes first when there is a save (the menu opens on it), with a line about that save under it
     std::vector<MainItem> items;
-    items.push_back({"New Game", 0});
     if (st.canContinue) items.push_back({"Continue", 1});
+    items.push_back({"New Game", 0});
     items.push_back({"Load Game", 2});
     items.push_back({"Settings", 3});
     items.push_back({"Quit", 4});
     int count = (int)items.size();
+    st.cursor = Clamp(st.cursor, 0, count - 1);
+    int before = st.cursor;
     if (I.dialog == DLG_NONE) {
         if (n.up) st.cursor = (st.cursor + count - 1) % count;
         if (n.down) st.cursor = (st.cursor + 1) % count;
     }
-    st.cursor = Clamp(st.cursor, 0, count - 1);
     float x = L.left, y0 = L.H * 0.47f, ih = 60.f * sc, iw = 440.f * sc;
+    bool saveLine = st.canContinue;
+    float lineH = saveLine ? 30.f * sc : 0.f;
+    auto rowY = [&](int i) { return y0 + i * (ih + 8.f * sc) + (i > 0 ? lineH : 0.f); };
     int activate = -1;
     for (int i = 0; i < count; i++) {
-        float y = y0 + i * (ih + 8.f * sc);
-        if (I.dialog == DLG_NONE && inRect(n.mouse, x, y, iw, ih)) {
+        float y = rowY(i);
+        if (I.dialog == DLG_NONE && inRect(n.mouse, x, y, iw, ih + (i == 0 ? lineH : 0.f))) {
             if (n.mouseMoved) st.cursor = i;
             if (n.click) activate = i;
         }
     }
-    float targetY = y0 + st.cursor * (ih + 8.f * sc);
+    if (st.cursor != before) mainSound(SND_MOVE);
+    float targetY = rowY(st.cursor);
     if (I.hlY < 0.f) I.hlY = targetY;
     I.hlY = approachExp(I.hlY, targetY, 18.f, dt);
     selectionBar(x, I.hlY, iw, ih, a);
     for (int i = 0; i < count; i++) {
-        float y = y0 + i * (ih + 8.f * sc);
+        float y = rowY(i);
         float ia = easeOutCubic((I.screenT - 0.08f * i) / 0.4f);
         bool sel = i == st.cursor;
         TextStyle ts = style(FONT_HEADING, 36.f * sc, withAlpha(sel ? kWhite : kTextDim, ia), ALIGN_LEFT);
@@ -761,9 +936,18 @@ MenuAction drawMain(MenuState& st, const Layout& L, const Nav& n, float dt, floa
         std::string lab = upper(items[i].label);
         text(x + 30.f * sc + (1.f - ia) * -30.f * sc, y + ih * 0.5f - ts.size * 0.56f, lab.c_str(), ts);
         if (sel) drawIcon(ICO_CHEVRON, x + iw - 30.f * sc, y + ih * 0.5f, 26.f * sc, withAlpha(kWhite, ia));
+        if (i == 0 && saveLine) {
+            std::vector<std::string> parts;
+            std::vector<int> keep;
+            continueParts(st.newestSave, parts, keep);
+            TextStyle ls = style(FONT_BODY, 19.f * sc, withAlpha(kTextDim, 0.9f * ia));
+            ls.shadow = 1.5f * sc;
+            drawDotLine(x + 30.f * sc + (1.f - ia) * -30.f * sc, y + ih + 5.f * sc, parts, keep, ls, 640.f * sc, sc);
+        }
     }
     if (I.dialog == DLG_NONE && n.confirm) activate = st.cursor;
     if (activate >= 0) {
+        mainSound(SND_CONFIRM);
         switch (items[activate].id) {
         case 0: act.type = MA_NEW_GAME; break;
         case 1: act.type = MA_CONTINUE; break;
@@ -772,8 +956,21 @@ MenuAction drawMain(MenuState& st, const Layout& L, const Nav& n, float dt, floa
         case 4: openDialog(DLG_QUIT_GAME, -1); break;
         }
     }
-    if (I.dialog == DLG_NONE && n.back) openDialog(DLG_QUIT_GAME, -1);
-    MenuAction upd = drawUpdateCorner(st, L, n, a, t);
+    if (I.dialog == DLG_NONE && n.back) {
+        mainSound(SND_BACK);
+        openDialog(DLG_QUIT_GAME, -1);
+    }
+    // "Updated to <commit>" (the first start after an update) shows until any input or for 15 s
+    UpdatedNotice& un = st.updated;
+    if (!un.commit.empty()) {
+        if (un.closing < 0.f) {
+            un.shown += dt;
+            if (un.shown >= 15.f || anyInput(n)) un.closing = 0.f;
+        } else if ((un.closing += dt) >= 0.3f) {
+            un = UpdatedNotice();
+        }
+    }
+    MenuAction upd = drawUpdateCorner(st, L, n, a, t, dt);
     if (act.type == MA_NONE) act = upd;
     // footer
     TextStyle fs = style(FONT_BODY, 16.f * sc, withAlpha(kTextMute, a));

@@ -319,6 +319,7 @@ bool compileModel(std::vector<Source>& files, const std::vector<size_t>& which, 
     RoadOverrides overrides;   // (what the lane graph reads beyond the network: roadoverrides.h)
     Hand::compileRoadOverrides(model, index, roads, overrides);
     writeRoadOverrides(overrides, out);
+    applyRoadSides(overrides, roads);   // (each side's own widths, as the game will have them: the blocks go on them)
     int lights = 0;
     for (const RoadNode& n : roads.nodes) lights += n.control == 2;
     printf("worldc: roads %zu nodes, %zu edges, %d signalised; %zu districts, %zu signal plans, %zu transit lines\n", roads.nodes.size(), roads.edges.size(), lights,

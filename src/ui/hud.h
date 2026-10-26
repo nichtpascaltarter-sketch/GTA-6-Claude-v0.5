@@ -313,6 +313,9 @@ struct SaveSlotInfo {
     std::string title;       // e.g. "Chapter 3 - Low Tide"
     std::string detail;      // e.g. "63.2% complete  |  $148,200  |  Day 12, 21:40"
     std::string timestamp;   // real-world save time
+    // From past the header, for the main menu's line under Continue. Unknown when the save's body cannot be read for them.
+    double playSeconds = -1.0;   // time played; < 0: unknown
+    vec2 savedAt = vec2(-1e9f);  // where it was saved (the player, or their vehicle); off the world (-1e9): unknown
 };
 
 struct StatsEntry {
@@ -332,6 +335,16 @@ struct UpdateNotice {
     int seconds = 0;       // UPD_BUILDING: since the build started
 };
 
+// The update this start installed (the new build's first start, from the updater's record): the main menu's update corner
+// says once "Updated to <commit>" with the pull requests it brought; any input dismisses it, and so do 15 s.
+struct UpdatedNotice {
+    std::string commit;               // its 7 digits, e.g. "5ad2c3e"; "" when there is nothing to show
+    std::vector<std::string> pulls;   // printable lines, newest first, e.g. "#56 A setup page on the first start"
+    int commits = 0;                  // the commits it brought (said when it lists no pull request)
+    float shown = 0.f;                // seconds on the main menu so far (owned by the menu code)
+    float closing = -1.f;             // seconds since it was dismissed (fading out), < 0 while it shows
+};
+
 // Front-end state (the game owns the instance and passes it every frame).
 struct MenuState {
     MenuScreen screen = MENU_NONE;
@@ -348,8 +361,13 @@ struct MenuState {
     float loadingProgress = 0.f;           // MENU_LOADING 0..1
     std::string loadingTip;
     bool canContinue = false;              // main menu shows "Continue"
+    SaveSlotInfo newestSave;               // the save Continue loads (the main menu's line under it)
     bool canSave = true;                   // pause menu offers "Save Game" (false during missions)
     UpdateNotice update;                   // an update being checked, built, ready or failed
+    UpdatedNotice updated;                 // the update this start installed (the main menu says it once)
+    // The main menu's city: 0 shows it, 1 hides it under the backdrop's navy. The game's menu camera closes it while a
+    // place streams in and to move between its slow drifts, the main menu draws it (other pages ignore it).
+    float sceneCover = 0.f;
     // internal UI state (owned by the menu code)
     int cursor = 0, tab = 0;
     float anim = 0.f;

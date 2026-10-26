@@ -213,9 +213,11 @@ bool loadHandWorld(const char* worldFile, WorldMap& map, RoadNetwork& roads, Bui
         roads.buildHash();
     }
     gRoads = &roads;
-    // what they author beyond the network, for the lane graph (roadoverrides.h): empty lists where there is none
+    // what they author beyond the network, for the lane graph (roadoverrides.h): empty lists where there is none; and
+    // each side's own kerb line and sidewalk, which the mesher draws and the lane graph reads (RoadEdge::halfWidthSide)
     static RoadOverrides overrides;
     if (!readRoadOverrides(bin, roads, overrides, error)) return false;
+    applyRoadSides(overrides, roads);
     gRoadOverrides = &overrides;
     // the blocks' ground and dressing where the world has them (blocksbin.h)
     static HandBlocks blocks;
