@@ -590,6 +590,16 @@ They are Python, run with `-I`, and never ship. The game doesn't know they exist
 8. Write per-file content hashes, so only changed files are re-parsed and only dirty sections rebuilt. A one-building edit
    recompiles in under 2 s.
 
+**What it compiles so far:**
+- the terrain (stage 0);
+- the roads (stage 1), through the world model (`src/world/worldmodel.h`), with the world, district, signal and transit
+  files they name. The roads go into world.bin's `roads` and `roads.ids` sections (`src/world/roadsbin.h`), which the
+  game reads in hand mode. The other kinds' sections come with their consumers.
+
+A block, building, places or library file stops the build until its compiler exists. Reference checks beyond what the
+compile needs (step 3) are worldv's, which CI runs on `world/`. The roads section stores floats for now; quantising it
+(step 6) is a size step for later.
+
 ### 6.2 Size estimate
 
 | Section | Content | Compiled | Compressed |

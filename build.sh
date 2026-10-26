@@ -13,7 +13,7 @@ fi
 ./build/embed_shaders src/shaders build/gen/shaders_embedded.h
 # The hand-built world (docs/HANDBUILT_WORLD.md): tools/worldc compiles world/ into build/gen/world.bin and world.rc,
 # and the resource object embeds it in the exe (src/world/handworld.cpp reads it with --world=hand)
-WORLDC_SRC="tools/worldc.cpp src/world/ntw.h src/world/ntw.cpp src/world/ntwschema.h src/world/ntwschema.cpp src/world/gridcodec.h src/world/gridcodec.cpp src/world/lz.h src/world/lz.cpp src/world/worldbin.h src/world/worldbin.cpp"
+WORLDC_SRC="tools/worldc.cpp src/world/ntw.h src/world/ntw.cpp src/world/ntwschema.h src/world/ntwschema.cpp src/world/gridcodec.h src/world/gridcodec.cpp src/world/lz.h src/world/lz.cpp src/world/worldbin.h src/world/worldbin.cpp src/core/math.h src/core/math.cpp src/world/worldmap.h src/world/roads.h src/world/roadnet.cpp src/world/worldmodel.h src/world/worldmodel.cpp src/world/worldmodel_roads.cpp src/world/roadsbin.h src/world/roadsbin.cpp"
 # (several builds share build/: every output goes through a temp file and a rename, and nothing is redone while the
 # resource is newer than worldc and everything under world/)
 if [ ! -x build/worldc ] || [ -n "$(find $WORLDC_SRC -newer build/worldc 2>/dev/null)" ]; then
