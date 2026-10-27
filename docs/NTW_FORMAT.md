@@ -388,7 +388,7 @@ Header: `id` id req, `district` id req.
 | `light` | none | no | `kind` reference req, `at` point 2 req (or `at` with z), `yaw` number 1, `sched` word `dusk`/`evening`/`night`/`always`/`never` |
 | `spot` | optional | no | `kind` word req (below), `at` point 2, `yaw` number 1, `line` points 2 (a queue, its head first), `cap` integer, `hours` compound, `cover` integer 0/1 (sheltered, used in rain), `roles` list, `ages` compound `min-max`, `prop` reference, `pose` name (the clip), `for` compound (what a queue leads to: a door `cl.b014.s07:f0.d1`, a counter, a stop): a scenario point |
 | `lot` | req | yes: `row`, `ramp` | `entry` compound `<edge>:<at>:<side>` req (2; the curb cut it is entered by), `exit` compound (as `entry`; the entry without it), `levels` integer (1): a car park |
-| `row` | none | no | `line` points 2 req, `bays` integer req, `w` number 2, `len` number 2, `yaw` number 1, `level` integer (0): a row of bays along the line, with its aisle |
+| `row` | none | no | `line` points 2 req (its bays' centreline, first bay to last), `bays` integer req, `w` number 2 (2.50), `len` number 2 (5.00), `yaw` number 1 (the way a car parked nose-in faces; square to the line, to its left, without it), `level` integer (0), `aisle` points 2 (the aisle its bays open onto, where the derived one won't do: a loop round an island): a row of bays along the line, with its aisle |
 | `ramp` | none | no | `from` integer req, `to` integer req (levels), `line` points 2 req |
 
 What the blocks compiler (src/world/worldmodel.h compileBlocks) reads so far, and requires:
@@ -402,7 +402,21 @@ What the blocks compiler (src/world/worldmodel.h compileBlocks) reads so far, an
   is its fixture's piece and lamp (a street light's lamp hangs 2.2 m forward, 8.6 m up), or a lamp alone where its
   piece is one: on at dusk, or by its `sched`.
 - Every z is above the graded ground, or above the sidewalk or road where one runs under the record.
-- Fences, paths, steps, spots and lots are read and checked, and compile later (with the walk graph and parking).
+- A parcel's `use`, `front` and `grade` go to the AI's graphs as they are (frontage, curb cuts). A lot compiles to its
+  drive graph (worldmodel.h compileBlockSections): a row's bays spread evenly along its line, facing its `yaw` (square
+  to the line, to its left, without one); behind them an aisle, 6 m wide (4 m and one way where they are more than 15
+  degrees off square), unless `aisle` gives it; rows that face each other across one aisle share it. The `entry` and
+  `exit` drive in and out from behind the sidewalk to the nearest aisle on level 0, a `ramp` joins its levels (3 m
+  apart), and every part of the lot joins the rest. A lot needs a row, a row a bay, and its rows and ramps levels the
+  lot has; `at` is metres along the edge in plan, as everywhere.
+- Paths, plazas and steps go to the walk graph: a path on the ground (a footbridge or underpass at its `profile`'s
+  heights, which it needs, from 0 to its length); a flight of `steps` from the level ground at its bottom to that at
+  its top, with its `treads` and `rise` as written, else a rise near 0.17 m.
+- Spots go to the population as written: an `at` or a `line` (a queue, its head first), not both; `hours` as
+  `h.mm-h.mm` ranges joined by `;` (a range may run past midnight); `ages` as `min-max`; `cap` 1 without it (a queue's
+  a place every 0.75 m); `prop` the nearest prop of that piece, within 2 m. A bench and a bus shelter imply their
+  seats (a place every 0.6 m), and every bus stop its wait (the shelter's bench where one stands within 15 m).
+- Fences are read and checked, and compile later.
 
 **Spot kinds.** Outdoors: `bench`, `wall_sit`, `steps_sit`, `lean`, `smoke`, `phone`, `busstop_wait`, `queue`, `window`,
 `atm`, `vending`, `cafe_seat`, `bar_stool`, `busk`, `vendor`, `guard`, `door_staff`, `watch_view`, `fish`, `exercise`,

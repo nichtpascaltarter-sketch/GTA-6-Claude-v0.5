@@ -219,17 +219,20 @@ bool loadHandWorld(const char* worldFile, WorldMap& map, RoadNetwork& roads, Bui
     if (!readRoadOverrides(bin, roads, overrides, error)) return false;
     applyRoadSides(overrides, roads);
     gRoadOverrides = &overrides;
-    // the blocks' ground and dressing where the world has them (blocksbin.h)
+    // the blocks' ground and dressing where the world has them, and what the AI's graphs read: parcels, lots, the walk
+    // graph's inputs and spots (blocksbin.h)
     static HandBlocks blocks;
-    if (!readBlocks(bin, blocks, error)) return false;
+    if (!readBlocks(bin, blocks, error, (int)roads.edges.size())) return false;
     gHandBlocks = &blocks;
     buildings = BuildingSet();
     buildings.cellLists.assign((size_t)kCellsPerSide * kCellsPerSide, {});
     buildings.openCellLists.assign((size_t)kCellsPerSide * kCellsPerSide, {});
     gBuildings = &buildings;
-    LOG("Hand world: terrain, %zu road nodes, %zu edges (%zu with overrides), %zu ground polygons, %zu props and %zu lamps from %s (%zu KB, %zu sections) in %.2f s",
-        roads.nodes.size(), roads.edges.size(), overrides.edges.size(), blocks.ground.size(), blocks.props.size(), blocks.lamps.size(),
-        worldFile && *worldFile ? worldFile : "the exe", size / 1024, bin.sections.size(), TimeSeconds() - t0);
+    LOG("Hand world: terrain, %zu road nodes, %zu edges (%zu with overrides), %zu ground polygons, %zu props, %zu lamps, %zu parcels, %zu lots, %zu paths and "
+        "%zu spots from %s (%zu KB, %zu sections) in %.2f s",
+        roads.nodes.size(), roads.edges.size(), overrides.edges.size(), blocks.ground.size(), blocks.props.size(), blocks.lamps.size(), blocks.parcels.size(),
+        blocks.lots.size(), blocks.paths.size(), blocks.spots.size(), worldFile && *worldFile ? worldFile : "the exe", size / 1024, bin.sections.size(),
+        TimeSeconds() - t0);
     return true;
 }
 

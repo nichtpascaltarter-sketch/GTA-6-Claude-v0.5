@@ -50,4 +50,24 @@ inline const LampSpec* lampSpec(const char* code) {
     return nullptr;
 }
 
+// A prop's seat, for the spots worldc derives from the props (worldmodel.h compileBlockSections): its centre in the
+// piece's frame (origin on the ground, +y forward, the way the sitter faces) at the seat's height, and its width, a
+// place every 0.6 m. As propmesh.cpp builds them: the bench's seat 1.8 m wide and 0.48 m up over its origin; the bus
+// shelter's 2.4 m wide, 0.6 m back under its roof.
+struct SeatSpec {
+    int prop;                          // PropType
+    vec3 at;
+    float width;
+};
+inline const SeatSpec* seatSpec(int prop) {
+    static const SeatSpec kSeats[] = {
+        {PROP_BENCH, vec3(0.f, 0.f, 0.48f), 1.8f},
+        {PROP_BUS_STOP, vec3(0.f, -0.6f, 0.48f), 2.4f},
+    };
+    for (const SeatSpec& s : kSeats)
+        if (s.prop == prop) return &s;
+    return nullptr;
+}
+constexpr float kSeatPlace = 0.6f;   // m of seat a person takes
+
 }  // namespace World

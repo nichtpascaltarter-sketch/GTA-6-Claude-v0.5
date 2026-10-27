@@ -280,8 +280,8 @@ bool modelKind(const std::string& k) {
 }
 
 // Those files through the world model: the roads compiled into the roads sections, and into `roads` and `decks` (per
-// edge, its stretches on structures) for the grading; the blocks into `blocks`, which placeOnTerrain finishes. Moves
-// the files' documents out.
+// edge, its stretches on structures) for the grading; the blocks (their ground and dressing, parcels and lots) into
+// `blocks`, which placeOnTerrain finishes. Moves the files' documents out.
 bool compileModel(std::vector<Source>& files, const std::vector<size_t>& which, WorldBinWriter& out, RoadNetwork& roads,
                   std::vector<std::vector<vec2>>& decks, Hand::BlocksOut& blocks) {
     const int errorsBefore = gErrors;
@@ -300,15 +300,37 @@ bool compileModel(std::vector<Source>& files, const std::vector<size_t>& which, 
     Hand::RoadIndex index;
     Hand::compileRoads(model, roads, index, errs);
     Hand::compileBlocks(model, blocks, errs);
-    for (const Hand::Error& e : errs) {
-        const bool inFile = e.src.file >= 0 && e.src.file < (int)model.files.size();
-        error(inFile ? model.files[(size_t)e.src.file].path : gWorld, inFile ? e.src.line : 0, e.message + " [" + e.code + "]");
-    }
+    const auto report = [&](const std::vector<Hand::Error>& found) {
+        for (const Hand::Error& e : found) {
+            const bool inFile = e.src.file >= 0 && e.src.file < (int)model.files.size();
+            error(inFile ? model.files[(size_t)e.src.file].path : gWorld, inFile ? e.src.line : 0, e.message + " [" + e.code + "]");
+        }
+    };
+    report(errs);
     if (gErrors != errorsBefore) return false;
     if (!blocks.blocks.ground.empty() || !blocks.blocks.props.empty() || !blocks.blocks.lamps.empty())
         printf("worldc: blocks %zu, %zu ground polygons, %zu props, %zu lamps, %zu graded parcels\n", model.blocks.size(), blocks.blocks.ground.size(),
                blocks.blocks.props.size(), blocks.blocks.lamps.size(), blocks.pads.size());
-    if (roads.nodes.empty() && roads.edges.empty()) return true;
+    // what the AI's graphs read from the blocks: the parcels, and the lots with their drive graphs, on the roads as
+    // the game will have them (each side's own widths)
+    const auto sections = [&]() {
+        std::vector<Hand::Error> found;
+        const bool ok = Hand::compileBlockSections(model, index, roads, blocks, found);
+        report(found);
+        size_t bays = 0, links = 0;
+        for (const HandLot& l : blocks.blocks.lots) {
+            bays += l.bays.size();
+            links += l.links.size();
+        }
+        size_t implied = 0;
+        for (const HandSpot& x : blocks.blocks.spots) implied += (x.flags & HandSpot::IMPLIED) != 0;
+        const HandBlocks& hb = blocks.blocks;
+        if (ok && (!hb.parcels.empty() || !hb.lots.empty() || !hb.paths.empty() || !hb.plazas.empty() || !hb.steps.empty() || !hb.spots.empty()))
+            printf("worldc: %zu parcels, %zu lots (%zu bays on %zu links); walks: %zu paths, %zu plazas, %zu flights of steps; %zu spots (%zu implied)\n",
+                   hb.parcels.size(), hb.lots.size(), bays, links, hb.paths.size(), hb.plazas.size(), hb.steps.size(), hb.spots.size(), implied);
+        return ok;
+    };
+    if (roads.nodes.empty() && roads.edges.empty()) return sections();
     decks.assign(roads.edges.size(), {});
     for (size_t i = 0; i < index.edgeOf.size(); i++)
         for (const Hand::Deck& d : model.edges[(size_t)index.edgeOf[i]].decks) decks[i].push_back(vec2(d.from, d.to));
@@ -325,7 +347,7 @@ bool compileModel(std::vector<Source>& files, const std::vector<size_t>& which, 
     printf("worldc: roads %zu nodes, %zu edges, %d signalised; %zu districts, %zu signal plans, %zu transit lines\n", roads.nodes.size(), roads.edges.size(), lights,
            model.districts.size(), model.signals.size(), model.transit.size());
     printf("worldc: road overrides: %zu edges' widths and speeds, %zu node rules\n", overrides.edges.size(), overrides.nodes.size());
-    return true;
+    return sections();
 }
 
 std::vector<Source> discover() {

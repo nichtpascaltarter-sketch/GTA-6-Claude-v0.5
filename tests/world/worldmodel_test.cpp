@@ -7,7 +7,9 @@
 // - the blocks: their records typed, the compile (ground, dressing, lamps, findings), the blocks section through
 //   world.bin (src/world/blocksbin.h), a parcel's levelling (WorldMap::flattenPoly), the level ground that people and
 //   vehicles stand on (HandBlocks::padHeight), and the grading written for a parcel that only grades the terrain
-//   (Hand::placeOnTerrain);
+//   (Hand::placeOnTerrain); the sections for the AI's graphs (compileBlockSections): parcels, lots with their drive
+//   graphs, the walk graph's inputs and the spots (written and implied), on the graded ground and through world.bin,
+//   damaged ones refused, and the findings;
 // - the roads through world.bin (src/world/roadsbin.h): back exactly as written, and damaged sections refused; with
 //   what they author beyond the network (src/world/roadoverrides.h), each side's kerb line, sidewalk and parking
 //   (applyRoadSides, RoadEdge::halfWidthSide), and the host loader (loadRoadsFile);
@@ -727,6 +729,460 @@ static void testGradeOnly() {
     WorldBinView view2;
     EXPECT(nothing && view2.open(bin2.data(), bin2.size(), &why) && !view2.find("terrain.grade") && !view2.find("blocks") && report.empty(),
            "grade only: with nothing to grade, nothing written");
+}
+
+// The blocks' sections for the AI's graphs (worldmodel.h compileBlockSections, blocksbin.h): the parcels' uses, fronts
+// and grades; three lots' drive graphs (two rows facing across one aisle, an angled row's one-way aisle with its far end
+// joined so it can be left, the curb cuts' nodes behind the sidewalk, a ramp up to a second level, an island's loop),
+// their bays on their links, their heights on the graded ground (placeOnTerrain), both sections through world.bin and
+// damaged ones refused; and the findings
+static bool sameLot(const HandLot& a, const HandLot& b) {
+    const auto v3 = [](vec3 p, vec3 q) { return p.x == q.x && p.y == q.y && p.z == q.z; };
+    const auto cut = [](const HandLot::Cut& p, const HandLot::Cut& q) { return p.edge == q.edge && p.s == q.s && p.side == q.side; };
+    bool ok = a.id == b.id && a.levels == b.levels && cut(a.entry, b.entry) && cut(a.exit, b.exit) && a.rows.size() == b.rows.size() &&
+              a.nodes.size() == b.nodes.size() && a.links.size() == b.links.size() && a.bays.size() == b.bays.size();
+    for (size_t i = 0; ok && i < a.rows.size(); i++) {
+        const HandLot::Row &p = a.rows[i], &q = b.rows[i];
+        ok = v3(p.a, q.a) && v3(p.b, q.b) && p.bays == q.bays && p.w == q.w && p.len == q.len && p.dir.x == q.dir.x && p.dir.y == q.dir.y && p.level == q.level &&
+             p.aisle == q.aisle;
+    }
+    for (size_t i = 0; ok && i < a.nodes.size(); i++) ok = v3(a.nodes[i].p, b.nodes[i].p) && a.nodes[i].level == b.nodes[i].level && a.nodes[i].kind == b.nodes[i].kind;
+    for (size_t i = 0; ok && i < a.links.size(); i++) {
+        const HandLot::Link &p = a.links[i], &q = b.links[i];
+        ok = p.a == q.a && p.b == q.b && p.width == q.width && p.oneway == q.oneway && p.kind == q.kind && p.pts.size() == q.pts.size();
+        for (size_t k = 0; ok && k < p.pts.size(); k++) ok = v3(p.pts[k], q.pts[k]);
+    }
+    for (size_t i = 0; ok && i < a.bays.size(); i++) {
+        const HandLot::Bay &p = a.bays[i], &q = b.bays[i];
+        ok = v3(p.c, q.c) && p.dir.x == q.dir.x && p.dir.y == q.dir.y && p.row == q.row && p.link == q.link && p.s == q.s;
+    }
+    return ok;
+}
+
+static void testBlockSections() {
+    const std::string world = "ntw 1 world\nworld palmera name=\"P\"\ndistrict cl name=\"C\"\n";
+    const std::string roads =   // a street east along y = 0: its left (north) kerb 5.6 m out, its sidewalk 3 m beyond
+        "ntw 1 roads district=cl\n"
+        "node cl.n0001 at=0.00,0.00 z=4.00\n"
+        "node cl.n0002 at=200.00,0.00 z=4.00\n"
+        "edge cl.e0001 from=cl.n0001 to=cl.n0002 class=street lanes=1/1 shape=0.00,0.00;200.00,0.00\n"
+        "end\n";
+    const std::string block =
+        "ntw 1 block id=cl.b001 district=cl\n"
+        "parcel cl.b001.p01 poly=40.00,30.00;140.00,30.00;140.00,80.00;40.00,80.00 use=parking grade=4.20 blend=4.00 front=cl.e0001:left\n"
+        "end\n"
+        "parcel cl.b001.p02 poly=150.00,30.00;190.00,30.00;190.00,60.00;150.00,60.00 use=commercial\n"
+        "end\n"
+        "lot cl.b001.lot1 entry=cl.e0001:60.00:left exit=cl.e0001:120.00:left\n"
+        "  row line=50.00,50.00;130.00,50.00 bays=32\n"
+        "  row line=130.00,39.00;50.00,39.00 bays=32\n"
+        "  row line=50.00,65.00;130.00,65.00 bays=20 yaw=-30.0\n"
+        "end\n"
+        "lot cl.b001.lot2 entry=cl.e0001:170.00:left levels=2\n"
+        "  row line=150.00,50.00;190.00,50.00 bays=16\n"
+        "  row line=150.00,50.00;170.00,50.00 bays=8 level=1\n"
+        "  ramp from=0 to=1 line=190.00,44.50;170.00,44.50\n"
+        "end\n"
+        "lot cl.b001.lot3 entry=cl.e0001:100.00:left\n"
+        "  row line=64.00,105.00;96.00,105.00 bays=12 aisle=60.00,90.00;100.00,90.00;100.00,110.00;60.00,110.00;60.00,90.00\n"
+        "end\n";
+    Model m;
+    std::vector<Error> errors;
+    const bool ok = loadTexts({{"roads.ntw", roads}, {"block.ntw", block}, {"world.ntw", world}}, m, errors);
+    RoadNetwork rn;
+    RoadIndex ix;
+    if (!ok || !compileRoads(m, rn, ix, errors) || rn.edges.size() != 1) {
+        EXPECT(false, "sections: the test files load and their roads compile");
+        printErrors(m, errors);
+        return;
+    }
+    RoadOverrides ov;   // (each side's own widths, as worldc compiles the blocks on them)
+    compileRoadOverrides(m, ix, rn, ov);
+    applyRoadSides(ov, rn);
+    const float back = rn.edges[0].halfWidthSide(-1) + rn.edges[0].sidewalkSide(-1);   // the sidewalk's back, 8.6 m north
+    // (the lots stand 35 m and more north of the street, clear of the terrain its grading blends out over)
+    BlocksOut out;
+    const bool compiled = compileBlocks(m, out, errors) && compileBlockSections(m, ix, rn, out, errors);
+    EXPECT(compiled && errors.empty() && same(back, 8.6f), "sections: the compile (%zu findings, the sidewalk's back %.2f m out)", errors.size(), back);
+    if (!errors.empty()) printErrors(m, errors);
+    const HandBlocks& hb = out.blocks;
+    // the parcels: the first fronts the street's left, levelled; the second follows the terrain
+    EXPECT(hb.parcels.size() == 2, "sections: %zu parcels", hb.parcels.size());
+    if (hb.parcels.size() == 2) {
+        const HandParcel &p = hb.parcels[0], &q = hb.parcels[1];
+        EXPECT(p.id == "cl.b001.p01" && p.use == PU_PARKING && p.frontEdge == 0 && p.frontSide == 0 && same(p.grade, 4.2f) && p.poly.size() == 4 &&
+                   q.use == PU_COMMERCIAL && q.frontEdge == -1 && std::isnan(q.grade),
+               "sections: the parcels' uses, fronts and grades");
+    }
+    EXPECT(hb.lots.size() == 3, "sections: %zu lots", hb.lots.size());
+    if (hb.lots.size() != 3) return;
+    const auto at = [](vec3 p, float x, float y, float z) { return same(p.x, x, 0.01f) && same(p.y, y, 0.01f) && same(p.z, z, 0.01f); };
+    const auto link = [](const HandLot& l, int i, int a, int b, float width, int oneway, u8 kind) {
+        if (i < 0 || i >= (int)l.links.size()) return false;
+        const HandLot::Link& k = l.links[(size_t)i];
+        return k.a == a && k.b == b && same(k.width, width) && k.oneway == oneway && k.kind == kind && k.pts.size() >= 2 &&
+               k.pts.front() == l.nodes[(size_t)a].p && k.pts.back() == l.nodes[(size_t)b].p;
+    };
+    {   // lot 1: rows 0 and 1 face each other across one aisle (y 44.5); row 2's bays lean 30 degrees east, so its aisle
+        // (4 m, 4.79 m south of them) runs one way east, and its far end is joined to the shared aisle's so a car can
+        // leave. The cuts at s 60 and 120 drive one way in and out, splitting the shared aisle where they meet it.
+        const HandLot& l = hb.lots[0];
+        EXPECT(l.id == "cl.b001.lot1" && l.levels == 1 && l.entry.edge == 0 && same(l.entry.s, 60.f) && l.entry.side == 0 && l.exit.edge == 0 &&
+                   same(l.exit.s, 120.f) && l.exit.side == 0 && l.rows.size() == 3 && l.nodes.size() == 8 && l.links.size() == 8 && l.bays.size() == 84,
+               "lot 1: %zu rows, %zu nodes, %zu links, %zu bays", l.rows.size(), l.nodes.size(), l.links.size(), l.bays.size());
+        if (l.nodes.size() == 8 && l.links.size() == 8 && l.bays.size() == 84) {
+            const float c = 65.f - 0.5f * (5.f * cosf(30.f * kDegToRad) + 2.5f * sinf(30.f * kDegToRad) + 4.f);   // row 2's aisle: 60.21
+            EXPECT(at(l.nodes[0].p, 50.f, 44.5f, 0.f) && at(l.nodes[1].p, 130.f, 44.5f, 0.f) && at(l.nodes[2].p, 50.f, c, 0.f) && at(l.nodes[3].p, 130.f, c, 0.f) &&
+                       at(l.nodes[4].p, 60.f, back, 0.f) && l.nodes[4].kind == HandLot::LN_ENTRY && at(l.nodes[5].p, 60.f, 44.5f, 0.f) &&
+                       at(l.nodes[6].p, 120.f, back, 0.f) && l.nodes[6].kind == HandLot::LN_EXIT && at(l.nodes[7].p, 120.f, 44.5f, 0.f) &&
+                       l.nodes[0].kind == HandLot::LN_AISLE && l.nodes[3].kind == HandLot::LN_AISLE,
+                   "lot 1: the nodes");
+            EXPECT(link(l, 0, 0, 5, 6.f, 0, HandLot::LL_AISLE) && link(l, 1, 2, 3, 4.f, 1, HandLot::LL_AISLE) && link(l, 2, 5, 7, 6.f, 0, HandLot::LL_AISLE) &&
+                       link(l, 3, 4, 5, 4.f, 1, HandLot::LL_DRIVE) && link(l, 4, 7, 1, 6.f, 0, HandLot::LL_AISLE) && link(l, 5, 7, 6, 4.f, 1, HandLot::LL_DRIVE) &&
+                       link(l, 6, 0, 2, 6.f, 0, HandLot::LL_DRIVE) && link(l, 7, 3, 1, 6.f, 0, HandLot::LL_DRIVE),
+                   "lot 1: the links (the aisles, the one-way in and out, the angled row's aisle joined at both ends)");
+            const HandLot::Bay &b0 = l.bays[0], &b4 = l.bays[4], &b31 = l.bays[31], &b32 = l.bays[32], &b64 = l.bays[64];
+            EXPECT(at(b0.c, 51.25f, 50.f, 0.f) && same(b0.dir.x, 0.f) && same(b0.dir.y, 1.f) && b0.row == 0 && b0.link == 0 && same(b0.s, 1.25f) && b4.link == 2 && same(b4.s, 1.25f) &&
+                       b31.link == 4 && same(b31.s, 8.75f) && at(b32.c, 128.75f, 39.f, 0.f) && same(b32.dir.y, -1.f) && b32.row == 1 && b32.link == 4 &&
+                       same(b32.s, 8.75f) && at(b64.c, 52.f, 65.f, 0.f) && same(b64.dir.x, 0.5f) && same(b64.dir.y, 0.866f) && b64.row == 2 && b64.link == 1 &&
+                       same(b64.s, 2.f),
+                   "lot 1: the bays on their links");
+            EXPECT(l.rows[0].aisle == 0 && l.rows[1].aisle == 4 && l.rows[2].aisle == 1 && l.rows[1].bays == 32 && at(l.rows[1].a, 130.f, 39.f, 0.f) &&
+                       same(l.rows[2].dir.x, 0.5f) && same(l.rows[0].w, 2.5f) && same(l.rows[0].len, 5.f),
+                   "lot 1: the rows");
+        }
+    }
+    {   // lot 2: a ramp from the ground's aisle (its east end) up to the second level's (its east end), 3 m up
+        const HandLot& l = hb.lots[1];
+        EXPECT(l.levels == 2 && l.exit.edge == -1 && l.nodes.size() == 6 && l.links.size() == 5 && l.bays.size() == 24, "lot 2: %zu nodes, %zu links, %zu bays",
+               l.nodes.size(), l.links.size(), l.bays.size());
+        if (l.nodes.size() == 6 && l.links.size() == 5 && l.bays.size() == 24) {
+            EXPECT(at(l.nodes[1].p, 190.f, 44.5f, 0.f) && l.nodes[1].kind == HandLot::LN_RAMP && at(l.nodes[3].p, 170.f, 44.5f, 3.f) && l.nodes[3].level == 1 &&
+                       l.nodes[3].kind == HandLot::LN_RAMP && link(l, 2, 1, 3, 6.f, 0, HandLot::LL_RAMP) && link(l, 4, 4, 5, 6.f, 0, HandLot::LL_DRIVE) &&
+                       l.nodes[4].kind == HandLot::LN_ENTRY && at(l.nodes[5].p, 170.f, 44.5f, 0.f) && link(l, 0, 0, 5, 6.f, 0, HandLot::LL_AISLE) &&
+                       link(l, 3, 5, 1, 6.f, 0, HandLot::LL_AISLE) && link(l, 1, 2, 3, 6.f, 0, HandLot::LL_AISLE),
+                   "lot 2: the ramp and the graph");
+            EXPECT(l.bays[7].link == 0 && l.bays[8].link == 3 && same(l.bays[8].s, 1.25f) && l.bays[16].link == 1 && same(l.bays[16].c.z, 3.f) &&
+                       l.rows[1].level == 1 && same(l.rows[1].a.z, 3.f),
+                   "lot 2: the bays on both levels");
+        }
+    }
+    {   // lot 3: one row on an island, its aisle= the loop round it: two links halfway round, the drive in splitting
+        // the first where the loop passes nearest; every bay opens onto the loop's north side
+        const HandLot& l = hb.lots[2];
+        EXPECT(l.nodes.size() == 4 && l.links.size() == 4 && l.bays.size() == 12, "lot 3: %zu nodes, %zu links, %zu bays", l.nodes.size(), l.links.size(),
+               l.bays.size());
+        if (l.nodes.size() == 4 && l.links.size() == 4 && l.bays.size() == 12) {
+            EXPECT(at(l.nodes[0].p, 60.f, 90.f, 0.f) && at(l.nodes[1].p, 100.f, 110.f, 0.f) && l.nodes[2].kind == HandLot::LN_ENTRY && at(l.nodes[3].p, 100.f, 90.f, 0.f) &&
+                       link(l, 0, 0, 3, 6.f, 0, HandLot::LL_AISLE) && link(l, 1, 1, 0, 6.f, 0, HandLot::LL_AISLE) && l.links[1].pts.size() == 3 &&
+                       link(l, 2, 3, 1, 6.f, 0, HandLot::LL_AISLE) && link(l, 3, 2, 3, 6.f, 0, HandLot::LL_DRIVE),
+                   "lot 3: the loop");
+            bool north = true;
+            for (const HandLot::Bay& b : l.bays) north = north && b.link == 1 && same(b.s, 100.f - b.c.x, 0.01f);
+            EXPECT(north && same(l.bays[0].c.x, 64.f + 32.f / 24.f), "lot 3: the bays open onto the loop's north side");
+        }
+    }
+    // on the graded ground: lot 1 on its parcel's grade (4.20), lot 2 on the terrain (3 m) and 3 m up on its second
+    // level; then through world.bin, exactly
+    BakedTerrain baked;
+    baked.ok = true;
+    baked.res = kHeightRes;
+    baked.cell = kHeightCell;
+    baked.originX = baked.originY = -kWorldHalf;
+    baked.heightUnit = 0.01f;
+    baked.height.assign((size_t)kHeightRes * kHeightRes, (i16)300);
+    baked.water.assign(baked.height.size(), (i16)0);
+    std::vector<HandLot> above = hb.lots;   // (the heights before)
+    WorldBinWriter w;
+    std::string why, report;
+    EXPECT(placeOnTerrain(baked, rn, std::vector<std::vector<vec2>>(rn.edges.size()), out, w, &why, &report), "sections: placed (%s)", why.c_str());
+    bool lifted = hb.lots.size() == 3 && hb.lots[0].nodes.size() == above[0].nodes.size();
+    for (size_t i = 0; lifted && i < hb.lots[0].nodes.size(); i++)
+        if (i != 4 && i != 6) lifted = same(hb.lots[0].nodes[i].p.z, 4.2f, 0.011f);
+    lifted = lifted && same(hb.lots[0].bays[40].c.z, 4.2f, 0.011f) && same(hb.lots[0].links[1].pts[1].z, 4.2f, 0.011f);
+    lifted = lifted && hb.lots[1].nodes.size() == 6 && same(hb.lots[1].nodes[0].p.z, 3.f, 0.011f) && same(hb.lots[1].nodes[3].p.z, 6.f, 0.011f) &&
+             same(hb.lots[1].links[2].pts.back().z, 6.f, 0.011f) && same(hb.lots[1].bays[20].c.z, 6.f, 0.011f) && same(hb.lots[2].nodes[1].p.z, 3.f, 0.011f);
+    EXPECT(lifted, "sections: the lots on the graded ground");
+    const std::vector<u8> bin = w.finish();
+    WorldBinView view;
+    HandBlocks backIn;
+    EXPECT(view.open(bin.data(), bin.size(), &why) && view.find("blocks.parcels") && view.find("blocks.lots") && readBlocks(view, backIn, &why, (int)rn.edges.size()),
+           "sections: read back (%s)", why.c_str());
+    bool same_ = backIn.parcels.size() == hb.parcels.size() && backIn.lots.size() == hb.lots.size();
+    for (size_t i = 0; same_ && i < hb.parcels.size(); i++) {
+        const HandParcel &a = backIn.parcels[i], &b = hb.parcels[i];
+        same_ = a.id == b.id && a.use == b.use && a.frontEdge == b.frontEdge && a.frontSide == b.frontSide &&
+                (a.grade == b.grade || (std::isnan(a.grade) && std::isnan(b.grade))) && a.poly.size() == b.poly.size() &&
+                memcmp(a.poly.data(), b.poly.data(), a.poly.size() * sizeof(vec2)) == 0;
+    }
+    for (size_t i = 0; same_ && i < hb.lots.size(); i++) same_ = sameLot(backIn.lots[i], hb.lots[i]);
+    EXPECT(same_, "sections: the parcels and lots read back differ");
+    // damaged sections, an edge the network doesn't have: refused with a reason, nothing read
+    for (const char* name : {"blocks.parcels", "blocks.lots"}) {
+        std::vector<u8> payload;
+        EXPECT(view.bytes(name, payload) && payload.size() > 40, "sections: %s's bytes", name);
+        for (int k = 0; k < 4; k++) {
+            std::vector<u8> bad = payload;
+            if (k == 0) bad.resize(bad.size() - 5);
+            if (k == 1) bad.push_back(0);
+            if (k == 2) bad[0] = 9;
+            if (k == 3) bad[4] = 0xff;   // (the count)
+            WorldBinWriter w2;
+            w2.addCompressed(name, bad);
+            const std::vector<u8> b2 = w2.finish();
+            WorldBinView v2;
+            HandBlocks hb2;
+            why.clear();
+            EXPECT(v2.open(b2.data(), b2.size(), &why) && !readBlocks(v2, hb2, &why) && !why.empty() && hb2.parcels.empty() && hb2.lots.empty(),
+                   "sections: damaged %s %d was read", name, k);
+        }
+    }
+    HandBlocks noEdge;
+    why.clear();
+    EXPECT(!readBlocks(view, noEdge, &why, 0) && !why.empty() && noEdge.parcels.empty() && noEdge.lots.empty() && noEdge.props.empty(),
+           "sections: a world.bin whose blocks name an edge its network doesn't have was read");
+
+    // the findings: an entry past its edge's end, a lot without rows, rows of no bays, of one point, on a level the lot
+    // hasn't, a ramp to one, nothing on the ground level for the entry, a level no ramp reaches; none of them compiled
+    const std::string broken =
+        "ntw 1 block id=cl.b002 district=cl\n"
+        "lot cl.b002.lot_a entry=cl.e0001:250.00:left\n"
+        "  row line=10.00,30.00;30.00,30.00 bays=8\n"
+        "end\n"
+        "lot cl.b002.lot_b entry=cl.e0001:20.00:left\n"
+        "end\n"
+        "lot cl.b002.lot_c entry=cl.e0001:20.00:left\n"
+        "  row line=10.00,30.00;30.00,30.00 bays=0\n"
+        "  row line=10.00,30.00 bays=4\n"
+        "  row line=10.00,40.00;30.00,40.00 bays=4 level=2\n"
+        "  ramp from=0 to=3 line=10.00,50.00;30.00,50.00\n"
+        "end\n"
+        "lot cl.b002.lot_d entry=cl.e0001:20.00:left levels=2\n"
+        "  row line=10.00,30.00;30.00,30.00 bays=8 level=1\n"
+        "end\n"
+        "lot cl.b002.lot_e entry=cl.e0001:20.00:left levels=2\n"
+        "  row line=10.00,30.00;30.00,30.00 bays=8\n"
+        "  row line=10.00,30.00;30.00,30.00 bays=8 level=1\n"
+        "end\n";
+    Model m2;
+    std::vector<Error> e2;
+    const bool ok2 = loadTexts({{"roads.ntw", roads}, {"block.ntw", broken}, {"world.ntw", world}}, m2, e2);
+    RoadNetwork rn2;
+    RoadIndex ix2;
+    const bool roads2 = ok2 && compileRoads(m2, rn2, ix2, e2);
+    BlocksOut out2;
+    const bool found = roads2 && !compileBlockSections(m2, ix2, rn2, out2, e2);
+    EXPECT(found && e2.size() == 8 && countCode(e2, "block.lot") == 7 && countCode(e2, "block.shape") == 1 && out2.blocks.lots.empty(), "sections: the findings (%zu)",
+           e2.size());
+    if (e2.size() != 8) printErrors(m2, e2);
+    bool pastAt = false;
+    for (const Error& e : e2) pastAt = pastAt || (e.message.find("past the ends of cl.e0001") != std::string::npos && e.src.line == 2);
+    EXPECT(pastAt, "sections: the entry past its edge's end, on its line");
+}
+
+// The walk graph's inputs and the spots (worldmodel.h compileBlockSections, blocksbin.h): a path on the ground and a
+// footbridge on its profile, a plaza, two flights of steps (one up onto a pad, its treads derived; one as written);
+// the spots as written (a point with its hours, ages and prop; a queue) and those the props and bus stops imply (a
+// bench's seat, a bus shelter's wait for the stop beside it, a stop without one waiting by the kerb); their heights on
+// the graded ground, both sections through world.bin, damaged ones refused; and the findings
+static void testWalkAndSpots() {
+    const std::string world = "ntw 1 world\nworld palmera name=\"P\"\ndistrict cl name=\"C\"\n";
+    const std::string catalog =
+        "ntw 1 catalog\n"
+        "piece lib.prop.bench code=PROP_BENCH size=1.80x0.60x0.90 variants=1 collide=box\n"
+        "piece lib.prop.shelter code=PROP_BUS_STOP size=3.40x1.90x2.50 collide=box\n"
+        "piece lib.prop.bollard code=PROP_BOLLARD size=0.20x0.20x1.00 collide=cylinder\n";
+    const std::string roads =
+        "ntw 1 roads district=cl\n"
+        "node cl.n0001 at=0.00,0.00 z=4.00\n"
+        "node cl.n0002 at=200.00,0.00 z=4.00\n"
+        "edge cl.e0001 from=cl.n0001 to=cl.n0002 class=street lanes=1/1 shape=0.00,0.00;200.00,0.00\n"
+        "  busstop cl.bus.01 at=50.00 side=left\n"
+        "  busstop cl.bus.02 at=150.00 side=left wait=150.00,12.00:2.00\n"
+        "end\n";
+    const std::string block =
+        "ntw 1 block id=cl.b001 district=cl\n"
+        "parcel cl.b001.p01 poly=20.00,30.00;80.00,30.00;80.00,60.00;20.00,60.00 use=park\n"
+        "  pad poly=40.00,40.00;50.00,40.00;50.00,50.00;40.00,50.00 z=0.60 kind=deck\n"
+        "end\n"
+        "plaza cl.b001.pz1 poly=100.00,30.00;140.00,30.00;140.00,60.00 tags=market,shade\n"
+        "path cl.b001.pa1 line=30.00,20.00;30.00,40.00;60.00,40.00 w=2.00 kind=walk\n"
+        "path cl.b001.pa2 line=90.00,20.00;90.00,60.00 w=3.00 kind=footbridge profile=0.00:4.00;10.00:9.00;30.00:9.00;40.00:4.00\n"
+        "steps line=45.00,35.00;45.00,40.50 w=1.50\n"
+        "steps line=60.00,35.00;60.00,38.00 w=1.20 treads=3 rise=0.15\n"
+        "prop kind=lib.prop.bench at=30.00,50.00 yaw=90.0\n"
+        "prop kind=lib.prop.shelter at=50.00,9.00 yaw=180.0\n"
+        "prop kind=lib.prop.bollard at=70.00,50.00\n"
+        "spot cl.b001.s1 kind=smoke at=70.50,50.00 yaw=0.0 cap=2 hours=8.00-18.00;22.00-2.00 roles=worker ages=18-65 prop=lib.prop.bollard pose=smoke_lean\n"
+        "spot kind=queue line=120.00,40.00;120.00,46.00 for=cl.bus.02\n";
+    Model m;
+    std::vector<Error> errors;
+    const bool ok = loadTexts({{"lib/catalog.ntw", catalog}, {"roads.ntw", roads}, {"block.ntw", block}, {"world.ntw", world}}, m, errors);
+    RoadNetwork rn;
+    RoadIndex ix;
+    if (!ok || !compileRoads(m, rn, ix, errors) || rn.edges.size() != 1) {
+        EXPECT(false, "walk and spots: the test files load and their roads compile");
+        printErrors(m, errors);
+        return;
+    }
+    RoadOverrides ov;
+    compileRoadOverrides(m, ix, rn, ov);
+    applyRoadSides(ov, rn);
+    BlocksOut out;
+    const bool compiled = compileBlocks(m, out, errors) && compileBlockSections(m, ix, rn, out, errors);
+    EXPECT(compiled && errors.empty(), "walk and spots: the compile (%zu findings)", errors.size());
+    if (!errors.empty()) printErrors(m, errors);
+    const HandBlocks& hb = out.blocks;
+    EXPECT(hb.paths.size() == 2 && hb.plazas.size() == 1 && hb.steps.size() == 2 && hb.spots.size() == 5 && hb.props.size() == 3 && out.propDress.size() == 3,
+           "walk and spots: %zu paths, %zu plazas, %zu flights, %zu spots, %zu props", hb.paths.size(), hb.plazas.size(), hb.steps.size(), hb.spots.size(),
+           hb.props.size());
+    if (hb.paths.size() != 2 || hb.plazas.size() != 1 || hb.steps.size() != 2 || hb.spots.size() != 5) return;
+    const auto at = [](vec3 p, float x, float y, float z) { return same(p.x, x, 0.01f) && same(p.y, y, 0.01f) && same(p.z, z, 0.01f); };
+    // the paths: the walk's points as written, on the ground; the footbridge's with its profile's, at their heights
+    const HandPath &walk = hb.paths[0], &bridge = hb.paths[1];
+    EXPECT(walk.id == "cl.b001.pa1" && walk.kind == WK_WALK && same(walk.w, 2.f) && walk.pts.size() == 3 && at(walk.pts[2], 60.f, 40.f, 0.f) &&
+               bridge.kind == WK_FOOTBRIDGE && bridge.pts.size() == 4 && at(bridge.pts[0], 90.f, 20.f, 4.f) && at(bridge.pts[1], 90.f, 30.f, 9.f) &&
+               at(bridge.pts[2], 90.f, 50.f, 9.f) && at(bridge.pts[3], 90.f, 60.f, 4.f) && out.pathOnTerrain == std::vector<u8>({1, 0}),
+           "walk and spots: the paths");
+    EXPECT(hb.plazas[0].id == "cl.b001.pz1" && std::isnan(hb.plazas[0].z) && hb.plazas[0].poly.size() == 3 && hb.plazas[0].tags == std::vector<std::string>({"market", "shade"}),
+           "walk and spots: the plaza");
+    // the spots as written: the smoker by the bollard (its prop, 0.5 m off), facing north, two of them, by day and
+    // late evening; the queue, its head first, facing it, a place every 0.75 m
+    const HandSpot &smoke = hb.spots[0], &queue = hb.spots[1], &bench = hb.spots[2], &shelter = hb.spots[3], &kerb = hb.spots[4];
+    EXPECT(smoke.kind == SPOT_SMOKE && smoke.id == "cl.b001.s1" && smoke.flags == 0 && at(smoke.at, 70.5f, 50.f, 0.f) && same(smoke.dir.x, 0.f) && same(smoke.dir.y, 1.f) &&
+               smoke.cap == 2 && smoke.hours == std::vector<u16>({480, 1080, 1320, 120}) && smoke.roles == std::vector<std::string>({"worker"}) && smoke.ageMin == 18 &&
+               smoke.ageMax == 65 && smoke.prop == 2 && smoke.pose == "smoke_lean" && smoke.target.empty(),
+           "walk and spots: the spot as written");
+    EXPECT(queue.kind == SPOT_QUEUE && queue.line.size() == 2 && at(queue.at, 120.f, 40.f, 0.f) && same(queue.dir.y, -1.f) && queue.cap == 9 && queue.target == "cl.bus.02" &&
+               queue.prop == -1 && queue.hours.empty() && queue.ageMin == 0 && queue.ageMax == 255,
+           "walk and spots: the queue");
+    // implied: the bench's seat (facing west, 0.48 m up, 3 places); the shelter's bench for the stop beside it (0.6 m
+    // behind its front, under cover, 4 places); the other stop waiting at its wait=, facing the kerb
+    EXPECT(bench.kind == SPOT_BENCH && bench.flags == HandSpot::IMPLIED && at(bench.at, 30.f, 50.f, 0.48f) && same(bench.dir.x, -1.f) && same(bench.dir.y, 0.f) &&
+               bench.cap == 3 && bench.prop == 0,
+           "walk and spots: the bench's seat");
+    EXPECT(shelter.kind == SPOT_BUSSTOP_WAIT && shelter.flags == (HandSpot::IMPLIED | HandSpot::COVER) && at(shelter.at, 50.f, 9.6f, 0.48f) && same(shelter.dir.y, -1.f) &&
+               shelter.cap == 4 && shelter.prop == 1 && shelter.target == "cl.bus.01",
+           "walk and spots: the shelter's wait");
+    EXPECT(kerb.kind == SPOT_BUSSTOP_WAIT && kerb.flags == HandSpot::IMPLIED && at(kerb.at, 150.f, 12.f, 0.f) && same(kerb.dir.y, -1.f) && kerb.cap == 6 &&
+               kerb.target == "cl.bus.02" && kerb.prop == -1,
+           "walk and spots: the stop without a shelter");
+    // on the graded ground (the terrain at 3 m; the pad 0.6 m above it, its deck 0.06 m more): the walk on it, the
+    // footbridge where its profile has it; the first flight from the ground up onto the pad, 4 treads of 0.165 m; the
+    // second as written (3 of 0.15); the seats by their props' bases, the rest on the ground
+    BakedTerrain baked;
+    baked.ok = true;
+    baked.res = kHeightRes;
+    baked.cell = kHeightCell;
+    baked.originX = baked.originY = -kWorldHalf;
+    baked.heightUnit = 0.01f;
+    baked.height.assign((size_t)kHeightRes * kHeightRes, (i16)300);
+    baked.water.assign(baked.height.size(), (i16)0);
+    WorldBinWriter w;
+    std::string why, report;
+    EXPECT(placeOnTerrain(baked, rn, std::vector<std::vector<vec2>>(rn.edges.size()), out, w, &why, &report), "walk and spots: placed (%s)", why.c_str());
+    const HandSteps &up = hb.steps[0], &written = hb.steps[1];
+    EXPECT(same(walk.pts[2].z, 3.f, 0.011f) && same(bridge.pts[1].z, 9.f) && same(up.bottom.z, 3.f, 0.011f) && same(up.top.z, 3.66f, 0.011f) && up.treads == 4 &&
+               same(up.rise, 0.165f, 0.003f) && same(written.top.z, written.bottom.z + 0.45f) && written.treads == 3 && same(written.rise, 0.15f),
+           "walk and spots: the paths and steps on the ground (%.2f %.2f %d %.3f)", up.bottom.z, up.top.z, up.treads, up.rise);
+    EXPECT(same(bench.at.z, hb.props[0].pos.z + 0.48f) && same(bench.at.z, 3.48f, 0.011f) && same(shelter.at.z, hb.props[1].pos.z + 0.48f) &&
+               same(smoke.at.z, hb.props[2].pos.z) && same(queue.line[1].z, 3.f, 0.011f) && kerb.at.z > 3.f && kerb.at.z < 3.71f,
+           "walk and spots: the spots' heights (the kerb's wait %.2f, on the ground the street's grading lifts toward its 3.7)", kerb.at.z);
+    // through world.bin, exactly
+    const std::vector<u8> bin = w.finish();
+    WorldBinView view;
+    HandBlocks back;
+    EXPECT(view.open(bin.data(), bin.size(), &why) && view.find("blocks.walk") && view.find("blocks.spots") && readBlocks(view, back, &why, (int)rn.edges.size()),
+           "walk and spots: read back (%s)", why.c_str());
+    const auto v3s = [](const std::vector<vec3>& a, const std::vector<vec3>& b) { return a.size() == b.size() && (a.empty() || memcmp(a.data(), b.data(), a.size() * sizeof(vec3)) == 0); };
+    bool same_ = back.paths.size() == 2 && back.plazas.size() == 1 && back.steps.size() == 2 && back.spots.size() == 5;
+    for (size_t i = 0; same_ && i < 2; i++)
+        same_ = back.paths[i].id == hb.paths[i].id && back.paths[i].kind == hb.paths[i].kind && back.paths[i].w == hb.paths[i].w && v3s(back.paths[i].pts, hb.paths[i].pts);
+    same_ = same_ && back.plazas[0].id == hb.plazas[0].id && std::isnan(back.plazas[0].z) && back.plazas[0].tags == hb.plazas[0].tags &&
+            back.plazas[0].poly.size() == hb.plazas[0].poly.size();
+    for (size_t i = 0; same_ && i < 2; i++)
+        same_ = back.steps[i].bottom == hb.steps[i].bottom && back.steps[i].top == hb.steps[i].top && back.steps[i].w == hb.steps[i].w &&
+                back.steps[i].treads == hb.steps[i].treads && back.steps[i].rise == hb.steps[i].rise;
+    for (size_t i = 0; same_ && i < 5; i++) {
+        const HandSpot &a = back.spots[i], &b = hb.spots[i];
+        same_ = a.kind == b.kind && a.flags == b.flags && a.id == b.id && a.at == b.at && a.dir.x == b.dir.x && a.dir.y == b.dir.y && v3s(a.line, b.line) && a.cap == b.cap &&
+                a.hours == b.hours && a.roles == b.roles && a.ageMin == b.ageMin && a.ageMax == b.ageMax && a.prop == b.prop && a.pose == b.pose && a.target == b.target;
+    }
+    EXPECT(same_, "walk and spots: the sections read back differ");
+    // damaged: refused, nothing read; and a spot naming a prop the blocks don't have
+    for (const char* name : {"blocks.walk", "blocks.spots"}) {
+        std::vector<u8> payload;
+        EXPECT(view.bytes(name, payload) && payload.size() > 40, "walk and spots: %s's bytes", name);
+        for (int k = 0; k < 3; k++) {
+            std::vector<u8> bad = payload;
+            if (k == 0) bad.resize(bad.size() - 3);
+            if (k == 1) bad.push_back(7);
+            if (k == 2) bad[0] = 2;
+            WorldBinWriter w2;
+            w2.addCompressed(name, bad);
+            const std::vector<u8> b2 = w2.finish();
+            WorldBinView v2;
+            HandBlocks hb2;
+            why.clear();
+            EXPECT(v2.open(b2.data(), b2.size(), &why) && !readBlocks(v2, hb2, &why) && !why.empty() && hb2.spots.empty() && hb2.paths.empty(),
+                   "walk and spots: damaged %s %d was read", name, k);
+        }
+    }
+    {
+        std::vector<u8> spots;
+        EXPECT(view.bytes("blocks.spots", spots), "walk and spots: the spots' bytes");
+        WorldBinWriter w3;
+        w3.addCompressed("blocks.spots", spots);   // (without "blocks": none of the props they name)
+        const std::vector<u8> b3 = w3.finish();
+        WorldBinView v3;
+        HandBlocks hb3;
+        why.clear();
+        EXPECT(v3.open(b3.data(), b3.size(), &why) && !readBlocks(v3, hb3, &why) && why.find("prop") != std::string::npos && hb3.spots.empty(),
+               "walk and spots: spots naming props that aren't there were read (%s)", why.c_str());
+    }
+
+    {   // spots as small as they come (an implied seat: no id, line, hours, roles, pose or for), many of them
+        HandBlocks few;
+        PropInstance pi;
+        pi.type = PROP_BENCH;
+        few.props.push_back(pi);
+        HandSpot seat;
+        seat.flags = HandSpot::IMPLIED;
+        seat.prop = 0;
+        few.spots.assign(100, seat);
+        WorldBinWriter w4;
+        writeBlocks(few, w4);
+        const std::vector<u8> b4 = w4.finish();
+        WorldBinView v4;
+        HandBlocks back4;
+        why.clear();
+        EXPECT(v4.open(b4.data(), b4.size(), &why) && readBlocks(v4, back4, &why) && back4.spots.size() == 100 && back4.spots[99].prop == 0,
+               "walk and spots: 100 of the smallest spots read back (%s)", why.c_str());
+    }
+
+    // the findings
+    const std::string broken =
+        "ntw 1 block id=cl.b002 district=cl\n"
+        "path cl.b002.pa1 line=10.00,10.00;20.00,10.00 w=0.00 kind=walk\n"
+        "path cl.b002.pa2 line=10.00,20.00;20.00,20.00 w=2.00 kind=underpass\n"
+        "steps line=10.00,30.00 w=1.00\n"
+        "spot kind=lean at=10.00,40.00 line=10.00,40.00;10.00,45.00\n"
+        "spot kind=lean\n"
+        "spot kind=lean at=10.00,50.00 hours=8.00-25.00\n"
+        "spot kind=lean at=10.00,55.00 ages=70-20\n"
+        "spot kind=lean at=10.00,60.00 prop=lib.prop.bench\n";
+    Model m2;
+    std::vector<Error> e2;
+    const bool ok2 = loadTexts({{"lib/catalog.ntw", catalog}, {"roads.ntw", roads}, {"block.ntw", broken}, {"world.ntw", world}}, m2, e2);
+    RoadNetwork rn2;
+    RoadIndex ix2;
+    const bool roads2 = ok2 && compileRoads(m2, rn2, ix2, e2);
+    BlocksOut out2;
+    const bool found = roads2 && compileBlocks(m2, out2, e2) && !compileBlockSections(m2, ix2, rn2, out2, e2);
+    EXPECT(found && e2.size() == 8 && countCode(e2, "block.shape") == 2 && countCode(e2, "block.path") == 1 && countCode(e2, "block.spot") == 5 &&
+               out2.blocks.paths.empty() && out2.blocks.steps.empty() && out2.blocks.spots.size() == 2,
+           "walk and spots: the findings (%zu; %zu spots: the two bus stops' waits)", e2.size(), out2.blocks.spots.size());
+    if (e2.size() != 8) printErrors(m2, e2);
 }
 
 static void testErrors() {
@@ -1506,6 +1962,8 @@ int main() {
     testDeckEnds();
     testBlocks();
     testGradeOnly();
+    testBlockSections();
+    testWalkAndSpots();
     testErrors();
     testRoadsSection();
     testRoadOverrides();

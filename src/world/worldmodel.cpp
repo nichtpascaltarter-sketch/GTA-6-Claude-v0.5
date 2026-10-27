@@ -765,6 +765,43 @@ struct Loader {
                 l.src = at(r.line);
                 l.block = bi;
                 l.levels = integer(r, "levels", 1);
+                // entry= and exit=: <edge>:<at>:<side>
+                const auto cut = [&](const char* key, LotCut& c) {
+                    const std::vector<Item> it = items(r, key);
+                    if (it.size() != 1) return false;
+                    const Ntw::Field* f = r.field(key);
+                    if (it[0].parts.size() != 3 || !toFloat(it[0].parts[1], &c.at) || (it[0].parts[2] != "left" && it[0].parts[2] != "right")) {
+                        badValue(*f, "lot " + l.id, "<edge>:<at>:left or <edge>:<at>:right");
+                        return false;
+                    }
+                    c.edge = it[0].ref;
+                    c.side = it[0].parts[2] == "left" ? SIDE_LEFT : SIDE_RIGHT;
+                    return true;
+                };
+                l.hasEntry = cut("entry", l.entry);
+                l.hasExit = cut("exit", l.exit);
+                for (const Ntw::Record& c : r.children) {
+                    if (c.type == "row") {
+                        LotRow w;
+                        w.src = at(c.line);
+                        w.line = points(c, "line");
+                        w.bays = integer(c, "bays");
+                        if (c.has("w")) w.w = num(c, "w");
+                        if (c.has("len")) w.len = num(c, "len");
+                        w.hasYaw = c.has("yaw");
+                        w.yaw = num(c, "yaw");
+                        w.level = integer(c, "level");
+                        w.aisle = points(c, "aisle");
+                        l.rows.push_back(w);
+                    } else if (c.type == "ramp") {
+                        LotRamp a;
+                        a.src = at(c.line);
+                        a.from = integer(c, "from");
+                        a.to = integer(c, "to");
+                        a.line = points(c, "line");
+                        l.ramps.push_back(a);
+                    }
+                }
                 define(l.id, "lot", (int)m.lots.size());
                 b.lots.push_back((int)m.lots.size());
                 m.lots.push_back(l);
@@ -814,8 +851,50 @@ struct Loader {
                 }
                 b.dressing.push_back((int)m.dressing.size());
                 m.dressing.push_back(d);
-            } else if (r.type == "path" || r.type == "spot") {
-                define(r.id, r.type == "path" ? "path" : "spot", -1);
+            } else if (r.type == "path") {
+                Path a;
+                a.id = r.id;
+                a.src = at(r.line);
+                a.block = bi;
+                a.line = points(r, "line");
+                a.w = num(r, "w");
+                a.kind = text(r, "kind");
+                a.profile = pairs(r, "profile", "path " + a.id);
+                define(a.id, "path", (int)m.paths.size());
+                b.paths.push_back((int)m.paths.size());
+                m.paths.push_back(a);
+            } else if (r.type == "steps") {
+                Steps a;
+                a.src = at(r.line);
+                a.block = bi;
+                a.line = points(r, "line");
+                a.w = num(r, "w");
+                a.treads = integer(r, "treads");
+                a.rise = num(r, "rise");
+                b.steps.push_back((int)m.steps.size());
+                m.steps.push_back(a);
+            } else if (r.type == "spot") {
+                Spot a;
+                a.id = r.id;
+                a.src = at(r.line);
+                a.block = bi;
+                a.kind = text(r, "kind");
+                a.hasAt = r.has("at");
+                a.at = point(r, "at");
+                a.hasYaw = r.has("yaw");
+                a.yaw = num(r, "yaw");
+                a.line = points(r, "line");
+                a.cap = integer(r, "cap");
+                a.hours = text(r, "hours");
+                a.cover = integer(r, "cover");
+                a.roles = list(r, "roles");
+                a.ages = text(r, "ages");
+                a.prop = ref(r, "prop");
+                a.pose = text(r, "pose");
+                a.target = text(r, "for");
+                define(a.id, "spot", (int)m.spots.size());
+                b.spots.push_back((int)m.spots.size());
+                m.spots.push_back(a);
             }
         }
         m.blocks.push_back(b);
@@ -981,6 +1060,11 @@ struct Loader {
             for (Fence& f : p.fences) resolve(f.kind);
         }
         for (Dress& d : m.dressing) resolve(d.kind);
+        for (Lot& l : m.lots) {
+            resolve(l.entry.edge);
+            resolve(l.exit.edge);
+        }
+        for (Spot& x : m.spots) resolve(x.prop);
         for (Building& b : m.buildings) {
             resolve(b.block);
             resolve(b.parcel);

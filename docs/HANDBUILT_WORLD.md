@@ -609,7 +609,12 @@ They are Python, run with `-I`, and never ship. The game doesn't know they exist
   (trees, plants, props and lights) in world.bin's `blocks` section (`src/world/blocksbin.h`), every height on the
   graded ground. The parcels' grades are graded before the roads, and a parcel that only grades the terrain is graded
   too. Hand mode draws each cell's share, a raised pad with its sides, and people and vehicles stand on the level
-  ground (pads, decks and levelled parcels: `HandBlocks::padHeight`, through `RoadNetwork::surfaceHeight`).
+  ground (pads, decks and levelled parcels: `HandBlocks::padHeight`, through `RoadNetwork::surfaceHeight`);
+- what the AI's graphs read from the blocks (section 12), in sections beside `blocks` with the road overrides'
+  conventions, one at a time: `blocks.parcels` (each parcel's id, use, the edge and side it fronts, and its grade),
+  `blocks.lots` (each lot's curb cuts and rows, and the drive graph worldc derives from them: 12.2 #9), `blocks.walk`
+  (the paths, plazas and steps: 12.3 #1) and `blocks.spots` (the spots as written and those the props and bus stops
+  imply: 12.4 #1), which the game reads in hand mode with the blocks. The colliders follow.
 
 A building, places or other library file stops the build until its compiler exists. Reference checks beyond what the
 compile needs (step 3) are worldv's, which CI runs on `world/`. The roads section stores floats for now; quantising it
@@ -1331,7 +1336,11 @@ cuts; grade separation. Beyond it (4.4 shows them in a file):
 8. **Bus and streetcar stops.** `busstop` adds the waiting area (`wait=`), its `routes` and, for streetcars, the kerb
    lane kept clear (`clear=`).
 9. **Off-street parking.** A `lot` block in the block file: entered by a curb cut, with bay `row`s and their aisles,
-   `ramp`s between levels and a level per row.
+   `ramp`s between levels and a level per row. worldc joins them into the lot's drive graph (`blocks.lots`,
+   `worldmodel.h` `compileBlockSections`): the aisles as links with a node at each end (a row's own behind its bays,
+   or its `aisle`; facing rows share one; angled bays get a one-way 4 m aisle), the ramps, a drive from each curb cut
+   to the nearest aisle (one way in and one way out where the lot has both), and joins until every node is on a way
+   from the entry to the way out. Each bay opens onto a link at an s along it.
 10. **Dead ends.** `bulb=<radius>` on the node, or none, in which case long vehicles avoid it. The written radius is
     the bulb the game paves and grades, and the one the lane graph turns and walks round (`RoadNetwork::bulbRadius`);
     without one a two-way lane, street or rural road still gets its class's (its half width plus 4.5 m).
@@ -1345,7 +1354,9 @@ cuts; grade separation. Beyond it (4.4 shows them in a file):
 ### 12.3 Sidewalks, crossings, jaywalking, frontage
 
 1. **The walk graph** is derived from the sidewalks plus `path` records (7.5). Block files add `plaza` areas, where
-   people mill about off the paths, and through-block passages (`path ... kind=alley`).
+   people mill about off the paths, and through-block passages (`path ... kind=alley`). worldc writes the paths (on
+   the ground, a footbridge or underpass on its profile), the plazas and the `steps` (their ends on the level ground,
+   treads and rise) into `blocks.walk`, for the AI to join to the sidewalks.
 2. **Kerb side and building side.** Each sidewalk link keeps both, as the derived graph does today: panhandlers sit
    against the building side, shop windows face it, and people step back toward it from a car.
 3. **Crossings** add `kind=unmarked` (no paint: people cross in gaps), and footbridges and underpasses as paths with a
@@ -1367,7 +1378,10 @@ cuts; grade separation. Beyond it (4.4 shows them in a file):
    or a queue line, capacity, hours, shelter (`cover`, used in rain), who may use them (`roles`, `ages`), the prop and
    the pose. A queue's `for` names the door or counter it leads to. The kinds are listed in docs/NTW_FORMAT.md 9.5.
    Props imply the obvious ones (a bench prop is a bench spot), and the population's venues (3,955 laid out from site
-   elements today) become spots and venues per block.
+   elements today) become spots and venues per block. worldc writes both into `blocks.spots`: the written ones, then a
+   seat on every bench and bus shelter (at its seat's centre and height, facing its front, a place every 0.6 m) and a
+   wait for every bus stop (`for` its id: the shelter's bench where one stands within 15 m, else standing by the
+   kerb), marked implied; café seats join them once terraces exist. Hand mode's seats and waits come only from there.
 2. **Zones** replace `World::Region` for the AI: tagged polygons in the district file for the region (roles, density
    tables, local lines, the event mix, patrol density), gang turf, use (nightlife, beach, business, industrial,
    residential), and pedestrian and traffic density by hour and day. The audio and wildlife zones of 7.7 are the same
