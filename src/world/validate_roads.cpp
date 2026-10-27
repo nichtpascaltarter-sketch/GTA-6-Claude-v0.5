@@ -1,6 +1,7 @@
 // worldv's checks on the world model (validate_roads.h): the roads, their signal plans and the transit lines.
 #include "validate_roads.h"
 #include "validate_lanes.h"
+#include "roadsbin.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -18,7 +19,6 @@ using namespace World::Hand;
 const float kTol = 0.05f;          // m: positions along an edge are written to the cm
 const float kOverlapRun = 10.f;    // m of carriageways on each other before it's an error (HANDBUILT_WORLD 12.2.12)
 const float kGrade = 3.f;          // m: a smaller height difference is at grade (as tools/traffic_sim --overlaps)
-const float kRadToDeg = 57.2957795f;
 
 std::string fmt(float v, int places = 2) {
     char buf[48];
@@ -259,81 +259,26 @@ void planChecks(const Model& m, Out& o) {
 
 // ------------------------------------------------------------------------------------------------- the network
 
-// A leg of a node: an edge at it, seen from the node the way the lane graph sees it (lanes.cpp: its direction at
-// max(cut-back, 4 m) along the edge)
-struct Leg {
-    int road = -1;          // RoadNetwork edge
-    int edge = -1;          // Model edge
-    bool outgoing = false;  // the edge starts here: its fwd lanes leave, its bwd lanes arrive
-    vec2 dir = vec2(0.f);
-    float bearing = 0.f;    // degrees clockwise from north
-    char compass = 'n';     // its sector: n, e, s, w
-    int in = 0, out = 0;    // lanes arriving at the node along it, and leaving
+// A node's legs are the world model's (worldmodel.h nodeLegs and legTurn): one implementation for worldc, worldv and the
+// lane graph's view of the node. `complete`: every edge at the node compiled (otherwise the checks of its legs wait
+// for the edge's own finding to be fixed).
+struct LegsAt {
+    NodeLegs legs;
+    bool complete = true;
 };
 
-struct NodeLegs {
-    std::vector<Leg> legs;
-    bool complete = true;   // every edge at the node compiled (otherwise the checks of its legs wait for the fix)
-    bool interchange = false, gradeSeparated = false;
-};
-
-char compassOf(float bearing) { return bearing >= 315.f || bearing < 45.f ? 'n' : bearing < 135.f ? 'e' : bearing < 225.f ? 's' : 'w'; }
-
-std::vector<NodeLegs> nodeLegs(const Model& m, const RoadNetwork& net, const RoadIndex& idx) {
-    std::vector<NodeLegs> out(m.nodes.size());
+std::vector<LegsAt> legsOfNodes(const Model& m, const RoadNetwork& net, const RoadIndex& idx) {
+    std::vector<LegsAt> out(m.nodes.size());
     for (size_t ni = 0; ni < m.nodes.size(); ni++) {
-        NodeLegs& N = out[ni];
-        for (int me : m.nodes[ni].edges) N.complete = N.complete && idx.roadEdge[(size_t)me] >= 0;
-        const int rni = idx.roadNode[ni];
-        const RoadNode& rn = net.nodes[(size_t)rni];
-        int highways = 0, ramps = 0;
-        for (int re : rn.edges) {
-            const RoadEdge& e = net.edges[(size_t)re];
-            Leg g;
-            g.road = re;
-            g.edge = idx.edgeOf[(size_t)re];
-            g.outgoing = e.n0 == rni;
-            const float cut = g.outgoing ? e.cut0 : e.cut1;
-            const float probe = Clamp(Max(cut, 4.f), 0.f, e.length * 0.5f);
-            vec2 d = e.posAt(g.outgoing ? probe : e.length - probe).xy() - rn.p;
-            if (length2(d) < 1e-4f) d = (g.outgoing ? e.pts[1] : e.pts[e.pts.size() - 2]).xy() - rn.p;
-            g.dir = normalize(d);
-            g.bearing = atan2f(g.dir.x, g.dir.y) * kRadToDeg;
-            if (g.bearing < 0.f) g.bearing += 360.f;
-            g.compass = compassOf(g.bearing);
-            const Edge& me = m.edges[(size_t)g.edge];
-            const float L = planLength(me);
-            g.in = g.outgoing ? lanesAt(me, DIR_BWD, 0.f, L) : lanesAt(me, DIR_FWD, L, L);
-            g.out = g.outgoing ? lanesAt(me, DIR_FWD, 0.f, L) : lanesAt(me, DIR_BWD, L, L);
-            highways += e.cls == RC_HIGHWAY;
-            ramps += e.cls == RC_RAMP;
-            N.legs.push_back(g);
-        }
-        N.interchange = highways > 0 && ramps > 0;
-        N.gradeSeparated = N.legs.size() >= 4 && highways == (int)N.legs.size();
+        out[ni].legs = nodeLegs(m, idx, net, (int)ni);
+        for (int me : m.nodes[ni].edges) out[ni].complete = out[ni].complete && idx.roadEdge[(size_t)me] >= 0;
     }
     return out;
 }
 
-// The turn from leg a into leg b, as the lane graph classes it (lanes.cpp): 'l', 's', 'r', or 0 where it makes no
-// movement (back round through more than 140 degrees; across a motorway's carriageways)
-char turnClass(const NodeLegs& N, const Leg& a, const Leg& b) {
-    const vec2 tin = -a.dir, tout = b.dir;
-    const float deg = atan2f(cross(tin, tout), dot(tin, tout)) * kRadToDeg;
-    char t = 's';
-    if (N.legs.size() == 2) t = 's';
-    else if (fabsf(deg) > 140.f) return 0;
-    else if (deg > 35.f) t = 'l';
-    else if (deg < -35.f) t = 'r';
-    if (N.interchange) {
-        if (fabsf(deg) > 60.f) return 0;
-        t = 's';   // (a merge or a diverge)
-    }
-    if (N.gradeSeparated && t != 's') return 0;
-    return t;
-}
+// A turn (RoadTurn) as a plan or a moves record writes it: l, s, r or u; 0 where legTurn finds no movement
+char turnChar(u8 t) { return t == TURN_LEFT ? 'l' : t == TURN_STRAIGHT ? 's' : t == TURN_RIGHT ? 'r' : t == TURN_UTURN ? 'u' : 0; }
 
-char turnLetter(const std::string& word) { return word == "left" ? 'l' : word == "right" ? 'r' : word == "uturn" ? 'u' : 's'; }
 const char* turnWords(char t) { return t == 'l' ? "to the left" : t == 'r' ? "to the right" : t == 'u' ? "back (a U-turn)" : "straight on"; }
 
 bool banned(const Junction* j, int fromEdge, int toEdge) {
@@ -355,7 +300,7 @@ std::string lanesList(const std::vector<int>& lanes) {
 }
 
 // road.moves at the node: each turn a lane names has somewhere to go there
-void moveTurns(const Model& m, const std::vector<NodeLegs>& legs, const RoadIndex& idx, Out& o) {
+void moveTurns(const Model& m, const std::vector<LegsAt>& legs, const RoadIndex& idx, Out& o) {
     for (size_t ei = 0; ei < m.edges.size(); ei++) {
         const Edge& e = m.edges[ei];
         if (e.moves.empty() || idx.roadEdge[ei] < 0) continue;
@@ -365,24 +310,26 @@ void moveTurns(const Model& m, const std::vector<NodeLegs>& legs, const RoadInde
             for (size_t k = 0; k < mi; k++) first = first && e.moves[k].atEnd != mv.atEnd;
             const int node = mv.atEnd ? e.to.target : e.from.target;
             if (!first || node < 0 || !legs[(size_t)node].complete) continue;
-            const NodeLegs& N = legs[(size_t)node];
+            const NodeLegs& N = legs[(size_t)node].legs;
             const Node& n = m.nodes[(size_t)node];
             const Junction* j = junctionOf(m, node);
-            const Leg* a = nullptr;
-            for (const Leg& g : N.legs)
+            const NodeLeg* a = nullptr;
+            for (const NodeLeg& g : N.legs)
                 if (g.edge == (int)ei && g.outgoing == (mv.atEnd == 0)) a = &g;
             if (!a) continue;
             const bool custom = j && j->turns == "custom";
+            const auto connected = [&](int from, int to) {
+                bool c = false;
+                if (j)
+                    for (const Junction::Connect& x : j->connects) c = c || (x.fromEdge.target == from && x.toEdge.target == to);
+                return c;
+            };
             bool has[128] = {};
-            if (!custom)
-                for (const Leg& b : N.legs) {
-                    if (&b == a || b.out == 0 || banned(j, a->edge, b.edge)) continue;
-                    if (const char t = turnClass(N, *a, b)) has[(int)t] = true;
-                }
-            has['u'] = !custom && !(j && j->turns == "no_uturn");
-            if (j)
-                for (const Junction::Connect& c : j->connects)
-                    if (c.fromEdge.target == (int)ei) has[(int)turnLetter(c.turn)] = true;
+            for (const NodeLeg& b : N.legs) {
+                if (&b == a || b.out == 0 || banned(j, a->edge, b.edge) || (custom && !connected(a->edge, b.edge))) continue;
+                if (const char t = turnChar(legTurn(m, N, *a, b))) has[(int)t] = true;   // (a connect record joining the two gives its turn)
+            }
+            has['u'] = has['u'] || (!custom && !(j && j->turns == "no_uturn")) || connected(a->edge, a->edge);
             for (const char* t = kTurnLetters; *t; t++) {
                 std::vector<int> lanes;
                 for (size_t k = 0; k < mv.lanes.size(); k++)
@@ -400,33 +347,16 @@ void moveTurns(const Model& m, const std::vector<NodeLegs>& legs, const RoadInde
     }
 }
 
-// The compass letters of a node's legs: approaches= where it names them, else by bearing. approaches= is read as
-// road.sector reads it: a letter that isn't n, e, s or w is skipped, and so are a letter's second use and an edge's.
-std::vector<char> legLetters(const Node& n, const NodeLegs& N) {
-    std::set<char> given;
-    std::map<int, char> named;   // model edge -> its letter
-    for (const auto& a : n.approaches) {
-        if (a.first.size() != 1 || !strchr("nesw", a.first[0]) || !given.insert(a.first[0]).second) continue;
-        if (a.second.target >= 0 && !named.count(a.second.target)) named[a.second.target] = a.first[0];
-    }
-    std::vector<char> out;
-    for (const Leg& g : N.legs) {
-        const auto it = named.find(g.edge);
-        out.push_back(it != named.end() ? it->second : g.compass);
-    }
-    return out;
-}
-
 const char* compassWord(char c) { return c == 'n' ? "north" : c == 'e' ? "east" : c == 's' ? "south" : "west"; }
 
-std::string bearingText(const Model& m, const Leg& g) { return m.edges[(size_t)g.edge].id + " (bearing " + fmt(g.bearing, 0) + ")"; }
+std::string bearingText(const Model& m, const NodeLeg& g) { return m.edges[(size_t)g.edge].id + " (bearing " + fmt(g.bearing, 0) + ")"; }
 
 // road.sector: the legs of a junction, or of any signalled node, one to a compass sector unless approaches= names them
-void sectors(const Model& m, const std::vector<NodeLegs>& legs, Out& o) {
+void sectors(const Model& m, const std::vector<LegsAt>& legs, Out& o) {
     for (size_t ni = 0; ni < m.nodes.size(); ni++) {
         const Node& n = m.nodes[ni];
-        const NodeLegs& N = legs[ni];
-        if (!N.complete || (N.legs.size() < 3 && n.control != Node::CTL_SIGNAL)) continue;
+        const NodeLegs& N = legs[ni].legs;
+        if (!legs[ni].complete || (N.legs.size() < 3 && n.control != Node::CTL_SIGNAL)) continue;
         const std::string what = "node " + n.id + ": ";
         std::set<char> given;
         std::map<char, int> named;   // letter -> model edge
@@ -448,8 +378,8 @@ void sectors(const Model& m, const std::vector<NodeLegs>& legs, Out& o) {
             }
             named[a.first[0]] = a.second.target;
         }
-        std::map<char, const Leg*> byBearing;
-        for (const Leg& g : N.legs) {
+        std::map<char, const NodeLeg*> byBearing;
+        for (const NodeLeg& g : N.legs) {
             bool isNamed = false;
             for (const auto& x : named) isNamed = isNamed || x.second == g.edge;
             if (isNamed) continue;
@@ -588,7 +518,7 @@ void connected(const Model& m, Out& o) {
 }
 
 // signal.node: an authored plan fits its node: a signalled node, its legs, the approaches its phases name, its offset
-void signalNodes(const Model& m, const std::vector<NodeLegs>& legs, Out& o) {
+void signalNodes(const Model& m, const std::vector<LegsAt>& legs, Out& o) {
     for (size_t ni = 0; ni < m.nodes.size(); ni++) {
         const Node& n = m.nodes[ni];
         if (n.plan.target < 0 || n.plan.cls != "signal") continue;
@@ -602,10 +532,11 @@ void signalNodes(const Model& m, const std::vector<NodeLegs>& legs, Out& o) {
         }
         if (n.offset < 0.f || (p.cycle > 0.f && n.offset >= p.cycle))
             o.error(n.src, "signal.node", what + "offset=" + fmt(n.offset, 1) + " should be within plan " + p.id + "'s cycle of " + fmt(p.cycle, 1) + " s");
-        const NodeLegs& N = legs[ni];
-        if (!N.complete) continue;
-        const int nodeLegs = (int)N.legs.size();
-        const std::vector<char> letters = legLetters(n, N);
+        const NodeLegs& N = legs[ni].legs;
+        if (!legs[ni].complete) continue;
+        const int legCount = (int)N.legs.size();
+        std::vector<char> letters;
+        for (const NodeLeg& g : N.legs) letters.push_back(g.letter);
         std::vector<std::string> missing;   // the legs the plan's phases name and the node doesn't have
         for (const char* c = "nesw"; *c; c++) {
             if (std::find(letters.begin(), letters.end(), *c) != letters.end()) continue;
@@ -622,15 +553,15 @@ void signalNodes(const Model& m, const std::vector<NodeLegs>& legs, Out& o) {
                 if (l == *c) have.push_back(std::string(1, l));
         const std::string unused = missing.empty() ? std::string()
                                                    : ": its greens and walks for the " + listed(missing) + (missing.size() == 1 ? " leg" : " legs") + " go unused";
-        if (p.legs > 0 && nodeLegs > p.legs) {
+        if (p.legs > 0 && legCount > p.legs) {
             o.error(at, "signal.node", what + "plan " + p.id + " suits junctions of " + std::to_string(p.legs) + " legs (legs=" + std::to_string(p.legs) + "), and this one has " +
-                                           std::to_string(nodeLegs) + ": a leg it has no phases for gets no green");
-        } else if ((p.legs > 0 && nodeLegs < p.legs) || (p.legs == 0 && nodeLegs < 4 && !missing.empty())) {
+                                           std::to_string(legCount) + ": a leg it has no phases for gets no green");
+        } else if ((p.legs > 0 && legCount < p.legs) || (p.legs == 0 && legCount < 4 && !missing.empty())) {
             // A warning, not an error: a T junction can run a 4-way plan, whose greens for the absent leg never come, and
             // every movement it has still gets its green. The stage-1 pilot runs its signalled T junctions on the 4-way
             // lib.signal.cl_twophase: cl.n0003, n0004 and n0006 on Bougainvillea Boulevard until stage 2 gives them their
             // west legs, and cl.n0039, a T for good. A plan for fewer legs than the junction has stays an error (above).
-            o.warning(at, "signal.node", what + "it has " + std::to_string(nodeLegs) + " legs (" + listed(have) + "), and plan " + p.id +
+            o.warning(at, "signal.node", what + "it has " + std::to_string(legCount) + " legs (" + listed(have) + "), and plan " + p.id +
                                              (p.legs > 0 ? " suits junctions of " + std::to_string(p.legs) : std::string(" names more")) + unused);
         } else if (!missing.empty()) {
             o.error(at, "signal.node", what + "plan " + p.id + " gives greens or walks to the " + listed(missing) + (missing.size() == 1 ? " leg" : " legs") +
@@ -897,7 +828,7 @@ void checkWorldModel(const Hand::Model& m, std::vector<ModelFinding>& out, RoadC
     compileRoads(m, net, idx, errors);
     for (const Error& e : errors)   // (road.node: worldv's ref.missing)
         if (e.code == "road.loop" || e.code == "road.shape" || e.code == "road.profile") o.error(e.src, e.code == "road.loop" ? "road.loop" : e.code == "road.shape" ? "road.shape" : "road.profile", e.message);
-    const std::vector<NodeLegs> legs = nodeLegs(m, net, idx);
+    const std::vector<LegsAt> legs = legsOfNodes(m, net, idx);
     overlaps(m, net, idx, o);
     moveTurns(m, legs, idx, o);
     sectors(m, legs, o);
@@ -912,7 +843,12 @@ void checkWorldModel(const Hand::Model& m, std::vector<ModelFinding>& out, RoadC
     counts.lines = m.transit.size();
     for (const RoadEdge& e : net.edges) counts.km += e.length / 1000.0;
     countAuthored(m, counts);
-    checkLaneGraph(m, net, idx, out, counts.graph);
+    // the lane graph as the game builds it in hand mode: with what the roads author beyond the network (each edge's
+    // widths, limit and parking: roadoverrides.h), on each side's own kerb line and sidewalk (roadsbin.h)
+    RoadOverrides ov;
+    compileRoadOverrides(m, idx, net, ov);
+    applyRoadSides(ov, net);
+    checkLaneGraph(m, net, idx, ov, out, counts.graph);
 }
 
 std::string formatRoadCounts(const RoadCounts& c) {

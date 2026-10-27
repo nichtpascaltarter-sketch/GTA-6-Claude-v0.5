@@ -454,6 +454,13 @@ struct Animator {
     bool wallCheck[2] = {false, false};       // its last landing probe went where it would land without the pull
     bool wallFlip[2] = {false, false};        // (every other one does)
     float flatLand[2] = {-9.f, -9.f};         // the ground its last ground scan found where it lands, near stairs with no step there (kept with the world; -9: none)
+    float landG[2][kGroundScan] = {};          // a swing's last ground scan, along where it lands (kept with the world)
+    vec3 landScanFrom[2] = {vec3(0), vec3(0)}, landScanDir[2] = {vec3(0, 1, 0), vec3(0, 1, 0)};
+    bool landScanHave[2] = {false, false};
+    bool heelProbe[2] = {false, false};       // a foot down across a nose on the tread above it: probed under its heel
+    float noseAt[2] = {9.f, 9.f};             // and how far along it from the heel that nose is (m; 9: none): it rolls off over it
+    float noseLo[2] = {0.f, 0.f}, noseHi[2] = {0.f, 0.f};   // where that nose may be, along the foot from the heel (m): found closer while it stands
+    bool noseTest[2] = {false, false};        // its probe went there this update, not under its heel
     float rootRatio = 1.f;                    // the share of its gait's travel the body actually covers (held back: below 1)
     // (a step on stairs - quick or standing: the ground scanned along the foot where it lands, kept with the world while
     // the step lasts and after, and the tread its landing is fitted to)

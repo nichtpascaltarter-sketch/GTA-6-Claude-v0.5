@@ -18,12 +18,10 @@
 #include "../../src/world/roadnet.cpp"
 #include "../../src/world/worldmodel.cpp"
 #include "../../src/world/worldmodel_roads.cpp"
-// the game's lane graph, built as the game builds it (validate_lanes.h). Its code is the AI agent's: until its set 21
-// casts it, one conditional there (lanes.cpp:1088) mixes an enum and a u8, which -Wextra rejects. Drop the pragma then.
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wextra"
-#include "../../src/game/lanes.cpp"
-#pragma GCC diagnostic pop
+#include "../../src/world/lz.cpp"
+#include "../../src/world/worldbin.cpp"
+#include "../../src/world/roadsbin.cpp"   // (applyRoadSides: each side's own widths, as hand mode loads the roads)
+#include "../../src/game/lanes.cpp"   // the game's lane graph, built as the game builds it (validate_lanes.h)
 #include "../../src/world/validate.cpp"
 #include "../../src/world/validate_layout.cpp"
 #include "../../src/world/validate_roads.cpp"
@@ -578,8 +576,8 @@ static void testRoads() {
                    headerKind("\xEF\xBB\xBFntw 1 world\n") == "world" && headerKind("node cl.n0001\n") == "" && headerKind("") == "" && headerKind("ntw 1") == "",
                "header kinds");
         using namespace roads_detail;
-        EXPECT(compassOf(0.f) == 'n' && compassOf(44.9f) == 'n' && compassOf(45.f) == 'e' && compassOf(180.f) == 's' && compassOf(300.f) == 'w' && compassOf(315.f) == 'n',
-               "compass sectors");
+        EXPECT(turnChar(TURN_LEFT) == 'l' && turnChar(TURN_STRAIGHT) == 's' && turnChar(TURN_RIGHT) == 'r' && turnChar(TURN_UTURN) == 'u' && turnChar(0) == 0,
+               "turn letters");
         EXPECT(moveName("n_l") && moveName("e_sp") && moveName("w_u") && !moveName("n_x") && !moveName("q_l") && !moveName("n_lpp") && !moveName("nl"), "movement names");
         EXPECT(fmt(-0.001f) == "0.00" && fmt(12.345f, 1) == "12.3" && listed({"a", "b", "c"}) == "a, b and c" && listed({"a"}) == "a", "formatting");
     }
@@ -752,6 +750,11 @@ static void testRoads() {
     EXPECT(s.roads == "worldv roads: 9 nodes, 10 edges (1.08 km), 1 junction, 1 signal plan, 1 transit line; authored: lanes 1, noswitch 1, moves 1, crossing 2, busstop 1, "
                       "parkbay 1, nostop 1, loading 1, curbcut 1, junction 1, stopline 1, connect 2; lane graph: 20 lanes, 39 connectors, 58 walk nodes, 69 walk links",
            "the roads summary: %s", s.roads.c_str());
+    {   // the lane graph is built as hand mode builds it: from the roads' overrides, on each side's own kerb line
+        bool authored = false;
+        for (const std::string& line : gHostLog) authored = authored || line == "Lane graph: cross-sections as authored for 10 edges (0 sides off their kerb line)";
+        EXPECT(authored, "the lane graph's cross-sections as authored");
+    }
     runWorld(std::string(kFixtures) + "/plans", &s);
     EXPECT(s.roads.empty(), "a world with no roads has no roads summary");
     Options opt;

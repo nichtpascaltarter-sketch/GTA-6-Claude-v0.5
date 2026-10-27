@@ -615,6 +615,12 @@ void LaneGraph::build(const World::RoadNetwork& rn, const World::RoadOverrides* 
         }
     }
     if (authored) LOG("Lane graph: cross-sections as authored for %d edges (%d sides off their kerb line)", NE, offSide);
+    // ---- the nodes' rules as the world writes them (RoadOverrides' NodeRule, the hand-built world): by node
+    std::vector<int> ruleAt(NN, -1);
+    if (ov)
+        for (int r = 0; r < (int)ov->nodes.size(); r++)
+            if (ov->nodes[r].node >= 0 && ov->nodes[r].node < NN) ruleAt[ov->nodes[r].node] = r;
+    int rulesUsed = 0, rulesIgnored = 0, ruleAllWay = 0, ruleSignals = 0, ruleStops = 0, ruleYields = 0, ruleNoRed = 0, ruleBulbs = 0;
 
     // ---- smoothed edge geometry
     for (int ei = 0; ei < NE; ei++) {
@@ -679,6 +685,52 @@ void LaneGraph::build(const World::RoadNetwork& rn, const World::RoadOverrides* 
         }
         std::sort(N.approaches.begin(), N.approaches.end(), [](const Approach& a, const Approach& b) { return a.ang < b.ang; });
         N.control = N.approaches.size() >= 3 ? rnode.control : 0;
+        if (ruleAt[ni] >= 0) {
+            // as written, over what is derived: the control (none, stop, yield, signal; auto keeps the derived one); a stop
+            // at every approach arriving is an all-way stop, a stop or yield list at an otherwise uncontrolled junction
+            // makes those approaches the minor road (stop at the line and give way / give way); no right on red; the dead
+            // end's turning circle
+            using RO = World::RoadOverrides;
+            const RO::NodeRule& R = ov->nodes[ruleAt[ni]];
+            auto listed = [](const std::vector<int>& v, int e) { return std::find(v.begin(), v.end(), e) != v.end(); };
+            const bool junction = N.approaches.size() >= 3;
+            rulesUsed++;
+            N.ruled = R.control != RO::CTRL_AUTO;
+            for (Approach& A : N.approaches) {
+                A.noRedTurn = listed(R.noRedTurn, A.edge);
+                ruleNoRed += A.noRedTurn;
+            }
+            if (R.bulb > 0.f && N.approaches.size() == 1) {
+                N.bulb = R.bulb;
+                ruleBulbs++;
+            }
+            if (junction) {
+                if (R.control == RO::CTRL_NONE) N.control = 0;
+                else if (R.control == RO::CTRL_SIGNAL) N.control = 2;
+                else if (R.control == RO::CTRL_STOP) {
+                    bool all = (R.flags & RO::NR_STOPS_ALL) != 0;
+                    if (!all) {
+                        all = true;
+                        for (const Approach& A : N.approaches) {
+                            const World::RoadEdge& e = rn.edges[A.edge];
+                            if ((A.outgoing ? e.lanesB > 0 : e.lanesF > 0) && !listed(R.stops, A.edge)) all = false;
+                        }
+                    }
+                    N.control = all ? 1 : 0;
+                } else if (R.control == RO::CTRL_YIELD) N.control = 0;
+                if (N.control == 0)
+                    for (Approach& A : N.approaches) {
+                        A.stopSign = listed(R.stops, A.edge);
+                        A.giveWay = !A.stopSign && listed(R.yields, A.edge);
+                        ruleStops += A.stopSign;
+                        ruleYields += A.giveWay;
+                    }
+                ruleAllWay += N.control == 1;
+                ruleSignals += N.control == 2;
+            } else if (R.control == RO::CTRL_STOP || R.control == RO::CTRL_YIELD || R.control == RO::CTRL_SIGNAL) {
+                rulesIgnored++;   // (a control at a bend or a dead end: nothing to give way to)
+            }
+        }
         N.deadEnd = N.approaches.size() == 1;
         int nh = 0;
         for (auto& a : N.approaches) nh += rn.edges[a.edge].cls == World::RC_HIGHWAY;
@@ -842,8 +894,9 @@ void LaneGraph::build(const World::RoadNetwork& rn, const World::RoadOverrides* 
             bool hwy = e.cls == World::RC_HIGHWAY || e.cls == World::RC_RAMP;
             A.crosswalk = N.control >= 1 && !hwy && na >= 3;
             A.crossS = A.cut + (A.crosswalk ? 2.3f : 1.2f);
-            // stop line for controlled approaches (matches the painted stop line 4.4-4.85 m behind the cut)
-            if (N.control >= 1 && na >= 3 && !hwy)
+            // stop line for controlled approaches (matches the painted stop line 4.4-4.85 m behind the cut), and for those with
+            // a stop sign as written at an otherwise uncontrolled junction
+            if (((N.control >= 1 && na >= 3) || A.stopSign) && !hwy)
                 for (int l : A.inLanes) lanes[l].stopU = Max(lanes[l].u0, lanes[l].u1 - 5.1f);
         }
         if (na < 2) continue;
@@ -871,7 +924,13 @@ void LaneGraph::build(const World::RoadNetwork& rn, const World::RoadOverrides* 
                 }
             }
         }
-        for (int i = 0; i < na; i++) N.approaches[i].rank = (i == bi || i == bj) ? 1 : 0;
+        // (where the world writes which approaches stop or give way, the rest are the main road)
+        bool minorWritten = false;
+        for (const Approach& A : N.approaches) minorWritten |= A.stopSign || A.giveWay;
+        for (int i = 0; i < na; i++) {
+            const Approach& A = N.approaches[i];
+            N.approaches[i].rank = minorWritten ? ((A.stopSign || A.giveWay) ? 0 : 1) : ((i == bi || i == bj) ? 1 : 0);
+        }
         // signal axes
         if (N.control == 2) {
             std::vector<int> axisOf(na, -1);
@@ -927,7 +986,9 @@ void LaneGraph::build(const World::RoadNetwork& rn, const World::RoadOverrides* 
                 // turning circle around the node: swing right to the circle, half a turn to the left, back to the lane
                 // (pulled back toward the street / tightened when something stands in the way, see the dead-end code)
                 vec2 c0 = rnode.p - t0 * uturnBack;
-                float R = Clamp(fabsf(Lin.offset) + 3.4f, 4.8f, 6.5f) * uturnScale;
+                // (inside a turning circle as written: its car path 2.2 m in from the kerb, as far as cars can follow it)
+                const float rMax = N.bulb > 0.f ? Clamp(N.bulb - 2.2f, 4.8f, 6.5f) : 6.5f;
+                float R = Clamp(fabsf(Lin.offset) + 3.4f, 4.8f, rMax) * uturnScale;
                 vec2 rt = rightOf(t0), lf = -rt;
                 float zc = (p0.z + p3.z) * 0.5f;
                 vec3 b1(c0 + rt * R, zc), b2(c0 + lf * R, zc);
@@ -1813,6 +1874,10 @@ void LaneGraph::build(const World::RoadNetwork& rn, const World::RoadOverrides* 
         }
     }
     if (sitePaths + siteZebras > 0) LOG("Lane graph: %d plaza walkways and %d zebra crossings from the sites", sitePaths, siteZebras);
+    if (rulesUsed > 0)
+        LOG("Lane graph: node rules as written at %d nodes: %d all-way stops, %d signals, %d stop-sign and %d give-way approaches, %d with no "
+            "right on red, %d turning circles (%d controls away from a junction, not used)", rulesUsed, ruleAllWay, ruleSignals, ruleStops, ruleYields,
+            ruleNoRed, ruleBulbs, rulesIgnored);
     buildSeconds = TimeSeconds() - t0;
     size_t cpts = 0;
     for (auto& c : conns) cpts += c.pts.size();
