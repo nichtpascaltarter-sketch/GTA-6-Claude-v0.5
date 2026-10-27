@@ -152,6 +152,14 @@ inline u32 roomSeed(u32 buildingSeed, u32 floorIndex, u32 roomIndex) {
     return roomHash(buildingSeed ^ roomHash(floorIndex * 0x9e3779b9u + roomIndex * 0x85ebca77u + 1u)) & 4095u;
 }
 
+// A hand-built window's facade entry (buildings.h FacadeGPU::flags): kFacadeHandWindow marks it, and its room's
+// schedule class rides in the flags' bits 8-11, which the facade shader takes in place of its own pick
+// (shaders/facade.hlsli facadeRoomSchedule). Procedural facades use bits 0-5 only. The HLSL copy (roomlight.hlsli) and
+// the renderer's room-light self-test pin both ends.
+constexpr u32 kFacadeHandWindow = 64u;
+inline u32 handWindowFlags(u32 schedule) { return kFacadeHandWindow | ((schedule & 15u) << 8); }
+inline u32 handWindowSchedule(u32 flags) { return (flags >> 8) & 15u; }
+
 // The minute of the day for roomLight(), 0..1439, from the game clock's hours (0..24). The renderer's frame constants
 // and the CPU callers both take it from here, from the same float, so the two copies never split over a rounding.
 inline u32 roomMinute(float timeOfDay) {

@@ -1,0 +1,18 @@
+ntw 1 layout id=lib.layout.shop.flats_a_f0
+# the shop's floor: the shop on the street with its store behind, and the flat's own door and stair at the side
+wall w1 a=0.00,0.00 b=8.00,0.00 t=0.25 ext=front
+wall w2 a=8.00,0.00 b=8.00,14.00 t=0.25 ext=right
+wall w3 a=8.00,14.00 b=0.00,14.00 t=0.25 ext=back
+wall w4 a=0.00,14.00 b=0.00,0.00 t=0.25 ext=left
+wall w5 a=1.40,0.00 b=1.40,9.00 t=0.12
+wall w6 a=0.00,9.00 b=8.00,9.00 t=0.12
+room shop type=shop poly=1.40,0.00;8.00,0.00;8.00,9.00;1.40,9.00 cap=16 lux=500
+room store type=store poly=0.00,9.00;8.00,9.00;8.00,14.00;0.00,14.00 cap=2
+room entry type=stair poly=0.00,0.00;1.40,0.00;1.40,9.00;0.00,9.00 cap=2
+door d1 wall=w1 at=4.70 w=1.60 h=2.40 kind=pair leads=out:shop hours=8.00-20.00
+door d2 wall=w1 at=0.70 w=0.90 h=2.10 kind=hinged hinge=left swing=in leads=out:entry lock=resident
+door d3 wall=w6 at=6.50 w=0.90 h=2.10 kind=hinged hinge=right swing=in leads=shop:store lock=staff
+window n1 wall=w1 at=2.60 w=2.00 h=2.40 sill=0.40 kind=storefront room=shop
+window n2 wall=w1 at=6.85 w=1.70 h=2.40 sill=0.40 kind=storefront room=shop
+window n3 wall=w3 at=4.00 w=0.60 h=0.60 sill=1.80 kind=fixed room=store
+stair st1 from=f0.entry to=f1.landing run=0.70,1.50;0.70,7.10 w=1.00 kind=straight treads=20 rise=0.18

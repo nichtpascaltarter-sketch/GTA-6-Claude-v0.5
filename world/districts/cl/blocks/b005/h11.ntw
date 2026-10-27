@@ -1,0 +1,4 @@
+ntw 1 building id=cl.b005.h11 block=cl.b005 parcel=cl.b005.p03
+# a bungalow at the back of the lot, facing its yard
+place plan=lib.plan.house.bungalow_c at=1670.99,311.00 z=3.47 yaw=180.0
+config palette=lib.palette.bungalow.peach

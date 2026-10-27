@@ -1,0 +1,4 @@
+ntw 1 building id=cl.b005.m06 block=cl.b005 parcel=cl.b005.p03
+# a walk-up against the shop, facing Calle Luna
+place plan=lib.plan.midrise.walkup_b at=1674.20,339.30 z=3.62 yaw=180.0
+config palette=lib.palette.calle.sand

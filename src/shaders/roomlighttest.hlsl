@@ -43,12 +43,14 @@ void csRoomSweep(uint3 id : SV_DispatchThreadID) {
     uOut[id.x] = packed;
 }
 
-// the test vectors: tVec[2 i] = (schedule, seed, windows, day), tVec[2 i + 1] = (minute, night, -, -);
-// gRootConstants[0].y: the vector count
+// the test vectors: tVec[2 i] = (schedule, seed, windows, day), tVec[2 i + 1] = (minute, night, facade flags, -): a
+// hand-built window's flags (kFacadeHandWindow) carry its room's class in place of the vector's schedule, as the
+// facade shader takes it; gRootConstants[0].y: the vector count
 StructuredBuffer<uint4> tVec : register(t0);
 [numthreads(64, 1, 1)]
 void csRoomVectors(uint3 id : SV_DispatchThreadID) {
     if (id.x >= gRootConstants[0].y) return;
     const uint4 a = tVec[id.x * 2u], b = tVec[id.x * 2u + 1u];
-    uOut[id.x] = roomLight(a.x, a.y, a.z, a.w, b.x, b.y);
+    const uint schedule = (b.z & kFacadeHandWindow) != 0u ? handWindowSchedule(b.z) : a.x;
+    uOut[id.x] = roomLight(schedule, a.y, a.z, a.w, b.x, b.y);
 }

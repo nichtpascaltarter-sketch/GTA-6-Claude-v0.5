@@ -10,12 +10,16 @@
 //   (Hand::placeOnTerrain); the sections for the AI's graphs (compileBlockSections): parcels, lots with their drive
 //   graphs, the walk graph's inputs and the spots (written and implied), the props' colliders and their queries, on the
 //   graded ground and through world.bin, damaged ones refused, and the findings;
+// - the buildings (compileBuildings): the library's facade styles as looks, its plans as shells (floors, exterior
+//   walls, their windows and doors, each window's light schedule from its room, the roof), the building files as
+//   placements (yaw, mirror, the config's palette, roof, look and options), through world.bin
+//   (src/world/buildingsbin.h) exactly, damaged sections refused, the smallest records read back, and the findings;
 // - the roads through world.bin (src/world/roadsbin.h): back exactly as written, and damaged sections refused; with
 //   what they author beyond the network (src/world/roadoverrides.h), each side's kerb line, sidewalk and parking
 //   (applyRoadSides, RoadEdge::halfWidthSide), and the host loader (loadRoadsFile);
 // - a node's legs, the turns between them and signal plans resolved on them (worldmodel.h nodeLegs, resolvePlan);
 // - the rooms' light state (src/world/roomlight.h): fixed test vectors, which the renderer's HLSL copy must match too,
-//   and the schedules' properties.
+//   the schedules' properties, and a hand-built window's facade flags.
 // Build and run from the repo root, as CI's GCC job does:
 //   g++ -std=c++17 -O2 -Wall -Wextra -Werror -fsanitize=undefined -fno-sanitize-recover=undefined
 //       tests/world/worldmodel_test.cpp -o /tmp/neontide-worldmodel-test && /tmp/neontide-worldmodel-test
@@ -34,6 +38,8 @@
 #include "../../src/world/roadsbin.cpp"
 #include "../../src/world/blocksbin.cpp"
 #include "../../src/world/worldmodel_blocks.cpp"
+#include "../../src/world/buildingsbin.cpp"
+#include "../../src/world/worldmodel_buildings.cpp"
 #include "../../src/world/roomlight.h"
 #include <chrono>
 #include <cmath>
@@ -1283,6 +1289,339 @@ static void testColliders() {
     EXPECT(v3.open(b3.data(), b3.size(), &why) && !readBlocks(v3, hb3, &why) && why.find("prop") != std::string::npos, "colliders: colliders without their props were read");
 }
 
+// ------------------------------------------------------------------------------------------------------- buildings
+
+static int shellOf(const HandBuildings& b, const char* id) {
+    for (size_t i = 0; i < b.shells.size(); i++)
+        if (b.shells[i].id == id) return (int)i;
+    return -1;
+}
+
+// Both the same, field for field (floats exactly: a round trip writes the bits it read)
+static bool sameBuildings(const HandBuildings& a, const HandBuildings& b) {
+    bool ok = a.looks.size() == b.looks.size() && a.shells.size() == b.shells.size() && a.placements.size() == b.placements.size();
+    for (size_t i = 0; ok && i < a.looks.size(); i++) {
+        const HandLook &x = a.looks[i], &y = b.looks[i];
+        ok = x.id == y.id && x.wallMaterial == y.wallMaterial && x.wallColor == y.wallColor && x.trims.size() == y.trims.size() && x.windowKind == y.windowKind &&
+             x.frameMaterial == y.frameMaterial && x.frameColor == y.frameColor && x.shutters == y.shutters && x.doorColor == y.doorColor && x.baseH == y.baseH &&
+             x.baseMaterial == y.baseMaterial;
+        for (size_t t = 0; ok && t < x.trims.size(); t++)
+            ok = x.trims[t].kind == y.trims[t].kind && x.trims[t].material == y.trims[t].material && x.trims[t].color == y.trims[t].color && x.trims[t].h == y.trims[t].h;
+    }
+    for (size_t i = 0; ok && i < a.shells.size(); i++) {
+        const HandShell &x = a.shells[i], &y = b.shells[i];
+        ok = x.id == y.id && x.cls == y.cls && x.size.x == y.size.x && x.size.y == y.size.y && x.footprint.size() == y.footprint.size() && x.look == y.look &&
+             x.roofForm == y.roofForm && x.pitch == y.pitch && x.overhang == y.overhang && x.roofMaterial == y.roofMaterial && x.floors.size() == y.floors.size() &&
+             x.walls.size() == y.walls.size() && memcmp(x.palette, y.palette, sizeof(x.palette)) == 0;
+        for (size_t p = 0; ok && p < x.footprint.size(); p++) ok = x.footprint[p].x == y.footprint[p].x && x.footprint[p].y == y.footprint[p].y;
+        for (size_t f = 0; ok && f < x.floors.size(); f++) ok = x.floors[f].id == y.floors[f].id && x.floors[f].z == y.floors[f].z && x.floors[f].h == y.floors[f].h;
+        for (size_t w = 0; ok && w < x.walls.size(); w++) {
+            const HandShell::Wall &u = x.walls[w], &v = y.walls[w];
+            ok = u.floor == v.floor && u.a.x == v.a.x && u.a.y == v.a.y && u.b.x == v.b.x && u.b.y == v.b.y && u.t == v.t && u.side == v.side &&
+                 u.openings.size() == v.openings.size();
+            for (size_t o = 0; ok && o < u.openings.size(); o++) {
+                const HandShell::Opening &p = u.openings[o], &q = v.openings[o];
+                ok = p.kind == q.kind && p.at == q.at && p.w == q.w && p.h == q.h && p.sill == q.sill && p.schedule == q.schedule && p.room == q.room;
+            }
+        }
+    }
+    for (size_t i = 0; ok && i < a.placements.size(); i++) {
+        const HandPlacement &x = a.placements[i], &y = b.placements[i];
+        ok = x.id == y.id && x.shell == y.shell && x.at.x == y.at.x && x.at.y == y.at.y && x.z == y.z && x.yaw == y.yaw && x.mirror == y.mirror &&
+             x.roofMaterial == y.roofMaterial && x.look == y.look && memcmp(x.palette, y.palette, sizeof(x.palette)) == 0;
+    }
+    return ok;
+}
+
+static bool readsBack(const HandBuildings& in, HandBuildings& back, std::string& why) {
+    WorldBinWriter w;
+    writeBuildings(in, w);
+    const std::vector<u8> bin = w.finish();
+    WorldBinView view;
+    why.clear();
+    return view.open(bin.data(), bin.size(), &why) && readBuildings(view, back, &why);
+}
+
+static void testBuildings() {
+    const std::string world = "ntw 1 world\nworld palmera name=\"P\"\ndistrict cl name=\"C\"\n";
+    const std::string catalog =
+        "ntw 1 catalog\n"
+        "piece lib.kit.mat_stucco code=MAT_STUCCO\n"
+        "piece lib.kit.mat_stone code=MAT_STONE\n"
+        "piece lib.kit.mat_tile code=MAT_ROOF_TILE\n"
+        "piece lib.kit.frame_alu code=MAT_METAL_BRUSHED\n"
+        "piece lib.kit.door_panel code=DOOR_PANEL_5 size=0.95x0.05x2.10 collide=box\n";
+    const std::string palettes =
+        "ntw 1 palette family=shop\n"
+        "palette blue wall=#1e90ff trim=#ffffff door=#202020 accent=#ff8000\n"
+        "palette sand wall=#e0c8a0 trim=#806040 door=#403020 roof=#a04030\n";
+    const std::string facade =
+        "ntw 1 facade id=lib.facade.stucco_a\n"
+        "wall material=lib.kit.mat_stucco color=wall\n"
+        "trim kind=band material=lib.kit.mat_stone color=trim h=0.30\n"
+        "trim kind=none\n"
+        "trim kind=cornice color=accent\n"
+        "window kind=casement frame=lib.kit.frame_alu color=trim shutters=bahama\n"
+        "door style=lib.kit.door_panel color=door\n"
+        "base h=0.60 material=lib.kit.mat_stone\n";
+    // a shop with a flat over it, and a cottage on the flat's floor plate with a pitched roof and no look of its own
+    const std::string shop =
+        "ntw 1 plan id=lib.plan.shop.two_a\n"
+        "meta class=shop family=two floors=2 size=8.00x12.00\n"
+        "footprint poly=0.00,0.00;8.00,0.00;8.00,12.00;0.00,12.00\n"
+        "floor f0 layout=lib.layout.shop.two_a_f0 z=0.00 h=4.00\n"
+        "floor f1 layout=lib.layout.shop.two_a_f1 z=4.00 h=3.00\n"
+        "roof form=flat\n"
+        "facade style=lib.facade.stucco_a palette=lib.palette.shop.blue\n";
+    const std::string cottage =
+        "ntw 1 plan id=lib.plan.house.cottage_a\n"
+        "meta class=house family=cottage floors=1 size=8.00x12.00\n"
+        "footprint poly=0.00,0.00;8.00,0.00;8.00,12.00;0.00,12.00\n"
+        "floor f0 layout=lib.layout.shop.two_a_f1 z=0.00 h=2.80\n"
+        "roof form=gable pitch=30.0 overhang=0.40\n"
+        "option porch choices=none,open default=none\n";
+    const std::string f0 =
+        "ntw 1 layout id=lib.layout.shop.two_a_f0\n"
+        "wall w1 a=0.00,0.00 b=8.00,0.00 t=0.25 ext=front\n"
+        "wall w2 a=8.00,0.00 b=8.00,12.00 t=0.25 ext=right\n"
+        "wall w3 a=8.00,12.00 b=0.00,12.00 t=0.25 ext=back\n"
+        "wall w4 a=0.00,12.00 b=0.00,0.00 t=0.25 ext=left\n"
+        "wall w5 a=0.00,8.00 b=8.00,8.00 t=0.12\n"
+        "room shop type=shop poly=0.00,0.00;8.00,0.00;8.00,8.00;0.00,8.00\n"
+        "room store type=store poly=0.00,8.00;8.00,8.00;8.00,12.00;0.00,12.00\n"
+        "door d1 wall=w1 at=4.00 w=1.80 h=2.40 kind=pair leads=out:shop\n"
+        "door d2 wall=w5 at=2.00 w=0.90 h=2.10 kind=hinged leads=shop:store\n"
+        "window n1 wall=w1 at=1.60 w=2.40 h=2.40 sill=0.40 kind=storefront room=shop\n"
+        "window n2 wall=w1 at=6.40 w=2.40 h=2.40 sill=0.40 kind=storefront room=shop\n"
+        "window n3 wall=w3 at=4.00 w=0.60 h=0.60 sill=1.80 kind=fixed room=store\n";
+    const std::string f1 =
+        "ntw 1 layout id=lib.layout.shop.two_a_f1\n"
+        "wall w1 a=0.00,0.00 b=8.00,0.00 t=0.25 ext=front\n"
+        "wall w2 a=8.00,0.00 b=8.00,12.00 t=0.25 ext=right\n"
+        "wall w3 a=8.00,12.00 b=0.00,12.00 t=0.25 ext=back\n"
+        "wall w4 a=0.00,12.00 b=0.00,0.00 t=0.25 ext=left\n"
+        "wall w5 a=0.00,6.00 b=8.00,6.00 t=0.12\n"
+        "room living type=living poly=0.00,0.00;8.00,0.00;8.00,6.00;0.00,6.00 sched=evening\n"
+        "room kitchen type=kitchen poly=0.00,6.00;8.00,6.00;8.00,12.00;0.00,12.00 sched=shop\n"
+        "window n1 wall=w1 at=2.00 w=1.20 h=1.50 sill=0.90 kind=dhung room=living\n"
+        "window n2 wall=w1 at=6.00 w=1.20 h=1.50 sill=0.90 kind=dhung room=living\n"
+        "window n3 wall=w2 at=9.00 w=1.00 h=1.20 sill=1.00 kind=casement room=kitchen\n"
+        "door d1 wall=w5 at=4.00 w=0.90 h=2.10 kind=hinged leads=living:kitchen\n";
+    const std::string block =
+        "ntw 1 block id=cl.b001 district=cl\n"
+        "parcel cl.b001.p01 poly=100.00,190.00;110.00,190.00;110.00,215.00;100.00,215.00 use=mixed\n"
+        "parcel cl.b001.p02 poly=115.00,190.00;135.00,190.00;135.00,215.00;115.00,215.00 use=residential\n";
+    const std::string s01 =
+        "ntw 1 building id=cl.b001.s01 block=cl.b001 parcel=cl.b001.p01\n"
+        "place plan=lib.plan.shop.two_a at=108.00,200.00 z=3.20 yaw=90.0\n";
+    const std::string h02 =
+        "ntw 1 building id=cl.b001.h02 block=cl.b001 parcel=cl.b001.p02\n"
+        "place plan=lib.plan.house.cottage_a at=120.00,200.00 z=3.10 yaw=-30.0 mirror=1\n"
+        "config palette=lib.palette.shop.sand roof=lib.kit.mat_tile facade=lib.facade.stucco_a porch=open\n";
+    Model m;
+    std::vector<Error> errors;
+    const bool ok = loadTexts({{"lib/catalog.ntw", catalog},
+                               {"lib/palettes/shop.ntw", palettes},
+                               {"lib/facades/stucco_a.ntw", facade},
+                               {"lib/plans/shop/two_a.ntw", shop},
+                               {"lib/plans/house/cottage_a.ntw", cottage},
+                               {"lib/layouts/shop/two_a_f0.ntw", f0},
+                               {"lib/layouts/shop/two_a_f1.ntw", f1},
+                               {"districts/cl/blocks/b001/block.ntw", block},
+                               {"districts/cl/blocks/b001/s01.ntw", s01},
+                               {"districts/cl/blocks/b001/h02.ntw", h02},
+                               {"world.ntw", world}},
+                              m, errors);
+    EXPECT(ok && errors.empty() && m.plans.size() == 2 && m.layouts.size() == 2 && m.facadeStyles.size() == 1 && m.palettes.size() == 2 && m.buildings.size() == 2,
+           "buildings: loaded (%zu plans, %zu layouts, %zu facades, %zu palettes, %zu buildings, %zu findings)", m.plans.size(), m.layouts.size(),
+           m.facadeStyles.size(), m.palettes.size(), m.buildings.size(), errors.size());
+    if (!errors.empty()) printErrors(m, errors);
+    HandBuildings out;
+    const bool compiled = compileBuildings(m, out, errors);
+    EXPECT(compiled && errors.empty() && out.looks.size() == 1 && out.shells.size() == 2 && out.placements.size() == 2,
+           "buildings: compiled (%zu looks, %zu shells, %zu placements, %zu findings)", out.looks.size(), out.shells.size(), out.placements.size(), errors.size());
+    if (!errors.empty()) printErrors(m, errors);
+    const int si = shellOf(out, "lib.plan.shop.two_a"), ci = shellOf(out, "lib.plan.house.cottage_a");
+    if (out.looks.size() != 1 || si < 0 || ci < 0 || out.placements.size() != 2) return;
+    // the look: its wall, its two trims (none is left out; the cornice in the wall's material, 0.2 m), its windows,
+    // door and base
+    const HandLook& l = out.looks[0];
+    EXPECT(l.id == "lib.facade.stucco_a" && l.wallMaterial == MAT_STUCCO && l.wallColor == PAL_WALL && l.trims.size() == 2 && l.windowKind == WIN_CASEMENT &&
+               l.frameMaterial == MAT_METAL_BRUSHED && l.frameColor == PAL_TRIM && l.shutters == SHUTTER_BAHAMA && l.doorColor == PAL_DOOR && same(l.baseH, 0.6f) &&
+               l.baseMaterial == MAT_STONE,
+           "buildings: the look");
+    if (l.trims.size() == 2)
+        EXPECT(l.trims[0].kind == TRIM_BAND && l.trims[0].material == MAT_STONE && l.trims[0].color == PAL_TRIM && same(l.trims[0].h, 0.3f) &&
+                   l.trims[1].kind == TRIM_CORNICE && l.trims[1].material == MAT_STUCCO && l.trims[1].color == PAL_ACCENT && same(l.trims[1].h, 0.2f),
+               "buildings: the trims");
+    // the shop: its class, look and palette (rgb8: red in the low byte; no roof colour), flat roof of gravel, two floors
+    // and four exterior walls each (the partitions left out)
+    const HandShell& s = out.shells[(size_t)si];
+    EXPECT(s.cls == shellClass("shop") && s.cls == 4 && same(s.size.x, 8.f) && same(s.size.y, 12.f) && s.footprint.size() == 4 && s.look == 0 &&
+               s.palette[PAL_WALL] == 0xff901eu && s.palette[PAL_TRIM] == 0xffffffu && s.palette[PAL_DOOR] == 0x202020u && s.palette[PAL_ACCENT] == 0x0080ffu &&
+               s.palette[PAL_ROOF] == kNone32 && s.roofForm == RFORM_FLAT && s.roofMaterial == MAT_ROOF_GRAVEL && s.floors.size() == 2 && s.walls.size() == 8,
+           "buildings: the shop's shell (%zu floors, %zu walls)", s.floors.size(), s.walls.size());
+    if (s.floors.size() == 2 && s.walls.size() == 8) {
+        EXPECT(s.floors[0].id == "f0" && same(s.floors[0].z, 0.f) && same(s.floors[0].h, 4.f) && s.floors[1].id == "f1" && same(s.floors[1].z, 4.f) &&
+                   same(s.floors[1].h, 3.f),
+               "buildings: the shop's floors");
+        const HandShell::Wall &front = s.walls[0], &right = s.walls[1], &back = s.walls[2], &left = s.walls[3], &up = s.walls[4], &upRight = s.walls[5];
+        EXPECT(front.floor == 0 && front.side == 0 && right.side == 1 && back.side == 2 && left.side == 3 && up.floor == 1 && up.side == 0 && same(front.t, 0.25f) &&
+                   same(back.a.x, 8.f) && same(back.a.y, 12.f) && same(back.b.x, 0.f) && left.openings.empty() && right.openings.empty(),
+               "buildings: the shop's walls");
+        // the front: the pair of doors into the shop (its schedule and room) and the two shop windows, in the layout's
+        // order; the store's small window, dark
+        EXPECT(front.openings.size() == 3 && back.openings.size() == 1 && up.openings.size() == 2 && upRight.openings.size() == 1, "buildings: the openings (%zu %zu %zu %zu)",
+               front.openings.size(), back.openings.size(), up.openings.size(), upRight.openings.size());
+        if (front.openings.size() == 3 && back.openings.size() == 1 && up.openings.size() == 2 && upRight.openings.size() == 1) {
+            const HandShell::Opening &d1 = front.openings[0], &n1 = front.openings[1], &n3 = back.openings[0];
+            EXPECT(d1.door() && d1.kind == (DOOR_PAIR | 0x100) && same(d1.at, 4.f) && same(d1.w, 1.8f) && same(d1.h, 2.4f) && d1.sill == 0.f && d1.schedule == RS_SHOP &&
+                       d1.room == 0u && !n1.door() && n1.kind == WIN_STOREFRONT && same(n1.at, 1.6f) && same(n1.sill, 0.4f) && n1.schedule == RS_SHOP && n1.room == 0u &&
+                       front.openings[2].schedule == RS_SHOP && n3.kind == WIN_FIXED && n3.schedule == RS_NEVER && n3.room == 1u,
+                   "buildings: the ground floor's openings");
+            // the flat: its living room by its type (sched=evening names no class), its kitchen by sched=shop
+            EXPECT(up.openings[0].kind == WIN_DHUNG && up.openings[0].schedule == RS_HOME_LIVING && up.openings[0].room == 0u && upRight.openings[0].kind == WIN_CASEMENT &&
+                       upRight.openings[0].schedule == RS_SHOP && upRight.openings[0].room == 1u && same(upRight.openings[0].at, 9.f) && same(upRight.openings[0].sill, 1.f),
+                   "buildings: the flat's windows");
+        }
+    }
+    // the cottage: no look or palette of its own; a gable of shingles by default
+    const HandShell& c = out.shells[(size_t)ci];
+    EXPECT(c.cls == shellClass("house") && c.look == -1 && c.palette[PAL_WALL] == kNone32 && c.roofForm == RFORM_GABLE && same(c.pitch, 30.f) && same(c.overhang, 0.4f) &&
+               c.roofMaterial == MAT_ROOF_SHINGLE && c.floors.size() == 1 && same(c.floors[0].h, 2.8f) && c.walls.size() == 4,
+           "buildings: the cottage's shell");
+    // the placements, in the building files' order: the shop as placed; the cottage mirrored, turned -30 degrees, with
+    // the config's palette (a roof colour too), roof material and look (and its porch, one of the plan's choices)
+    const HandPlacement &p0 = out.placements[0], &p1 = out.placements[1];
+    const HandPlacement& ps = p0.id == "cl.b001.s01" ? p0 : p1;
+    const HandPlacement& ph = p0.id == "cl.b001.s01" ? p1 : p0;
+    EXPECT(ps.id == "cl.b001.s01" && ps.shell == si && same(ps.at.x, 108.f) && same(ps.at.y, 200.f) && same(ps.z, 3.2f) && same(ps.yaw, kPi * 0.5f, 1e-5f) && !ps.mirror &&
+               ps.palette[PAL_WALL] == kNone32 && ps.roofMaterial == kNone32 && ps.look == -1,
+           "buildings: the shop's placement");
+    EXPECT(ph.id == "cl.b001.h02" && ph.shell == ci && ph.mirror && same(ph.yaw, -kPi / 6.f, 1e-5f) && same(ph.z, 3.1f) && ph.palette[PAL_WALL] == 0xa0c8e0u &&
+               ph.palette[PAL_TRIM] == 0x406080u && ph.palette[PAL_ROOF] == 0x3040a0u && ph.palette[PAL_ACCENT] == kNone32 && ph.roofMaterial == MAT_ROOF_TILE && ph.look == 0,
+           "buildings: the cottage's placement");
+    // through world.bin, exactly; and none of it where there are no buildings
+    HandBuildings back;
+    std::string why;
+    EXPECT(readsBack(out, back, why) && sameBuildings(out, back), "buildings: the round trip (%s)", why.c_str());
+    WorldBinWriter w;
+    writeBuildings(out, w);
+    const std::vector<u8> bin = w.finish();
+    WorldBinView view;
+    EXPECT(view.open(bin.data(), bin.size(), &why) && view.find("library") && view.find("buildings"), "buildings: the sections (%s)", why.c_str());
+    HandBuildings none;
+    EXPECT(readsBack(HandBuildings(), none, why) && none.looks.empty() && none.shells.empty() && none.placements.empty(), "buildings: none (%s)", why.c_str());
+    WorldBinWriter w0;
+    writeBuildings(HandBuildings(), w0);
+    const std::vector<u8> b0 = w0.finish();
+    WorldBinView v0;
+    EXPECT(v0.open(b0.data(), b0.size(), &why) && v0.sections.empty(), "buildings: sections written without buildings");
+    // damaged: truncated, a byte over, another version, a look's colour slot past the palette's, a window's schedule
+    // past roomlight.h's, a building naming a shell or a look the library lacks; and a library of the smallest records
+    std::vector<u8> lib, bld;
+    EXPECT(view.bytes("library", lib) && view.bytes("buildings", bld), "buildings: the sections' bytes");
+    // (where things are in "library": version, look count, then look 0: its id's length and bytes, wall material and
+    // colour)
+    const size_t look0 = 8, wallColour = look0 + 4 + l.id.size() + 4;
+    // (the first window's schedule: the last 4 bytes of the shop's first floor's front wall's second opening; found by
+    // writing the library again with the schedule changed)
+    size_t schedule = 0;
+    {
+        HandBuildings marked = out;
+        marked.shells[(size_t)si].walls[0].openings[1].schedule = 0x5a5a5a5au;
+        WorldBinWriter wm;
+        writeBuildings(marked, wm);
+        const std::vector<u8> bm = wm.finish();
+        WorldBinView vm;
+        std::vector<u8> libm;
+        if (vm.open(bm.data(), bm.size(), &why) && vm.bytes("library", libm) && libm.size() == lib.size())
+            for (size_t i = 0; i + 4 <= libm.size() && !schedule; i++)
+                if (libm[i] == 0x5a && libm[i + 1] == 0x5a && libm[i + 2] == 0x5a && libm[i + 3] == 0x5a) schedule = i;
+    }
+    EXPECT(schedule > 0, "buildings: the window's schedule not found");
+    for (int k = 0; k < 9; k++) {
+        std::vector<u8> bl = lib, bb = bld;
+        if (k == 0) bl.resize(bl.size() - 4);
+        if (k == 1) bl.push_back(0);
+        if (k == 2) bl[0] = 9;
+        if (k == 3) bl[wallColour] = PAL_COUNT;
+        if (k == 4 && schedule) bl[schedule] = 16;
+        if (k == 5) bb.resize(bb.size() - 1);
+        if (k == 6) bb[0] = 9;
+        if (k == 7) bb[8 + 4 + p0.id.size()] = 2;   // (the first building's shell: past the library's two)
+        if (k == 8) bb[bb.size() - 4] = 1;           // (the last building's look: past the library's one)
+        WorldBinWriter w2;
+        w2.addCompressed("library", bl);
+        w2.addCompressed("buildings", bb);
+        const std::vector<u8> b2 = w2.finish();
+        WorldBinView v2;
+        HandBuildings hb2;
+        why.clear();
+        EXPECT(v2.open(b2.data(), b2.size(), &why) && !readBuildings(v2, hb2, &why) && !why.empty() && hb2.shells.empty() && hb2.placements.empty(),
+               "buildings: damaged sections %d were read", k);
+    }
+    WorldBinWriter w3;
+    w3.addCompressed("buildings", bld);   // (without "library": none of its shells)
+    const std::vector<u8> b3 = w3.finish();
+    WorldBinView v3;
+    HandBuildings hb3;
+    why.clear();
+    EXPECT(v3.open(b3.data(), b3.size(), &why) && !readBuildings(v3, hb3, &why) && why.find("building") != std::string::npos, "buildings: placements without shells were read");
+    // the smallest records, 100 of each, each list last in its section (so a reader's bound past a record's least
+    // refuses it): looks with no id or trims; a look's trims; shells with no id, footprint, floors or walls, and
+    // placements with no id; a shell's floors; a floor's walls; a wall's openings
+    HandBuildings tiny[6], tinyBack;
+    tiny[0].looks.resize(100);
+    tiny[1].looks.resize(1);
+    tiny[1].looks[0].trims.resize(100);
+    tiny[2].shells.resize(100);
+    tiny[2].placements.resize(100);
+    for (HandPlacement& p : tiny[2].placements) p.shell = 0;
+    tiny[3].shells.resize(1);
+    tiny[3].shells[0].floors.resize(100);
+    for (int k = 4; k < 6; k++) {
+        tiny[k].shells.resize(1);
+        tiny[k].shells[0].floors.resize(1);
+        tiny[k].shells[0].walls.resize(k == 4 ? 100 : 1);
+    }
+    tiny[5].shells[0].walls[0].openings.resize(100);
+    for (int k = 0; k < 6; k++) EXPECT(readsBack(tiny[k], tinyBack, why) && sameBuildings(tiny[k], tinyBack), "buildings: 100 of the smallest records %d (%s)", k, why.c_str());
+    // the findings: a material whose code= the game lacks, in a look and on a roof (building.kind); a plan with no floor
+    // (building.shape), kept as an empty shell so the placements' indices stay the plans'; a config choice the plan's
+    // option lacks, and an option it doesn't have (building.option)
+    const std::string badCatalog = "ntw 1 catalog\npiece lib.kit.mat_odd code=MAT_UNOBTAINIUM\n";
+    const std::string badFacade = "ntw 1 facade id=lib.facade.odd\nwall material=lib.kit.mat_odd color=wall\n";
+    const std::string badPlan =
+        "ntw 1 plan id=lib.plan.shop.empty_a\n"
+        "meta class=shop family=empty floors=1 size=8.00x12.00\n"
+        "footprint poly=0.00,0.00;8.00,0.00;8.00,12.00;0.00,12.00\n"
+        "roof form=flat material=lib.kit.mat_odd\n"
+        "facade style=lib.facade.odd\n"
+        "option porch choices=none,open default=none\n";
+    const std::string badBuilding =
+        "ntw 1 building id=cl.b001.s01 block=cl.b001 parcel=cl.b001.p01\n"
+        "place plan=lib.plan.shop.empty_a at=108.00,200.00 z=3.20 yaw=0.0\n"
+        "config porch=glass garage=left\n";
+    Model bm;
+    std::vector<Error> berrs;
+    const bool bok = loadTexts({{"lib/catalog.ntw", badCatalog},
+                                {"lib/facades/odd.ntw", badFacade},
+                                {"lib/plans/shop/empty_a.ntw", badPlan},
+                                {"districts/cl/blocks/b001/block.ntw", block},
+                                {"districts/cl/blocks/b001/s01.ntw", badBuilding},
+                                {"world.ntw", world}},
+                               bm, berrs);
+    HandBuildings bout;
+    const bool bcompiled = bok && berrs.empty() && compileBuildings(bm, bout, berrs);
+    EXPECT(bok && !bcompiled && countCode(berrs, "building.kind") == 2 && countCode(berrs, "building.shape") == 1 && countCode(berrs, "building.option") == 2 &&
+               berrs.size() == 5 && bout.shells.size() == 1 &&
+               bout.shells[0].walls.empty() && bout.placements.size() == 1 && bout.placements[0].shell == 0 && bout.looks.size() == 1 &&
+               bout.looks[0].wallMaterial == MAT_STUCCO,
+           "buildings: the findings (%zu)", berrs.size());
+    if (berrs.size() != 5) printErrors(bm, berrs);
+}
+
 static void testErrors() {
     const std::string roads =
         "ntw 1 roads district=cl\n"
@@ -1489,6 +1828,15 @@ static void testRoomLight() {
     EXPECT(roomMinute(0.f) == 0u && roomMinute(0.01f) == 0u && roomMinute(7.25f) == 435u && roomMinute(23.999f) == 1439u &&
                roomMinute(24.f) == 1439u && roomMinute(-0.5f) == 0u && roomMinute(1e9f) == 1439u && roomMinute(std::nanf("")) == 0u,
            "roomMinute: the minute of the clock");
+    // a hand-built window's facade flags (handWindowFlags): its class in bits 8-11, back exactly, clear of the procedural
+    // facades' bits 0-5 (storefront to parking) and of bit 7; and a living room's vector again, through them (the
+    // renderer's self-test sends the same flags through the shader)
+    bool handOk = kFacadeHandWindow == 64u;
+    for (u32 c = 0; c < (u32)RS_COUNT; c++)
+        handOk = handOk && handWindowSchedule(handWindowFlags(c)) == c && (handWindowFlags(c) & 0xbfu) == 0u && (handWindowFlags(c) & kFacadeHandWindow) != 0u &&
+                 (handWindowFlags(c) >> 12) == 0u;
+    EXPECT(handOk && roomLight(handWindowSchedule(handWindowFlags(RS_HOME_LIVING) | 1u), 660u, 1u, 2u, 1230u, 255u) == 193u,
+           "roomLight: a hand-built window's facade flags");
 
     // the classes' properties over many rooms
     int always = 0, never = 0, dayHome = 0, darkHome = 0, shopNoon = 0, shopNight = 0, shopNightChanged = 0, homeChanged = 0, lateBar = 0, porch = 0;
@@ -2063,6 +2411,7 @@ int main() {
     testBlockSections();
     testWalkAndSpots();
     testColliders();
+    testBuildings();
     testErrors();
     testRoadsSection();
     testRoadOverrides();

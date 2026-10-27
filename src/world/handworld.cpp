@@ -13,6 +13,7 @@
 #include "roads.h"
 #include "roadsbin.h"
 #include "blocksbin.h"
+#include "buildingsbin.h"
 #include "buildings.h"
 #include "worldtypes.h"
 #include "../core/jobs.h"
@@ -205,7 +206,7 @@ bool loadHandWorld(const char* worldFile, WorldMap& map, RoadNetwork& roads, Bui
     if (!loadHandTerrain(bin, map, error)) return false;
     gMap = &map;
     // the roads where the world has them (stage 1), else an empty network with its lookup table, so every query finds
-    // nothing; no buildings yet: an empty set with its cell lists
+    // nothing
     roads = RoadNetwork();
     if (bin.find("roads")) {
         if (!readRoads(bin, roads, nullptr, nullptr, error)) return false;
@@ -224,15 +225,22 @@ bool loadHandWorld(const char* worldFile, WorldMap& map, RoadNetwork& roads, Bui
     static HandBlocks blocks;
     if (!readBlocks(bin, blocks, error, (int)roads.edges.size())) return false;
     gHandBlocks = &blocks;
+    // the buildings: the library's shells and their placements (buildingsbin.h), drawn into the cells (handshells.cpp)
+    static HandBuildings handBuildings;
+    if (!readBuildings(bin, handBuildings, error)) return false;
+    gHandBuildings = &handBuildings;
+    // the generated world's building set: empty, with its cell lists (the hand-built buildings aren't in it)
     buildings = BuildingSet();
     buildings.cellLists.assign((size_t)kCellsPerSide * kCellsPerSide, {});
     buildings.openCellLists.assign((size_t)kCellsPerSide * kCellsPerSide, {});
     gBuildings = &buildings;
+    // the placements' cells, and their windows' facade entries for the renderer to upload with the building set's
+    prepareHandBuildings(handBuildings, buildings);
     LOG("Hand world: terrain, %zu road nodes, %zu edges (%zu with overrides), %zu ground polygons, %zu props, %zu lamps, %zu parcels, %zu lots, %zu paths, "
-        "%zu spots and %zu colliders from %s (%zu KB, %zu sections) in %.2f s",
+        "%zu spots, %zu colliders and %zu buildings (%zu shells, %zu window facades) from %s (%zu KB, %zu sections) in %.2f s",
         roads.nodes.size(), roads.edges.size(), overrides.edges.size(), blocks.ground.size(), blocks.props.size(), blocks.lamps.size(), blocks.parcels.size(),
-        blocks.lots.size(), blocks.paths.size(), blocks.spots.size(), blocks.colliders.size(), worldFile && *worldFile ? worldFile : "the exe", size / 1024,
-        bin.sections.size(), TimeSeconds() - t0);
+        blocks.lots.size(), blocks.paths.size(), blocks.spots.size(), blocks.colliders.size(), handBuildings.placements.size(), handBuildings.shells.size(),
+        buildings.facades.size(), worldFile && *worldFile ? worldFile : "the exe", size / 1024, bin.sections.size(), TimeSeconds() - t0);
     return true;
 }
 

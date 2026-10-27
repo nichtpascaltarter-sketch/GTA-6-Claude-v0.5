@@ -1,6 +1,7 @@
 // Room-light agreement self-test (--roomlighttest; docs/HANDBUILT_WORLD.md 7.8): the facade shader's HLSL roomLight()
 // (shaders/roomlight.hlsli, run by shaders/roomlighttest.hlsl) against the C++ World::roomLight() (world/roomlight.h)
-// over a sweep of 5,594,400 inputs and over the header's test vectors. Included from renderer.cpp.
+// over a sweep of 5,594,400 inputs and over the header's test vectors, with hand-built windows' facade flags
+// (roomlight.h handWindowFlags) carrying the class. Included from renderer.cpp.
 #include "../world/roomlight.h"
 
 namespace Render {
@@ -158,21 +159,38 @@ const RoomVector kRoomVectors[] = {
         { 6, 2501, 1, 6, 1290, 255, 204},
 };
 
+// Hand-built windows (roomlight.h handWindowFlags): the class rides in the facade flags, and the vector's own schedule
+// (never) must not be used. Two of the vectors above again: a living room on a Wednesday at 20:30, and a shop on a
+// Sunday at 21:30, behind a storefront (flag 1)
+struct HandWindowVector {
+    u32 flags, seed, windows, day, minute, night, level;
+};
+const HandWindowVector kHandWindowVectors[] = {
+        {World::handWindowFlags(World::RS_HOME_LIVING), 660, 1, 2, 1230, 255, 193},
+        {World::handWindowFlags(World::RS_SHOP) | 1u, 2501, 1, 6, 1290, 255, 204},
+};
+
 }  // namespace roomlight_test
 
 // Returns the number of failures (0: the HLSL and the C++ copies agree everywhere, and both match the vectors)
 int roomLightSelfTest() {
     using namespace roomlight_test;
     const u32 words = (kSweepCount + 3u) / 4u;
-    const u32 nv = (u32)(sizeof(kRoomVectors) / sizeof(kRoomVectors[0]));
+    const u32 nr = (u32)(sizeof(kRoomVectors) / sizeof(kRoomVectors[0])), nh = (u32)(sizeof(kHandWindowVectors) / sizeof(kHandWindowVectors[0]));
+    const u32 nv = nr + nh;
     gfx::ComputeShader csSweep = gfx::loadCS("roomlighttest.hlsl", "csRoomSweep");
     gfx::ComputeShader csVec = gfx::loadCS("roomlighttest.hlsl", "csRoomVectors");
     gfx::Buffer out = gfx::createBuffer(words * 4, 4, gfx::BUF_STRUCTURED | gfx::BUF_UAV, nullptr, "roomlight test sweep");
     std::vector<u32> vin((size_t)nv * 8);
     for (u32 i = 0; i < nv; i++) {
-        const RoomVector& v = kRoomVectors[i];
         u32* p = &vin[(size_t)i * 8];
-        p[0] = v.schedule; p[1] = v.seed; p[2] = v.windows; p[3] = v.day; p[4] = v.minute; p[5] = v.night; p[6] = 0; p[7] = 0;
+        if (i < nr) {
+            const RoomVector& v = kRoomVectors[i];
+            p[0] = v.schedule; p[1] = v.seed; p[2] = v.windows; p[3] = v.day; p[4] = v.minute; p[5] = v.night; p[6] = 0; p[7] = 0;
+        } else {   // (the facade flags in p[6]; the schedule never, which the flags must override)
+            const HandWindowVector& v = kHandWindowVectors[i - nr];
+            p[0] = World::RS_NEVER; p[1] = v.seed; p[2] = v.windows; p[3] = v.day; p[4] = v.minute; p[5] = v.night; p[6] = v.flags; p[7] = 0;
+        }
     }
     gfx::Buffer vbuf = gfx::createBuffer(nv * 32, 16, gfx::BUF_STRUCTURED | gfx::BUF_SRV, vin.data(), "roomlight test vectors");
     gfx::Buffer vout = gfx::createBuffer(nv * 4, 4, gfx::BUF_STRUCTURED | gfx::BUF_UAV, nullptr, "roomlight test vector out");
@@ -206,15 +224,20 @@ int roomLightSelfTest() {
     }
     int vecGpu = 0, vecCpu = 0;
     for (u32 i = 0; i < nv; i++) {
-        const RoomVector& v = kRoomVectors[i];
+        const bool hand = i >= nr;
+        RoomVector v = hand ? RoomVector() : kRoomVectors[i];
+        if (hand) {   // (the C++ takes the class from the flags as the shader does)
+            const HandWindowVector& h = kHandWindowVectors[i - nr];
+            v = RoomVector{World::handWindowSchedule(h.flags), h.seed, h.windows, h.day, h.minute, h.night, h.level};
+        }
         const u32 cpu = World::roomLight(v.schedule, v.seed, v.windows, v.day, v.minute, v.night);
         if (gotV[i] != v.level) vecGpu++;
         if (cpu != v.level) vecCpu++;
-        if (gotV[i] != v.level && vecGpu <= 8) LOG("room-light self-test: vector %u: GPU %u, expected %u", i, gotV[i], v.level);
+        if (gotV[i] != v.level && vecGpu <= 8) LOG("room-light self-test: %s %u: GPU %u, expected %u", hand ? "hand-built window vector" : "vector", hand ? i - nr : i, gotV[i], v.level);
     }
-    LOG("room-light self-test: %u sweep inputs (%d lit): %d differ between the GPU and the C++; %u test vectors: %d differ on the "
-        "GPU, %d in the C++ -> %s",
-        kSweepCount, lit, sweepBad, nv, vecGpu, vecCpu, sweepBad + vecGpu + vecCpu == 0 ? "PASS" : "FAIL");
+    LOG("room-light self-test: %u sweep inputs (%d lit): %d differ between the GPU and the C++; %u test vectors (%u of hand-built "
+        "windows): %d differ on the GPU, %d in the C++ -> %s",
+        kSweepCount, lit, sweepBad, nv, nh, vecGpu, vecCpu, sweepBad + vecGpu + vecCpu == 0 ? "PASS" : "FAIL");
     out.release();
     vbuf.release();
     vout.release();

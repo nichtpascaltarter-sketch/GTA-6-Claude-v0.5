@@ -1,0 +1,28 @@
+ntw 1 layout id=lib.layout.shop.flats_a_f1
+# the flat over the shop: the stair comes up at the side, a hall across the back to the bedroom and bathroom, the
+# kitchen and the living room on the street
+wall w1 a=0.00,0.00 b=8.00,0.00 t=0.25 ext=front
+wall w2 a=8.00,0.00 b=8.00,14.00 t=0.25 ext=right
+wall w3 a=8.00,14.00 b=0.00,14.00 t=0.25 ext=back
+wall w4 a=0.00,14.00 b=0.00,0.00 t=0.25 ext=left
+wall w5 a=1.40,0.00 b=1.40,9.00 t=0.12
+wall w6 a=0.00,9.00 b=8.00,9.00 t=0.12
+wall w7 a=1.40,6.00 b=8.00,6.00 t=0.12
+wall w8 a=0.00,10.20 b=8.00,10.20 t=0.12
+wall w9 a=5.00,10.20 b=5.00,14.00 t=0.12
+room landing type=stair poly=0.00,0.00;1.40,0.00;1.40,9.00;0.00,9.00 cap=2
+room living type=living poly=1.40,0.00;8.00,0.00;8.00,6.00;1.40,6.00 cap=4
+room kitchen type=kitchen poly=1.40,6.00;8.00,6.00;8.00,9.00;1.40,9.00 cap=3
+room hall type=hall poly=0.00,9.00;8.00,9.00;8.00,10.20;0.00,10.20 cap=2
+room bed type=bed poly=0.00,10.20;5.00,10.20;5.00,14.00;0.00,14.00 cap=2
+room bath type=bath poly=5.00,10.20;8.00,10.20;8.00,14.00;5.00,14.00 cap=1
+door d1 wall=w6 at=0.70 w=0.90 h=2.10 kind=hinged hinge=left swing=in leads=landing:hall lock=resident
+door d2 wall=w6 at=4.00 w=0.90 h=2.10 kind=opening leads=hall:kitchen
+door d3 wall=w7 at=3.30 w=0.90 h=2.10 kind=opening leads=kitchen:living
+door d4 wall=w8 at=2.50 w=0.90 h=2.10 kind=hinged hinge=right swing=in leads=hall:bed
+door d5 wall=w8 at=6.50 w=0.90 h=2.10 kind=hinged hinge=left swing=in leads=hall:bath lock=key
+window n1 wall=w1 at=0.70 w=0.60 h=1.00 sill=1.20 kind=fixed room=landing
+window n2 wall=w1 at=3.00 w=1.20 h=1.50 sill=0.90 kind=dhung room=living
+window n3 wall=w1 at=6.40 w=1.20 h=1.50 sill=0.90 kind=dhung room=living
+window n4 wall=w3 at=2.00 w=0.60 h=0.80 sill=1.50 kind=jalousie room=bath
+window n5 wall=w3 at=5.50 w=1.20 h=1.40 sill=0.90 kind=dhung room=bed

@@ -1,0 +1,9 @@
+ntw 1 facade id=lib.facade.calle_stucco
+# Calle Luna's shops with flats over: painted stucco, a band at the floor line, a deep cornice along the parapet,
+# double-hung windows under Bahama shutters, a painted plinth
+wall material=lib.kit.mat_stucco color=wall
+trim kind=band material=lib.kit.mat_stucco color=trim h=0.30
+trim kind=cornice material=lib.kit.mat_stucco color=trim h=0.45
+window kind=dhung frame=lib.kit.mat_frame color=trim shutters=bahama
+door style=lib.kit.door_panel color=door
+base h=0.45 material=lib.kit.mat_stucco

@@ -124,7 +124,9 @@ struct FacadeGPU {
     float signIndex;
 };
 // FacadeGPU::flags (shaders/facade.hlsli): 1 a storefront ground floor, 2 a sign band, 4 neon trim, 8 blinds common,
-// 16 offices, 32 a parking garage's decks, lit all night (kFacadeParking)
+// 16 offices, 32 a parking garage's decks, lit all night (kFacadeParking), 64 a hand-built window (roomlight.h
+// kFacadeHandWindow) whose room's schedule class rides in bits 8-11 (handWindowFlags), in place of the shader's own
+// pick; 128 and bits 12-31 are free
 constexpr u32 kFacadeParking = 32u;
 
 // What a building is for where its style doesn't say. BS_GARAGE is the style of the parking garages and also of the back

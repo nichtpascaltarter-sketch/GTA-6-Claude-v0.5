@@ -26,3 +26,16 @@ piece lib.light.street_cobra code=PROP_STREETLIGHT size=0.40x2.40x8.80 variants=
 piece lib.light.porch_warm code=LIGHT_PORCH collide=none
 piece lib.light.wall_flood code=LIGHT_WALL_FLOOD collide=none
 piece lib.light.garden code=LIGHT_GARDEN collide=none
+# The kit's materials and parts for the library's buildings (docs/NTW_FORMAT.md 9.10): a wall, trim, frame, base or roof
+# names the piece whose code= is the game's material (src/render/mesh.h MaterialId); a facade's door style a door's
+piece lib.kit.mat_stucco code=MAT_STUCCO
+piece lib.kit.mat_plaster code=MAT_PLASTER
+piece lib.kit.mat_siding code=MAT_WOOD_SIDING
+piece lib.kit.mat_brick code=MAT_BRICK
+piece lib.kit.mat_stone code=MAT_STONE
+piece lib.kit.mat_concrete code=MAT_CONCRETE
+piece lib.kit.mat_frame code=MAT_METAL_PAINTED
+piece lib.kit.roof_gravel code=MAT_ROOF_GRAVEL
+piece lib.kit.roof_shingle code=MAT_ROOF_SHINGLE
+piece lib.kit.roof_tile code=MAT_ROOF_TILE
+piece lib.kit.door_panel code=DOOR_PANEL size=0.95x0.05x2.10 collide=box
