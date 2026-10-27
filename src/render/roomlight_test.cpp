@@ -148,6 +148,14 @@ const RoomVector kRoomVectors[] = {
         {12, 1595, 0, 3, 1230,   0, 212},
         {12, 1213, 1, 0,   30, 255,   0},
         {12,  963, 1, 6,  125, 255,   0},
+        // day types: Friday night's extra night owl, gone again on Sunday night; a bar at 3:30 after Friday and after
+        // Thursday; an office on a Friday morning; a shop on a Sunday evening (weekend hours)
+        { 2, 2030, 1, 5,   60, 255, 196},
+        { 2, 2030, 1, 7,   60, 255,   0},
+        { 9,  100, 0, 5,  210, 255, 252},
+        { 9,  100, 0, 4,  210, 255,   0},
+        { 7, 1502, 1, 4,  600,   0, 230},
+        { 6, 2501, 1, 6, 1290, 255, 204},
 };
 
 }  // namespace roomlight_test

@@ -255,6 +255,25 @@ GBufferOut psWorld(VSOut i, bool front : SV_IsFrontFace) {
         float2 uv = i.uv * m.uvScale;
         float4 a = matAlbedoArray().Sample(sAnisoWrap, float3(uv, m.layer));
         float4 nr = matNormalArray().Sample(sAnisoWrap, float3(uv, m.layer));
+        float2 gx = ddx(uv), gy = ddy(uv);
+        if ((uint)m.flags & 1024u) {
+            // Corrugated metal (MF_WEATHERED: roofs, shed walls): its rust patches would repeat with the tile, so two
+            // samples at offsets that change along a slow world-space noise are blended (Quilez's texture repetition,
+            // technique 3). The offsets move by whole corrugations across them (matgen genMetalRoof: 16 a tile) and by
+            // any amount along them, so the ribs stay in line and only the rust and the steel's mottling move: every
+            // roof weathers differently, and across a big roof the pattern doesn't come round again. (The offsets
+            // jump between pixels, so the samples take the uv's own gradients.)
+            float2 wpw = worldP.xy - floor(worldP.xy / 1024.0) * 1024.0;
+            float l = valueNoise(wpw * 0.07 + worldP.z * 0.05) * 5.0;
+            float li = floor(l), w = smoothstep(0.2, 0.8, l - li);
+            uint ha = hash2u(uint2((uint)li, 0x2f1u)), hb = hash2u(uint2((uint)li + 1u, 0x2f1u));
+            float2 oa = float2(floor(hashF(ha) * 16.0) / 16.0, hashF(ha + 1u));
+            float2 ob = float2(floor(hashF(hb) * 16.0) / 16.0, hashF(hb + 1u));
+            a = lerp(matAlbedoArray().SampleGrad(sAnisoWrap, float3(uv + oa, m.layer), gx, gy),
+                     matAlbedoArray().SampleGrad(sAnisoWrap, float3(uv + ob, m.layer), gx, gy), w);
+            nr = lerp(matNormalArray().SampleGrad(sAnisoWrap, float3(uv + oa, m.layer), gx, gy),
+                      matNormalArray().SampleGrad(sAnisoWrap, float3(uv + ob, m.layer), gx, gy), w);
+        }
         albedo = a.rgb * m.tint.rgb * i.color.rgb;
         float2 nxy = (nr.xy * 2.0 - 1.0) * m.normalScale;
         rough = saturate(nr.z * m.roughScale);
