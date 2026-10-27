@@ -330,7 +330,7 @@ struct UpdateNotice {
     UpdateNoticeKind kind = UPD_NONE;
     std::string commit;    // the update's commit, e.g. "5ad2c3e"
     std::string changes;   // what it brings, e.g. "3 new updates: #55 Night lighting, #54 Taxi stands, #53 ..."
-    std::string detail;    // UPD_BLOCKED: why it cannot be built here
+    std::string detail;    // UPD_BLOCKED: why it cannot be built here; UPD_UNPACKING, UPD_BUILDING: the bundled compiler
     long long bytes = 0;   // UPD_DOWNLOADING: received so far
     int seconds = 0;       // UPD_BUILDING: since the build started
 };

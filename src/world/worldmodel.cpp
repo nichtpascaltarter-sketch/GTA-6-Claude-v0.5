@@ -954,10 +954,15 @@ struct Loader {
                 it.code = text(r, "code");
                 it.variants = integer(r, "variants");
                 it.collide = text(r, "collide");
-                if (const Ntw::Field* f = r.field("size")) {   // WxDxH
-                    const std::vector<std::string> d = splitAt(f->value, 'x');
-                    if (d.size() != 3 || !toFloat(d[0], &it.size.x) || !toFloat(d[1], &it.size.y) || !toFloat(d[2], &it.size.z)) badValue(*f, "piece " + r.id, "WxDxH");
-                }
+                for (const char* key : {"size", "body"})
+                    if (const Ntw::Field* f = r.field(key)) {   // WxDxH
+                        vec3& v = key[0] == 's' ? it.size : it.body;
+                        const std::vector<std::string> d = splitAt(f->value, 'x');
+                        if (d.size() != 3 || !toFloat(d[0], &v.x) || !toFloat(d[1], &v.y) || !toFloat(d[2], &v.z)) {
+                            badValue(*f, "piece " + r.id, "WxDxH");
+                            v = vec3(0.f);
+                        }
+                    }
             }
         } else if (const Ntw::Field* h = doc->headerField("id")) {
             libItem(h->value, k.c_str(), 1, -1);

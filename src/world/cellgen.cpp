@@ -656,6 +656,8 @@ void generateCell(int cx, int cy, bool detail, CellGeometry& out) {
 // for placing what drivers use, such as dead-end turning circles. The colliders are those the site cells stream with,
 // built once per cell on first use.
 bool siteColliderNear(vec3 p, float margin, float height) {
+    // the hand-built world's props (blocksbin.h "blocks.colliders"): kept clear of as the sites' structures are
+    if (gHandBlocks && gHandBlocks->colliderNear(p, margin, height)) return true;
     if (!gSites || gSites->cellElems.empty()) return false;
     static std::mutex mtx;
     static std::unordered_map<int, std::vector<CollisionBox>> cache;

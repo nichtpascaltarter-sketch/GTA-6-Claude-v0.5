@@ -107,6 +107,16 @@ void HandBlocks::index() {
         const int k = cellOf(lamps[i].pos.xy());
         if (k >= 0) lampsByCell[(size_t)k].push_back((int)i);
     }
+    // a collider in every cell its footprint's circle reaches
+    collidersByCell.assign(colliders.empty() ? 0 : cells, {});
+    for (size_t i = 0; i < colliders.size(); i++) {
+        const HandCollider& c = colliders[i];
+        const float r = c.kind == HandCollider::CYLINDER ? c.he.x : length(c.he);
+        const int x0 = Clamp((int)floorf((c.c.x - r + kWorldHalf) / kCellSize), 0, kCellsPerSide - 1), x1 = Clamp((int)floorf((c.c.x + r + kWorldHalf) / kCellSize), 0, kCellsPerSide - 1);
+        const int y0 = Clamp((int)floorf((c.c.y - r + kWorldHalf) / kCellSize), 0, kCellsPerSide - 1), y1 = Clamp((int)floorf((c.c.y + r + kWorldHalf) / kCellSize), 0, kCellsPerSide - 1);
+        for (int y = y0; y <= y1; y++)
+            for (int x = x0; x <= x1; x++) collidersByCell[(size_t)y * kCellsPerSide + x].push_back((int)i);
+    }
 }
 
 namespace blocksbin_detail {
@@ -483,6 +493,53 @@ bool readSpots(const WorldBinView& bin, std::vector<HandSpot>& out, std::string*
     return true;
 }
 
+void writeColliders(const std::vector<HandCollider>& colliders, WorldBinWriter& out) {
+    if (colliders.empty()) return;
+    ByteWriter w;
+    w.putU32(kBlockCollidersVersion);
+    w.putU32((u32)colliders.size());
+    for (const HandCollider& c : colliders) {
+        w.putU32(c.kind);
+        w.putU32((u32)c.prop);
+        const float f[8] = {c.c.x, c.c.y, c.z0, c.z1, c.he.x, c.he.y, c.ax.x, c.ax.y};
+        for (float x : f) w.putF32(x);
+    }
+    out.addCompressed("blocks.colliders", w.bytes);
+}
+
+bool readColliders(const WorldBinView& bin, std::vector<HandCollider>& out, std::string* error) {
+    out.clear();
+    if (!bin.find("blocks.colliders")) return true;
+    std::vector<u8> bytes;
+    if (!bin.bytes("blocks.colliders", bytes)) return fail(error, "world.bin's blocks.colliders section is damaged");
+    ByteReader r(bytes.data(), bytes.size());
+    const u32 version = r.getU32();
+    if (version != kBlockCollidersVersion)
+        return fail(error, "world.bin's blocks.colliders section is version " + std::to_string(version) + ", not " + std::to_string(kBlockCollidersVersion));
+    const u32 count = r.getU32();
+    if (r.bad || count > (u32)(r.end - r.p) / 40u) return fail(error, "world.bin's blocks.colliders section is truncated");
+    std::vector<HandCollider> v(count);
+    for (u32 i = 0; i < count; i++) {
+        HandCollider& c = v[i];
+        const u32 kind = r.getU32(), prop = r.getU32();
+        c.kind = (u8)kind;
+        c.prop = (int)prop;
+        c.c.x = r.getF32();
+        c.c.y = r.getF32();
+        c.z0 = r.getF32();
+        c.z1 = r.getF32();
+        c.he.x = r.getF32();
+        c.he.y = r.getF32();
+        c.ax.x = r.getF32();
+        c.ax.y = r.getF32();
+        if (r.bad || kind > HandCollider::CYLINDER || prop >= 0x7fffffffu || !(c.z1 >= c.z0) || !(c.he.x >= 0.f) || !(c.he.y >= 0.f) || fabsf(length(c.ax) - 1.f) > 0.01f)
+            return fail(error, "world.bin's blocks.colliders section: collider " + std::to_string(i) + " is damaged");
+    }
+    if (!r.done()) return fail(error, "world.bin's blocks.colliders section has bytes past its end, or is truncated");
+    out = std::move(v);
+    return true;
+}
+
 // "blocks": the ground and the dressing
 void writeDressing(const HandBlocks& b, WorldBinWriter& out) {
     ByteWriter w;
@@ -525,18 +582,22 @@ void writeBlocks(const HandBlocks& b, WorldBinWriter& out) {
     writeLots(b.lots, out);
     writeWalk(b, out);
     writeSpots(b.spots, out);
+    writeColliders(b.colliders, out);
 }
 
 bool readBlocks(const WorldBinView& bin, HandBlocks& out, std::string* error, int roadEdges) {
     using namespace blocksbin_detail;
     out = HandBlocks();   // (left empty on failure: never half the blocks)
     HandBlocks b;   // (the sections beside "blocks" first: all of them, or nothing)
-    if (!readParcels(bin, b.parcels, error, roadEdges) || !readLots(bin, b.lots, error, roadEdges) || !readWalk(bin, b, error) || !readSpots(bin, b.spots, error))
+    if (!readParcels(bin, b.parcels, error, roadEdges) || !readLots(bin, b.lots, error, roadEdges) || !readWalk(bin, b, error) || !readSpots(bin, b.spots, error) ||
+        !readColliders(bin, b.colliders, error))
         return false;
-    // a spot's prop is one of the blocks' props
+    // a spot's prop, and a collider's, is one of the blocks' props
     const auto propsOk = [&](size_t props) {
         for (const HandSpot& s : b.spots)
             if (s.prop >= 0 && (size_t)s.prop >= props) return fail(error, "world.bin's blocks.spots section names prop " + std::to_string(s.prop) + " of " + std::to_string(props));
+        for (const HandCollider& c : b.colliders)
+            if (c.prop < 0 || (size_t)c.prop >= props) return fail(error, "world.bin's blocks.colliders section names prop " + std::to_string(c.prop) + " of " + std::to_string(props));
         return true;
     };
     if (!bin.find("blocks")) {

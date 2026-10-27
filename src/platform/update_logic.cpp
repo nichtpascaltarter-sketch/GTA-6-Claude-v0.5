@@ -1,5 +1,5 @@
 // Updater logic without the operating system (update_logic.h): JSON, GitHub's answers, pull requests, toolchains,
-// commands, archive and exe checks, URLs and records.
+// commands, archive and exe checks, URLs, records and the bundled compiler's footer, record and SHA-256.
 #include "update_logic.h"
 #include <algorithm>
 #include <cstdlib>
@@ -546,6 +546,13 @@ std::string asciiText(const std::string& utf8) {
 // Toolchains
 Toolchain pickToolchain(const ToolchainProbe& p) {
     Toolchain t;
+    if (p.onlyBundled) {
+        if (!p.bundled.empty()) {
+            t.kind = TC_BUNDLED;
+            t.label = "bundled MinGW-w64 (" + p.bundled + ")";
+        }
+        return t;
+    }
     if (!p.vsInstall.empty() && p.vcvars) {
         t.kind = TC_MSVC;
         t.label = "MSVC (" + p.vsInstall + ")";
@@ -559,6 +566,9 @@ Toolchain pickToolchain(const ToolchainProbe& p) {
         t.kind = TC_MINGW_DIR;
         t.pathPrefix = p.mingwDirs[0];
         t.label = "MinGW-w64 (" + t.pathPrefix + ")";
+    } else if (!p.bundled.empty()) {
+        t.kind = TC_BUNDLED;
+        t.label = "bundled MinGW-w64 (" + p.bundled + ")";
     }
     return t;
 }
@@ -636,12 +646,13 @@ ProcessCommand unpackCommand(const std::string& systemDir, const std::string& ar
     return c;
 }
 
-std::vector<std::string> buildEnvironment(const std::vector<std::string>& env, const std::string& commit, const std::string& pathPrefix) {
+std::vector<std::string> buildEnvironment(const std::vector<std::string>& env, const std::string& commit, const std::string& pathPrefix,
+                                          const std::string& mingw) {
     std::vector<std::string> out;
     bool havePath = false;
     for (const std::string& e : env) {
         std::string name = envName(e), key = upper(name);
-        if (name.size() == e.size() || key == "VERSION" || key == "NT_COMMIT") continue;
+        if (name.size() == e.size() || key == "VERSION" || key == "NT_COMMIT" || key == "NT_MINGW") continue;
         if (key == "PATH") {
             if (havePath) continue;
             havePath = true;
@@ -654,6 +665,7 @@ std::vector<std::string> buildEnvironment(const std::vector<std::string>& env, c
     }
     if (!havePath && !pathPrefix.empty()) out.push_back("PATH=" + pathPrefix);
     out.push_back("NT_COMMIT=" + commit);
+    if (!mingw.empty()) out.push_back("NT_MINGW=" + mingw);
     std::stable_sort(out.begin(), out.end(), [](const std::string& a, const std::string& b) { return upper(envName(a)) < upper(envName(b)); });
     return out;
 }
@@ -841,6 +853,168 @@ std::string failedToolchain(const std::string& record) {
     for (const std::string& line : splitLines(record))
         if (startsWith(line, "toolchain=") && line.size() > 10) return line.substr(10);
     return std::string();
+}
+
+// ------------------------------------------------------------------------------------------------------------------
+// The bundled compiler
+namespace logic_detail {
+const char kPayloadMagic[] = "NTPAYLD1";
+const size_t kLabelBytes = 48;
+}  // namespace logic_detail
+
+bool isSha256Hex(const std::string& s) {
+    if (s.size() != 64) return false;
+    for (char c : s)
+        if (!isDigit(c) && !(c >= 'a' && c <= 'f')) return false;
+    return true;
+}
+
+bool payloadLabelValid(const std::string& label) {
+    if (label.empty() || label.size() > kLabelBytes) return false;
+    for (char c : label)
+        if (c < 32 || c > 126) return false;
+    return true;
+}
+
+std::string payloadFooter(const Payload& p) {
+    if (!isSha256Hex(p.sha256) || !payloadLabelValid(p.label)) return std::string();
+    std::string f;
+    for (size_t i = 0; i < 64; i += 2) f.push_back((char)std::strtoul(p.sha256.substr(i, 2).c_str(), nullptr, 16));
+    for (int i = 0; i < 8; i++) f.push_back((char)((p.size >> (8 * i)) & 0xff));
+    f += p.label;
+    f.resize(32 + 8 + kLabelBytes, '\0');
+    f += kPayloadMagic;
+    return f;
+}
+
+bool parsePayloadFooter(const uint8_t* tail, size_t n, uint64_t fileSize, Payload& out) {
+    out = Payload();
+    if (!tail || n < kPayloadFooterBytes || fileSize < kPayloadFooterBytes) return false;
+    const uint8_t* f = tail + (n - kPayloadFooterBytes);
+    if (memcmp(f + 32 + 8 + kLabelBytes, kPayloadMagic, 8) != 0) return false;
+    static const char kHex[] = "0123456789abcdef";
+    Payload p;
+    for (int i = 0; i < 32; i++) {
+        p.sha256.push_back(kHex[f[i] >> 4]);
+        p.sha256.push_back(kHex[f[i] & 15]);
+    }
+    for (int i = 0; i < 8; i++) p.size |= (uint64_t)f[32 + i] << (8 * i);
+    const char* l = (const char*)f + 40;
+    size_t len = 0;
+    while (len < kLabelBytes && l[len] != '\0') len++;
+    for (size_t i = len; i < kLabelBytes; i++)
+        if (l[i] != '\0') return false;
+    p.label.assign(l, len);
+    if (!payloadLabelValid(p.label) || p.size == 0 || p.size > fileSize - kPayloadFooterBytes ||
+        fileSize - kPayloadFooterBytes - p.size < kPayloadMinExeBytes)
+        return false;
+    out = p;
+    return true;
+}
+
+std::string payloadRecord(const Payload& p) {
+    return "sha256 " + p.sha256 + "\nsize " + std::to_string((unsigned long long)p.size) + "\nlabel " + p.label + "\n";
+}
+
+bool parsePayloadRecord(const std::string& text, Payload& out) {
+    out = Payload();
+    Payload p;
+    bool size = false;
+    for (const std::string& line : splitLines(text)) {
+        if (startsWith(line, "sha256 ")) p.sha256 = line.substr(7);
+        else if (startsWith(line, "label ")) p.label = line.substr(6);
+        else if (startsWith(line, "size ") && allDigits(line.substr(5)) && line.size() <= 5 + 15) {
+            p.size = std::strtoull(line.c_str() + 5, nullptr, 10);
+            size = true;
+        }
+    }
+    if (!isSha256Hex(p.sha256) || !payloadLabelValid(p.label) || !size || p.size == 0) return false;
+    out = p;
+    return true;
+}
+
+std::string payloadFolder(const std::string& sha256) { return isSha256Hex(sha256) ? sha256.substr(0, 16) : std::string(); }
+
+namespace logic_detail {
+const uint32_t kSha256K[64] = {
+    0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01,
+    0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc,
+    0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da, 0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147,
+    0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+    0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070, 0x19a4c116, 0x1e376c08,
+    0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
+    0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2};
+inline uint32_t rotr(uint32_t x, int n) { return (x >> n) | (x << (32 - n)); }
+}  // namespace logic_detail
+
+PortableSha256::PortableSha256() {
+    static const uint32_t kInit[8] = {0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19};
+    memcpy(h, kInit, sizeof(h));
+    used = 0;
+    total = 0;
+}
+
+void PortableSha256::block(const uint8_t* p) {
+    uint32_t w[64];
+    for (int i = 0; i < 16; i++) w[i] = (uint32_t)p[4 * i] << 24 | (uint32_t)p[4 * i + 1] << 16 | (uint32_t)p[4 * i + 2] << 8 | p[4 * i + 3];
+    for (int i = 16; i < 64; i++) {
+        uint32_t s0 = rotr(w[i - 15], 7) ^ rotr(w[i - 15], 18) ^ (w[i - 15] >> 3);
+        uint32_t s1 = rotr(w[i - 2], 17) ^ rotr(w[i - 2], 19) ^ (w[i - 2] >> 10);
+        w[i] = w[i - 16] + s0 + w[i - 7] + s1;
+    }
+    uint32_t a = h[0], b = h[1], c = h[2], d = h[3], e = h[4], f = h[5], g = h[6], k = h[7];
+    for (int i = 0; i < 64; i++) {
+        uint32_t t1 = k + (rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25)) + ((e & f) ^ (~e & g)) + kSha256K[i] + w[i];
+        uint32_t t2 = (rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22)) + ((a & b) ^ (a & c) ^ (b & c));
+        k = g;
+        g = f;
+        f = e;
+        e = d + t1;
+        d = c;
+        c = b;
+        b = a;
+        a = t1 + t2;
+    }
+    h[0] += a;
+    h[1] += b;
+    h[2] += c;
+    h[3] += d;
+    h[4] += e;
+    h[5] += f;
+    h[6] += g;
+    h[7] += k;
+}
+
+void PortableSha256::add(const void* data, size_t n) {
+    const uint8_t* p = (const uint8_t*)data;
+    total += n;
+    if (used > 0) {
+        size_t take = std::min(n, sizeof(buf) - used);
+        memcpy(buf + used, p, take);
+        used += take;
+        p += take;
+        n -= take;
+        if (used < sizeof(buf)) return;
+        block(buf);
+        used = 0;
+    }
+    for (; n >= 64; p += 64, n -= 64) block(p);
+    memcpy(buf, p, n);
+    used = n;
+}
+
+std::string PortableSha256::hex() {
+    uint64_t bits = total * 8;
+    uint8_t pad[72] = {0x80};
+    size_t padLen = (used < 56 ? 56 - used : 120 - used);
+    for (int i = 0; i < 8; i++) pad[padLen + i] = (uint8_t)(bits >> (56 - 8 * i));
+    add(pad, padLen + 8);
+    static const char kHex[] = "0123456789abcdef";
+    std::string out;
+    for (uint32_t v : h)
+        for (int s = 28; s >= 0; s -= 4) out.push_back(kHex[(v >> s) & 15]);
+    *this = PortableSha256();
+    return out;
 }
 
 }  // namespace Updater

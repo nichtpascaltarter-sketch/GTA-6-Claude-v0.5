@@ -37,6 +37,9 @@
 //   (u32 count, then xyz, its head first), cap (u32), hours (u32 count of ranges, then from, to per range: u32 minutes
 //   of the day; none: always), roles (u32 count, then strings), ages min | max << 8 (u32), prop (u32: an index into
 //   "blocks"' props; 0xffffffff: none), pose, for (strings)
+// Section "blocks.colliders" (WSK_LZ): version u32 (kBlockCollidersVersion), count u32, then per collider: kind (u32:
+//   0 box, 1 cylinder), prop (u32: its index in "blocks"' props), x, y (its centre), z0, z1 (its bottom and top), hx,
+//   hy (a box's half width and half depth; a cylinder's radius, twice), ax, ay (a box's width axis, unit) (f32)
 #pragma once
 #include "worldtypes.h"
 #include "worldbin.h"
@@ -51,6 +54,7 @@ constexpr u32 kBlockParcelsVersion = 1;
 constexpr u32 kBlockLotsVersion = 1;
 constexpr u32 kBlockWalkVersion = 1;
 constexpr u32 kBlockSpotsVersion = 1;
+constexpr u32 kBlockCollidersVersion = 1;
 
 // The ground kinds of parcels, paint, plazas and pads
 enum GroundKind : u8 { GK_LAWN = 0, GK_PAVING, GK_GRAVEL, GK_DIRT, GK_SAND, GK_PLANTING, GK_CONCRETE, GK_DECK, GK_COUNT };
@@ -173,6 +177,19 @@ struct HandSpot {
     std::string target;                // for=: what it serves (a bus stop's id; a door or a counter, as written)
 };
 
+// A prop's collider as the catalog gives it (collide= box or cylinder, at the piece's body= or else size=, times its
+// scale), for the AI's queries (World::siteColliderNear): what walkers steer round and what turning circles keep clear
+// of. The physics builds its own from the prop types.
+struct HandCollider {
+    enum : u8 { BOX = 0, CYLINDER };
+    u8 kind = BOX;
+    int prop = -1;                     // the prop it is
+    vec2 c = vec2(0.f);
+    float z0 = 0.f, z1 = 0.f;          // its bottom and top
+    vec2 he = vec2(0.f);               // a box's half width (along ax) and half depth; a cylinder's radius in both
+    vec2 ax = vec2(1.f, 0.f);          // a box's width axis
+};
+
 struct HandBlocks {
     std::vector<GroundPoly> ground;    // in drawing order: a parcel's ground, then its paint and pads over it
     std::vector<PropInstance> props;   // absolute positions; yaw in the game's prop frame
@@ -184,12 +201,36 @@ struct HandBlocks {
     std::vector<HandPlaza> plazas;
     std::vector<HandSteps> steps;
     std::vector<HandSpot> spots;       // "blocks.spots"
+    std::vector<HandCollider> colliders;   // "blocks.colliders"
 
     // Each cell's share (index cy * kCellsPerSide + cx): a polygon by its centroid, a prop or a lamp by its position.
     // And the level ground (the flat polygons: pads, decks, levelled parcels and their paint) by every cell its outline
     // reaches, edges included, for padHeight
     std::vector<std::vector<int>> groundByCell, propsByCell, lampsByCell, levelByCell;
+    std::vector<std::vector<int>> collidersByCell;   // (in every cell a collider's footprint reaches)
     void index();
+
+    // Whether a collider comes within `margin` of p in plan and overlaps p.z to p.z + height in z, as
+    // World::siteColliderNear asks of the sites' structures (inline: the tools that build cells link without this file)
+    bool colliderNear(vec3 p, float margin, float height) const {
+        if (collidersByCell.empty()) return false;
+        const int x0 = Max((int)floorf((p.x - margin + kWorldHalf) / kCellSize), 0), x1 = Min((int)floorf((p.x + margin + kWorldHalf) / kCellSize), kCellsPerSide - 1);
+        const int y0 = Max((int)floorf((p.y - margin + kWorldHalf) / kCellSize), 0), y1 = Min((int)floorf((p.y + margin + kWorldHalf) / kCellSize), kCellsPerSide - 1);
+        for (int y = y0; y <= y1; y++)
+            for (int x = x0; x <= x1; x++)
+                for (int ci : collidersByCell[(size_t)y * kCellsPerSide + x]) {
+                    const HandCollider& k = colliders[(size_t)ci];
+                    if (k.z1 < p.z || k.z0 > p.z + height) continue;
+                    const vec2 d = p.xy() - k.c;
+                    if (k.kind == HandCollider::CYLINDER) {
+                        if (length(d) <= k.he.x + margin) return true;
+                        continue;
+                    }
+                    const float ex = Max(0.f, fabsf(dot(d, k.ax)) - k.he.x), ey = Max(0.f, fabsf(dot(d, vec2(-k.ax.y, k.ax.x))) - k.he.y);
+                    if (ex * ex + ey * ey <= margin * margin) return true;
+                }
+        return false;
+    }
 
     // The level ground's top at p: the highest flat polygon covering p whose z is at or below maxZ. False where none
     // does (the terrain, the roads and the sites answer there). A raised pad then has a step at its edge, which people
@@ -217,12 +258,14 @@ struct HandBlocks {
     }
 };
 
-// Adds "blocks", "blocks.parcels", "blocks.lots", "blocks.walk" and "blocks.spots" (each only when it has something)
+// Adds "blocks", "blocks.parcels", "blocks.lots", "blocks.walk", "blocks.spots" and "blocks.colliders" (each only when
+// it has something)
 void writeBlocks(const HandBlocks& blocks, WorldBinWriter& out);
 
 // Reads "blocks" and the sections beside it into `out` (replacing it) and indexes it by cell. False, with a reason and
 // `out` left empty, when a section is damaged, truncated, over-long, of another version, or names an edge past
-// `roadEdges` (the network's edge count; -1: unchecked) or a prop the blocks don't have; true with the lists empty
+// `roadEdges` (the network's edge count; -1: unchecked) or a prop the blocks don't have (a spot's, a collider's); true
+// with the lists empty
 // where there are none.
 bool readBlocks(const WorldBinView& bin, HandBlocks& out, std::string* error, int roadEdges = -1);
 

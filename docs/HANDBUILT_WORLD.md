@@ -614,7 +614,8 @@ They are Python, run with `-I`, and never ship. The game doesn't know they exist
   conventions, one at a time: `blocks.parcels` (each parcel's id, use, the edge and side it fronts, and its grade),
   `blocks.lots` (each lot's curb cuts and rows, and the drive graph worldc derives from them: 12.2 #9), `blocks.walk`
   (the paths, plazas and steps: 12.3 #1) and `blocks.spots` (the spots as written and those the props and bus stops
-  imply: 12.4 #1), which the game reads in hand mode with the blocks. The colliders follow.
+  imply: 12.4 #1) and `blocks.colliders` (each prop's collider from its catalog piece: 12.3 #5), which the game reads
+  in hand mode with the blocks.
 
 A building, places or other library file stops the build until its compiler exists. Reference checks beyond what the
 compile needs (step 3) are worldv's, which CI runs on `world/`. The roads section stores floats for now; quantising it
@@ -1365,7 +1366,9 @@ cuts; grade separation. Beyond it (4.4 shows them in a file):
 4. **Jaywalking** keeps today's rule (narrow, slow, at least 12 m from a junction) on the authored widths and classes.
    `nojaywalk` marks fences and guard rails, and a median barrier implies it.
 5. **Obstacles** (bins, lamps, planters, hydrants, newspaper boxes, signal poles, benches). Each catalog piece carries a
-   simple collider (`collide=box|cylinder`) at its real size, height included, and walkers steer round them as today.
+   simple collider (`collide=box|cylinder`) at its real size, height included (`body=` where the solid part is less
+   than the piece: a tree's trunk, a lamp's pole), and walkers steer round them as today. worldc writes each prop's
+   into `blocks.colliders`, and in hand mode `World::siteColliderNear` answers them as it does the sites' structures.
    The sidewalk's clear width is derived per stretch and per side: its width less the furniture the placed props take,
    with a break wherever that changes, so a kiosk or a terrace narrows only its own few metres.
 6. **Frontage** is derived per placement by the compiler: windows with their unit's kind from the fit-out (bakery, bar,

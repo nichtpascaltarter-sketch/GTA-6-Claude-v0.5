@@ -123,6 +123,14 @@ struct FacadeGPU {
     u32 seed;
     float signIndex;
 };
+// FacadeGPU::flags (shaders/facade.hlsli): 1 a storefront ground floor, 2 a sign band, 4 neon trim, 8 blinds common,
+// 16 offices, 32 a parking garage's decks, lit all night (kFacadeParking)
+constexpr u32 kFacadeParking = 32u;
+
+// What a building is for where its style doesn't say. BS_GARAGE is the style of the parking garages and also of the back
+// buildings that gameplay leaves alone (blockstyle.cpp's infill: back houses, lock-up garages, sheds), so the parking
+// garages carry BU_PARKING (buildings.cpp), for the AI, and their facades kFacadeParking, for the night lighting.
+enum BuildingUse : u8 { BU_DEFAULT = 0, BU_PARKING };
 
 struct Building {
     vec2 c;          // footprint center
@@ -154,6 +162,7 @@ struct Building {
     u8 archFlags = 0;           // ABF_* (corner lot, mural wall side, ...)
     u32 roofTint = 0xffffffffu; // tile / shingle / metal roof colour of pitched archetype roofs
     int face = -1;              // street side the lot fronts (road edge * 2 + side), -1 for site buildings
+    u8 use = BU_DEFAULT;        // BuildingUse: BU_PARKING for a parking garage
 };
 
 enum ArchFlags : u8 { ABF_CORNER = 1, ABF_MURAL = 2, ABF_CORNER_LEFT = 4, ABF_OLD = 8, ABF_ACCENT = 16 };

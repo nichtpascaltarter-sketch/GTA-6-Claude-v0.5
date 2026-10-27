@@ -1,6 +1,7 @@
 // Automatic updates (updater.h): main's newest commit is compared over WinHTTP, its source downloaded, unpacked with
-// tar.exe and built with build.bat in the background; the verified exe (SHA-256 with BCrypt) installs and restarts at
-// the next start or on "Restart now".
+// tar.exe and built with build.bat in the background (with the bundled compiler when the machine has none); the
+// verified exe (SHA-256 with BCrypt), given the bundled compiler too, installs and restarts at the next start or on
+// "Restart now".
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
@@ -427,6 +428,7 @@ struct Config {
     std::wstring exe;              // the running exe
     std::string api, web;          // GitHub's API and web addresses, or the test server for both
     bool allowLocalHttp = false;   // --update-url: plain http to this machine
+    bool onlyBundled = false;      // --update-bundled (tests): the bundled compiler even when another one is installed
 };
 
 Config makeConfig(const std::wstring& exe) {
@@ -436,6 +438,7 @@ Config makeConfig(const std::wstring& exe) {
     c.allowLocalHttp = url != nullptr;
     c.api = url ? std::string(url) : std::string("https://api.github.com");
     c.web = url ? std::string(url) : std::string("https://github.com");
+    c.onlyBundled = Platform::hasArg("update-bundled");
     return c;
 }
 
@@ -801,8 +804,161 @@ std::string findVisualStudio(const std::wstring& work) {
     return narrow(widen(first, CP_ACP));   // (vswhere writes the console's code page when redirected)
 }
 
-Toolchain findToolchain(const std::wstring& work) {
+// ------------------------------------------------------------------------------------------------------------------
+// The bundled compiler (update_logic.h: Payload): after this exe's own bytes, or kept by build.bat bundle on this
+// machine as <data folder>\toolchain\payload.tgz with payload.txt
+struct PayloadSource {
+    std::wstring file;     // the exe or payload.tgz, "" for none
+    uint64_t offset = 0;   // where the payload starts in it
+    Payload p;
+};
+
+std::wstring toolchainRoot() { return widen(Platform::userDataDir(), CP_ACP) + L"toolchain\\"; }
+
+// What this exe carries, else what build.bat bundle keeps (its SHA-256 is checked whenever it is used)
+PayloadSource findPayload(const std::wstring& exe) {
+    PayloadSource s;
+    HANDLE f = CreateFileW(exe.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+    if (f != INVALID_HANDLE_VALUE) {
+        LARGE_INTEGER size = {}, at = {};
+        uint8_t tail[kPayloadFooterBytes];
+        DWORD got = 0;
+        if (GetFileSizeEx(f, &size) && size.QuadPart >= (LONGLONG)kPayloadFooterBytes) {
+            at.QuadPart = size.QuadPart - (LONGLONG)kPayloadFooterBytes;
+            if (SetFilePointerEx(f, at, nullptr, FILE_BEGIN) && ReadFile(f, tail, (DWORD)sizeof(tail), &got, nullptr) && got == sizeof(tail) &&
+                parsePayloadFooter(tail, sizeof(tail), (uint64_t)size.QuadPart, s.p)) {
+                s.file = exe;
+                s.offset = (uint64_t)size.QuadPart - kPayloadFooterBytes - s.p.size;
+            }
+        }
+        CloseHandle(f);
+    }
+    std::string text;
+    std::wstring root = toolchainRoot();
+    if (s.file.empty() && readSmallFile(root + L"payload.txt", text, 4096) && parsePayloadRecord(text, s.p) &&
+        fileSize(root + L"payload.tgz") == (long long)s.p.size) {
+        s.file = root + L"payload.tgz";
+        s.offset = 0;
+    }
+    if (s.file.empty()) s.p = Payload();
+    return s;
+}
+
+// Copies the payload to the end of `out`, checking its SHA-256 on the way: false with `why` when it cannot be read or
+// written, and `damaged` too when its bytes do not have its SHA-256
+bool copyPayload(const PayloadSource& s, HANDLE out, std::string& why, bool& damaged) {
+    damaged = false;
+    HANDLE in = CreateFileW(s.file.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, nullptr);
+    if (in == INVALID_HANDLE_VALUE) {
+        why = StrFormat("cannot read %s (error %lu)", narrow(s.file).c_str(), GetLastError());
+        return false;
+    }
+    LARGE_INTEGER at = {};
+    at.QuadPart = (LONGLONG)s.offset;
+    Sha256 h;
+    std::vector<char> buf(1 << 20);
+    uint64_t left = s.p.size;
+    bool ok = SetFilePointerEx(in, at, nullptr, FILE_BEGIN) != 0;
+    while (ok && left > 0) {
+        DWORD want = (DWORD)Min((uint64_t)buf.size(), left), got = 0, wrote = 0;
+        ok = ReadFile(in, buf.data(), want, &got, nullptr) && got == want && WriteFile(out, buf.data(), got, &wrote, nullptr) && wrote == got;
+        h.add(buf.data(), got);
+        left -= got;
+    }
+    DWORD err = GetLastError();
+    CloseHandle(in);
+    std::string hex = h.finish();
+    if (!ok) why = StrFormat("cannot copy the bundled compiler from %s (error %lu)", narrow(s.file).c_str(), err);
+    else if (hex != s.p.sha256) why = "the bundled compiler in " + narrow(s.file) + " does not have its SHA-256: it is damaged";
+    damaged = ok && hex != s.p.sha256;
+    return ok && !damaged;
+}
+
+// The new exe (`part`) gets the payload and its footer; on failure it is cut back to the exe as built
+bool attachPayload(const std::wstring& part, const PayloadSource& s, std::string& why, bool& damaged) {
+    damaged = false;
+    HANDLE f = CreateFileW(part.c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+    if (f == INVALID_HANDLE_VALUE) {
+        why = StrFormat("cannot open %s (error %lu)", narrow(part).c_str(), GetLastError());
+        return false;
+    }
+    LARGE_INTEGER core = {}, zero = {};
+    std::string footer = payloadFooter(s.p);
+    DWORD wrote = 0;
+    bool ok = GetFileSizeEx(f, &core) && SetFilePointerEx(f, zero, nullptr, FILE_END) && copyPayload(s, f, why, damaged) && !footer.empty() &&
+              WriteFile(f, footer.data(), (DWORD)footer.size(), &wrote, nullptr) && wrote == footer.size();
+    if (!ok) {
+        if (why.empty()) why = StrFormat("cannot write the bundled compiler to %s (error %lu)", narrow(part).c_str(), GetLastError());
+        SetFilePointerEx(f, core, nullptr, FILE_BEGIN);
+        SetEndOfFile(f);
+    }
+    CloseHandle(f);
+    return ok;
+}
+
+// The bundled compiler, unpacked once to <data folder>\toolchain\<payloadFolder>\ by tar.exe after its SHA-256 is
+// checked: `bin` is its bin folder. A folder without unpacked.txt is from an unpack that did not finish and is made
+// again; the folders of other payloads go (payload.tgz and payload.txt stay).
+bool unpackBundled(const PayloadSource& s, HANDLE log, std::wstring& bin, std::string& why, bool& damaged) {
+    damaged = false;
+    std::wstring root = toolchainRoot(), name = widen(payloadFolder(s.p.sha256)), dir = root + name, mark = dir + L"\\unpacked.txt";
+    bin = dir + L"\\bin";
+    std::string text;
+    if (readSmallFile(mark, text, 4096) && text == s.p.sha256 + "\n" && fileExists(bin + L"\\g++.exe") && fileExists(bin + L"\\windres.exe"))
+        return true;
+    if (name.empty() || !makeDirs(root.substr(0, root.size() - 1))) {
+        why = "cannot create " + narrow(root);
+        return false;
+    }
+    deleteTree(dir);
+    std::wstring tgz = dir + L".tgz";
+    HANDLE out = CreateFileW(tgz.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+    if (out == INVALID_HANDLE_VALUE) {
+        why = StrFormat("cannot write %s (error %lu)", narrow(tgz).c_str(), GetLastError());
+        return false;
+    }
+    ULONGLONG start = GetTickCount64();
+    bool copied = copyPayload(s, out, why, damaged);
+    CloseHandle(out);
+    if (copied && !CreateDirectoryW(dir.c_str(), nullptr)) why = StrFormat("cannot create %s (error %lu)", narrow(dir).c_str(), GetLastError());
+    if (copied && why.empty()) {
+        ProcessCommand pc = unpackCommand(narrow(systemDir()), narrow(tgz), narrow(dir));
+        logLine(log, "> " + pc.commandLine);
+        why = childProblem(runChild(pc, nullptr, log, kUnpackTimeoutMs), "tar.exe");
+        if (why.empty() && (!fileExists(bin + L"\\g++.exe") || !fileExists(bin + L"\\windres.exe"))) {
+            why = "the bundled compiler has no bin\\g++.exe and bin\\windres.exe";
+            damaged = true;
+        }
+    }
+    DeleteFileW(tgz.c_str());
+    if (!why.empty() || !writeFileReplacing(mark, s.p.sha256 + "\n")) {
+        if (why.empty()) why = "cannot write " + narrow(mark);
+        deleteTree(dir);
+        return false;
+    }
+    ulog("Updater: unpacked the bundled compiler (%s, %.1f MB) to %s in %.0f s", s.p.label.c_str(), (double)s.p.size / 1048576.0,
+         narrow(dir).c_str(), (double)(GetTickCount64() - start) / 1000.0);
+    std::vector<bool> dirs;
+    std::vector<std::wstring> names = listFolder(root, &dirs);
+    for (size_t i = 0; i < names.size(); i++)
+        if (dirs[i] && names[i] != name && names[i].size() == 16 && names[i].find_first_not_of(L"0123456789abcdef") == std::wstring::npos &&
+            deleteTree(root + names[i]))
+            ulog("Updater: removed the old bundled compiler %s", narrow(names[i]).c_str());
+    return true;
+}
+
+// The menus' line under the notice while the bundled compiler is unpacked or builds ("" for none)
+void setDetail(const std::string& text) {
+    Shared& S = shared();
+    std::lock_guard<std::mutex> lk(S.m);
+    S.detail = text;
+}
+
+Toolchain findToolchain(const std::wstring& work, const PayloadSource& payload, bool onlyBundled) {
     ToolchainProbe p;
+    p.bundled = payload.file.empty() ? std::string() : payload.p.label;
+    p.onlyBundled = onlyBundled;
+    if (onlyBundled) return pickToolchain(p);
     p.vsInstall = findVisualStudio(work);
     p.vcvars = !p.vsInstall.empty() && fileExists(widen(p.vsInstall) + L"\\VC\\Auxiliary\\Build\\vcvars64.bat");
     for (const std::string& d : splitPathList(narrow(envVar(L"PATH")))) {
@@ -1048,7 +1204,8 @@ bool findUpdate(const Config& cfg, NewChanges& changes, CheckResult& result) {
 }
 
 // Builds the unpacked source in <dir>src\ with build.bat and keeps the exe as <exe>.pending
-CheckResult buildSource(const Config& cfg, const NewChanges& changes, const Toolchain& tc, const std::wstring& dir, HANDLE log) {
+CheckResult buildSource(const Config& cfg, const NewChanges& changes, const Toolchain& tc, const std::wstring& dir, HANDLE log,
+                        const PayloadSource& payload) {
     Shared& S = shared();
     const std::string& sha = changes.head;
     // build.bat with CRLF line ends (cmd.exe misreads labels in a batch file with LF ones)
@@ -1061,9 +1218,11 @@ CheckResult buildSource(const Config& cfg, const NewChanges& changes, const Tool
     std::string crlf = withCrlf(bat);
     if (crlf != bat) writeFileReplacing(src + L"\\build.bat", crlf);
     ProcessCommand pc = buildCommand(narrow(systemDir()), narrow(src));
-    std::wstring env = environmentBlock(buildEnvironment(currentEnvironment(), sha, tc.pathPrefix));
+    std::string mingw = tc.kind == TC_BUNDLED ? tc.pathPrefix : std::string();
+    std::wstring env = environmentBlock(buildEnvironment(currentEnvironment(), sha, tc.pathPrefix, mingw));
     logLine(log, "> " + pc.commandLine + "   (in " + pc.directory + ", NT_COMMIT=" + sha +
-                     (tc.pathPrefix.empty() ? std::string() : ", PATH from " + tc.pathPrefix) + ")");
+                     (tc.pathPrefix.empty() ? std::string() : ", PATH from " + tc.pathPrefix) +
+                     (mingw.empty() ? std::string() : ", NT_MINGW=" + mingw) + ")");
     S.buildStart = GetTickCount64();
     S.phase = PH_BUILDING;
     ulog("Updater: building %s (%s)", shortCommit(sha).c_str(), narrow(dir + L"build.log").c_str());
@@ -1082,13 +1241,30 @@ CheckResult buildSource(const Config& cfg, const NewChanges& changes, const Tool
     bool hasCommit = false;
     if (why.empty() && !fileExists(built)) why = "build.bat made no bin\\NeonTide.exe";
     if (why.empty() && !CopyFileW(built.c_str(), part.c_str(), FALSE)) why = StrFormat("could not copy the exe next to the game (error %lu)", GetLastError());
+    // the bundled compiler goes on with the new exe: this exe's, else the one build.bat bundle keeps (a damaged one
+    // stays behind; one that cannot be copied now is tried again at the next start)
+    std::string carries;
+    bool remember = true;
+    if (why.empty() && !payload.file.empty()) {
+        std::string pw;
+        bool damaged = false;
+        if (attachPayload(part, payload, pw, damaged)) {
+            carries = payload.p.label;
+        } else if (damaged) {
+            logLine(log, "Updater: " + pw + ": the new exe goes without it");
+            ulog("Updater: %s: the new exe goes without it", pw.c_str());
+        } else {
+            why = "could not give the new exe the bundled compiler: " + pw;
+            remember = false;
+        }
+    }
     if (why.empty() && !hashFile(part, hex, head, size, sha, hasCommit)) why = "could not read the copied exe";
     if (why.empty() && !peImageValid(head.data(), head.size(), (uint64_t)size, &peWhy)) why = "the build is not a Windows program: " + peWhy;
     if (why.empty() && !hasCommit) why = "the build does not carry its commit (NT_COMMIT)";
     if (!why.empty()) {
         logLine(log, StrFormat("Updater: %s (after %.0f s)", why.c_str(), seconds));
         DeleteFileW(part.c_str());
-        return buildFailed(dir, tc.label, why, true);
+        return buildFailed(dir, tc.label, why, remember);
     }
     PendingInfo info;
     info.commit = sha;
@@ -1105,8 +1281,10 @@ CheckResult buildSource(const Config& cfg, const NewChanges& changes, const Tool
         DeleteFileW(pending.c_str());
         return buildFailed(dir, tc.label, why, false);
     }
-    logLine(log, StrFormat("Updater: built in %.0f s: %lld bytes, SHA-256 %s", seconds, size, hex.c_str()));
-    ulog("Updater: built %s in %.0f s (%lld bytes, SHA-256 %s): it installs at the next start", shortCommit(sha).c_str(), seconds, size, hex.c_str());
+    std::string with = carries.empty() ? std::string() : ", with the bundled compiler " + carries;
+    logLine(log, StrFormat("Updater: built in %.0f s: %lld bytes%s, SHA-256 %s", seconds, size, with.c_str(), hex.c_str()));
+    ulog("Updater: built %s in %.0f s (%lld bytes%s, SHA-256 %s): it installs at the next start", shortCommit(sha).c_str(), seconds, size,
+         with.c_str(), hex.c_str());
     return finish(PH_READY, CR_READY);
 }
 
@@ -1118,10 +1296,15 @@ CheckResult buildUpdate(const Config& cfg, const NewChanges& changes) {
         ulog("Updater: %s was built before and installs at the next start", shortCommit(sha).c_str());
         return finish(PH_READY, CR_READY);
     }
-    // what building needs: a folder of its own, a C++ toolchain, tar.exe and a game folder that can be written
+    // what building needs: a folder of its own, a C++ toolchain (or the bundled one), tar.exe and a game folder that
+    // can be written
+    setDetail("");
     std::wstring root = updatesRoot();
     if (root.empty()) return blocked("Neon Tide has no folder for updates (" + Platform::userDataDir() + "updates).");
-    Toolchain tc = findToolchain(root);
+    PayloadSource payload = findPayload(cfg.exe);
+    Toolchain tc = findToolchain(root, payload, cfg.onlyBundled);
+    if (tc.kind == TC_NONE && cfg.onlyBundled)
+        return blocked("--update-bundled: this exe carries no bundled compiler, and build.bat bundle keeps none on this machine.");
     if (tc.kind == TC_NONE)
         return blocked("Updates are built from source and need a C++ compiler: Visual Studio Build Tools (free) or w64devkit.");
     if (!fileExists(systemDir() + L"\\tar.exe")) return blocked("Updates are unpacked with tar.exe, which comes with Windows 10 version 1803 and later.");
@@ -1171,7 +1354,24 @@ CheckResult buildUpdate(const Config& cfg, const NewChanges& changes) {
         deleteTree(dir + L"src");
         return finish(PH_DONE, CR_FAILED);
     }
-    CheckResult r = buildSource(cfg, changes, tc, dir, log.h);
+    // the bundled compiler: unpacked the first time, then the build uses it (the notice says so)
+    if (tc.kind == TC_BUNDLED) {
+        setDetail("Unpacking the bundled compiler (" + payload.p.label + "): only the first time.");
+        std::wstring bin;
+        bool damaged = false;
+        if (!unpackBundled(payload, log.h, bin, why, damaged)) {
+            logLine(log.h, "Updater: " + why);
+            deleteTree(dir + L"src");
+            setDetail("");
+            if (S.cancel) return finish(PH_IDLE, CR_NONE);
+            if (damaged) return blocked("The bundled compiler cannot be used (" + why + "): updates need Visual Studio Build Tools (free) or w64devkit.");
+            ulog("Updater: the bundled compiler was not unpacked (%s): the next start tries again", why.c_str());
+            return finish(PH_DONE, CR_FAILED);
+        }
+        tc.pathPrefix = narrow(bin);
+        setDetail("With the bundled compiler (" + payload.p.label + ").");
+    }
+    CheckResult r = buildSource(cfg, changes, tc, dir, log.h, payload);
     deleteTree(dir + L"src");   // (the source and the build's files: hundreds of MB)
     if (r == CR_READY) {        // only the log stays; otherwise the archive too, for a try with another compiler
         DeleteFileW((dir + L"source.tar.gz").c_str());

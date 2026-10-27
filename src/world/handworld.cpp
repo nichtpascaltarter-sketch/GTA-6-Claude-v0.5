@@ -228,11 +228,11 @@ bool loadHandWorld(const char* worldFile, WorldMap& map, RoadNetwork& roads, Bui
     buildings.cellLists.assign((size_t)kCellsPerSide * kCellsPerSide, {});
     buildings.openCellLists.assign((size_t)kCellsPerSide * kCellsPerSide, {});
     gBuildings = &buildings;
-    LOG("Hand world: terrain, %zu road nodes, %zu edges (%zu with overrides), %zu ground polygons, %zu props, %zu lamps, %zu parcels, %zu lots, %zu paths and "
-        "%zu spots from %s (%zu KB, %zu sections) in %.2f s",
+    LOG("Hand world: terrain, %zu road nodes, %zu edges (%zu with overrides), %zu ground polygons, %zu props, %zu lamps, %zu parcels, %zu lots, %zu paths, "
+        "%zu spots and %zu colliders from %s (%zu KB, %zu sections) in %.2f s",
         roads.nodes.size(), roads.edges.size(), overrides.edges.size(), blocks.ground.size(), blocks.props.size(), blocks.lamps.size(), blocks.parcels.size(),
-        blocks.lots.size(), blocks.paths.size(), blocks.spots.size(), worldFile && *worldFile ? worldFile : "the exe", size / 1024, bin.sections.size(),
-        TimeSeconds() - t0);
+        blocks.lots.size(), blocks.paths.size(), blocks.spots.size(), blocks.colliders.size(), worldFile && *worldFile ? worldFile : "the exe", size / 1024,
+        bin.sections.size(), TimeSeconds() - t0);
     return true;
 }
 

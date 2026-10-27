@@ -1,7 +1,8 @@
 // Updater logic that needs no operating system (tested natively by tests/updater/update_logic_test.cpp): a small JSON
 // reader, GitHub's compare and commit-list answers, the pull requests merged since a commit, the choice of C++
 // toolchain, the build and unpack commands with their environment, the checks of a downloaded archive and of a built
-// exe, the URL rules and the pending-update record. Downloads, processes and the install are in updater.cpp.
+// exe, the URL rules, the pending-update record and the bundled compiler's footer and record (with a portable SHA-256).
+// Downloads, processes and the install are in updater.cpp.
 #pragma once
 #include <cstddef>
 #include <cstdint>
@@ -96,18 +97,22 @@ std::string asciiText(const std::string& utf8);
 // ------------------------------------------------------------------------------------------------------------------
 // The C++ toolchain build.bat will use, in build.bat's own order: Visual Studio's C++ tools found by vswhere (with
 // vcvars64.bat), cl.exe on PATH, g++.exe with windres.exe on PATH, then g++ and windres in a usual MinGW-w64 folder
-// (w64devkit, MSYS2), which the build gets in front of its PATH.
-enum ToolchainKind : uint8_t { TC_NONE = 0, TC_MSVC, TC_MSVC_PATH, TC_MINGW_PATH, TC_MINGW_DIR };
+// (w64devkit, MSYS2), which the build gets in front of its PATH. Last, the bundled compiler (below) when the exe or
+// the machine has one: the updater unpacks it first and tells build.bat to use it (NT_MINGW).
+enum ToolchainKind : uint8_t { TC_NONE = 0, TC_MSVC, TC_MSVC_PATH, TC_MINGW_PATH, TC_MINGW_DIR, TC_BUNDLED };
 struct ToolchainProbe {
     std::string vsInstall;                // vswhere's installationPath with the x64 C++ tools, "" for none
     bool vcvars = false;                  // <vsInstall>\VC\Auxiliary\Build\vcvars64.bat exists
     bool clOnPath = false, gxxOnPath = false, windresOnPath = false;
     std::vector<std::string> mingwDirs;   // the candidate folders (mingwCandidateDirs order) that hold g++ and windres
+    std::string bundled;                  // the bundled compiler's label (e.g. "w64devkit 2.9.1"), "" without one
+    bool onlyBundled = false;             // --update-bundled (tests): the bundled compiler even when another one is there
 };
 struct Toolchain {
     ToolchainKind kind = TC_NONE;
-    std::string pathPrefix;   // TC_MINGW_DIR: the folder put in front of PATH
-    std::string label;        // for the log and the records, e.g. "MSVC (C:\...\BuildTools)", "MinGW-w64 (C:\w64devkit\bin)"
+    std::string pathPrefix;   // TC_MINGW_DIR: the folder put in front of PATH; TC_BUNDLED: its bin folder once unpacked
+    std::string label;        // for the log and the records, e.g. "MSVC (C:\...\BuildTools)", "MinGW-w64 (C:\w64devkit\bin)",
+                              // "bundled MinGW-w64 (w64devkit 2.9.1)"
 };
 Toolchain pickToolchain(const ToolchainProbe& p);
 // The usual MinGW-w64 folders, in order: w64devkit at the system drive's root, in the user's folder and from Scoop,
@@ -127,9 +132,11 @@ struct ProcessCommand {
 ProcessCommand buildCommand(const std::string& systemDir, const std::string& sourceDir);
 ProcessCommand unpackCommand(const std::string& systemDir, const std::string& archive, const std::string& folder);
 // The build's environment ("NAME=value" entries, as GetEnvironmentStrings lists them): NT_COMMIT set to `commit`,
-// VERSION removed (the source's version.h names the version), `pathPrefix` (if any) in front of PATH. Names match
-// without case and keep their spelling. Sorted without case, as CreateProcess wants it.
-std::vector<std::string> buildEnvironment(const std::vector<std::string>& env, const std::string& commit, const std::string& pathPrefix);
+// VERSION removed (the source's version.h names the version), `pathPrefix` (if any) in front of PATH, and NT_MINGW
+// set to `mingw` when it is given (build.bat then builds with the g++ in that folder, without looking for MSVC) and
+// removed otherwise. Names match without case and keep their spelling. Sorted without case, as CreateProcess wants it.
+std::vector<std::string> buildEnvironment(const std::vector<std::string>& env, const std::string& commit, const std::string& pathPrefix,
+                                          const std::string& mingw = std::string());
 // A command-line argument, quoted the way CommandLineToArgvW and the C runtime read it back when it needs quotes
 std::string quoteArgument(const std::string& arg);
 
@@ -187,5 +194,48 @@ bool pendingFromJson(const std::string& text, PendingInfo& out);
 // updates\<sha>\failed.txt: a build of that commit failed with this toolchain (not tried again with the same one)
 std::string failedRecord(const std::string& toolchain, const std::string& why);
 std::string failedToolchain(const std::string& record);   // "" when unreadable
+
+// ------------------------------------------------------------------------------------------------------------------
+// The bundled compiler (README: The bundled compiler): `build.bat bundle` packs what build.bat's MinGW branch needs
+// from a pinned w64devkit (MinGW-w64 GCC) into a .tar.gz with tar.exe, keeps it as <data folder>\toolchain\payload.tgz
+// (with payload.txt) and appends it to bin\NeonTide.exe; the updater passes it on to every exe it builds and, when the
+// machine has no compiler, unpacks it with tar.exe to <data folder>\toolchain\<payloadFolder>\ and builds with it.
+// An exe that carries it: [the exe][the payload][the footer, kPayloadFooterBytes]: the payload's SHA-256 (32 bytes),
+// its size (8, little-endian), its label (48, ASCII, NUL-padded) and "NTPAYLD1".
+constexpr size_t kPayloadFooterBytes = 96;
+constexpr uint64_t kPayloadMinExeBytes = 4096;   // what a footer must leave for the exe in front of the payload
+struct Payload {
+    uint64_t size = 0;
+    std::string sha256;   // 64 lower-case hex digits
+    std::string label;    // what it is, e.g. "w64devkit 2.9.1": 1 to 48 printable ASCII characters
+};
+bool isSha256Hex(const std::string& s);
+bool payloadLabelValid(const std::string& label);
+// The footer's bytes, "" when the hash or the label is not valid
+std::string payloadFooter(const Payload& p);
+// The footer of a file of fileSize bytes from its last `n` bytes (n >= kPayloadFooterBytes); false when the file
+// has none, it is malformed, or the payload would leave less than kPayloadMinExeBytes in front of it
+bool parsePayloadFooter(const uint8_t* tail, size_t n, uint64_t fileSize, Payload& out);
+// payload.txt: "sha256 <hex>", "size <bytes>" and "label <text>" lines (any order, CRLF or LF; others are ignored)
+std::string payloadRecord(const Payload& p);
+bool parsePayloadRecord(const std::string& text, Payload& out);
+// The folder it unpacks to under <data folder>\toolchain\: the first 16 digits of its SHA-256 (short paths: GCC's
+// deepest headers stay well inside MAX_PATH), "" for a hash that is not valid
+std::string payloadFolder(const std::string& sha256);
+
+// SHA-256 (FIPS 180-4) in portable code, for build.bat's payload tool and the tests (the updater uses BCrypt)
+class PortableSha256 {
+public:
+    PortableSha256();
+    void add(const void* data, size_t n);
+    std::string hex();   // the digest in lower-case hex; the hasher starts over afterwards
+
+private:
+    void block(const uint8_t* p);
+    uint32_t h[8];
+    uint8_t buf[64];
+    size_t used = 0;
+    uint64_t total = 0;
+};
 
 }  // namespace Updater
