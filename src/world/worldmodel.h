@@ -356,11 +356,76 @@ struct Dress {
     std::string sched;                 // lights: dusk, evening, night, always, never (empty: dusk)
 };
 
+// The walk graph's authored inputs, beside the sidewalks: paths and steps (and the plazas above)
+struct Path {
+    std::string id;                    // cl.b014.pa1
+    Src src;
+    int block = -1;
+    std::vector<vec2> line;
+    float w = 0.f;
+    std::string kind;                  // walk, plaza, alley, trail, boardwalk, footbridge, underpass
+    std::vector<vec2> profile;         // profile=s:z;...: the height along it (absolute), for footbridges and underpasses
+};
+struct Steps {                         // outdoor steps, climbed a tread at a time
+    Src src;
+    int block = -1;
+    std::vector<vec2> line;            // from the bottom to the top
+    float w = 0.f;
+    int treads = 0;                    // 0: derived from the heights at its ends
+    float rise = 0.f;                  // 0: derived
+};
+// A scenario point outdoors (NTW_FORMAT.md 9.5's spot kinds)
+struct Spot {
+    std::string id;                    // cl.b014.s1 (optional)
+    Src src;
+    int block = -1;
+    std::string kind;                  // bench, busstop_wait, queue, ...
+    bool hasAt = false;
+    vec2 at = vec2(0.f);
+    bool hasYaw = false;
+    float yaw = 0.f;                   // degrees: the way the one using it faces
+    std::vector<vec2> line;            // a queue, its head first
+    int cap = 0;                       // 0: not written
+    std::string hours;                 // h.mm-h.mm;... (empty: always)
+    int cover = 0;                     // 1: sheltered, used in rain
+    std::vector<std::string> roles;
+    std::string ages;                  // min-max (empty: any)
+    Ref prop;                          // the piece it uses (the nearest prop of it)
+    std::string pose;                  // the clip
+    std::string target;                // for=: what a queue leads to (a bus stop, a door, a counter), as written
+};
+
+// A lot's entry or exit: the curb cut on a street it is entered or left by (entry=<edge>:<at>:<side>)
+struct LotCut {
+    Ref edge;
+    float at = 0.f;                    // m along the edge in plan, from its from node
+    Side side = SIDE_RIGHT;
+};
+struct LotRow {                        // a row of bays
+    Src src;
+    std::vector<vec2> line;            // the bays' centreline, from the first bay's outer edge to the last's
+    int bays = 0;
+    float w = 2.5f, len = 5.f;         // a bay's width and length
+    bool hasYaw = false;
+    float yaw = 0.f;                   // degrees: the way a car parked nose-in faces; without it, square to the line, to
+                                       // its left looking from its first point
+    int level = 0;
+    std::vector<vec2> aisle;           // aisle=: the aisle its bays open onto, as authored; empty: derived
+};
+struct LotRamp {                       // a ramp between two levels
+    Src src;
+    int from = 0, to = 0;
+    std::vector<vec2> line;            // from its foot (level `from`) to its top (level `to`)
+};
 struct Lot {
     std::string id;                    // cl.b014.lot1
     Src src;
     int block = -1;
     int levels = 1;
+    bool hasEntry = false, hasExit = false;
+    LotCut entry, exit;
+    std::vector<LotRow> rows;
+    std::vector<LotRamp> ramps;
 };
 
 struct Block {
@@ -370,6 +435,7 @@ struct Block {
     Ref district;
     std::vector<int> parcels, lots;    // indices in Model::parcels and Model::lots, in file order
     std::vector<int> plazas, dressing; // indices in Model::plazas and Model::dressing, in file order
+    std::vector<int> paths, steps, spots;   // indices in Model::paths, Model::steps and Model::spots, in file order
 };
 
 struct Building {
@@ -438,6 +504,9 @@ struct Model {
     std::vector<Plaza> plazas;
     std::vector<Dress> dressing;
     std::vector<Lot> lots;
+    std::vector<Path> paths;
+    std::vector<Steps> steps;
+    std::vector<Spot> spots;
     std::vector<Building> buildings;
     std::vector<LibItem> library;
 
@@ -571,6 +640,12 @@ struct BlocksOut {
     std::vector<BlockPad> pads;
     std::vector<vec2> lampGroundAt;    // per lamp
     std::vector<u8> groundOnTerrain;   // per ground polygon: 1 for a level one whose z is above the terrain
+    std::vector<int> propDress;        // per prop: the dressing record it is (Model::dressing)
+    // compileBlockSections': per path, 1 where its z is above the ground (0: its profile's, absolute). Its other
+    // heights are above the ground too: the lots' (their level's, kLotLevelHeight a level), the spots' (a seat's
+    // height; a spot with a prop, above the prop's base), and the steps' ends, whose treads and rise stay as written
+    // (0: derived) until placeOnTerrain knows the ground
+    std::vector<u8> pathOnTerrain;
 };
 
 // Compiles the blocks' parcels, plazas and dressing into the game's blocks (blocksbin.h):
@@ -586,6 +661,45 @@ struct BlocksOut {
 // kind it doesn't know), block.size (a tree scaled below 0.2 or above 5 of its piece). Records naming nothing are
 // worldv's to report, and left out here. False when it reported anything.
 bool compileBlocks(const Model& model, BlocksOut& out, std::vector<Error>& errors);
+
+// What the AI's graphs read from the blocks (blocksbin.h), on the compiled roads (`net` with each side's widths applied,
+// and `index`), into `out` beside compileBlocks' share; heights still above the ground (placeOnTerrain finishes them):
+// - the parcels: id, use, the edge and side they front (front=), their grade where levelled (NaN: on the terrain);
+// - the lots, with their drive graphs. A lot's entry and exit are curb cuts: the edge, the RoadEdge's own s at its
+//   at= (plan metres), and the side; the cut's node stands behind that side's sidewalk. Each row's bays are spread
+//   evenly along its line; they face its yaw= (square to the line, to its left, without one), and open onto an aisle
+//   behind them, 6 m wide (4 m and one way for bays more than 15 degrees off square, the way that turns a car into
+//   them by less than 90 degrees), along the line half the bays' depth square to it plus half the aisle away; aisle=
+//   overrides it. Rows on one level whose aisles run along each other share one, down its middle: straight aisles
+//   within 1.5 m, parallel, overlapping by a metre and the same way (a two-way one turned to match), or polylines of
+//   as many points, each within 1.5 m of its partner. Then the graph:
+//   - the aisles, a link each with a node at either end (ends within 1 m one node; a closed aisle, a loop round an
+//     island, two links meeting halfway round); the ramps, a link from their foot to their top, a level each,
+//     kLotLevelHeight above the one below; an aisle or ramp that stops within 1 m of an aisle's side joins it there;
+//   - the entry and the exit: a drive from the cut to the nearest point of an aisle on level 0 (or a ramp's foot),
+//     one way in and one way out where both exist;
+//   - every part the entry doesn't reach joins it by its nearest pair of nodes on one level; then, along the one-way
+//     links, a node that can't reach the way out joins the nearest node on its level that can, and one the entry
+//     doesn't reach joins the nearest it does (a one-way aisle's far end), so every node is on a way through.
+//   Each bay opens onto its row's aisle where that passes nearest its centre: the link and the plan metres along it.
+// - the walk graph's inputs: each path (its kind, width and points; a footbridge's or underpass's heights from its
+//   profile=, absolute, with a point at each of the profile's s), each plaza, each flight of steps (its ends; treads
+//   and rise as written, else derived from the ground by placeOnTerrain);
+// - the spots: each written one (a point and its facing, or a queue's line with its head first, facing the head;
+//   cap= or 1, a queue a place every 0.75 m; hours as minutes of the day; ages; its prop: the nearest prop of the
+//   piece prop= names, within 2 m), then the ones the props and bus stops imply: a seat on every prop with one
+//   (catalogcodes.h seatSpec: a bench's, a bus shelter's, facing the piece's front, a place every 0.6 m), a bus
+//   shelter's a bus stop's wait (the nearest stop within 15 m of it, under cover), and every other bus stop on a
+//   compiled edge a wait standing by the kerb (at its wait=, else in the middle of its side's sidewalk; for 6).
+// Findings: block.lot (levels= under 1, a lot without rows, a row of no bays, a row or ramp on a level the lot doesn't
+// have, an entry or exit past its edge's ends, nothing on level 0 for the entry, a level no ramp reaches, one-way
+// aisles that leave a part of the lot that can't be reached or left), block.shape (a row's line of fewer than 2 points
+// or under a metre, an aisle= or a ramp's line of fewer than 2 points or under 2 m; a path's or flight's line of fewer
+// than 2 points, or without a width), block.path (a footbridge or underpass without a profile= from 0 to its length),
+// block.spot (neither at= nor line=, or both; hours= or ages= in another form; a prop= with no such prop within 2 m).
+// A lot or record with a finding is left out; records naming nothing are worldv's, and a lot whose entry names nothing
+// is left out too. False when it reported anything.
+bool compileBlockSections(const Model& model, const RoadIndex& index, const RoadNetwork& net, BlocksOut& out, std::vector<Error>& errors);
 
 // The baked terrain as worldc reads it from world/terrain: the heights and water the roads and parcels are graded into
 struct BakedTerrain {

@@ -190,7 +190,9 @@ std::vector<KindDef> build() {
         k.records.push_back(Rec("spot", 1, false, spotFields(outdoorSpots, false)));
         k.records.push_back(Rec("lot", 2, true, {R("entry", VT_ANY, 2), F("exit", VT_ANY, 2), F("levels", VT_INT)}, {"row", "ramp"}));
         k.records.push_back(Rec("row", 0, false,
-                                {R("line", VT_POINTS, 2), R("bays", VT_INT), F("w", VT_NUM, 2), F("len", VT_NUM, 2), F("yaw", VT_NUM, 1), F("level", VT_INT)}, {}, false));
+                                {R("line", VT_POINTS, 2), R("bays", VT_INT), F("w", VT_NUM, 2), F("len", VT_NUM, 2), F("yaw", VT_NUM, 1), F("level", VT_INT),
+                                 F("aisle", VT_POINTS, 2)},
+                                {}, false));
         k.records.push_back(Rec("ramp", 0, false, {R("from", VT_INT), R("to", VT_INT), R("line", VT_POINTS, 2)}, {}, false));
         kinds.push_back(k);
     }

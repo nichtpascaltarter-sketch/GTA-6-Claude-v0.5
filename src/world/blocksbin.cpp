@@ -1,4 +1,4 @@
-// The hand-built world's blocks section (blocksbin.h).
+// The hand-built world's blocks sections (blocksbin.h).
 #include "blocksbin.h"
 #include <cmath>
 #include <utility>
@@ -15,6 +15,47 @@ GroundKind groundKind(const std::string& w, bool* known) {
     if (known) *known = false;
     return GK_LAWN;
 }
+
+ParcelUse parcelUse(const std::string& w, bool* known) {
+    static const char* const kNames[PU_COUNT] = {"residential", "commercial", "mixed", "industrial", "civic", "park", "parking", "vacant"};
+    for (int i = 0; i < (int)PU_COUNT; i++)
+        if (w == kNames[i]) {
+            if (known) *known = true;
+            return (ParcelUse)i;
+        }
+    if (known) *known = false;
+    return PU_VACANT;
+}
+
+PathKind pathKind(const std::string& w, bool* known) {
+    static const char* const kNames[WK_COUNT] = {"walk", "plaza", "alley", "trail", "boardwalk", "footbridge", "underpass"};
+    for (int i = 0; i < (int)WK_COUNT; i++)
+        if (w == kNames[i]) {
+            if (known) *known = true;
+            return (PathKind)i;
+        }
+    if (known) *known = false;
+    return WK_WALK;
+}
+
+namespace blocksbin_detail {
+const char* const kSpotNames[SPOT_COUNT] = {"bench",     "wall_sit",  "steps_sit",  "lean",        "smoke",         "phone",         "busstop_wait",
+                                          "queue",     "window",    "atm",        "vending",     "cafe_seat",     "bar_stool",     "busk",
+                                          "vendor",    "guard",     "door_staff", "watch_view",  "fish",          "exercise",      "sunbathe",
+                                          "sleep_rough", "talk_ring", "cover",    "desk",        "counter_serve", "counter_queue", "browse",
+                                          "bed",       "sofa",      "kitchen",    "washroom",    "bar",           "dance"};
+}  // namespace blocksbin_detail
+
+SpotKind spotKind(const std::string& w, bool* known) {
+    for (int i = 0; i < (int)SPOT_COUNT; i++)
+        if (w == blocksbin_detail::kSpotNames[i]) {
+            if (known) *known = true;
+            return (SpotKind)i;
+        }
+    if (known) *known = false;
+    return SPOT_BENCH;
+}
+const char* spotKindName(int kind) { return kind >= 0 && kind < (int)SPOT_COUNT ? blocksbin_detail::kSpotNames[kind] : "?"; }
 
 namespace blocksbin_detail {
 
@@ -68,8 +109,382 @@ void HandBlocks::index() {
     }
 }
 
-void writeBlocks(const HandBlocks& b, WorldBinWriter& out) {
-    if (b.ground.empty() && b.props.empty() && b.lamps.empty()) return;
+namespace blocksbin_detail {
+
+void putV3(ByteWriter& w, vec3 v) {
+    w.putF32(v.x);
+    w.putF32(v.y);
+    w.putF32(v.z);
+}
+vec3 getV3(ByteReader& r) {
+    const float x = r.getF32(), y = r.getF32(), z = r.getF32();
+    return vec3(x, y, z);
+}
+void putCut(ByteWriter& w, const HandLot::Cut& c) {
+    w.putU32(c.edge < 0 ? 0xffffffffu : (u32)c.edge);
+    w.putF32(c.s);
+    w.putU32(c.side);
+}
+bool getCut(ByteReader& r, HandLot::Cut& c, int roadEdges) {
+    const u32 e = r.getU32();
+    c.edge = e == 0xffffffffu ? -1 : (int)e;
+    c.s = r.getF32();
+    const u32 side = r.getU32();
+    c.side = (u8)side;
+    return !r.bad && side <= 1u && (e == 0xffffffffu || (e < 0x7fffffffu && (roadEdges < 0 || (int)e < roadEdges))) && std::isfinite(c.s);
+}
+
+void writeParcels(const std::vector<HandParcel>& parcels, WorldBinWriter& out) {
+    if (parcels.empty()) return;
+    ByteWriter w;
+    w.putU32(kBlockParcelsVersion);
+    w.putU32((u32)parcels.size());
+    for (const HandParcel& p : parcels) {
+        w.putString(p.id);
+        w.putU32((u32)p.use | ((u32)p.frontSide << 8));
+        w.putU32(p.frontEdge < 0 ? 0xffffffffu : (u32)p.frontEdge);
+        w.putF32(p.grade);
+        w.putPoints(p.poly);
+    }
+    out.addCompressed("blocks.parcels", w.bytes);
+}
+
+void writeLots(const std::vector<HandLot>& lots, WorldBinWriter& out) {
+    if (lots.empty()) return;
+    ByteWriter w;
+    w.putU32(kBlockLotsVersion);
+    w.putU32((u32)lots.size());
+    for (const HandLot& l : lots) {
+        w.putString(l.id);
+        w.putU32((u32)l.levels);
+        putCut(w, l.entry);
+        putCut(w, l.exit);
+        w.putU32((u32)l.rows.size());
+        for (const HandLot::Row& r : l.rows) {
+            putV3(w, r.a);
+            putV3(w, r.b);
+            w.putU32((u32)r.bays);
+            w.putF32(r.w);
+            w.putF32(r.len);
+            w.putF32(r.dir.x);
+            w.putF32(r.dir.y);
+            w.putU32((u32)r.level);
+            w.putU32((u32)r.aisle);
+        }
+        w.putU32((u32)l.nodes.size());
+        for (const HandLot::Node& n : l.nodes) {
+            putV3(w, n.p);
+            w.putU32((u32)n.level | ((u32)n.kind << 8));
+        }
+        w.putU32((u32)l.links.size());
+        for (const HandLot::Link& k : l.links) {
+            w.putU32((u32)k.a);
+            w.putU32((u32)k.b);
+            w.putF32(k.width);
+            w.putU32((u32)k.oneway | ((u32)k.kind << 8));
+            w.putU32((u32)k.pts.size());
+            for (const vec3& q : k.pts) putV3(w, q);
+        }
+        w.putU32((u32)l.bays.size());
+        for (const HandLot::Bay& b : l.bays) {
+            putV3(w, b.c);
+            w.putF32(b.dir.x);
+            w.putF32(b.dir.y);
+            w.putU32((u32)b.row);
+            w.putU32((u32)b.link);
+            w.putF32(b.s);
+        }
+    }
+    out.addCompressed("blocks.lots", w.bytes);
+}
+
+bool readParcels(const WorldBinView& bin, std::vector<HandParcel>& out, std::string* error, int roadEdges) {
+    out.clear();
+    if (!bin.find("blocks.parcels")) return true;
+    std::vector<u8> bytes;
+    if (!bin.bytes("blocks.parcels", bytes)) return fail(error, "world.bin's blocks.parcels section is damaged");
+    ByteReader r(bytes.data(), bytes.size());
+    const u32 version = r.getU32();
+    if (version != kBlockParcelsVersion)
+        return fail(error, "world.bin's blocks.parcels section is version " + std::to_string(version) + ", not " + std::to_string(kBlockParcelsVersion));
+    const u32 count = r.getU32();
+    if (r.bad || count > (u32)(r.end - r.p) / 20u) return fail(error, "world.bin's blocks.parcels section is truncated");
+    std::vector<HandParcel> v(count);
+    for (u32 i = 0; i < count; i++) {
+        HandParcel& p = v[i];
+        p.id = r.getString();
+        const u32 bits = r.getU32();
+        p.use = (u8)(bits & 255u);
+        p.frontSide = (u8)((bits >> 8) & 255u);
+        const u32 e = r.getU32();
+        p.frontEdge = e == 0xffffffffu ? -1 : (int)e;
+        p.grade = r.getF32();
+        r.getPoints(p.poly);
+        if (r.bad || p.use >= PU_COUNT || p.frontSide > 1u || p.poly.size() < 3 ||
+            (e != 0xffffffffu && (e >= 0x7fffffffu || (roadEdges >= 0 && (int)e >= roadEdges))))
+            return fail(error, "world.bin's blocks.parcels section: parcel " + std::to_string(i) + " is damaged");
+    }
+    if (!r.done()) return fail(error, "world.bin's blocks.parcels section has bytes past its end, or is truncated");
+    out = std::move(v);
+    return true;
+}
+
+bool readLots(const WorldBinView& bin, std::vector<HandLot>& out, std::string* error, int roadEdges) {
+    out.clear();
+    if (!bin.find("blocks.lots")) return true;
+    std::vector<u8> bytes;
+    if (!bin.bytes("blocks.lots", bytes)) return fail(error, "world.bin's blocks.lots section is damaged");
+    ByteReader r(bytes.data(), bytes.size());
+    const u32 version = r.getU32();
+    if (version != kBlockLotsVersion) return fail(error, "world.bin's blocks.lots section is version " + std::to_string(version) + ", not " + std::to_string(kBlockLotsVersion));
+    const u32 count = r.getU32();
+    if (r.bad || count > (u32)(r.end - r.p) / 48u) return fail(error, "world.bin's blocks.lots section is truncated");
+    std::vector<HandLot> v(count);
+    const auto left = [&r](u32 n, u32 each) { return !r.bad && n <= (u32)(r.end - r.p) / each; };
+    for (u32 i = 0; i < count; i++) {
+        HandLot& l = v[i];
+        const std::string what = "world.bin's blocks.lots section: lot " + std::to_string(i);
+        l.id = r.getString();
+        l.levels = (int)r.getU32();
+        if (!getCut(r, l.entry, roadEdges) || !getCut(r, l.exit, roadEdges) || l.levels < 1 || l.levels > 64) return fail(error, what + " is damaged");
+        u32 n = r.getU32();
+        if (!left(n, 52u)) return fail(error, what + " is truncated (rows)");
+        l.rows.resize(n);
+        for (HandLot::Row& row : l.rows) {
+            row.a = getV3(r);
+            row.b = getV3(r);
+            row.bays = (int)r.getU32();
+            row.w = r.getF32();
+            row.len = r.getF32();
+            row.dir.x = r.getF32();
+            row.dir.y = r.getF32();
+            row.level = (int)r.getU32();
+            row.aisle = (int)r.getU32();
+        }
+        n = r.getU32();
+        if (!left(n, 16u)) return fail(error, what + " is truncated (nodes)");
+        l.nodes.resize(n);
+        for (HandLot::Node& nd : l.nodes) {
+            nd.p = getV3(r);
+            const u32 bits = r.getU32();
+            nd.level = (int)(bits & 255u);
+            nd.kind = (u8)((bits >> 8) & 255u);
+        }
+        n = r.getU32();
+        if (!left(n, 20u)) return fail(error, what + " is truncated (links)");
+        l.links.resize(n);
+        for (HandLot::Link& k : l.links) {
+            k.a = (int)r.getU32();
+            k.b = (int)r.getU32();
+            k.width = r.getF32();
+            const u32 bits = r.getU32();
+            k.oneway = (u8)(bits & 255u);
+            k.kind = (u8)((bits >> 8) & 255u);
+            const u32 m = r.getU32();
+            if (!left(m, 12u) || m < 2u) return fail(error, what + ": a link is damaged");
+            k.pts.resize(m);
+            for (vec3& q : k.pts) q = getV3(r);
+            if (k.a < 0 || k.b < 0 || k.a >= (int)l.nodes.size() || k.b >= (int)l.nodes.size() || k.oneway > 1u || k.kind > HandLot::LL_RAMP)
+                return fail(error, what + ": a link is damaged");
+        }
+        n = r.getU32();
+        if (!left(n, 32u)) return fail(error, what + " is truncated (bays)");
+        l.bays.resize(n);
+        for (HandLot::Bay& b : l.bays) {
+            b.c = getV3(r);
+            b.dir.x = r.getF32();
+            b.dir.y = r.getF32();
+            b.row = (int)r.getU32();
+            b.link = (int)r.getU32();
+            b.s = r.getF32();
+            if (r.bad || b.row < 0 || b.row >= (int)l.rows.size() || b.link < 0 || b.link >= (int)l.links.size()) return fail(error, what + ": a bay is damaged");
+        }
+        size_t bays = 0;
+        for (const HandLot::Row& row : l.rows) {
+            if (r.bad || row.bays < 1 || row.aisle < 0 || row.aisle >= (int)l.links.size() || row.level < 0 || row.level >= l.levels) return fail(error, what + ": a row is damaged");
+            bays += (size_t)row.bays;
+        }
+        if (bays != l.bays.size()) return fail(error, what + ": its rows have " + std::to_string(bays) + " bays, and it " + std::to_string(l.bays.size()));
+        for (const HandLot::Node& nd : l.nodes)
+            if (nd.kind > HandLot::LN_RAMP || nd.level >= l.levels) return fail(error, what + ": a node is damaged");
+    }
+    if (!r.done()) return fail(error, "world.bin's blocks.lots section has bytes past its end, or is truncated");
+    out = std::move(v);
+    return true;
+}
+
+void putPts(ByteWriter& w, const std::vector<vec3>& pts) {
+    w.putU32((u32)pts.size());
+    for (const vec3& q : pts) putV3(w, q);
+}
+bool getPts(ByteReader& r, std::vector<vec3>& pts) {
+    const u32 n = r.getU32();
+    if (r.bad || n > (u32)(r.end - r.p) / 12u) return false;
+    pts.resize(n);
+    for (vec3& q : pts) q = getV3(r);
+    return !r.bad;
+}
+void putStrings(ByteWriter& w, const std::vector<std::string>& v) {
+    w.putU32((u32)v.size());
+    for (const std::string& t : v) w.putString(t);
+}
+bool getStrings(ByteReader& r, std::vector<std::string>& v) {
+    const u32 n = r.getU32();
+    if (r.bad || n > (u32)(r.end - r.p) / 4u) return false;
+    v.resize(n);
+    for (std::string& t : v) t = r.getString();
+    return !r.bad;
+}
+
+void writeWalk(const HandBlocks& b, WorldBinWriter& out) {
+    if (b.paths.empty() && b.plazas.empty() && b.steps.empty()) return;
+    ByteWriter w;
+    w.putU32(kBlockWalkVersion);
+    w.putU32((u32)b.paths.size());
+    for (const HandPath& p : b.paths) {
+        w.putString(p.id);
+        w.putU32(p.kind);
+        w.putF32(p.w);
+        putPts(w, p.pts);
+    }
+    w.putU32((u32)b.plazas.size());
+    for (const HandPlaza& p : b.plazas) {
+        w.putString(p.id);
+        w.putF32(p.z);
+        w.putPoints(p.poly);
+        putStrings(w, p.tags);
+    }
+    w.putU32((u32)b.steps.size());
+    for (const HandSteps& t : b.steps) {
+        putV3(w, t.bottom);
+        putV3(w, t.top);
+        w.putF32(t.w);
+        w.putU32((u32)t.treads);
+        w.putF32(t.rise);
+    }
+    out.addCompressed("blocks.walk", w.bytes);
+}
+
+void writeSpots(const std::vector<HandSpot>& spots, WorldBinWriter& out) {
+    if (spots.empty()) return;
+    ByteWriter w;
+    w.putU32(kBlockSpotsVersion);
+    w.putU32((u32)spots.size());
+    for (const HandSpot& s : spots) {
+        w.putU32((u32)s.kind | ((u32)s.flags << 8));
+        w.putString(s.id);
+        putV3(w, s.at);
+        w.putF32(s.dir.x);
+        w.putF32(s.dir.y);
+        putPts(w, s.line);
+        w.putU32((u32)s.cap);
+        w.putU32((u32)(s.hours.size() / 2));
+        for (u16 m : s.hours) w.putU32(m);
+        putStrings(w, s.roles);
+        w.putU32((u32)s.ageMin | ((u32)s.ageMax << 8));
+        w.putU32(s.prop < 0 ? 0xffffffffu : (u32)s.prop);
+        w.putString(s.pose);
+        w.putString(s.target);
+    }
+    out.addCompressed("blocks.spots", w.bytes);
+}
+
+bool readWalk(const WorldBinView& bin, HandBlocks& out, std::string* error) {
+    if (!bin.find("blocks.walk")) return true;
+    std::vector<u8> bytes;
+    if (!bin.bytes("blocks.walk", bytes)) return fail(error, "world.bin's blocks.walk section is damaged");
+    ByteReader r(bytes.data(), bytes.size());
+    const u32 version = r.getU32();
+    if (version != kBlockWalkVersion) return fail(error, "world.bin's blocks.walk section is version " + std::to_string(version) + ", not " + std::to_string(kBlockWalkVersion));
+    std::vector<HandPath> paths;
+    std::vector<HandPlaza> plazas;
+    std::vector<HandSteps> steps;
+    u32 n = r.getU32();
+    if (r.bad || n > (u32)(r.end - r.p) / 16u) return fail(error, "world.bin's blocks.walk section is truncated (paths)");
+    paths.resize(n);
+    for (HandPath& p : paths) {
+        p.id = r.getString();
+        const u32 kind = r.getU32();
+        p.kind = (u8)kind;
+        p.w = r.getF32();
+        if (!getPts(r, p.pts) || kind >= WK_COUNT || p.pts.size() < 2) return fail(error, "world.bin's blocks.walk section: path " + p.id + " is damaged");
+    }
+    n = r.getU32();
+    if (r.bad || n > (u32)(r.end - r.p) / 16u) return fail(error, "world.bin's blocks.walk section is truncated (plazas)");
+    plazas.resize(n);
+    for (HandPlaza& p : plazas) {
+        p.id = r.getString();
+        p.z = r.getF32();
+        r.getPoints(p.poly);
+        if (r.bad || p.poly.size() < 3 || !getStrings(r, p.tags)) return fail(error, "world.bin's blocks.walk section: a plaza is damaged");
+    }
+    n = r.getU32();
+    if (r.bad || n > (u32)(r.end - r.p) / 36u) return fail(error, "world.bin's blocks.walk section is truncated (steps)");
+    steps.resize(n);
+    for (HandSteps& t : steps) {
+        t.bottom = getV3(r);
+        t.top = getV3(r);
+        t.w = r.getF32();
+        t.treads = (int)r.getU32();
+        t.rise = r.getF32();
+        if (r.bad || t.treads < 0 || t.treads > 10000) return fail(error, "world.bin's blocks.walk section: a flight of steps is damaged");
+    }
+    if (!r.done()) return fail(error, "world.bin's blocks.walk section has bytes past its end, or is truncated");
+    out.paths = std::move(paths);
+    out.plazas = std::move(plazas);
+    out.steps = std::move(steps);
+    return true;
+}
+
+bool readSpots(const WorldBinView& bin, std::vector<HandSpot>& out, std::string* error) {
+    out.clear();
+    if (!bin.find("blocks.spots")) return true;
+    std::vector<u8> bytes;
+    if (!bin.bytes("blocks.spots", bytes)) return fail(error, "world.bin's blocks.spots section is damaged");
+    ByteReader r(bytes.data(), bytes.size());
+    const u32 version = r.getU32();
+    if (version != kBlockSpotsVersion)
+        return fail(error, "world.bin's blocks.spots section is version " + std::to_string(version) + ", not " + std::to_string(kBlockSpotsVersion));
+    const u32 count = r.getU32();
+    if (r.bad || count > (u32)(r.end - r.p) / 60u) return fail(error, "world.bin's blocks.spots section is truncated");   // (60: the least a spot takes)
+    std::vector<HandSpot> v(count);
+    for (u32 i = 0; i < count; i++) {
+        HandSpot& s = v[i];
+        const std::string what = "world.bin's blocks.spots section: spot " + std::to_string(i) + " is damaged";
+        const u32 bits = r.getU32();
+        s.kind = (u8)(bits & 255u);
+        s.flags = (u8)((bits >> 8) & 255u);
+        s.id = r.getString();
+        s.at = getV3(r);
+        s.dir.x = r.getF32();
+        s.dir.y = r.getF32();
+        if (!getPts(r, s.line) || s.kind >= SPOT_COUNT || (s.flags & ~(HandSpot::IMPLIED | HandSpot::COVER)) || s.line.size() == 1) return fail(error, what);
+        s.cap = (int)r.getU32();
+        const u32 ranges = r.getU32();
+        if (r.bad || s.cap < 1 || ranges > (u32)(r.end - r.p) / 8u) return fail(error, what);
+        s.hours.resize((size_t)ranges * 2);
+        for (u16& m : s.hours) {
+            const u32 x = r.getU32();
+            m = (u16)x;
+            if (x > 24u * 60u) return fail(error, what);
+        }
+        if (!getStrings(r, s.roles)) return fail(error, what);
+        const u32 ages = r.getU32();
+        s.ageMin = (u8)(ages & 255u);
+        s.ageMax = (u8)((ages >> 8) & 255u);
+        const u32 prop = r.getU32();
+        s.prop = prop == 0xffffffffu ? -1 : (int)prop;
+        s.pose = r.getString();
+        s.target = r.getString();
+        if (r.bad || s.ageMin > s.ageMax || (prop != 0xffffffffu && prop >= 0x7fffffffu)) return fail(error, what);
+    }
+    if (!r.done()) return fail(error, "world.bin's blocks.spots section has bytes past its end, or is truncated");
+    out = std::move(v);
+    return true;
+}
+
+// "blocks": the ground and the dressing
+void writeDressing(const HandBlocks& b, WorldBinWriter& out) {
     ByteWriter w;
     w.putU32(kBlocksSectionVersion);
     w.putU32((u32)b.ground.size());
@@ -101,14 +516,35 @@ void writeBlocks(const HandBlocks& b, WorldBinWriter& out) {
     out.addCompressed("blocks", w.bytes);
 }
 
-bool readBlocks(const WorldBinView& bin, HandBlocks& out, std::string* error) {
+}  // namespace blocksbin_detail
+
+void writeBlocks(const HandBlocks& b, WorldBinWriter& out) {
+    using namespace blocksbin_detail;
+    if (!b.ground.empty() || !b.props.empty() || !b.lamps.empty()) writeDressing(b, out);
+    writeParcels(b.parcels, out);
+    writeLots(b.lots, out);
+    writeWalk(b, out);
+    writeSpots(b.spots, out);
+}
+
+bool readBlocks(const WorldBinView& bin, HandBlocks& out, std::string* error, int roadEdges) {
     using namespace blocksbin_detail;
     out = HandBlocks();   // (left empty on failure: never half the blocks)
+    HandBlocks b;   // (the sections beside "blocks" first: all of them, or nothing)
+    if (!readParcels(bin, b.parcels, error, roadEdges) || !readLots(bin, b.lots, error, roadEdges) || !readWalk(bin, b, error) || !readSpots(bin, b.spots, error))
+        return false;
+    // a spot's prop is one of the blocks' props
+    const auto propsOk = [&](size_t props) {
+        for (const HandSpot& s : b.spots)
+            if (s.prop >= 0 && (size_t)s.prop >= props) return fail(error, "world.bin's blocks.spots section names prop " + std::to_string(s.prop) + " of " + std::to_string(props));
+        return true;
+    };
     if (!bin.find("blocks")) {
-        out.index();
+        if (!propsOk(0)) return false;
+        b.index();
+        out = std::move(b);
         return true;
     }
-    HandBlocks b;
     std::vector<u8> bytes;
     if (!bin.bytes("blocks", bytes)) return fail(error, "world.bin's blocks section is damaged");
     ByteReader r(bytes.data(), bytes.size());
@@ -168,6 +604,7 @@ bool readBlocks(const WorldBinView& bin, HandBlocks& out, std::string* error) {
         l.cone = r.getF32();
     }
     if (!r.done()) return fail(error, "world.bin's blocks section has bytes past its end, or is truncated");
+    if (!propsOk(b.props.size())) return false;
     b.index();
     out = std::move(b);
     return true;
