@@ -318,8 +318,20 @@ bool compileModel(std::vector<Source>& files, const std::vector<size_t>& which, 
     Hand::compileBuildings(model, buildings, found);
     report(found);
     if (gErrors != errorsBefore) return false;
-    if (!buildings.shells.empty() || !buildings.placements.empty())
-        printf("worldc: library %zu looks, %zu shells; %zu buildings\n", buildings.looks.size(), buildings.shells.size(), buildings.placements.size());
+    if (!buildings.shells.empty() || !buildings.placements.empty()) {
+        // (and the interiors' plans: their rooms, inside walls, doors and stairs)
+        size_t rooms = 0, partitions = 0, doors = 0, stairs = 0;
+        for (const HandShell& s : buildings.shells) {
+            rooms += s.rooms.size();
+            partitions += s.partitions.size();
+            stairs += s.stairs.size();
+            for (const std::vector<HandShell::Wall>* list : {&s.walls, &s.partitions})
+                for (const HandShell::Wall& w : *list)
+                    for (const HandShell::Opening& o : w.openings) doors += o.door() ? 1u : 0u;
+        }
+        printf("worldc: library %zu looks, %zu shells (%zu rooms, %zu inside walls, %zu doors, %zu stairs); %zu buildings\n", buildings.looks.size(),
+               buildings.shells.size(), rooms, partitions, doors, stairs, buildings.placements.size());
+    }
     writeBuildings(buildings, out);
     if (!blocks.blocks.ground.empty() || !blocks.blocks.props.empty() || !blocks.blocks.lamps.empty())
         printf("worldc: blocks %zu, %zu ground polygons, %zu props, %zu lamps, %zu graded parcels\n", model.blocks.size(), blocks.blocks.ground.size(),

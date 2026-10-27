@@ -32,6 +32,53 @@ void getPalette(ByteReader& r, u32 (&p)[PAL_COUNT]) {
 }
 bool colourOk(u32 c) { return c == kNone32 || c <= 0xffffffu; }
 
+void putOpenings(ByteWriter& w, const std::vector<HandShell::Opening>& openings) {
+    w.putU32((u32)openings.size());
+    for (const HandShell::Opening& o : openings) {
+        w.putU32(o.kind);
+        w.putF32(o.at);
+        w.putF32(o.w);
+        w.putF32(o.h);
+        w.putF32(o.sill);
+        w.putU32(o.schedule);
+        w.putU32(o.room);
+        if (!o.door()) continue;
+        w.putU32(o.hinge);
+        w.putU32(o.swing);
+        w.putU32(o.left);
+        w.putU32(o.right);
+    }
+}
+// A wall's openings (doors only: an inside wall's); false where they are damaged or truncated
+bool getOpenings(ByteReader& r, std::vector<HandShell::Opening>& out, bool doorsOnly) {
+    const u32 n = r.getU32();
+    if (r.bad || n > (u32)(r.end - r.p) / (doorsOnly ? 44u : 28u)) return false;   // (28: the least a window takes, 44 a door)
+    out.resize(n);
+    const auto room = [](u32 v) { return v == kNone32 || v <= 0xffffu; };
+    for (HandShell::Opening& o : out) {
+        const u32 kind = r.getU32();
+        o.at = r.getF32();
+        o.w = r.getF32();
+        o.h = r.getF32();
+        o.sill = r.getF32();
+        o.schedule = r.getU32();
+        o.room = r.getU32();
+        const bool door = (kind & 0x100u) != 0;
+        if (r.bad || (kind & ~0x1ffu) || (kind & 255u) >= (door ? (u32)DOOR_COUNT : (u32)WIN_COUNT) || (o.schedule != kNone32 && o.schedule > 15u) ||
+            !room(o.room) || (doorsOnly && !door))
+            return false;
+        o.kind = (u16)kind;
+        if (!door) continue;
+        const u32 hinge = r.getU32(), swing = r.getU32();
+        o.left = r.getU32();
+        o.right = r.getU32();
+        if (r.bad || hinge > 1u || swing > 1u || !room(o.left) || !room(o.right)) return false;
+        o.hinge = (u8)hinge;
+        o.swing = (u8)swing;
+    }
+    return true;
+}
+
 }  // namespace buildingsbin_detail
 
 const char* shellClassName(int c) { return c >= 0 && c < kShellClassCount ? buildingsbin_detail::kClasses[c] : ""; }
@@ -48,13 +95,17 @@ int buildingWord(const char* kind, const std::string& word) {
     static const char* const kDoor[] = {"hinged", "pair", "sliding", "revolving", "rollup", "lift", "opening"};
     static const char* const kShutters[] = {"none", "fixed", "bahama"};
     static const char* const kRoof[] = {"flat", "gable", "hip", "shed", "mansard", "barrel"};
+    static const char* const kRoom[] = {"living", "kitchen", "bed",   "bath",     "hall",  "stair",   "office",     "shop", "store",
+                                        "lobby",  "corridor", "plant", "garage", "dining", "utility", "restaurant", "bar"};
+    static const char* const kStair[] = {"straight", "dogleg", "quarter", "winder", "spiral", "curved", "escalator"};
     struct List {
         const char* name;
         const char* const* words;
         int n;
     };
     static const List kLists[] = {{"slot", kSlot, PAL_COUNT},          {"trim", kTrim, TRIM_COUNT},          {"window", kWindow, WIN_COUNT},
-                                  {"door", kDoor, DOOR_COUNT},         {"shutters", kShutters, SHUTTER_COUNT}, {"roof", kRoof, RFORM_COUNT}};
+                                  {"door", kDoor, DOOR_COUNT},         {"shutters", kShutters, SHUTTER_COUNT}, {"roof", kRoof, RFORM_COUNT},
+                                  {"room", kRoom, ROOM_COUNT},         {"stair", kStair, STAIR_COUNT}};
     for (const List& l : kLists)
         if (strcmp(l.name, kind) == 0)
             for (int i = 0; i < l.n; i++)
@@ -112,19 +163,40 @@ void writeBuildings(const HandBuildings& b, WorldBinWriter& out) {
                 putV2(w, wl.b);
                 w.putF32(wl.t);
                 w.putU32(wl.side);
-                w.putU32((u32)wl.openings.size());
-                for (const HandShell::Opening& o : wl.openings) {
-                    w.putU32(o.kind);
-                    w.putF32(o.at);
-                    w.putF32(o.w);
-                    w.putF32(o.h);
-                    w.putF32(o.sill);
-                    w.putU32(o.schedule);
-                    w.putU32(o.room);
-                }
+                putOpenings(w, wl.openings);
             }
             w.putU32(s.entranceWall < 0 ? kNone32 : (u32)s.entranceWall);
             w.putU32(s.entranceOpening < 0 ? kNone32 : (u32)s.entranceOpening);
+            w.putU32((u32)s.rooms.size());
+            for (const HandShell::Room& rm : s.rooms) {
+                w.putU32((u32)rm.floor);
+                w.putU32(rm.type);
+                w.putU32(rm.schedule);
+                w.putU32(rm.lux);
+                w.putPoints(rm.poly);
+            }
+            w.putU32((u32)s.partitions.size());
+            for (const HandShell::Wall& wl : s.partitions) {
+                w.putU32((u32)wl.floor);
+                putV2(w, wl.a);
+                putV2(w, wl.b);
+                w.putF32(wl.t);
+                putOpenings(w, wl.openings);
+            }
+            w.putU32((u32)s.stairs.size());
+            for (const HandShell::Stair& st : s.stairs) {
+                w.putU32((u32)st.fromFloor);
+                w.putU32(st.fromRoom);
+                w.putU32((u32)st.toFloor);
+                w.putU32(st.toRoom);
+                w.putU32(st.kind);
+                w.putPoints(st.run);
+                w.putF32(st.w);
+                w.putU32(st.treads);
+                w.putF32(st.rise);
+                w.putF32(st.landing);
+                w.putF32(st.walk);
+            }
         }
         out.addCompressed("library", w.bytes);
     }
@@ -190,7 +262,7 @@ bool readBuildings(const WorldBinView& bin, HandBuildings& out, std::string* err
             l.baseMaterial = (u8)bm;
         }
         n = r.getU32();
-        if (!left(r, n, 76u)) return fail(error, "world.bin's library section is truncated (shells)");   // (76: the least a shell takes)
+        if (!left(r, n, 88u)) return fail(error, "world.bin's library section is truncated (shells)");   // (88: the least a shell takes)
         b.shells.resize(n);
         for (HandShell& s : b.shells) {
             const std::string what = "world.bin's library section: shell " + (s.id = r.getString()) + " is damaged";
@@ -226,25 +298,10 @@ bool readBuildings(const WorldBinView& bin, HandBuildings& out, std::string* err
                 wl.a = getV2(r);
                 wl.b = getV2(r);
                 wl.t = r.getF32();
-                const u32 side = r.getU32(), openings = r.getU32();
-                if (!left(r, openings, 28u) || floor >= floors || side > 3u) return fail(error, what);
+                const u32 side = r.getU32();
+                if (r.bad || floor >= floors || side > 3u || !getOpenings(r, wl.openings, false)) return fail(error, what);
                 wl.floor = (int)floor;
                 wl.side = (u8)side;
-                wl.openings.resize(openings);
-                for (HandShell::Opening& o : wl.openings) {
-                    const u32 kind = r.getU32();
-                    o.at = r.getF32();
-                    o.w = r.getF32();
-                    o.h = r.getF32();
-                    o.sill = r.getF32();
-                    o.schedule = r.getU32();
-                    o.room = r.getU32();
-                    const bool door = (kind & 0x100u) != 0;
-                    if (r.bad || (kind & ~0x1ffu) || (kind & 255u) >= (door ? (u32)DOOR_COUNT : (u32)WIN_COUNT) || (o.schedule != kNone32 && o.schedule > 15u) ||
-                        (o.room != kNone32 && o.room > 0xffffu))
-                        return fail(error, what);
-                    o.kind = (u16)kind;
-                }
             }
             // the main entrance: a door of one of its walls, or none
             const u32 ew = r.getU32(), eo = r.getU32();
@@ -252,6 +309,61 @@ bool readBuildings(const WorldBinView& bin, HandBuildings& out, std::string* err
             if (r.bad || (!none && (ew >= walls || eo >= s.walls[ew].openings.size() || !s.walls[ew].openings[eo].door()))) return fail(error, what);
             s.entranceWall = none ? -1 : (int)ew;
             s.entranceOpening = none ? -1 : (int)eo;
+            // the interior's plan: the rooms, the inside walls with their doors, the stairs
+            const u32 rooms = r.getU32();
+            if (!left(r, rooms, 44u)) return fail(error, what);   // (44: the least a room takes, with its 3 points)
+            s.rooms.resize(rooms);
+            std::vector<u32> roomsOn(floors, 0u);
+            for (HandShell::Room& rm : s.rooms) {
+                const u32 floor = r.getU32(), type = r.getU32();
+                rm.schedule = r.getU32();
+                rm.lux = r.getU32();
+                r.getPoints(rm.poly);
+                if (r.bad || floor >= floors || type >= ROOM_COUNT || (rm.schedule != kNone32 && rm.schedule > 15u) || rm.lux > 100000u || rm.poly.size() < 3)
+                    return fail(error, what);
+                rm.floor = (int)floor;
+                rm.type = (u8)type;
+                roomsOn[floor]++;
+            }
+            const u32 partitions = r.getU32();
+            if (!left(r, partitions, 28u)) return fail(error, what);
+            s.partitions.resize(partitions);
+            for (HandShell::Wall& wl : s.partitions) {
+                const u32 floor = r.getU32();
+                wl.a = getV2(r);
+                wl.b = getV2(r);
+                wl.t = r.getF32();
+                if (r.bad || floor >= floors || !getOpenings(r, wl.openings, true)) return fail(error, what);
+                wl.floor = (int)floor;
+            }
+            // (every room an opening names is one of its floor's)
+            const auto roomOk = [&](u32 floor, u32 room) { return room == kNone32 || room < roomsOn[floor]; };
+            for (const std::vector<HandShell::Wall>* list : {&s.walls, &s.partitions})
+                for (const HandShell::Wall& wl : *list)
+                    for (const HandShell::Opening& o : wl.openings)
+                        if (!roomOk((u32)wl.floor, o.room) || !roomOk((u32)wl.floor, o.left) || !roomOk((u32)wl.floor, o.right)) return fail(error, what);
+            const u32 stairs = r.getU32();
+            if (!left(r, stairs, 60u)) return fail(error, what);   // (60: the least a stair takes, with its run's 2 points)
+            s.stairs.resize(stairs);
+            for (HandShell::Stair& st : s.stairs) {
+                const u32 ff = r.getU32();
+                st.fromRoom = r.getU32();
+                const u32 tf = r.getU32();
+                st.toRoom = r.getU32();
+                const u32 kind = r.getU32();
+                r.getPoints(st.run);
+                st.w = r.getF32();
+                st.treads = r.getU32();
+                st.rise = r.getF32();
+                st.landing = r.getF32();
+                st.walk = r.getF32();
+                if (r.bad || ff >= floors || tf >= floors || !roomOk(ff, st.fromRoom) || !roomOk(tf, st.toRoom) || kind >= STAIR_COUNT || st.run.size() < 2 ||
+                    st.treads > 1000u || !std::isfinite(st.w) || !std::isfinite(st.rise) || !std::isfinite(st.landing) || !std::isfinite(st.walk))
+                    return fail(error, what);
+                st.fromFloor = (int)ff;
+                st.toFloor = (int)tf;
+                st.kind = (u8)kind;
+            }
         }
         if (!r.done()) return fail(error, "world.bin's library section has bytes past its end, or is truncated");
     }

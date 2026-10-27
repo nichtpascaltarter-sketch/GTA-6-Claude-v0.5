@@ -11,7 +11,8 @@
 //   graphs, the walk graph's inputs and the spots (written and implied), the props' colliders and their queries, on the
 //   graded ground and through world.bin, damaged ones refused, and the findings;
 // - the buildings (compileBuildings): the library's facade styles as looks, its plans as shells (floors, exterior
-//   walls, their windows and doors, each window's light schedule from its room, the roof), the building files as
+//   walls, their windows and doors, each window's light schedule from its room, the roof, the main entrance) with
+//   their interiors' plans (rooms, inside walls, each door's leaf and rooms, the stairs), the building files as
 //   placements (yaw, mirror, the config's palette, roof, look and options), through world.bin
 //   (src/world/buildingsbin.h) exactly, damaged sections refused, the smallest records read back, and the findings;
 // - the roads through world.bin (src/world/roadsbin.h): back exactly as written, and damaged sections refused; with
@@ -1316,14 +1317,28 @@ static bool sameBuildings(const HandBuildings& a, const HandBuildings& b) {
              x.entranceOpening == y.entranceOpening;
         for (size_t p = 0; ok && p < x.footprint.size(); p++) ok = x.footprint[p].x == y.footprint[p].x && x.footprint[p].y == y.footprint[p].y;
         for (size_t f = 0; ok && f < x.floors.size(); f++) ok = x.floors[f].id == y.floors[f].id && x.floors[f].z == y.floors[f].z && x.floors[f].h == y.floors[f].h;
-        for (size_t w = 0; ok && w < x.walls.size(); w++) {
-            const HandShell::Wall &u = x.walls[w], &v = y.walls[w];
+        ok = ok && x.partitions.size() == y.partitions.size() && x.rooms.size() == y.rooms.size() && x.stairs.size() == y.stairs.size();
+        for (size_t w = 0; ok && w < x.walls.size() + x.partitions.size(); w++) {
+            const bool in = w >= x.walls.size();
+            const HandShell::Wall &u = in ? x.partitions[w - x.walls.size()] : x.walls[w], &v = in ? y.partitions[w - x.walls.size()] : y.walls[w];
             ok = u.floor == v.floor && u.a.x == v.a.x && u.a.y == v.a.y && u.b.x == v.b.x && u.b.y == v.b.y && u.t == v.t && u.side == v.side &&
                  u.openings.size() == v.openings.size();
             for (size_t o = 0; ok && o < u.openings.size(); o++) {
                 const HandShell::Opening &p = u.openings[o], &q = v.openings[o];
-                ok = p.kind == q.kind && p.at == q.at && p.w == q.w && p.h == q.h && p.sill == q.sill && p.schedule == q.schedule && p.room == q.room;
+                ok = p.kind == q.kind && p.at == q.at && p.w == q.w && p.h == q.h && p.sill == q.sill && p.schedule == q.schedule && p.room == q.room &&
+                     (!p.door() || (p.hinge == q.hinge && p.swing == q.swing && p.left == q.left && p.right == q.right));
             }
+        }
+        for (size_t r = 0; ok && r < x.rooms.size(); r++) {
+            const HandShell::Room &u = x.rooms[r], &v = y.rooms[r];
+            ok = u.floor == v.floor && u.type == v.type && u.schedule == v.schedule && u.lux == v.lux && u.poly.size() == v.poly.size();
+            for (size_t k = 0; ok && k < u.poly.size(); k++) ok = u.poly[k].x == v.poly[k].x && u.poly[k].y == v.poly[k].y;
+        }
+        for (size_t i2 = 0; ok && i2 < x.stairs.size(); i2++) {
+            const HandShell::Stair &u = x.stairs[i2], &v = y.stairs[i2];
+            ok = u.fromFloor == v.fromFloor && u.fromRoom == v.fromRoom && u.toFloor == v.toFloor && u.toRoom == v.toRoom && u.kind == v.kind &&
+                 u.run.size() == v.run.size() && u.w == v.w && u.treads == v.treads && u.rise == v.rise && u.landing == v.landing && u.walk == v.walk;
+            for (size_t k = 0; ok && k < u.run.size(); k++) ok = u.run[k].x == v.run[k].x && u.run[k].y == v.run[k].y;
         }
     }
     for (size_t i = 0; ok && i < a.placements.size(); i++) {
@@ -1390,10 +1405,11 @@ static void testBuildings() {
         "wall w3 a=8.00,12.00 b=0.00,12.00 t=0.25 ext=back\n"
         "wall w4 a=0.00,12.00 b=0.00,0.00 t=0.25 ext=left\n"
         "wall w5 a=0.00,8.00 b=8.00,8.00 t=0.12\n"
-        "room shop type=shop poly=0.00,0.00;8.00,0.00;8.00,8.00;0.00,8.00\n"
+        "room shop type=shop poly=0.00,0.00;8.00,0.00;8.00,8.00;0.00,8.00 lux=500\n"
         "room store type=store poly=0.00,8.00;8.00,8.00;8.00,12.00;0.00,12.00\n"
         "door d1 wall=w1 at=4.00 w=1.80 h=2.40 kind=pair leads=out:shop\n"
-        "door d2 wall=w5 at=2.00 w=0.90 h=2.10 kind=hinged leads=shop:store\n"
+        "door d2 wall=w5 at=2.00 w=0.90 h=2.10 kind=hinged hinge=right swing=out leads=shop:store\n"
+        "stair st1 from=f0.store to=f1.kitchen run=0.60,10.00;7.04,10.00 w=1.00 kind=straight rise=0.20\n"
         "window n1 wall=w1 at=1.60 w=2.40 h=2.40 sill=0.40 kind=storefront room=shop\n"
         "window n2 wall=w1 at=6.40 w=2.40 h=2.40 sill=0.40 kind=storefront room=shop\n"
         "window n3 wall=w3 at=4.00 w=0.60 h=0.60 sill=1.80 kind=fixed room=store\n";
@@ -1409,7 +1425,8 @@ static void testBuildings() {
         "window n1 wall=w1 at=2.00 w=1.20 h=1.50 sill=0.90 kind=dhung room=living\n"
         "window n2 wall=w1 at=6.00 w=1.20 h=1.50 sill=0.90 kind=dhung room=living\n"
         "window n3 wall=w2 at=9.00 w=1.00 h=1.20 sill=1.00 kind=casement room=kitchen\n"
-        "door d1 wall=w5 at=4.00 w=0.90 h=2.10 kind=hinged leads=living:kitchen\n";
+        "door d1 wall=w5 at=4.00 w=0.90 h=2.10 kind=hinged leads=living:kitchen\n"
+        "stair st1 from=0:kitchen to=+1:kitchen run=1.00,7.00;1.00,11.00 w=1.00 kind=straight treads=14\n";
     const std::string block =
         "ntw 1 block id=cl.b001 district=cl\n"
         "parcel cl.b001.p01 poly=100.00,190.00;110.00,190.00;110.00,215.00;100.00,215.00 use=mixed\n"
@@ -1496,6 +1513,45 @@ static void testBuildings() {
                c.roofMaterial == MAT_ROOF_SHINGLE && c.floors.size() == 1 && same(c.floors[0].h, 2.8f) && c.walls.size() == 4 && c.entranceWall == -1 &&
                c.entranceOpening == -1,
            "buildings: the cottage's shell");
+    // the interiors' plans. The shop: its four rooms, each floor's in its layout's order, with their types, schedules
+    // and lux; its two inside walls with their doors; its stair (and not the flat's, which would climb past the top
+    // floor). The cottage: the flat's floor plate on its only floor, so no stair either
+    EXPECT(s.rooms.size() == 4 && s.partitions.size() == 2 && s.stairs.size() == 1 && c.rooms.size() == 2 && c.partitions.size() == 1 && c.stairs.empty(),
+           "buildings: the interiors (%zu rooms, %zu inside walls, %zu stairs; %zu, %zu, %zu)", s.rooms.size(), s.partitions.size(), s.stairs.size(), c.rooms.size(),
+           c.partitions.size(), c.stairs.size());
+    if (s.rooms.size() == 4 && s.partitions.size() == 2 && s.stairs.size() == 1 && s.walls.size() == 8 && !s.walls[0].openings.empty()) {
+        const std::vector<HandShell::Room>& r = s.rooms;
+        EXPECT(r[0].floor == 0 && r[0].type == ROOM_SHOP && r[0].schedule == RS_SHOP && r[0].lux == 500u && r[0].poly.size() == 4 && r[1].floor == 0 &&
+                   r[1].type == ROOM_STORE && r[1].schedule == RS_NEVER && r[1].lux == 0u && same(r[1].poly[2].y, 12.f) && r[2].floor == 1 && r[2].type == ROOM_LIVING &&
+                   r[2].schedule == RS_HOME_LIVING && r[3].floor == 1 && r[3].type == ROOM_KITCHEN && r[3].schedule == RS_SHOP,
+               "buildings: the shop's rooms");
+        // the front doors: the shop left of the wall's a -> b, outside right; opening in (to the left), hinged toward a
+        const HandShell::Opening& d1 = s.walls[0].openings[0];
+        EXPECT(d1.left == 0u && d1.right == kNone32 && d1.swing == 0 && d1.hinge == 0, "buildings: the front doors' leaves (%u %u %d %d)", d1.left, d1.right, d1.swing,
+               d1.hinge);
+        // the store's door (hinge=right swing=out): the store left of the inside wall's a -> b, the shop right; it opens
+        // out of the store into the shop (to the right), and seen from the store its hinges on the right are toward a
+        const HandShell::Wall& p0 = s.partitions[0];
+        EXPECT(p0.floor == 0 && same(p0.a.x, 0.f) && same(p0.a.y, 8.f) && same(p0.b.x, 8.f) && same(p0.t, 0.12f) && p0.openings.size() == 1, "buildings: the shop's inside wall");
+        if (p0.openings.size() == 1) {
+            const HandShell::Opening& d2 = p0.openings[0];
+            EXPECT(d2.kind == (DOOR_HINGED | 0x100) && same(d2.at, 2.f) && same(d2.w, 0.9f) && same(d2.h, 2.1f) && d2.left == 1u && d2.right == 0u && d2.swing == 1 &&
+                       d2.hinge == 0 && d2.room == kNone32 && d2.schedule == kNone32,
+                   "buildings: the store's door (%u %u %d %d)", d2.left, d2.right, d2.swing, d2.hinge);
+        }
+        // the flat's kitchen door (no hinge= or swing=): opening into the kitchen, the second of its leads, which is on
+        // the left; the rooms counted on its own floor (living 0, kitchen 1)
+        const HandShell::Wall& p1 = s.partitions[1];
+        if (p1.openings.size() == 1)
+            EXPECT(p1.floor == 1 && p1.openings[0].left == 1u && p1.openings[0].right == 0u && p1.openings[0].swing == 0 && p1.openings[0].hinge == 0,
+                   "buildings: the flat's door");
+        // the stair: from the store up to the flat's kitchen, 20 risers of its rise= climbing the 4 m between the floors,
+        // its landing as deep as it is wide
+        const HandShell::Stair& st = s.stairs[0];
+        EXPECT(st.fromFloor == 0 && st.fromRoom == 1u && st.toFloor == 1 && st.toRoom == 1u && st.kind == STAIR_STRAIGHT && st.run.size() == 2 && same(st.run[1].x, 7.04f) &&
+                   same(st.w, 1.f) && st.treads == 20u && same(st.rise, 0.2f) && same(st.landing, 1.f) && st.walk == -1.f,
+               "buildings: the shop's stair (%d.%u to %d.%u, %u x %.3f)", st.fromFloor, st.fromRoom, st.toFloor, st.toRoom, st.treads, st.rise);
+    }
     // the placements, in the building files' order: the shop as placed; the cottage mirrored, turned -30 degrees, with
     // the config's palette (a roof colour too), roof material and look (and its porch, one of the plan's choices)
     const HandPlacement &p0 = out.placements[0], &p1 = out.placements[1];
@@ -1582,10 +1638,25 @@ static void testBuildings() {
         HandBuildings badBack;
         EXPECT(!readsBack(bad, badBack, why) && badBack.shells.empty(), "buildings: a main entrance that is no door was read (%d)", k);
     }
+    // the interiors' plans damaged: a room's type past the list, a window in an inside wall, a door or a stair naming a
+    // room its floor lacks, a stair from a floor past the shell's
+    if (out.shells[(size_t)si].rooms.size() == 4 && out.shells[(size_t)si].partitions.size() == 2 && out.shells[(size_t)si].stairs.size() == 1)
+        for (int k = 0; k < 5; k++) {
+            HandBuildings bad = out;
+            HandShell& b = bad.shells[(size_t)si];
+            if (k == 0) b.rooms[1].type = ROOM_COUNT;
+            if (k == 1) b.partitions[0].openings[0].kind = WIN_FIXED;
+            if (k == 2) b.partitions[1].openings[0].left = 2;   // (floor f1 has two rooms)
+            if (k == 3) b.stairs[0].toRoom = 2;
+            if (k == 4) b.stairs[0].fromFloor = 2;
+            HandBuildings badBack;
+            EXPECT(!readsBack(bad, badBack, why) && badBack.shells.empty(), "buildings: a damaged interior plan was read (%d)", k);
+        }
     // the smallest records, 100 of each, each list last in its section (so a reader's bound past a record's least
     // refuses it): looks with no id or trims; a look's trims; shells with no id, footprint, floors or walls, and
-    // placements with no id; a shell's floors; a floor's walls; a wall's openings
-    HandBuildings tiny[6], tinyBack;
+    // placements with no id; a shell's floors; a floor's walls; a wall's openings; a shell's rooms (of 3 points), its
+    // inside walls and its stairs (with a run of 2); an inside wall's doors
+    HandBuildings tiny[10], tinyBack;
     tiny[0].looks.resize(100);
     tiny[1].looks.resize(1);
     tiny[1].looks[0].trims.resize(100);
@@ -1600,7 +1671,19 @@ static void testBuildings() {
         tiny[k].shells[0].walls.resize(k == 4 ? 100 : 1);
     }
     tiny[5].shells[0].walls[0].openings.resize(100);
-    for (int k = 0; k < 6; k++) EXPECT(readsBack(tiny[k], tinyBack, why) && sameBuildings(tiny[k], tinyBack), "buildings: 100 of the smallest records %d (%s)", k, why.c_str());
+    for (int k = 6; k < 10; k++) {
+        tiny[k].shells.resize(1);
+        tiny[k].shells[0].floors.resize(1);
+    }
+    tiny[6].shells[0].rooms.resize(100);
+    for (HandShell::Room& rm : tiny[6].shells[0].rooms) rm.poly.resize(3);
+    tiny[7].shells[0].partitions.resize(100);
+    tiny[8].shells[0].partitions.resize(1);
+    tiny[8].shells[0].partitions[0].openings.resize(100);
+    for (HandShell::Opening& o : tiny[8].shells[0].partitions[0].openings) o.kind = DOOR_HINGED | 0x100;
+    tiny[9].shells[0].stairs.resize(100);
+    for (HandShell::Stair& st : tiny[9].shells[0].stairs) st.run.resize(2);
+    for (int k = 0; k < 10; k++) EXPECT(readsBack(tiny[k], tinyBack, why) && sameBuildings(tiny[k], tinyBack), "buildings: 100 of the smallest records %d (%s)", k, why.c_str());
     // the findings: a material whose code= the game lacks, in a look and on a roof (building.kind); a plan with no floor
     // (building.shape), kept as an empty shell so the placements' indices stay the plans'; a config choice the plan's
     // option lacks, and an option it doesn't have (building.option)
