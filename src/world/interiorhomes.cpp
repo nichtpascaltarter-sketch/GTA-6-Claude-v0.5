@@ -338,7 +338,7 @@ void layoutTrailer(IB& b) {
     // ---- openings: walls run counter-clockwise (front +x at ty0, right end +y, back -x at ty1, left end -y)
     const float wz0 = zf + 0.95f, wz1 = zf + 1.8f;
     openingLocal(b, vec2(doorX - 0.45f, ty0), vec2(doorX + 0.45f, ty0), zf, zf + 1.98f, OP_DOOR);
-    openingLocal(b, vec2(xp0 + 0.6f, ty0), vec2(xp0 + 1.9f, ty0), wz0, wz1, OP_GLASS);          // over the sofa
+    openingLocal(b, vec2(xp0 + 1.05f, ty0), vec2(xp0 + 2.35f, ty0), wz0, wz1, OP_GLASS);        // over the sofa
     if (doorX + 2.5f < xp1 - 0.8f) openingLocal(b, vec2(doorX + 1.3f, ty0), vec2(doorX + 2.5f, ty0), wz0, wz1, OP_GLASS);
     openingLocal(b, vec2(xp1 + 0.35f, ty0), vec2(xp1 + 0.9f, ty0), zf + 1.45f, zf + 1.9f, OP_GLASS);   // bath
     const float runC = xp1 - 2.1f;                                                                            // kitchen run center
@@ -565,25 +565,27 @@ void layoutTrailer(IB& b) {
         }
         collide(b, vec3(tx0 - 1.0f, ty0 + 0.6f, 0.2f), vec3(0.34f, 0.34f, 0.3f));
     }
-    // ---- living room: lounge by the bedroom partition, TV on the back wall, dinette, kitchen along the back wall
+    // ---- living room: lounge by the bedroom partition (0.75 m clear of it: the way to the bedroom door), TV on the back
+    // wall, dinette, kitchen along the back wall
     {
         u32 fab = C(0.36f, 0.3f, 0.22f);
         At lift(b, vec3(0.f, 0.f, zf), 0.f);
-        sofa(b, vec3(xp0 + 1.35f, iy0 + 0.48f, 0.f), 0.f, 2.0f, fab, r.next());
-        tvUnit(b, vec3(xp0 + 1.35f, iy1 - 0.23f, 0.f), kPi, 1.4f, r.next(), living, true);
-        coffeeTable(b, vec3(xp0 + 1.35f, iy0 + 1.75f, 0.f), 0.f, 1.0f, 0.55f, r.next());
+        const float lx = xp0 + 1.8f;   // (the lounge's middle)
+        sofa(b, vec3(lx, iy0 + 0.48f, 0.f), 0.f, 2.0f, fab, r.next());
+        tvUnit(b, vec3(lx, iy1 - 0.23f, 0.f), kPi, 1.4f, r.next(), living, true);
+        coffeeTable(b, vec3(lx, iy0 + 1.75f, 0.f), 0.f, 1.0f, 0.55f, r.next());
         vec3 rc(xp0 + 3.0f, iy0 + 2.45f, 0.f);
-        armchair(b, rc, atan2f(-(xp0 + 1.35f - rc.x), iy1 - rc.y), C(0.3f, 0.22f, 0.16f), r.next());
+        armchair(b, rc, atan2f(-(lx - rc.x), iy1 - rc.y), C(0.3f, 0.22f, 0.16f), r.next());
         {
             InPart ip(b, IP_DETAIL);
-            pizzaBox(b, vec3(xp0 + 1.1f, iy0 + 1.75f, 0.465f), 0.3f, true);
+            pizzaBox(b, vec3(lx - 0.25f, iy0 + 1.75f, 0.465f), 0.3f, true);
             pizzaBox(b, vec3(xp0 + 3.0f, iy0 + 3.4f, 0.f), -0.5f, false);
             pizzaBox(b, vec3(xp0 + 3.02f, iy0 + 3.38f, 0.045f), -0.4f, false);
-            clutterCans(b, vec3(xp0 + 1.6f, iy0 + 1.8f, 0.465f), 5, r.next());
+            clutterCans(b, vec3(lx + 0.25f, iy0 + 1.8f, 0.465f), 5, r.next());
             clutterCans(b, vec3(xp0 + 2.3f, iy0 + 1.2f, 0.f), 4, r.next());
-            clothesPile(b, vec3(xp0 + 0.9f, iy0 + 0.5f, 0.52f), r.next());
+            clothesPile(b, vec3(lx - 0.45f, iy0 + 0.5f, 0.52f), r.next());
             // game controller on the sofa
-            rbox(b, vec3(xp0 + 1.7f, iy0 + 0.55f, 0.55f), vec3(0.075f, 0.045f, 0.02f), 0.015f, Gy(0.08f), M(MAT_PLASTIC));
+            rbox(b, vec3(lx + 0.35f, iy0 + 0.55f, 0.55f), vec3(0.075f, 0.045f, 0.02f), 0.015f, Gy(0.08f), M(MAT_PLASTIC));
         }
         {
             At at(b, vec3(xp0 + pt * 0.5f, iy0 + 2.4f, 0.f), -kHalfPi);

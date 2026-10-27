@@ -739,9 +739,9 @@ compiled data. Nothing is invented:
     their doorways' frames, floors and ceilings with their stairwells, the stairs (a box per tread, and a ramp of thin
     colliders three to a tread, which the walk climbs as the warehouse mezzanine's), balustrades where a floor stops at
     a well, the doors' leaves (hinged and pairs, which swing; an `opening` has none) and the lights (section 7.8). Its
-    colliders and leaves collide (`interiors_game.cpp` gives them positive collision keys), and inside it the
-    third-person camera keeps under the ceilings (`game/camera.cpp`). No furniture, people or nav yet;
-    `--handtour <names>|all` walks the player through every door and up every stair into each room.
+    colliders and leaves collide, as every interior's do, and inside it the third-person camera keeps under the
+    ceilings (`game/camera.cpp`). No furniture, people or nav yet; `--handtour <names>|all` walks the player through
+    every door and up every stair into each room.
 
   The cell census (section 13.3) sets the near shell's budget. Today a near cell averages 39k triangles (p99 144k, at
   most 171k), and a house costs about 2,400 triangles of its cell's mesh, roads included. Cells hold few buildings:

@@ -273,10 +273,10 @@ void layoutGunShop(IB& b) {
         box(b, vec3(0, 0.011f, 0.f), vec3(0.13f, 0.001f, 0.08f), C(0.3f, 0.6f, 0.4f, 0.6f), EM(), SK_NZ);
         b.pop();
         rbox(b, vec3(rx + 0.4f, yc + 0.15f, 1.03f), vec3(0.04f, 0.07f, 0.02f), 0.01f, Gy(0.1f), M(MAT_PLASTIC), true);
-        marker(b, IM_COUNTER, vec3(rx, yc + 0.95f, 0.f), kPi);
+        marker(b, IM_COUNTER, vec3(rx, yc - 0.95f, 0.f), 0.f);   // (the customer's side, facing the counter)
     }
-    scenario(b, vec3((X0 + X1) * 0.5f + cs * 0.4f, yc - 0.8f, 0.f), 0.f, 0, SR_CLERK, SF_STAFF);
-    scenario(b, vec3((X0 + X1) * 0.5f - cs * 2.2f, yc - 0.9f, 0.f), 0.4f * cs, 11, SR_CLERK, SF_STAFF | SF_OPTIONAL);
+    scenario(b, vec3((X0 + X1) * 0.5f + cs * 0.4f, yc + 0.8f, 0.f), kPi, 0, SR_CLERK, SF_STAFF);   // (behind it)
+    scenario(b, vec3((X0 + X1) * 0.5f - cs * 2.2f, yc + 0.9f, 0.f), kPi + 0.4f * cs, 11, SR_CLERK, SF_STAFF | SF_OPTIONAL);
     // ---- behind the counter: long-gun wall, ammo wall on the staff side, the store name
     {
         float wy = yR - pt * 0.5f;

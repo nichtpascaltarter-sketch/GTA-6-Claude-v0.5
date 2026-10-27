@@ -675,7 +675,12 @@ void layoutWarehouse(IB& b) {
             float top = mzZ - rise * (k + 1);
             float y1s = my0 - run * k, y0s = y1s - run;
             box(b, vec3(stX, (y0s + y1s) * 0.5f, top - 0.03f), vec3(0.55f, run * 0.5f, 0.03f), Gy(0.45f), M(MAT_METAL_BRUSHED), SK_NONE);
-            collideMM(b, vec3(stX - 0.55f, y0s, top - 0.2f), vec3(stX + 0.55f, y1s, top));
+            // (collided as a ramp, a third of a tread at a time, its tops on the line through the treads' middles: the walk
+            // steps onto nothing 0.35 m or more over its feet, and two risers are 0.36)
+            for (int j = 0; j < 3; j++) {
+                const float tj = top + rise * (((float)j + 0.5f) / 3.f - 0.5f);
+                collideMM(b, vec3(stX - 0.55f, y0s + run * (float)j / 3.f, tj - 0.2f), vec3(stX + 0.55f, y0s + run * (float)(j + 1) / 3.f, tj));
+            }
         }
         float yEnd = my0 - run * (ns - 1);
         for (int e = -1; e <= 1; e += 2) {
