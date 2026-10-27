@@ -1146,7 +1146,10 @@ void RoadNetwork::generate(WorldMap& map) {
     for (auto& s : segs)
         for (float t : s.splits)
             if (t > 1e-4f && t < 1.f - 1e-4f) getNode(lerp(s.a, s.b, t), b.polys[s.poly].layer, s.poly);
-    struct Link { int a, b, poly; };
+    struct Link {
+        int a, b, poly;
+        int best = -1;   // a road with more lanes laid along the same stretch (see the deduplication below)
+    };
     std::vector<Link> links;
     for (auto& s : segs) {
         const PolyIn& p = b.polys[s.poly];
@@ -1168,14 +1171,26 @@ void RoadNetwork::generate(WorldMap& map) {
             links.push_back({na, nb, s.poly});
         }
     }
-    // Deduplicate links
+    // Deduplicate links. Where two roads were laid along the same stretch, the first keeps the link, as it always has (that
+    // decides the junctions and the edges, and with them every edge's slot); but where the other has more lanes, the stretch
+    // is the other's when it carries on beyond it (Bayshore Boulevard ran through a 25 m piece of 9th Avenue, 2/2 lanes
+    // between its 3/3 ones): `best` names it, and the edge takes its class and name once the network stands (after the
+    // beach and stub passes, below). Only at grade, between roads of the same flags, neither one-way.
     {
         std::unordered_map<long long, int> seen;
         std::vector<Link> uniq;
         for (auto& l : links) {
             long long k = (long long)Min(l.a, l.b) * 100000000LL + Max(l.a, l.b);
-            if (seen.count(k)) continue;
-            seen[k] = 1;
+            auto it = seen.find(k);
+            if (it != seen.end()) {
+                Link& u = uniq[(size_t)it->second];
+                const PolyIn& pu = b.polys[(size_t)(u.best >= 0 ? u.best : u.poly)];
+                const PolyIn& pl = b.polys[(size_t)l.poly];
+                if (pl.layer == 0 && pu.layer == 0 && roadInfo(pl.cls).lanes > roadInfo(pu.cls).lanes && pl.flags == pu.flags && !(pl.flags & RF_ONEWAY))
+                    u.best = l.poly;
+                continue;
+            }
+            seen[k] = (int)uniq.size();
             uniq.push_back(l);
         }
         links.swap(uniq);
@@ -1211,6 +1226,10 @@ void RoadNetwork::generate(WorldMap& map) {
         return nodeMap[n];
     };
     std::vector<bool> used(links.size(), false);
+    struct Shared {
+        int n0, n1, poly, bigger;   // an edge laid along a road with more lanes all the way (see the deduplication)
+    };
+    std::vector<Shared> shared;
     for (size_t n = 0; n < npos.size(); n++) {
         if (!junction[n]) continue;
         for (int li : adj[n]) {
@@ -1219,8 +1238,10 @@ void RoadNetwork::generate(WorldMap& map) {
             chain.push_back(npos[n]);
             int cur = (int)n, link = li;
             int poly = links[li].poly;
+            int bigger = links[li].best;   // (a road with more lanes laid along every link of it)
             while (true) {
                 used[link] = true;
+                if (links[link].best != bigger) bigger = -1;
                 int next = links[link].a == cur ? links[link].b : links[link].a;
                 chain.push_back(npos[next]);
                 cur = next;
@@ -1238,6 +1259,7 @@ void RoadNetwork::generate(WorldMap& map) {
             e.cls = p.cls;
             e.flags = p.flags;
             e.name = p.name;
+            if (bigger >= 0) shared.push_back({e.n0, e.n1, poly, bigger});
             for (auto& c : chain) e.pts.push_back(vec3(c.x, c.y, 0));
             // Oneway ramps must keep their authored direction: check order against the polyline
             if (p.flags & RF_ONEWAY) {
@@ -1550,6 +1572,25 @@ void RoadNetwork::generate(WorldMap& map) {
     for (size_t i = 0; i < edges.size(); i++) {
         nodes[edges[i].n0].edges.push_back((int)i);
         nodes[edges[i].n1].edges.push_back((int)i);
+    }
+    // A stretch laid along a road with more lanes all the way is that road's where the road carries on at both its ends: no
+    // lane drop in the middle of it (see the deduplication of links)
+    for (const Shared& sh : shared) {
+        const PolyIn& big = b.polys[(size_t)sh.bigger];
+        auto carriesOn = [&](int node, int self) {
+            for (int k : nodes[(size_t)node].edges)
+                if (k != self && edges[(size_t)k].cls == big.cls && edges[(size_t)k].name == big.name) return true;
+            return false;
+        };
+        for (int k : nodes[(size_t)sh.n0].edges) {
+            RoadEdge& e = edges[(size_t)k];
+            if (e.n0 != sh.n0 || e.n1 != sh.n1 || e.name != b.polys[(size_t)sh.poly].name) continue;
+            if (carriesOn(e.n0, k) && carriesOn(e.n1, k)) {
+                e.cls = big.cls;
+                e.name = big.name;
+            }
+            break;
+        }
     }
 
     // ============================================================= Per-edge attributes
@@ -2110,6 +2151,43 @@ void RoadNetwork::generate(WorldMap& map) {
                         }
                 }
             }
+            // ---- a road the cuts leave running beside the bigger road the whole way (within their half widths and 5 m) between
+            // two points on it (two joins, or a join and one of its junctions, or a join and a junction a road under 20 m joins
+            // to it) goes, with that short road: it would only be a second carriageway beside the first (Almeria Boulevard
+            // beside Levee Road: 138 m from a join into Levee Road's all-way stop through 8 m of Coral Drive, and 140 m between
+            // two joins further south). The joins' nodes stay on the bigger road: its pieces, and with them every slot, are as
+            // they were.
+            int besideGone = 0;
+            {
+                rebuildAt();
+                auto onRoad = [&](int node, int W) {
+                    for (int q : at[(size_t)node])
+                        if (pcs[(size_t)q].alive && sameRoad(pcs[(size_t)q].src, W)) return true;
+                    return false;
+                };
+                for (size_t k = 0; k < pcs.size(); k++) {
+                    Piece& P = pcs[k];
+                    if (!P.alive || !P.own.empty() || (P.joinA < 0 && P.joinB < 0)) continue;
+                    const int W = joins[(size_t)(P.joinA >= 0 ? P.joinA : P.joinB)].edge;
+                    if (W < 0 || !alongTo(P.src, P.a, P.b, W)) continue;
+                    int link = -1;   // the short road on to the bigger road's junction
+                    if (P.joinA >= 0 && P.joinB >= 0) {
+                        const int W1 = joins[(size_t)P.joinB].edge;
+                        if (W1 < 0 || !sameRoad(W1, W)) continue;
+                    } else {
+                        const int n = P.joinA < 0 ? P.n0 : P.n1;
+                        if (!onRoad(n, W)) {
+                            if (at[(size_t)n].size() != 2) continue;
+                            link = at[(size_t)n][0] == (int)k ? at[(size_t)n][1] : at[(size_t)n][0];
+                            const Piece& S = pcs[(size_t)link];
+                            if (!S.alive || pieceLen(S) >= kMinPiece || !onRoad(S.n0 == n ? S.n1 : S.n0, W)) continue;
+                        }
+                    }
+                    P.alive = false;
+                    if (link >= 0) pcs[(size_t)link].alive = false;
+                    besideGone++;
+                }
+            }
             // ---- the slots. An edge's piece from its start (else its first) keeps the edge's slot; the other pieces fill the
             // slots of the edges that went, in order, then go last
             std::vector<int> keeper((size_t)NE0, -1);
@@ -2245,9 +2323,9 @@ void RoadNetwork::generate(WorldMap& map) {
                 nodes[(size_t)edges[i].n1].edges.push_back((int)i);
             }
             LOG("Road gen: %d stretches of road laid inside a bigger road's carriageway cut out (%.0f m; %d joins back onto it, %d junctions "
-                "left inside it moved onto it, %d dead ends linked to it, %d roads left hanging and %d left doubled up dropped; %d edges gone, "
-                "%d split to keep the edge order, %d new at the end; %d left where the bigger road gives way itself)",
-                cutsMade, metresCut, joined, movedOn, linked, hanging, doubled, (int)freed.size(), splitForSlots, appended, cutsLeft);
+                "left inside it moved onto it, %d dead ends linked to it, %d roads left hanging, %d left doubled up and %d left beside it "
+                "dropped; %d edges gone, %d split to keep the edge order, %d new at the end; %d left where the bigger road gives way itself)",
+                cutsMade, metresCut, joined, movedOn, linked, hanging, doubled, besideGone, (int)freed.size(), splitForSlots, appended, cutsLeft);
         }
     }
 
