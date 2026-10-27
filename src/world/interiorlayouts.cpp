@@ -895,6 +895,9 @@ void layoutModShop(IB& b);
 void layoutCarWash(IB& b);
 void layoutResLobby(IB& b);     // interiorresidences.cpp
 void layoutCondoUnit(IB& b);
+// A hand-built building's interior (interiorhand.cpp sets it in hand mode; the tools that build the generator's
+// interiors without that file never meet one)
+void (*gLayoutHand)(IB& b) = nullptr;
 
 void runLayout(IB& b) {
     b.roomCounter = 0;
@@ -920,6 +923,9 @@ void runLayout(IB& b) {
         case IK_CARWASH: layoutCarWash(b); break;
         case IK_RES_LOBBY: layoutResLobby(b); break;
         case IK_CONDO: layoutCondoUnit(b); break;
+        case IK_HAND:
+            if (gLayoutHand) gLayoutHand(b);
+            break;
         default: layoutConvenience(b); break;
     }
 }

@@ -27,6 +27,7 @@ constexpr float kParapetT = 0.2f;      // its thickness
 constexpr float kRecess = 0.1f;        // the glass and the door leaves sit this far behind the wall's face (near LOD)
 constexpr float kEps = 0.01f;          // a window's glass keeps this far inside its facade cell
 constexpr float kRoofT = 0.12f;        // a pitched roof's thickness at its edges (the fascia)
+constexpr float kSlab = 0.2f;          // a floor's build-up: the ceiling under it (and under the roof) hangs this far below
 constexpr u32 kOpaque = 0xff000000u;
 
 u32 rgb(float r, float g, float b) { return packRGBA8(r, g, b, 1.f); }
@@ -239,6 +240,8 @@ struct BuildCtx {
     float zTop = 0.f;     // the walls' top above the ground floor (plan)
     float tTop = 0.25f;
     u32 firstOpening = kNone32;
+    const float* wallCover = nullptr;   // per wall, per outline edge: hidden by a neighbour up to (prepareHandBuildings)
+    const float* edgeCover = nullptr;
 };
 
 // The facade entry of opening k of wall w (prepareHandBuildings), or kNone32
@@ -292,6 +295,8 @@ void buildWall(const BuildCtx& x, size_t wi, bool topWall, bool parapet) {
     const float zRef = x.fr.z;
     const float z0 = ground ? x.zFound : x.fr.z + fl.z;
     const float z1 = x.fr.z + fl.z + fl.h + (topWall && parapet ? kParapet : 0.f);
+    const float cover = x.wallCover ? x.wallCover[wi] : -1e9f;   // (a party wall: hidden in its neighbour up to there)
+    if (cover >= z1 - 0.01f) return;
     const float zBase = ground && x.pt.look.baseH > 0.f ? x.fr.z + fl.z + x.pt.look.baseH : z0;
     const u32 wallCol = x.pt.wall(), wallMat = makeMat(x.pt.look.wallMaterial);
     const u32 baseCol = x.pt.look.baseMaterial == x.pt.look.wallMaterial ? x.pt.colour(PAL_TRIM) : vcol(rgb(1.f, 1.f, 1.f));
@@ -308,7 +313,7 @@ void buildWall(const BuildCtx& x, size_t wi, bool topWall, bool parapet) {
         h.z0 = x.fr.z + fl.z + (op.door() ? 0.f : op.sill);
         h.z1 = Min(h.z0 + op.h, x.fr.z + fl.z + fl.h - 0.05f);
         h.opening = (int)k;
-        if (h.u1 - h.u0 > 0.1f && h.z1 - h.z0 > 0.1f) holes.push_back(h);
+        if (h.u1 - h.u0 > 0.1f && h.z1 - h.z0 > 0.1f && h.z1 > cover + 0.01f) holes.push_back(h);
     }
     std::sort(holes.begin(), holes.end(), [](const Hole& a, const Hole& b) { return a.u0 < b.u0; });
     std::vector<Hole> kept;
@@ -316,6 +321,7 @@ void buildWall(const BuildCtx& x, size_t wi, bool topWall, bool parapet) {
         if (kept.empty() || h.u0 >= kept.back().u1 + 0.02f) kept.push_back(h);   // (overlapping openings: the first stands)
     // the face around them
     const auto rect = [&](float u0, float u1, float a, float b) {
+        a = Max(a, cover);
         if (b <= a + 0.002f) return;
         if (zBase > a + 0.002f) {
             faceRect(x.o, f, u0, u1, a, Min(b, zBase), 0.f, baseCol, baseMat, zRef);
@@ -332,8 +338,10 @@ void buildWall(const BuildCtx& x, size_t wi, bool topWall, bool parapet) {
         u = h.u1;
     }
     rect(u, f.len, z0, z1);
-    // in each opening
+    // in each opening. A shell with an interior (interiorhand.cpp) has its doorways open at the near LOD: the interior
+    // hangs the leaves, which swing
     const vec3 Z(0.f, 0.f, 1.f);
+    const bool interior = !x.s.rooms.empty();
     for (const Hole& h : kept) {
         const HandShell::Opening& op = w.openings[(size_t)h.opening];
         const u32 fac = openingFacade(x, wi, (size_t)h.opening);
@@ -341,7 +349,8 @@ void buildWall(const BuildCtx& x, size_t wi, bool topWall, bool parapet) {
         const bool door = op.door();
         const bool glassDoor = door && (kind == DOOR_PAIR || kind == DOOR_SLIDING || kind == DOOR_REVOLVING);
         const bool openOnly = door && kind == DOOR_OPENING;
-        const float back = openOnly ? -w.t : (x.detail ? -Min(kRecess, w.t * 0.6f) : 0.004f);
+        const bool doorway = door && interior && x.detail;   // (open through the wall, a threshold across it)
+        const float back = openOnly || doorway ? -w.t : (x.detail ? -Min(kRecess, w.t * 0.6f) : 0.004f);
         if (x.detail || openOnly) {   // the reveals: the jambs, the head and the sill's bottom
             const float rb = back;
             const u32 rc = h.z0 < zBase ? baseCol : wallCol, rm = h.z0 < zBase ? baseMat : wallMat;
@@ -349,6 +358,10 @@ void buildWall(const BuildCtx& x, size_t wi, bool topWall, bool parapet) {
             x.o.quadF(f.at(h.u1, h.z0, 0.f), f.at(h.u1, h.z0, rb), f.at(h.u1, h.z1, rb), f.at(h.u1, h.z1, 0.f), rc, rm, -f.R());
             x.o.quadF(f.at(h.u0, h.z1, 0.f), f.at(h.u1, h.z1, 0.f), f.at(h.u1, h.z1, rb), f.at(h.u0, h.z1, rb), wallCol, wallMat, -Z);
             if (!door) x.o.quadF(f.at(h.u0, h.z0, 0.f), f.at(h.u1, h.z0, 0.f), f.at(h.u1, h.z0, rb), f.at(h.u0, h.z0, rb), x.pt.colour(PAL_TRIM), wallMat, Z);
+        }
+        if (doorway) {   // the threshold, out to the face
+            x.o.quadF(f.at(h.u0, h.z0, 0.f), f.at(h.u1, h.z0, 0.f), f.at(h.u1, h.z0, back), f.at(h.u0, h.z0, back), vcol(rgb(0.62f, 0.6f, 0.56f)), makeMat(MAT_STONE), Z);
+            continue;
         }
         if (!door || glassDoor) {
             glass(x, f, h, back, fac);
@@ -416,11 +429,12 @@ void buildWall(const BuildCtx& x, size_t wi, bool topWall, bool parapet) {
 
 // A band of trim round an outline (counter-clockwise, world xy) from z0 to z1, `out` beyond it: its face, top and
 // bottom
-void band(const Out& o, const std::vector<vec2>& outline, float out, float z0, float z1, u32 col, u32 mat) {
+void band(const Out& o, const std::vector<vec2>& outline, float out, float z0, float z1, u32 col, u32 mat, const float* cover = nullptr) {
     const std::vector<vec2> a = offsetPoly(outline, 0.f), b = offsetPoly(outline, out);
     const size_t n = a.size();
     for (size_t i = 0; i < n; i++) {
         const size_t j = (i + 1) % n;
+        if (cover && z0 < cover[i]) continue;   // (a party wall's: in the neighbour)
         const vec2 e = b[j] - b[i];
         const float l = length(e);
         if (l < 0.01f) continue;
@@ -461,7 +475,7 @@ void buildRoof(const BuildCtx& x, bool& parapet) {
             const vec3 in(-e.y / l, e.x / l, 0.f);   // (inward: to the left of the counter-clockwise edge)
             x.o.quadF(vec3(inner[i], zW), vec3(inner[j], zW), vec3(inner[j], zp), vec3(inner[i], zp), x.pt.wall(), makeMat(x.pt.look.wallMaterial), in);
         }
-        band(x.o, offsetPoly(outer, -kParapetT), kParapetT + 0.04f, zp, zp + 0.06f, trimCol, makeMat(MAT_CONCRETE));
+        band(x.o, offsetPoly(outer, -kParapetT), kParapetT + 0.04f, zp, zp + 0.06f, trimCol, makeMat(MAT_CONCRETE), x.edgeCover);
         return;
     }
     // the eaves' rectangle in the plan's frame, and the roof's planes in it
@@ -602,11 +616,11 @@ void buildTrims(const BuildCtx& x, bool parapet) {
                 bool walls = false;
                 for (const HandShell::Wall& w : s.walls) walls = walls || fabsf(s.floors[(size_t)w.floor].z - f.z) < 0.01f;
                 if (!walls) continue;
-                band(x.o, outer, 0.06f, x.fr.z + f.z - t.h * 0.5f, x.fr.z + f.z + t.h * 0.5f, col, mat);
+                band(x.o, outer, 0.06f, x.fr.z + f.z - t.h * 0.5f, x.fr.z + f.z + t.h * 0.5f, col, mat, x.edgeCover);
             }
         } else if (t.kind == TRIM_CORNICE) {
             const float zt = x.fr.z + x.zTop + (parapet ? kParapet - 0.06f : 0.f);
-            band(x.o, outer, parapet ? 0.18f : 0.08f, zt - t.h, zt, col, mat);
+            band(x.o, outer, parapet ? 0.18f : 0.08f, zt - t.h, zt, col, mat, x.edgeCover);
         } else if (t.kind == TRIM_QUOIN) {
             vec2 lo, hi;
             if (!planRect(s.footprint, lo, hi)) continue;
@@ -616,9 +630,17 @@ void buildTrims(const BuildCtx& x, bool parapet) {
             const vec2 inX[4] = {vec2(1.f, 0.f), vec2(-1.f, 0.f), vec2(-1.f, 0.f), vec2(1.f, 0.f)}, inY[4] = {vec2(0.f, 1.f), vec2(0.f, 1.f), vec2(0.f, -1.f), vec2(0.f, -1.f)};
             const vec3 ax = vec3(normalize(x.fr.dir(vec2(1.f, 0.f))), 0.f), ay = vec3(normalize(x.fr.dir(vec2(0.f, 1.f))), 0.f);
             const float h = t.h > 0.05f ? t.h : 0.3f;
+            // (a corner on a party wall: hidden in the neighbour up to its cover; the edges as band() walks them)
+            const std::vector<vec2> walk = offsetPoly(outer, 0.f);
+            float cornerCover[4] = {-1e9f, -1e9f, -1e9f, -1e9f};
+            for (int c = 0; c < 4 && x.edgeCover; c++)
+                for (size_t v = 0; v < walk.size(); v++)
+                    if (length(walk[v] - x.fr.point(corners[c])) < 0.05f)
+                        cornerCover[c] = Max(x.edgeCover[v], x.edgeCover[(v + walk.size() - 1) % walk.size()]);
             int k = 0;
             for (float z = x.fr.z + bottom + 0.05f; z + h <= x.fr.z + x.zTop; z += h + 0.05f, k++)
                 for (int c = 0; c < 4; c++) {
+                    if (z < cornerCover[c]) continue;
                     const float lx = (k + c) % 2 ? 0.5f : 0.3f, ly = (k + c) % 2 ? 0.3f : 0.5f;
                     const vec2 cl = corners[c] + inX[c] * (lx * 0.5f - 0.03f) + inY[c] * (ly * 0.5f - 0.03f);
                     x.o.box(vec3(x.fr.point(cl), z + h * 0.5f), ax, ay, vec3(0.f, 0.f, 1.f), vec3(lx * 0.5f, ly * 0.5f, h * 0.5f), col, mat);
@@ -627,13 +649,125 @@ void buildTrims(const BuildCtx& x, bool parapet) {
     }
 }
 
+// The ground just outside a building at p (world): the terrain, or a sidewalk or road over it (as the walk's ground probe
+// finds it, CollisionWorld::ground), up to `limit`
+float groundOutside(const BuildCtx& x, vec2 p, float limit) {
+    float g = x.map.heightAt(p.x, p.y), rz;
+    if (gRoads && gRoads->surfaceHeight(p, &rz, limit) && rz > g - 0.5f) g = rz;
+    return g;
+}
+
+// The stoop at a ground-floor door of a building with an interior (its doorway open: handshells' buildWall), where the
+// ground outside lies lower than the floor: a landing level with the floor, out to where the ground comes within a
+// step of it, and steps down from it (0.18 m risers, 0.3 m treads) while the ground is still lower; drawn, and collided,
+// as the walk takes a box's top only within 0.35 m of its feet (physics.cpp capsuleOverlap)
+void buildStoops(const BuildCtx& x, std::vector<CollisionBox>& col) {
+    const float bottom = shellBottom(x.s);
+    const u32 cCol = vcol(rgb(0.66f, 0.64f, 0.6f)), cMat = makeMat(MAT_CONCRETE);
+    for (const HandShell::Wall& w : x.s.walls) {
+        if (fabsf(x.s.floors[(size_t)w.floor].z - bottom) > 0.01f) continue;
+        const float len = length(w.b - w.a);
+        if (len < 0.05f) continue;
+        const vec2 e = (w.b - w.a) * (1.f / len);
+        vec2 nl(e.y, -e.x);   // (outward)
+        if (inside(x.s.footprint, (w.a + w.b) * 0.5f + nl * 0.05f)) nl = -nl;
+        for (const HandShell::Opening& o : w.openings) {
+            if (!o.door()) continue;
+            const float floorZ = x.fr.z + x.s.floors[(size_t)w.floor].z;
+            const vec2 c = w.a + e * o.at + nl * (w.t * 0.5f);   // (plan: the doorway's middle on the outer face)
+            const vec2 cw = x.fr.point(c), ow = normalize(x.fr.dir(nl)), aw = normalize(x.fr.dir(e));
+            // the ground across the door's width, a distance s out
+            const auto ground = [&](float s) {
+                float g = 1e9f;
+                for (float k : {-0.4f, 0.f, 0.4f}) g = Min(g, groundOutside(x, cw + ow * s + aw * (o.w * 0.5f * k * 2.f), floorZ + 0.3f));
+                return g;
+            };
+            if (ground(0.15f) >= floorZ - 0.12f) continue;   // (flush enough: a threshold's step)
+            const float hw = o.w * 0.5f + 0.2f;
+            float s = 0.f, top = floorZ, lowest = ground(0.15f);
+            const auto slab = [&](float s0, float s1, float zt) {
+                const float zb = Min(lowest, zt) - 0.15f;
+                const vec3 cc(cw + ow * ((s0 + s1) * 0.5f), (zt + zb) * 0.5f);
+                const vec3 he((s1 - s0) * 0.5f, hw, (zt - zb) * 0.5f);
+                x.o.box(cc, vec3(ow, 0.f), vec3(aw, 0.f), vec3(0.f, 0.f, 1.f), he, cCol, cMat);
+                CollisionBox cb;
+                cb.c = cc;
+                cb.ax = ow;
+                cb.he = he;
+                col.push_back(cb);
+            };
+            // the landing: over a gutter to ground (a sidewalk) within a step of the floor, where that is within 1.2 m;
+            // else 0.9 m deep, with steps down from it
+            float sl = 0.9f;
+            for (float k = 0.45f; k <= 1.2f; k += 0.15f)
+                if (ground(k + 0.1f) >= floorZ - 0.18f) {
+                    sl = k + 0.1f;
+                    break;
+                }
+            for (float k = 0.f; k <= sl; k += 0.15f) lowest = Min(lowest, ground(k + 0.05f));
+            slab(0.f, sl, top);
+            s = sl;
+            // steps down from it while the ground is lower still (6 at most)
+            for (int i = 0; i < 6; i++) {
+                const float g = ground(s + 0.15f);
+                if (g >= top - 0.26f) break;
+                top -= 0.18f;
+                lowest = Min(lowest, g);
+                slab(s, s + 0.3f, top);
+                s += 0.3f;
+            }
+        }
+    }
+}
+
+// The collision of a shell with an interior, in parts: the foundation up to the ground floor, each exterior wall floor by
+// floor with its doorways open (a lintel over each) and its windows solid, and the roof down to the top floor's ceiling.
+// The interior collides the rest near the player (interiorhand.cpp): the inside walls, the upper floors, the stairs and
+// the doors' leaves. `lo`, `hi`: the walls' outer bounds in the plan's frame
+void hollowCollision(const BuildCtx& x, vec2 lo, vec2 hi, float zRoof, bool parapet, std::vector<CollisionBox>& out) {
+    const auto box = [&](vec2 c, vec2 ax, float hx, float hy, float z0, float z1) {
+        if (z1 - z0 < 0.01f || hx < 0.005f || hy < 0.005f) return;
+        CollisionBox cb;
+        cb.c = vec3(x.fr.point(c), (z0 + z1) * 0.5f);
+        cb.ax = normalize(x.fr.dir(ax));
+        cb.he = vec3(hx, hy, (z1 - z0) * 0.5f);
+        out.push_back(cb);
+    };
+    box((lo + hi) * 0.5f, vec2(1.f, 0.f), (hi.x - lo.x) * 0.5f, (hi.y - lo.y) * 0.5f, x.zFound, x.fr.z);
+    for (const HandShell::Wall& w : x.s.walls) {
+        const HandShell::Floor& f = x.s.floors[(size_t)w.floor];
+        const float len = length(w.b - w.a);
+        if (len < 0.05f) continue;
+        const vec2 e = (w.b - w.a) * (1.f / len);
+        const bool top = fabsf(f.z + f.h - x.zTop) < 0.01f;
+        const float z0 = x.fr.z + f.z, z1 = x.fr.z + f.z + f.h + (top && parapet ? kParapet : 0.f);
+        // (past each end by half its thickness, to close the corners)
+        const auto seg = [&](float u0, float u1, float za, float zb) {
+            if (u1 - u0 > 0.01f) box(w.a + e * ((u0 + u1) * 0.5f), e, (u1 - u0) * 0.5f, w.t * 0.5f, za, zb);
+        };
+        std::vector<const HandShell::Opening*> doors;
+        for (const HandShell::Opening& o : w.openings)
+            if (o.door()) doors.push_back(&o);
+        std::sort(doors.begin(), doors.end(), [](const HandShell::Opening* a, const HandShell::Opening* b) { return a->at < b->at; });
+        float u = -w.t * 0.5f;
+        for (const HandShell::Opening* o : doors) {
+            seg(u, o->at - o->w * 0.5f, z0, z1);
+            seg(o->at - o->w * 0.5f, o->at + o->w * 0.5f, z0 + o->h, z1);
+            u = Max(u, o->at + o->w * 0.5f);
+        }
+        seg(u, len + w.t * 0.5f, z0, z1);
+    }
+    box((lo + hi) * 0.5f, vec2(1.f, 0.f), (hi.x - lo.x) * 0.5f, (hi.y - lo.y) * 0.5f, x.fr.z + x.zTop - kSlab, parapet ? x.fr.z + x.zTop : zRoof);
+}
+
 // A placement as the game's building queries know a building (BuildingSet::pointInBuilding, buildingsNear, and what
 // is built on them: peds' spawn, flee and window-shopping checks, traffic, police, wildlife, missions, the map): the box
 // of its walls' outer faces in the plan's frame, from its ground floor to its walls' top (the roof deck or the eaves),
 // its floors, its plan's class as its style (the class list is BuildingStyle's order; a landmark a tower), its front,
 // and its street door at its main entrance where that is on its front wall (else none: game/ai.cpp leaves it out). It
-// has no facade entry (the shell draws it) and no interior yet, and a seed without a garage (buildings.h
-// houseGarage), so the population parks no car on a driveway that isn't there.
+// has no facade entry (the shell draws it), and no interior (Building::interior -1: its interior, interiorhand.cpp's,
+// is its placement's, and its street door stays the people's), and a seed without a garage (buildings.h houseGarage),
+// so the population parks no car on a driveway that isn't there.
 Building buildingRecord(const HandShell& s, const HandPlacement& p, const Frame& fr) {
     Building b;
     float t = 0.25f;
@@ -690,7 +824,9 @@ Building buildingRecord(const HandShell& s, const HandPlacement& p, const Frame&
 // - a facade entry for each window and glass door, appended to `bs.facades` for the renderer's upload. An entry is one
 //   window cell (facade.hlsli) the size of the glass, flagged a hand-built window with the class of the room behind it
 //   (roomlight.h handWindowFlags), a storefront's where it is one, an office's for an office; the windows of one room
-//   share its seed, so they show the same room and light together. Entries that come out the same are shared.
+//   share its seed, so they show the same room and light together. Entries that come out the same are shared;
+// - the party walls: how high a neighbour hides each wall's and each outline edge's outer face (HandBuildings
+//   wallCover, edgeCover), so neither the wall nor its trims show in the neighbour's rooms.
 void prepareHandBuildings(HandBuildings& hb, BuildingSet& bs) {
     using namespace handshells_detail;
     hb.placementsByCell.assign((size_t)kCellsPerSide * kCellsPerSide, {});
@@ -768,10 +904,85 @@ void prepareHandBuildings(HandBuildings& hb, BuildingSet& bs) {
                 hb.openingFacades.push_back(it->second);
             }
     }
+    // party walls: a wall, or an edge of the outline the trims and the coping follow (as band() walks it), whose outer
+    // face a neighbour's outline holds is hidden up to the neighbour's top (its parapet's), so neither it nor its trims
+    // show in the neighbour's rooms
+    struct Outline {
+        std::vector<vec2> poly;   // (world, counter-clockwise)
+        vec2 lo = vec2(1e9f), hi = vec2(-1e9f);
+        float top = -1e9f;
+        bool ok = false;
+    };
+    std::vector<Outline> outl(hb.placements.size());
+    for (size_t pi = 0; pi < hb.placements.size(); pi++) {
+        const HandPlacement& p = hb.placements[pi];
+        if (p.shell < 0 || (size_t)p.shell >= hb.shells.size()) continue;
+        const HandShell& s = hb.shells[(size_t)p.shell];
+        if (s.footprint.size() < 3 || s.floors.empty() || s.walls.empty()) continue;
+        const Frame fr = frameOf(p, s);
+        float tTop = 0.25f;
+        const float zt = shellTop(s, &tTop);
+        std::vector<vec2> w;
+        for (vec2 q : offsetPoly(s.footprint, tTop * 0.5f)) w.push_back(fr.point(q));
+        Outline& o = outl[pi];
+        o.poly = offsetPoly(w, 0.f);
+        for (vec2 q : o.poly) {
+            o.lo = vec2(Min(o.lo.x, q.x), Min(o.lo.y, q.y));
+            o.hi = vec2(Max(o.hi.x, q.x), Max(o.hi.y, q.y));
+        }
+        vec2 lo, hi;
+        const bool flat = s.roofForm == RFORM_FLAT || !planRect(s.footprint, lo, hi) || s.pitch < 1.f;
+        o.top = p.z + zt + (flat ? kParapet : 0.f);
+        o.ok = true;
+    }
+    const auto covered = [&](size_t self, vec2 a, vec2 b, vec2 out) {   // the outer face from a to b (world), `out` outward
+        float c = -1e9f;
+        for (size_t j = 0; j < outl.size(); j++) {
+            const Outline& o = outl[j];
+            if (j == self || !o.ok || Max(a.x, b.x) < o.lo.x - 0.1f || Min(a.x, b.x) > o.hi.x + 0.1f || Max(a.y, b.y) < o.lo.y - 0.1f || Min(a.y, b.y) > o.hi.y + 0.1f)
+                continue;
+            bool all = true;
+            for (float k : {0.2f, 0.5f, 0.8f}) all = all && inside(o.poly, a + (b - a) * k + out * 0.02f);
+            if (all) c = Max(c, o.top);
+        }
+        return c;
+    };
+    hb.firstWall.assign(hb.placements.size(), kNone32);
+    hb.firstEdge.assign(hb.placements.size(), kNone32);
+    hb.wallCover.clear();
+    hb.edgeCover.clear();
+    for (size_t pi = 0; pi < hb.placements.size(); pi++) {
+        if (!outl[pi].ok) continue;
+        const HandPlacement& p = hb.placements[pi];
+        const HandShell& s = hb.shells[(size_t)p.shell];
+        const Frame fr = frameOf(p, s);
+        hb.firstWall[pi] = (u32)hb.wallCover.size();
+        for (const HandShell::Wall& w : s.walls) {
+            const float len = length(w.b - w.a);
+            if (len < 0.05f) {
+                hb.wallCover.push_back(-1e9f);
+                continue;
+            }
+            const vec2 e = (w.b - w.a) * (1.f / len);
+            vec2 nl(e.y, -e.x);   // (outward, as buildWall finds it)
+            if (inside(s.footprint, (w.a + w.b) * 0.5f + nl * 0.05f)) nl = -nl;
+            const float ht = w.t * 0.5f;
+            hb.wallCover.push_back(covered(pi, fr.point(w.a + nl * ht), fr.point(w.b + nl * ht), normalize(fr.dir(nl))));
+        }
+        hb.firstEdge[pi] = (u32)hb.edgeCover.size();
+        const std::vector<vec2>& poly = outl[pi].poly;
+        for (size_t i = 0; i < poly.size(); i++) {
+            const vec2 a = poly[i], b = poly[(i + 1) % poly.size()];
+            const vec2 d = b - a;
+            const float l = length(d);
+            hb.edgeCover.push_back(l < 0.01f ? -1e9f : covered(pi, a, b, vec2(d.y, -d.x) * (1.f / l)));   // (outward: right of a CCW edge)
+        }
+    }
 }
 
 // A cell's share of the hand-built world's buildings: each placement whose footprint's centre lies in it, its shell
-// drawn by the LOD, and its footprint's bounds as collision at every LOD
+// drawn by the LOD, and as collision at every LOD its footprint's bounds; or, for one with an interior, its shell's
+// parts (hollowCollision) and its doors' stoops
 void buildHandBuildingsCell(const HandBuildings& hb, const WorldMap& map, int cx, int cy, bool detail, vec3 org, CellGeometry& out) {
     using namespace handshells_detail;
     const size_t cell = (size_t)cy * kCellsPerSide + cx;
@@ -785,6 +996,10 @@ void buildHandBuildingsCell(const HandBuildings& hb, const WorldMap& map, int cx
         if (s.walls.empty()) continue;
         BuildCtx x{hb, p, s, map, o, detail, frameOf(p, s), paintOf(hb, p, s)};
         x.firstOpening = (size_t)pi < hb.firstOpening.size() ? hb.firstOpening[(size_t)pi] : kNone32;
+        if ((size_t)pi < hb.firstWall.size() && hb.firstWall[(size_t)pi] != kNone32 && hb.firstWall[(size_t)pi] + s.walls.size() <= hb.wallCover.size())
+            x.wallCover = hb.wallCover.data() + hb.firstWall[(size_t)pi];
+        if ((size_t)pi < hb.firstEdge.size() && hb.firstEdge[(size_t)pi] != kNone32 && hb.firstEdge[(size_t)pi] + s.footprint.size() <= hb.edgeCover.size())
+            x.edgeCover = hb.edgeCover.data() + hb.firstEdge[(size_t)pi];
         x.zTop = shellTop(s, &x.tTop);
         // the foundation goes down to 0.3 m under the lowest ground at the walls' corners
         float gMin = p.z;
@@ -800,7 +1015,9 @@ void buildHandBuildingsCell(const HandBuildings& hb, const WorldMap& map, int cx
             buildWall(x, wi, fabsf(f.z + f.h - x.zTop) < 0.01f, parapet);
         }
         if (detail) buildTrims(x, parapet);
-        // collision: the walls' outer bounds in the plan's frame, from the foundation to the roof's top
+        if (!s.rooms.empty()) buildStoops(x, out.collision);
+        // collision: the walls' outer bounds in the plan's frame, from the foundation to the roof's top (a shell with an
+        // interior: in parts, hollow)
         std::vector<vec2> outer = offsetPoly(s.footprint, x.tTop * 0.5f);
         vec2 lo = outer[0], hi = outer[0];
         for (vec2 q : outer) {
@@ -809,6 +1026,10 @@ void buildHandBuildingsCell(const HandBuildings& hb, const WorldMap& map, int cx
         }
         float zRoof = p.z + x.zTop + (parapet ? kParapet : 0.f);
         if (!parapet) zRoof += tanf(Clamp(s.pitch, 1.f, 70.f) * kDegToRad) * Min(hi.x - lo.x, hi.y - lo.y) * 0.5f;
+        if (!s.rooms.empty()) {
+            hollowCollision(x, lo, hi, zRoof, parapet, out.collision);
+            continue;
+        }
         CollisionBox cb;
         const vec2 cc = x.fr.point((lo + hi) * 0.5f);
         cb.c = vec3(cc, (x.zFound + zRoof) * 0.5f);

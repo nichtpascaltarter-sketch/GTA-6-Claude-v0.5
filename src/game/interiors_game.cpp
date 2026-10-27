@@ -64,7 +64,15 @@ struct State {
 };
 State gIS;
 
-int colKeyFor(int def, int sub) { return -(1000000 + def * 256 + sub); }
+// The collision world's "cell" key of an interior's colliders (sub 0) and of its doors' leaves (1 + the door). The
+// generator's interiors' keys are negative, and the collision world skips a collider whose owner (its key) is negative
+// as one it has freed (Phys::CollisionWorld::ground, capsuleOverlap): left so for now. A hand-built interior's are
+// positive, past the streaming cells' (below 2 * 80 * 80) and the ramps' (activities.cpp, 1000000 + i), so its walls,
+// floors, stairs and leaves collide
+int colKeyFor(int def, int sub) {
+    const bool hand = World::gInteriors && def >= 0 && def < (int)World::gInteriors->defs.size() && World::gInteriors->defs[(size_t)def].kind == World::IK_HAND;
+    return hand ? 2000000 + def * 256 + sub : -(1000000 + def * 256 + sub);
+}
 
 float cellDistance(vec2 p, dvec3 cam) {
     float cs = World::kCellSize;
@@ -462,7 +470,7 @@ void submitDisplayCar(Render::Renderer& R, const InteriorDef& d, const World::In
 #endif
 }
 
-void submitAll(Render::Renderer& R, dvec3 cam, float hour, float gameSeconds) {
+void submitAll(Render::Renderer& R, dvec3 cam, float hour, float gameSeconds, u32 gameDay) {
     if (!World::gInteriors) return;
     const auto& defs = World::gInteriors->defs;
     struct VolReq {
@@ -470,6 +478,24 @@ void submitAll(Render::Renderer& R, dvec3 cam, float hour, float gameSeconds) {
         int def;
     };
     std::vector<VolReq> vols;
+    // Hand-built interiors stand close together: one's lights only when all its rooms get a volume this frame (the
+    // renderer keeps the first kMaxInteriorVolumes, nearest interior first, below), else they would light the street and
+    // its neighbours through its walls
+    std::vector<u8> lit(gIS.slots.size(), 1);
+    {
+        std::vector<VolReq> order;
+        for (size_t i = 0; i < gIS.slots.size(); i++)
+            if (gIS.slots[i] && gIS.slots[i]->state == 3) {
+                float dist = length(rel(dvec3(defs[i].center()), cam));
+                if (dist < 420.f) order.push_back({dist, (int)i});
+            }
+        std::sort(order.begin(), order.end(), [](const VolReq& a, const VolReq& b) { return a.dist < b.dist; });
+        int used = 0;
+        for (const VolReq& o : order) {
+            for (const World::InteriorRoom& rm : defs[o.def].rooms) used += rm.outdoor ? 0 : 1;
+            if (defs[o.def].kind == World::IK_HAND && used > Render::Renderer::kMaxInteriorVolumes) lit[o.def] = 0;
+        }
+    }
     for (size_t i = 0; i < gIS.slots.size(); i++) {
         Loaded* L = gIS.slots[i];
         if (!L || L->state != 3) continue;
@@ -511,9 +537,10 @@ void submitAll(Render::Renderer& R, dvec3 cam, float hour, float gameSeconds) {
             for (size_t m = 0; m < d.markers.size(); m++)
                 if (d.markers[m].kind == World::IM_CAR || d.markers[m].kind == World::IM_CAR_STRIPPED) submitDisplayCar(R, d, d.markers[m], (u32)(i * 16 + m), dist);
         // local lights
-        if (dist < kLightRange + d.radius) {
+        if (dist < kLightRange + d.radius && lit[i]) {
             for (const World::InteriorLight& li : L->lights) {
                 float on = li.room < d.rooms.size() ? lightsOn(d.rooms[li.room].schedule, hour) : lightsOn(World::LS_EVENING, hour);
+                if (d.kind == World::IK_HAND) on = Max(World::handRoomLight((int)i, li.room, gameDay, hour, R.roomNight()), 0.f);   // (as its windows show it)
                 if (on < 0.3f && li.anim != 4) continue;
                 Render::DynamicLight dl;
                 vec3 dir = li.dir;
@@ -568,7 +595,7 @@ void submitAll(Render::Renderer& R, dvec3 cam, float hour, float gameSeconds) {
             v.center = dvec3(d.toWorld(c));
             v.axis = d.ax;
             v.halfExtents = (rm.mx - rm.mn) * 0.5f;
-            v.ambient = rm.lampAmbient * lightsOn(rm.schedule, hour);
+            v.ambient = rm.lampAmbient * (d.kind == World::IK_HAND ? Max(World::handRoomLight(vr.def, (int)ri, gameDay, hour, R.roomNight()), 0.f) : lightsOn(rm.schedule, hour));
             v.skyBounce = rm.dayBounce;
             v.firstPortal = (int)R.interiorPortals.size();
             for (const World::InteriorPortal& pt : d.portals) {
@@ -983,6 +1010,148 @@ void tideTest(GameWorld& g, float dt) {
     }
 }
 
+// --handtour <name>[,<name>...] or all (with --play --autoplay handtour): walk the player through hand-built interiors
+// (World::handInteriorTour), each from outside its main entrance through every door and up every stair into each of its
+// rooms. Logs each room as the player reaches it, what it reached walking (a waypoint it can't reach within 6 s is
+// logged and skipped to), and shoots tour_NN_<name>_<what>.bmp into --shotdir in the first room of each floor and on
+// each stair's landing or middle
+struct HandTour {
+    bool init = false;
+    std::vector<int> defs;
+    size_t cur = 0;
+    std::vector<vec3> pts;
+    std::vector<int> rooms;
+    size_t next = 0;
+    float t = 0.f, sinceBest = 0.f, best = 1e9f;
+    std::vector<u8> reached, floorShot;
+    int stuck = 0, shot = 0, totalRooms = 0, totalReached = 0, totalStuck = 0;
+};
+HandTour gHT;
+
+bool handTourStart(GameWorld& g, Ped& pl) {
+    while (gHT.cur < gHT.defs.size()) {
+        const InteriorDef& d = World::gInteriors->defs[gHT.defs[gHT.cur]];
+        if (World::handInteriorTour(gHT.defs[gHT.cur], gHT.pts, gHT.rooms) && gHT.pts.size() >= 2) {
+            gHT.next = 1;
+            gHT.t = gHT.sinceBest = 0.f;
+            gHT.best = 1e9f;
+            gHT.stuck = 0;
+            gHT.reached.assign(d.rooms.size(), 0);
+            gHT.floorShot.assign(16, 0);
+            const vec3 p0 = gHT.pts[0], p1 = gHT.pts[1];
+            pl.pos = dvec3(p0.x, p0.y, g.groundHeight(p0.x, p0.y, p0.z + 1.5f));
+            pl.vel = vec3(0.f);
+            pl.yaw = atan2f(-(p1.x - p0.x), p1.y - p0.y);
+            g.rig.yaw = pl.yaw;
+            g.rig.cut = true;
+            LOG("handtour: '%s', %zu rooms, %zu waypoints, from %.1f %.1f %.1f", d.name.c_str(), d.rooms.size(), gHT.pts.size(), p0.x, p0.y, (float)pl.pos.z);
+            return true;
+        }
+        LOG("handtour: '%s' has no tour", d.name.c_str());
+        gHT.cur++;
+    }
+    LOG("handtour: done: %zu interiors, %d of %d rooms reached walking, %d waypoints out of reach", gHT.defs.size(), gHT.totalReached, gHT.totalRooms, gHT.totalStuck);
+    return false;
+}
+
+void handTour(GameWorld& g, float dt) {
+    const char* arg = Platform::argValue("handtour");
+    if (!arg || !World::gInteriors) return;
+    Ped* pl = g.playerPed();
+    if (!pl) return;
+    const auto& defs = World::gInteriors->defs;
+    if (!gHT.init) {
+        gHT.init = true;
+        const std::string list = arg;
+        for (size_t i = 0; i < defs.size(); i++) {
+            if (defs[i].kind != World::IK_HAND) continue;
+            bool want = list == "all";
+            for (size_t a = 0; !want && a < list.size();) {
+                size_t b = list.find(',', a);
+                if (b == std::string::npos) b = list.size();
+                want = list.compare(a, b - a, defs[i].name) == 0;
+                a = b + 1;
+            }
+            if (want) gHT.defs.push_back((int)i);
+        }
+        g.populationOff = true;
+        setFlag(g, EX_INTRO_DONE, 1);
+        LOG("handtour: %zu interiors", gHT.defs.size());
+        if (!handTourStart(g, *pl)) gHT.cur = gHT.defs.size();
+        return;
+    }
+    if (gHT.cur >= gHT.defs.size()) return;
+    const int di = gHT.defs[gHT.cur];
+    const InteriorDef& d = defs[di];
+    gHT.t += dt;
+    const vec3 pp = pl->pos.toVec3();
+    auto shot = [&](const std::string& what) {
+        const char* dir = Platform::argValue("shotdir");
+        g.requestScreenshot = std::string(dir ? dir : "Z:\\tmp\\") + StrFormat("tour_%02d_%s_%s.bmp", gHT.shot++, d.name.c_str(), what.c_str());
+    };
+    // the room it is in
+    if (gIS.playerInterior == di && gIS.playerRoom >= 0 && gIS.playerRoom < (int)gHT.reached.size() && !gHT.reached[(size_t)gIS.playerRoom]) {
+        const int r = gIS.playerRoom;
+        gHT.reached[(size_t)r] = 1;
+        const int floor = Clamp((int)floorf(d.rooms[(size_t)r].mn.z / 2.5f + 0.5f), 0, 15);
+        LOG("handtour: '%s' room %d (floor at %.2f m) after %.1f s", d.name.c_str(), r, d.rooms[(size_t)r].mn.z, gHT.t);
+        if (!gHT.floorShot[(size_t)floor] && g.requestScreenshot.empty()) {
+            gHT.floorShot[(size_t)floor] = 1;
+            shot(StrFormat("room%d", r));
+        }
+    }
+    // toward the next waypoint
+    const vec3 target = gHT.pts[gHT.next];
+    vec2 to = target.xy() - pp.xy();
+    float dist = length(to);
+    bool advance = dist < 0.3f;
+    if (!advance) {
+        if (dist < gHT.best - 0.1f) {
+            gHT.best = dist;
+            gHT.sinceBest = 0.f;
+        } else if ((gHT.sinceBest += dt) > 6.f) {
+            LOG("handtour: '%s' waypoint %zu of %zu (%.1f %.1f %.1f) out of reach from %.1f %.1f %.1f", d.name.c_str(), gHT.next, gHT.pts.size(), target.x, target.y,
+                target.z, pp.x, pp.y, pp.z);
+            gHT.stuck++;
+            pl->pos = dvec3(target.x, target.y, g.groundHeight(target.x, target.y, target.z + 1.2f));
+            pl->vel = vec3(0.f);
+            advance = true;
+        }
+    }
+    if (advance) {
+        // a stair's third waypoint, up or down (a dogleg's landing, a straight flight's top): a shot
+        if (gHT.next >= 2 && gHT.rooms[gHT.next] == -2 && gHT.rooms[gHT.next - 1] == -2 && gHT.rooms[gHT.next - 2] == -2 &&
+            (gHT.next < 3 || gHT.rooms[gHT.next - 3] != -2) && g.requestScreenshot.empty())
+            shot(StrFormat("stair%zu", gHT.next));
+        gHT.next++;
+        gHT.best = 1e9f;
+        gHT.sinceBest = 0.f;
+        if (gHT.next >= gHT.pts.size()) {
+            int n = 0;
+            for (u8 r : gHT.reached) n += r;
+            LOG("handtour: '%s': %d of %zu rooms reached walking in %.1f s, %d waypoints out of reach", d.name.c_str(), n, d.rooms.size(), gHT.t, gHT.stuck);
+            gHT.totalRooms += (int)d.rooms.size();
+            gHT.totalReached += n;
+            gHT.totalStuck += gHT.stuck;
+            gHT.cur++;
+            if (!handTourStart(g, *pl)) gHT.cur = gHT.defs.size();
+            return;
+        }
+        to = gHT.pts[gHT.next].xy() - pp.xy();
+        dist = length(to);
+    }
+    // jog across rooms and along the street, walk (1.4 m/s) the last 2.5 m to a waypoint and on stairs; the camera turns
+    // to look the way it goes, from above (pitched 17 degrees down: it rides near the ceilings, which it keeps under)
+    Controls& c = g.ctl;
+    const vec2 dir = dist > 1e-3f ? to * (1.f / dist) : vec2(0.f, 1.f);
+    const float cy = g.rig.yaw;
+    const vec2 fwd(-sinf(cy), cosf(cy)), right(cosf(cy), sinf(cy));
+    const bool jog = dist > 2.5f && gHT.rooms[gHT.next] != -2 && gHT.rooms[gHT.next - 1] != -2;
+    c.move = vec2(dot(dir, right), dot(dir, fwd)) * (jog ? 0.9f : 0.45f);
+    const float dy = wrapAngle(atan2f(-dir.x, dir.y) - g.rig.yaw);
+    c.look = vec2(-Clamp(dy, -0.06f, 0.06f), Clamp((-0.3f - g.rig.pitch) * 0.3f, -0.03f, 0.03f));
+}
+
 }  // namespace interiors_game
 
 namespace holdups {   // holdups.cpp (store robberies on the shop clerks spawned here)
@@ -999,6 +1168,7 @@ using namespace interiors_game;
 // Before the player update: the --interiortest walk-through drives the controls
 void preUpdate(GameWorld& g, float dt) {
     testDrive(g, dt);
+    handTour(g, dt);
     elevatorTest(g, dt);
     tideTest(g, dt);
     holdups::testDrive(g, dt);
@@ -1035,16 +1205,21 @@ void update(GameWorld& g, float dt) {
 // Render submission in gameplay (GameWorld::submitRender)
 void submit(GameWorld& g) {
     if (!g.renderer || !g.env) return;
-    submitAll(*g.renderer, g.rig.cam.pos, g.env->timeOfDay, g.env->gameSeconds);
+    submitAll(*g.renderer, g.rig.cam.pos, g.env->timeOfDay, g.env->gameSeconds, g.env->gameDay);
 }
 
 // Free camera without a game (screenshots, --shot): streaming + render submission
 void submitFreecam(Render::Renderer& R, const Render::Camera& cam, const Render::Environment& env) {
     stream(R, nullptr, cam.pos);
-    submitAll(R, cam.pos, env.timeOfDay, env.gameSeconds);
+    submitAll(R, cam.pos, env.timeOfDay, env.gameSeconds, env.gameDay);
 }
 
 bool isInside() { return gIS.playerInterior >= 0; }
+// The player is inside a hand-built building (camera.cpp: its camera stays under the ceilings)
+bool insideHandBuilt() {
+    return gIS.playerInterior >= 0 && World::gInteriors && gIS.playerInterior < (int)World::gInteriors->defs.size() &&
+           World::gInteriors->defs[(size_t)gIS.playerInterior].kind == World::IK_HAND;
+}
 int currentInterior() { return gIS.playerInterior; }
 int currentRoom() { return gIS.playerRoom; }
 int currentKind() { return gIS.playerInterior >= 0 && World::gInteriors ? (int)World::gInteriors->defs[gIS.playerInterior].kind : -1; }

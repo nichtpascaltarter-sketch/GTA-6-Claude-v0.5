@@ -102,15 +102,23 @@ void doorLeaf(const Layout& lay, const LayoutWall& lw, const LayoutOpening& o, H
 }
 
 // A stair's end on a plan's floors: "f1.hall" (a floor and its room), or "+1:hall", "0:hall", "-1:hall" relative to
-// floor `fi`; false where it names no floor or room (worldv's to report)
+// floor `fi`: the next floor up or down by height, whatever the order the plan lists them in (as worldv's neighbour());
+// false where it names no floor or room (worldv's to report)
 bool stairEnd(const Model& model, const Plan& pl, size_t fi, const std::string& v, int& floor, u32& room) {
     std::string fl, rm;
     const size_t colon = v.find(':'), dot = v.find('.');
     if (colon != std::string::npos) {
         const std::string off = v.substr(0, colon);
         const int k = off == "0" ? 0 : off == "+1" ? 1 : off == "-1" ? -1 : 99;
-        if (k == 99 || (int)fi + k < 0 || (int)fi + k >= (int)pl.floors.size()) return false;
-        floor = (int)fi + k;
+        if (k == 99) return false;
+        floor = k == 0 ? (int)fi : -1;
+        const float z = pl.floors[fi].z;
+        for (size_t i = 0; i < pl.floors.size() && k != 0; i++) {
+            const float gz = pl.floors[i].z;
+            if (i == fi || (k > 0 ? gz <= z + 0.02f : gz >= z - 0.02f)) continue;
+            if (floor < 0 || (k > 0 ? gz < pl.floors[(size_t)floor].z : gz > pl.floors[(size_t)floor].z)) floor = (int)i;
+        }
+        if (floor < 0) return false;
         rm = v.substr(colon + 1);
     } else if (dot != std::string::npos) {
         fl = v.substr(0, dot);
