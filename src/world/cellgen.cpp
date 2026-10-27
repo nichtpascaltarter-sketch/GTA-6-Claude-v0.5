@@ -600,6 +600,13 @@ void buildHandBlocksCell(const HandBlocks& hb, const WorldMap& map, int cx, int 
     for (int li : hb.lampsByCell[cell]) out.lights.push_back(hb.lamps[(size_t)li]);
 }
 
+}  // namespace World
+
+// the hand-built world's buildings (their shells drawn into the cells, and prepared at load)
+#include "handshells.cpp"
+
+namespace World {
+
 void generateCell(int cx, int cy, bool detail, CellGeometry& out) {
     const WorldMap& map = *gMap;
     vec2 org2 = cellOrigin(cx, cy);
@@ -619,10 +626,11 @@ void generateCell(int cx, int cy, bool detail, CellGeometry& out) {
         out.props.insert(out.props.end(), roads.props.begin(), roads.props.end());
         out.lights.insert(out.lights.end(), roads.lights.begin(), roads.lights.end());
     }
-    // and its blocks' ground and dressing; nothing procedural beyond its roads: no buildings, lots, scattered
-    // vegetation or sites
+    // and its blocks' ground and dressing, and its buildings; nothing procedural beyond its roads: no generated
+    // buildings, lots, scattered vegetation or sites
     if (isHandWorld()) {
         if (gHandBlocks) buildHandBlocksCell(*gHandBlocks, map, cx, cy, detail, org, out);
+        if (gHandBuildings) buildHandBuildingsCell(*gHandBuildings, map, cx, cy, detail, org, out);
         return;
     }
     const int cps = kCellsPerSide;

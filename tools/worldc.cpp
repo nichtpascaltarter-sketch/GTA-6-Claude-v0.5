@@ -28,6 +28,8 @@
 #include "src/world/roadsbin.cpp"
 #include "src/world/blocksbin.cpp"
 #include "src/world/worldmodel_blocks.cpp"
+#include "src/world/buildingsbin.cpp"
+#include "src/world/worldmodel_buildings.cpp"
 #include <algorithm>
 #include <chrono>
 #include <filesystem>
@@ -274,9 +276,11 @@ bool compileTerrain(const Source& src, WorldBinWriter& out) {
     return true;
 }
 
-// The kinds the world model reads in stage 1: the roads and the blocks, and the files they name
+// The kinds the world model reads in stage 1: the roads, the blocks and the buildings (with the library's plans, floor
+// layouts, facade styles and palettes), and the files they name
 bool modelKind(const std::string& k) {
-    return k == "world" || k == "district" || k == "roads" || k == "signal" || k == "transit" || k == "block" || k == "catalog";
+    return k == "world" || k == "district" || k == "roads" || k == "signal" || k == "transit" || k == "block" || k == "catalog" || k == "plan" ||
+           k == "layout" || k == "facade" || k == "palette" || k == "building";
 }
 
 // Those files through the world model: the roads compiled into the roads sections, and into `roads` and `decks` (per
@@ -308,6 +312,15 @@ bool compileModel(std::vector<Source>& files, const std::vector<size_t>& which, 
     };
     report(errs);
     if (gErrors != errorsBefore) return false;
+    // the buildings: the library's plans as shells, the building files as placements of them (buildingsbin.h)
+    HandBuildings buildings;
+    std::vector<Hand::Error> found;
+    Hand::compileBuildings(model, buildings, found);
+    report(found);
+    if (gErrors != errorsBefore) return false;
+    if (!buildings.shells.empty() || !buildings.placements.empty())
+        printf("worldc: library %zu looks, %zu shells; %zu buildings\n", buildings.looks.size(), buildings.shells.size(), buildings.placements.size());
+    writeBuildings(buildings, out);
     if (!blocks.blocks.ground.empty() || !blocks.blocks.props.empty() || !blocks.blocks.lamps.empty())
         printf("worldc: blocks %zu, %zu ground polygons, %zu props, %zu lamps, %zu graded parcels\n", model.blocks.size(), blocks.blocks.ground.size(),
                blocks.blocks.props.size(), blocks.blocks.lamps.size(), blocks.pads.size());
@@ -391,7 +404,7 @@ int run() {
         } else if (modelKind(s.doc.kind)) {
             modelFiles.push_back(i);
         } else {
-            error(s.path, 0, "no compiler for " + s.doc.kind + " files yet (buildings, places and the rest of the library come with their compilers)");
+            error(s.path, 0, "no compiler for " + s.doc.kind + " files yet (places, units, fit-outs and sets come with their compilers)");
         }
     }
     if (terrains != 1 && !gErrors) error(gWorld, 0, "no world/terrain/terrain.ntw");

@@ -30,11 +30,13 @@ to one is a change to both, in the same commit.
   district, signal and transit files they name: the roads go into world.bin's roads sections (src/world/roadsbin.h),
   with what the lane graph reads beyond the network so far (each edge's `lanewidth`, `median`, `shoulder`, `parking`,
   `sidewalk`, `speed` and `tunnel`, else its class's; each node's `control`, `stops`, `yield`, `noredturn` and `bulb`:
-  src/world/roadoverrides.h), and the terrain is graded under them; and the blocks with the catalog: their parcels,
+  src/world/roadoverrides.h), and the terrain is graded under them; the blocks with the catalog: their parcels,
   plazas and dressing go into the blocks section (src/world/blocksbin.h), and the parcels' grades into the grading
-  (section 9.5).
-  A building, places or other library file stops the build ("no compiler for ... files yet") until its compiler
-  exists. The validator checks every kind already.
+  (section 9.5); and the buildings with the plans, layouts, facade styles and palettes they name: the plans' shells
+  go into the library section and the buildings' placements into the buildings section (src/world/buildingsbin.h;
+  section 9.10).
+  A places, unit, fit-out or set file stops the build ("no compiler for ... files yet") until its compiler exists.
+  The validator checks every kind already.
 
 ## 2. Lines and records
 
@@ -535,6 +537,35 @@ Kind `palette` (lib/palettes/<family>.ntw): header `family` id req. A palette is
 | Record | Id | Fields |
 |---|---|---|
 | `palette` | req | `wall` colour req, `trim` colour req, `door` colour req, `accent` colour, `roof` colour |
+
+What the buildings compiler (src/world/worldmodel.h compileBuildings) reads so far, and requires:
+- A plan's `meta` class and size, its footprint (3 points or more), its floors (one or more: each one's layout, `z`
+  and `h`), its roof (`form`, `pitch`, `overhang`, and `material`: without one, gravel on a flat roof and shingles on
+  a pitched one) and its facade's `style` and `palette`. It compiles to a shell: the floors, each floor's exterior
+  walls (its layout's walls with `ext`) with their doors and windows, the roof and the look.
+- A window takes the light schedule of its `room`, and a door that of the room it opens into from outside
+  (`leads=out:<room>`: a glass door is lit as its shop or hall is): the room's `sched` where that names one of
+  src/world/roomlight.h's classes (`always`, `never`, `home_living`, `home_kitchen`, `home_bed`, `home_bath`, `shop`,
+  `office`, `restaurant`, `nightlife`, `garage`, `dusk`, `porch`), else its type's: `living`, `dining` and `hall` a
+  home's living rooms, `kitchen`, `bed` and `bath` a home's, `shop`, `office`, `restaurant` and `garage` theirs, `bar`
+  nightlife's, `stair`, `corridor` and `lobby` always, and the rest (`store`, `plant`, `utility`) never.
+- A facade style's `wall` (its `material`; its `color` the palette's wall slot without one), its trims (`none` is
+  left out; without them a trim's `material` is the wall's, its `color` the trim slot and its `h` 0.2 m), its
+  `window` (kind `dhung`, a painted metal frame and the trim slot without them; its `shutters`), its `door`'s
+  `color` (the door slot) and its `base` (`h`; its `material` the wall's).
+- A material (a wall's, a trim's, a frame's, a base's, a roof's) is a catalog piece whose `code` names one of the
+  game's materials: `MAT_STUCCO`, `MAT_BRICK`, `MAT_WOOD_SIDING`, `MAT_ROOF_TILE` and the rest of src/render/mesh.h's
+  `MaterialId`.
+- A palette's colours as written; a slot it doesn't write is left to the look's defaults.
+- A building's `place` (its plan, `at` the plan's origin, `z` its ground floor's height, `yaw`, `mirror`), and its
+  `config`: a `palette`, `roof` (a material) and `facade` in place of the plan's, and for each option the plan
+  declares that it writes, one of the option's choices.
+- Findings: `building.kind` (a material whose `code` the game lacks), `building.shape` (a plan without a floor or a
+  footprint of 3 points), `building.option` (a `config` field that is no option of the plan, or a choice the option
+  lacks).
+- Interior walls, rooms, stairs, lifts, slots, furnishing, spots and lights compile with the interiors, and a plan's
+  options' features, its entrances, and a building's slots, overrides, occupancy and outbuildings after; they are read
+  and checked already.
 
 ### 9.11 `places`: world/places/places.ntw
 

@@ -1,0 +1,9 @@
+ntw 1 plan id=lib.plan.house.bungalow_c
+# a 1920s bungalow: one floor under a gable roof, its door on the street side and the kitchen's at the side
+meta class=house family=bungalow era=1926 floors=1 beds=2 baths=1 size=11.60x9.40 tags=calle
+footprint poly=0.00,0.00;11.60,0.00;11.60,9.40;0.00,9.40
+floor f0 layout=lib.layout.house.bungalow_c_f0 z=0.00 h=2.85
+roof form=gable pitch=24.0 overhang=0.45 material=lib.kit.roof_shingle
+facade style=lib.facade.bungalow_lap palette=lib.palette.bungalow.white
+entrance main door=f0.d1 kind=main
+entrance kitchen door=f0.d8 kind=service

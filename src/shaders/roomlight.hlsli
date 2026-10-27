@@ -74,6 +74,10 @@ static const uint kRoomHomeBath = 5u;
 static const uint kRoomShop = 6u;
 static const uint kRoomOffice = 7u;
 static const uint kRoomRestaurant = 8u;
+// A hand-built window's facade entry (roomlight.h kFacadeHandWindow, handWindowSchedule): flags bit 6 marks it, and
+// its room's schedule class rides in bits 8-11; facade.hlsli takes it in place of facadeRoomSchedule's pick
+static const uint kFacadeHandWindow = 64u;
+uint handWindowSchedule(uint flags) { return (flags >> 8) & 15u; }
 
 // src/core/rng.h hash32's mixing (roomlight.h roomHash)
 uint roomHash(uint x) {

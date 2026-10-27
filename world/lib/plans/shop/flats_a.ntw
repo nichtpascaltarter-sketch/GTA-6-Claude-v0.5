@@ -1,0 +1,11 @@
+ntw 1 plan id=lib.plan.shop.flats_a
+# Calle Luna's commonest building: a shop on the street with a flat over it, the flat's own street door and stair at
+# the side
+meta class=shop family=flats era=1952 floors=2 beds=1 baths=1 size=8.00x14.00 tags=calle,storefront
+footprint poly=0.00,0.00;8.00,0.00;8.00,14.00;0.00,14.00
+floor f0 layout=lib.layout.shop.flats_a_f0 z=0.00 h=3.60
+floor f1 layout=lib.layout.shop.flats_a_f1 z=3.60 h=3.06
+roof form=flat material=lib.kit.roof_gravel
+facade style=lib.facade.calle_stucco palette=lib.palette.calle.coral
+entrance main door=f0.d1 kind=main
+entrance flat door=f0.d2 kind=service

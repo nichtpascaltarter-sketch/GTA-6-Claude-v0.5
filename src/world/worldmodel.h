@@ -20,6 +20,7 @@
 #include <vector>
 
 namespace World {
+struct HandBuildings;   // (buildingsbin.h)
 namespace Hand {
 
 // ---------------------------------------------------------------------------------------------------- where things are
@@ -447,6 +448,93 @@ struct Building {
     vec2 at = vec2(0.f);
     float z = 0.f, yaw = 0.f;          // z absolute: the ground floor's height
     bool mirror = false;
+    Ref palette, roof, facade;         // config palette=, roof= (a material), facade= (a style): the plan's otherwise
+    std::vector<std::pair<std::string, std::string>> options;   // config's other fields: the plan's options' choices
+};
+
+// ---------------------------------------------------------------- the library's buildings: plans, floor layouts, looks
+// (docs/NTW_FORMAT.md 9.7-9.10), typed so far as the shells need them: the walls, their openings and the rooms behind
+// them; the stairs, slots, furnishing and the rest stay in File::doc for the interiors
+struct LayoutWall {
+    std::string id;
+    Src src;
+    vec2 a = vec2(0.f), b = vec2(0.f); // its centreline
+    float t = 0.f;
+    std::string ext;                   // front, back, left, right: an exterior wall; empty: inside
+};
+struct LayoutOpening {                 // a door or a window, in a wall
+    std::string id;
+    Src src;
+    bool door = false;
+    std::string wall;                  // its wall's id
+    float at = 0.f;                    // its centre, along the wall from a
+    float w = 0.f, h = 0.f, sill = 0.f;   // (a door's sill is 0)
+    std::string kind;                  // hinged, pair, ...; fixed, dhung, storefront, ...
+    std::string room;                  // a window's room
+    std::string leads;                 // a door's rooms (room:room, out:room)
+};
+struct LayoutRoom {
+    std::string id;
+    Src src;
+    std::string type, sched;           // living, kitchen, ...; its sched= (empty: by its type)
+    std::vector<vec2> poly;
+};
+struct Layout {
+    std::string id;
+    Src src;
+    std::vector<LayoutWall> walls;
+    std::vector<LayoutOpening> openings;
+    std::vector<LayoutRoom> rooms;
+};
+struct PlanFloor {
+    std::string id;                    // f0, f1, ..., b1, attic, roof
+    Src src;
+    Ref layout;
+    float z = 0.f, h = 0.f;            // above the plan's ground floor
+};
+struct PlanOption {                    // option porch choices=none,screened,open default=none
+    std::string id;
+    std::vector<std::string> choices;
+    std::string fallback;              // default=
+};
+struct Plan {
+    std::string id;
+    Src src;
+    std::string cls, family;           // meta class= (today's building styles) and family=
+    int floorCount = 0;                // meta floors=
+    vec2 size = vec2(0.f);             // meta size=WxD
+    std::vector<vec2> footprint;
+    std::vector<PlanFloor> floors;
+    std::string roofForm;              // flat, gable, hip, shed, mansard, barrel
+    float pitch = 0.f, overhang = 0.f;
+    Ref roofMaterial;
+    Ref facade, palette;               // facade style= and palette=
+    std::vector<PlanOption> options;
+};
+struct FacadeTrim {
+    std::string kind;                  // band, cornice, quoin, eyebrow
+    Ref material;
+    std::string color;                 // a palette slot: wall, trim, door, accent, roof
+    float h = 0.f;
+};
+struct FacadeStyle {
+    std::string id;
+    Src src;
+    Ref wallMaterial;
+    std::string wallColor;
+    std::vector<FacadeTrim> trims;
+    std::string windowKind;
+    Ref windowFrame;
+    std::string windowColor, shutters;
+    Ref doorStyle;
+    std::string doorColor;
+    float baseH = 0.f;
+    Ref baseMaterial;
+};
+struct PaletteDef {                    // one palette of a family's file: colours as 0xBBGGRR (rgb8); ~0: not given
+    std::string id;                    // lib.palette.bungalow.coral
+    Src src;
+    u32 wall = ~0u, trim = ~0u, door = ~0u, accent = ~0u, roof = ~0u;
 };
 
 // A library item: plan, layout, unit, fitout, set, facade, a palette, a catalog piece. v0 keeps its records in
@@ -465,6 +553,8 @@ struct LibItem {
     std::string collide;               // box, cylinder, none
     vec3 body = vec3(0.f);             // body=WxDxH: its solid part where that isn't the whole piece (a tree's trunk, a
                                        // street light's pole); 0: its size
+    int table = -1;                    // a plan's, layout's, facade's or palette's index in Model::plans, layouts,
+                                       // facadeStyles or palettes
 };
 
 // ------------------------------------------------------------------------------------------------------------ the model
@@ -511,6 +601,10 @@ struct Model {
     std::vector<Spot> spots;
     std::vector<Building> buildings;
     std::vector<LibItem> library;
+    std::vector<Plan> plans;           // the library's typed items (LibItem::table leads here), in the library's order
+    std::vector<Layout> layouts;
+    std::vector<FacadeStyle> facadeStyles;
+    std::vector<PaletteDef> palettes;
 
     // Every world-wide id the model types, defined first where it is defined twice (worldv reports the second): the
     // classes of the schema's reference table (ntwschema.h), with place and anchor
@@ -725,6 +819,27 @@ struct BakedTerrain {
 // encode.
 bool placeOnTerrain(const BakedTerrain& baked, const RoadNetwork& roads, const std::vector<std::vector<vec2>>& decks, BlocksOut& blocks,
                     WorldBinWriter& out, std::string* error, std::string* report);
+
+// ------------------------------------------------------------------------------------------------------- buildings
+
+// Compiles the library's plans, with their floor layouts and looks (facade styles), into shells, and the building files
+// into placements of them (buildingsbin.h):
+// - a look per facade style, in the library's order: its wall's material and palette slot, its trims, its windows'
+//   kind, frame, colour and shutters, its door's colour, its base; a material is a catalog piece whose code= names a
+//   MaterialId (MAT_STUCCO);
+// - a shell per plan, in the library's order: its class, size and footprint, its look and palette, its roof (form,
+//   pitch, overhang; material, gravel on a flat roof and shingles on a pitched one without one), its floors' heights,
+//   and each floor's exterior walls (its layout's walls with ext=) with their windows and doors. A window carries the
+//   room behind it (its index among the layout's rooms) and its light schedule, and a door the room it opens into
+//   from outside (leads=out:<room>): its sched= where that names a class (roomlight.h: always, home_kitchen,
+//   shop, ...), else its type's (a home's rooms a household's evening; shops, offices, restaurants, bars their hours;
+//   stairs, corridors and lobbies always; stores, plant rooms and utility rooms never);
+// - a placement per building file whose plan= names a plan: the plan's shell, at=, z=, yaw (radians), mirror, and its
+//   config's palette, roof material and facade style where it gives them.
+// Findings: building.kind (a material piece whose code= the game lacks), building.shape (a plan without a floor or a
+// footprint of 3 points), building.option (a config field that names no option of the plan, or a choice the option
+// doesn't have). References that name nothing are worldv's, and left out. False when it reported anything.
+bool compileBuildings(const Model& model, HandBuildings& out, std::vector<Error>& errors);
 
 }  // namespace Hand
 }  // namespace World

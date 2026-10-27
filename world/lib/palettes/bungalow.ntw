@@ -1,0 +1,6 @@
+ntw 1 palette family=bungalow
+# the bungalows' painted siding
+palette white wall=#f2efe6 trim=#ffffff door=#2f4f4f accent=#3d6b55
+palette butter wall=#f3e3a6 trim=#ffffff door=#7a3b2e accent=#4a6a8a
+palette seafoam wall=#b9dccb trim=#fdfbf5 door=#5a3a24 accent=#355e7a
+palette peach wall=#f6c4a4 trim=#fffaf2 door=#2f4f4f accent=#3d6b55

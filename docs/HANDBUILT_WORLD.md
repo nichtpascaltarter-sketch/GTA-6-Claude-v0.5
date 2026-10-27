@@ -615,9 +615,15 @@ They are Python, run with `-I`, and never ship. The game doesn't know they exist
   `blocks.lots` (each lot's curb cuts and rows, and the drive graph worldc derives from them: 12.2 #9), `blocks.walk`
   (the paths, plazas and steps: 12.3 #1) and `blocks.spots` (the spots as written and those the props and bus stops
   imply: 12.4 #1) and `blocks.colliders` (each prop's collider from its catalog piece: 12.3 #5), which the game reads
-  in hand mode with the blocks.
+  in hand mode with the blocks;
+- the buildings (stage 1's part 3), with the plans, floor layouts, facade styles and palettes they name: each plan's
+  shell (its floors, each floor's exterior walls with their doors and windows, every window with the light schedule
+  of the room behind it, its roof and its look) in world.bin's `library` section, and each building's placement (its
+  plan, position, yaw and mirror, and its configuration's palette, roof and look) in `buildings`
+  (`src/world/buildingsbin.h`), which the game reads in hand mode and draws into the cells (section 7.2). The
+  interiors, the plans' options and features, and the outbuildings come later.
 
-A building, places or other library file stops the build until its compiler exists. Reference checks beyond what the
+A places, unit, fit-out or set file stops the build until its compiler exists. Reference checks beyond what the
 compile needs (step 3) are worldv's, which CI runs on `world/`. The roads section stores floats for now; quantising it
 (step 6) is a size step for later.
 
@@ -702,6 +708,18 @@ compiled data. Nothing is invented:
   palette and appended to the cell's buffer. The vertex format stays unchanged (36 bytes). The tall landmarks stay in
   `siteFarCells`, as today.
 
+  So far (stage 1's part 3, `src/world/handshells.cpp`) each placement is drawn into the cell that holds its
+  footprint's centre, built afresh with the cell rather than cached per plan:
+  - the near LOD: the walls with their real openings and a base, the openings' reveals, each window's glass 10 cm
+    in (below), the doors' leaves (panel, glass, roll-up, garage), sills, glazing bars by the window's kind, shutters
+    (fixed pairs, or Bahama shutters propped out), the look's trims (bands at the floor lines, a cornice, quoins,
+    hoods over the windows), and the roof: flat behind a parapet with its coping, or gable, hip or shed with its
+    overhang, fascia and soffit (over a rectangular footprint; any other is flat for now);
+  - the far LOD: the walls, the glass flush with them, the doors and the roofs, about a fifth of the triangles;
+  - collision: the walls' bounds in the plan's frame, one box, from the foundation to the roof (doors are shut until
+    the interiors come);
+  - the foundation goes down to 0.3 m under the lowest ground at the walls, so a building on a slope stands on it.
+
   The cell census (section 13.3) sets the near shell's budget. Today a near cell averages 39k triangles (p99 144k, at
   most 171k), and a house costs about 2,400 triangles of its cell's mesh, roads included. Cells hold few buildings:
   Westbrook averages 42 per cell (at most 62), and the densest cell, in Calle Luna, holds 84. So a shell of 1,000-1,500
@@ -716,7 +734,11 @@ its glass shows an *interior-mapped* room:
 - lit by that room's schedule.
 
 The compiler bakes a small per-window record (room type, schedule, curtain), so a lit window at night is the room that is
-really there. When a building's interior becomes resident:
+really there. So far the window's glass is drawn by the facade shader as one window cell of a facade entry of the
+window's own size (`handshells.cpp` `prepareHandBuildings`), flagged a hand-built window (`roomlight.h`
+`kFacadeHandWindow`) with the schedule class of the room behind it, which the shader takes in place of its own pick;
+the windows of one room share its seed, so they show the same room and light together, and a storefront's entry is a
+storefront's (its shop interior, hours and shutters). When a building's interior becomes resident:
 - its windows switch to clear glass, through a per-building bit in a GPU buffer that the shell vertices index;
 - the real rooms then show behind them.
 
@@ -871,7 +893,9 @@ cleaners after, and the stairs and corridors of midrises stay on. A room with wi
 enough; a windowless room follows its schedule alone.
 
 The function is integer arithmetic over a hash, with no floating-point state. So the C++ copy (resident rooms, spill
-lights) and the facade shader's HLSL copy (windows) agree bit for bit, and a selftest compares them. A window lit at
+lights) and the facade shader's HLSL copy (windows) agree bit for bit, and a selftest compares them. A hand-built
+window's facade entry carries its room's class in the entry's flags (`kFacadeHandWindow`, the class in bits 8-11), and
+the selftest's vectors send such flags through the shader too. A window lit at
 2 km is lit when you walk up to it, and it goes dark at the same minute.
 
 **What worldc compiles.** Per layout, shared by every placement of it:

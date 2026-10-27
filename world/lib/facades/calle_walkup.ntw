@@ -1,0 +1,9 @@
+ntw 1 facade id=lib.facade.calle_walkup
+# the walk-ups: stucco over a stone base, quoins up the corners, a band at each floor line, a cornice along the parapet
+wall material=lib.kit.mat_stucco color=wall
+trim kind=band material=lib.kit.mat_stucco color=trim h=0.25
+trim kind=quoin material=lib.kit.mat_stucco color=trim h=0.30
+trim kind=cornice material=lib.kit.mat_stucco color=trim h=0.35
+window kind=casement frame=lib.kit.mat_frame color=trim shutters=none
+door style=lib.kit.door_panel color=door
+base h=0.60 material=lib.kit.mat_stone

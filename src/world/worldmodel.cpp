@@ -3,6 +3,7 @@
 #include "ntwschema.h"
 #include <algorithm>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <filesystem>
 #include <system_error>
@@ -907,8 +908,16 @@ struct Loader {
         b.file = file;
         b.block = headerRef("block");
         b.parcel = headerRef("parcel");
-        bool placed = false;
+        bool placed = false, configured = false;
         for (const Ntw::Record& r : doc->records) {
+            if (r.type == "config" && !configured) {
+                configured = true;
+                b.palette = ref(r, "palette");
+                b.roof = ref(r, "roof");
+                b.facade = ref(r, "facade");
+                for (const Ntw::Field& f : r.fields)
+                    if (f.key != "palette" && f.key != "roof" && f.key != "facade") b.options.emplace_back(f.key, f.value);
+            }
             if (r.type != "place" || placed) continue;
             placed = true;
             b.plan = ref(r, "plan");
@@ -938,7 +947,18 @@ struct Loader {
             const Ntw::Field* fam = doc->headerField("family");
             for (size_t i = 0; i < doc->records.size(); i++) {
                 const Ntw::Record& r = doc->records[i];
-                if (r.type == "palette" && !r.id.empty()) libItem("lib.palette." + std::string(fam ? fam->value : "") + "." + r.id, "palette", r.line, (int)i);
+                if (r.type != "palette" || r.id.empty()) continue;
+                libItem("lib.palette." + std::string(fam ? fam->value : "") + "." + r.id, "palette", r.line, (int)i);
+                PaletteDef pd;
+                pd.id = m.library.back().id;
+                pd.src = at(r.line);
+                pd.wall = color(r, "wall");
+                pd.trim = color(r, "trim");
+                pd.door = color(r, "door");
+                pd.accent = color(r, "accent");
+                pd.roof = color(r, "roof");
+                m.library.back().table = (int)m.palettes.size();
+                m.palettes.push_back(pd);
             }
         } else if (k == "catalog") {
             static const char* const kCategories[] = {"kit", "prop", "veg", "light", "fence"};
@@ -966,7 +986,135 @@ struct Loader {
             }
         } else if (const Ntw::Field* h = doc->headerField("id")) {
             libItem(h->value, k.c_str(), 1, -1);
+            if (k == "plan") plan(h->value);
+            else if (k == "layout") layout(h->value);
+            else if (k == "facade") facadeStyle(h->value);
         }
+    }
+
+    // #rrggbb as rgb8 packs it (red in the low byte); ~0 where the field isn't written (the schema checked its form)
+    u32 color(const Ntw::Record& r, const char* key) const {
+        const Ntw::Field* f = r.field(key);
+        if (!f || f->value.size() != 7 || f->value[0] != '#') return ~0u;
+        const unsigned long v = strtoul(f->value.c_str() + 1, nullptr, 16);
+        return (u32)(((v >> 16) & 255u) | (v & 0xff00u) | ((v & 255u) << 16));
+    }
+
+    void plan(const std::string& id) {
+        Plan pl;
+        pl.id = id;
+        pl.src = at(1);
+        for (const Ntw::Record& r : doc->records) {
+            if (r.type == "meta") {
+                pl.cls = text(r, "class");
+                pl.family = text(r, "family");
+                pl.floorCount = integer(r, "floors");
+                if (const Ntw::Field* f = r.field("size")) {   // WxD
+                    const std::vector<std::string> d = splitAt(f->value, 'x');
+                    if (d.size() != 2 || !toFloat(d[0], &pl.size.x) || !toFloat(d[1], &pl.size.y)) badValue(*f, "plan " + id, "WxD");
+                }
+            } else if (r.type == "footprint") {
+                pl.footprint = points(r, "poly");
+            } else if (r.type == "floor") {
+                PlanFloor fl;
+                fl.id = r.id;
+                fl.src = at(r.line);
+                fl.layout = ref(r, "layout");
+                fl.z = num(r, "z");
+                fl.h = num(r, "h");
+                pl.floors.push_back(fl);
+            } else if (r.type == "roof") {
+                pl.roofForm = text(r, "form");
+                pl.pitch = num(r, "pitch");
+                pl.overhang = num(r, "overhang");
+                pl.roofMaterial = ref(r, "material");
+            } else if (r.type == "facade") {
+                pl.facade = ref(r, "style");
+                pl.palette = ref(r, "palette");
+            } else if (r.type == "option") {
+                PlanOption o;
+                o.id = r.id;
+                o.choices = splitAt(text(r, "choices"), ',');
+                o.fallback = text(r, "default");
+                pl.options.push_back(o);
+            }
+        }
+        m.library.back().table = (int)m.plans.size();
+        m.plans.push_back(pl);
+    }
+
+    void layout(const std::string& id) {
+        Layout l;
+        l.id = id;
+        l.src = at(1);
+        for (const Ntw::Record& r : doc->records) {
+            if (r.type == "wall") {
+                LayoutWall w;
+                w.id = r.id;
+                w.src = at(r.line);
+                w.a = point(r, "a");
+                w.b = point(r, "b");
+                w.t = num(r, "t");
+                w.ext = text(r, "ext");
+                l.walls.push_back(w);
+            } else if (r.type == "door" || r.type == "window") {
+                LayoutOpening o;
+                o.id = r.id;
+                o.src = at(r.line);
+                o.door = r.type == "door";
+                o.wall = text(r, "wall");
+                o.at = num(r, "at");
+                o.w = num(r, "w");
+                o.h = num(r, "h");
+                o.sill = num(r, "sill");
+                o.kind = text(r, "kind");
+                o.room = text(r, "room");
+                o.leads = text(r, "leads");
+                l.openings.push_back(o);
+            } else if (r.type == "room") {
+                LayoutRoom rm;
+                rm.id = r.id;
+                rm.src = at(r.line);
+                rm.type = text(r, "type");
+                rm.sched = text(r, "sched");
+                rm.poly = points(r, "poly");
+                l.rooms.push_back(rm);
+            }
+        }
+        m.library.back().table = (int)m.layouts.size();
+        m.layouts.push_back(l);
+    }
+
+    void facadeStyle(const std::string& id) {
+        FacadeStyle fs;
+        fs.id = id;
+        fs.src = at(1);
+        for (const Ntw::Record& r : doc->records) {
+            if (r.type == "wall") {
+                fs.wallMaterial = ref(r, "material");
+                fs.wallColor = text(r, "color");
+            } else if (r.type == "trim") {
+                FacadeTrim t;
+                t.kind = text(r, "kind");
+                t.material = ref(r, "material");
+                t.color = text(r, "color");
+                t.h = num(r, "h");
+                fs.trims.push_back(t);
+            } else if (r.type == "window") {
+                fs.windowKind = text(r, "kind");
+                fs.windowFrame = ref(r, "frame");
+                fs.windowColor = text(r, "color");
+                fs.shutters = text(r, "shutters");
+            } else if (r.type == "door") {
+                fs.doorStyle = ref(r, "style");
+                fs.doorColor = text(r, "color");
+            } else if (r.type == "base") {
+                fs.baseH = num(r, "h");
+                fs.baseMaterial = ref(r, "material");
+            }
+        }
+        m.library.back().table = (int)m.facadeStyles.size();
+        m.facadeStyles.push_back(fs);
     }
 
     void type(int fi) {
@@ -1070,7 +1218,23 @@ struct Loader {
             resolve(l.exit.edge);
         }
         for (Spot& x : m.spots) resolve(x.prop);
+        for (Plan& pl : m.plans) {
+            for (PlanFloor& f : pl.floors) resolve(f.layout);
+            resolve(pl.roofMaterial);
+            resolve(pl.facade);
+            resolve(pl.palette);
+        }
+        for (FacadeStyle& fs : m.facadeStyles) {
+            resolve(fs.wallMaterial);
+            for (FacadeTrim& t : fs.trims) resolve(t.material);
+            resolve(fs.windowFrame);
+            resolve(fs.doorStyle);
+            resolve(fs.baseMaterial);
+        }
         for (Building& b : m.buildings) {
+            resolve(b.palette);
+            resolve(b.roof);
+            resolve(b.facade);
             resolve(b.block);
             resolve(b.parcel);
             resolve(b.plan);

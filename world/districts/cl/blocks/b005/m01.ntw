@@ -1,0 +1,4 @@
+ntw 1 building id=cl.b005.m01 block=cl.b005 parcel=cl.b005.p01
+# the walk-up on the corner of the side street, facing Calle Luna
+place plan=lib.plan.midrise.walkup_b at=1629.00,339.30 z=3.67 yaw=180.0 mirror=1
+config palette=lib.palette.calle.sky
