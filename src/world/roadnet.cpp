@@ -129,6 +129,23 @@ int RoadNetwork::nearestEdge(vec2 p, float maxDist, float* outS, float* outDist,
     return best;
 }
 
+// p between the edge's kerb lines and not past its ends (a dead end's street, where it runs into its turning bulb)
+static bool inCarriageway(const RoadEdge& e, vec2 p) {
+    float bestD = 1e30f;
+    bool beyondEnd = false;
+    int side = 1;
+    for (size_t k = 0; k + 1 < e.pts.size(); k++) {
+        float t;
+        float d = distPointSegment2D(p, e.pts[k].xy(), e.pts[k + 1].xy(), &t);
+        if (d < bestD) {
+            bestD = d;
+            beyondEnd = (k == 0 && t <= 0.f) || (k + 2 == e.pts.size() && t >= 1.f);
+            side = cross(e.pts[k + 1].xy() - e.pts[k].xy(), p - e.pts[k].xy()) < 0.f ? 1 : -1;
+        }
+    }
+    return !beyondEnd && bestD < e.halfWidthSide(side);
+}
+
 bool RoadNetwork::roadSurfaceHeight(vec2 p, float* z, float maxZ) const {
     thread_local std::vector<int> cand;
     cand.clear();
@@ -157,8 +174,14 @@ bool RoadNetwork::roadSurfaceHeight(vec2 p, float* z, float maxZ) const {
         // and an approach's sidewalk band there would reach over the other approaches' lanes; nor does a sidewalk reach
         // past the edge's end (over the road that continues from there)
         bool inJunction = bestS < e.cut0 || bestS > e.length - e.cut1;
+        // nor inside a dead end's turning bulb: the bulb's disc and ring take over there (as roadmesh draws them)
+        bool inBulb = false;
+        for (int nn : {e.n0, e.n1}) {
+            const float br = bulbRadius(nodes[nn]);
+            if (br > 0.f && length(p - nodes[nn].p) < br) inBulb = true;
+        }
         const float hw = e.halfWidthSide(side);
-        if (bestD <= hw + ((inJunction || beyondEnd) ? 0.f : e.sidewalkSide(side))) {
+        if (bestD <= hw + ((inJunction || beyondEnd || inBulb) ? 0.f : e.sidewalkSide(side))) {
             float zz = bestZe + (bestD > hw ? 0.15f : 0.f);
             if (zz <= maxZ && zz > bestZ) {
                 bestZ = zz;
@@ -171,10 +194,11 @@ bool RoadNetwork::roadSurfaceHeight(vec2 p, float* z, float maxZ) const {
         const RoadNode* ns[2] = {&nodes[e.n0], &nodes[e.n1]};
         for (auto* n : ns) {
             float dn = length(p - n->p);
-            // a dead end's turning bulb (and its sidewalk ring) follows the road into it like a junction disc
+            // a dead end's turning bulb (and its sidewalk ring) follows the road into it like a junction disc; the ring is
+            // open across the street's mouth, where the street's carriageway runs into the disc
             float br = bulbRadius(*n);
             if (br > 0.f && dn < br + e.sidewalk) {
-                float nz = junctionZ(*n, p) + (dn > br ? 0.15f : 0.f);
+                float nz = junctionZ(*n, p) + (dn > br && !inCarriageway(e, p) ? 0.15f : 0.f);
                 if (nz <= maxZ && nz > bestZ) { bestZ = nz; found = true; }
             }
             if (n->radius <= 0 || dn >= n->radius) continue;

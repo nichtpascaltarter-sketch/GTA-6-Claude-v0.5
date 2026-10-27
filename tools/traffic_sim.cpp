@@ -463,6 +463,105 @@ struct Sim {
     long redBefore = 0;
     bool verbose = false;
     int watchCar = -1;
+    // --overshoot: every car coming up to a written stop sign (--worldbin's, --stopsigns) or an all-way stop, its stop not
+    // made yet and none close ahead, is made to roll on over its line - at 2-3 m/s, a rolling stop gone long - until its
+    // front is 0.8 m past it; then the AI has it again. Counted after, by kind: whether it stops before its front is 4 m
+    // past the line (and how long it then waits to go), or runs on; at an all-way stop, whether it then went before an
+    // earlier arrival still waiting there with a movement across its own (its turn not waited for)
+    bool overshoot = false;
+    struct Overshoot {
+        int conn = -1, lane = -1, phase = 0;   // phase 1: being run past, 2: released, 3: done
+        int kind = 0;                          // 0 a stop sign, 1 an all-way stop
+        float stopAt = 0.f, stoppedT = -1.f, vRelease = 0.f, vAt2 = -1.f;
+    };
+    std::vector<Overshoot> overshoots;
+    long ovForced[2] = {0, 0}, ovStopped[2] = {0, 0}, ovRan[2] = {0, 0}, ovAhead = 0;
+    double ovWait[2] = {0.0, 0.0}, ovStopPast[2] = {0.0, 0.0};
+    void overshootTick(int i, SimCar& c, const AI::Driver& d) {
+        const AI::LaneGraph& G = w->lg;
+        const int NL = (int)G.lanes.size();
+        if ((int)overshoots.size() <= i) overshoots.resize(i + 1);
+        Overshoot& o = overshoots[i];
+        // the front bumper past the stop line of the lane it came up on (on that lane or the connector after it)
+        auto past = [&]() -> float {
+            const AI::Lane& L = G.lanes[o.lane];
+            if (d.path == o.lane) return d.u + d.info.frontLen - L.stopU;
+            if (d.path == G.connPath(o.conn)) return L.u1 - L.stopU + d.u + d.info.frontLen;
+            return 1e9f;
+        };
+        if (o.phase == 0 || o.phase == 3) {
+            if (d.path >= NL || d.routeLen < 1 || d.route[0] < NL) return;
+            const int cn = d.route[0] - NL;
+            if (o.phase == 3 && o.conn == cn) return;
+            const AI::Connector& cc = G.conns[cn];
+            const AI::Lane& L = G.lanes[d.path];
+            const bool sign = G.nodes[cc.node].approaches[cc.approach].stopSign, allWay = G.nodes[cc.node].control == 1;
+            if (!(sign || allWay) || L.stopU < 0.f || d.mode != AI::DM_NORMAL) return;
+            const float x0 = d.u + d.info.frontLen - L.stopU;
+            if (x0 > -6.f && x0 < -0.5f && c.s.speed() > 1.f && c.s.speed() < 4.f && d.obstDist > 12.f && !d.stopDone) {   // (slowing for the line, none close ahead)
+                o = Overshoot();
+                o.conn = cn;
+                o.lane = d.path;
+                o.phase = 1;
+                o.kind = allWay ? 1 : 0;
+            }
+            return;
+        }
+        const float x = past();
+        if (x > 1e8f) {   // (off that way: a lane change, a respawn)
+            o.phase = 3;
+            return;
+        }
+        if (o.phase == 1) {
+            if (d.obstDist < 6.f) {   // (one close ahead after all: not run into it - left out)
+                o.phase = 3;
+                return;
+            }
+            if (x < 0.8f) {
+                const float v = c.s.speed();
+                c.ctl.handbrake = false;
+                c.ctl.throttle = v < 2.f ? 0.4f : 0.f;
+                c.ctl.brake = v > 3.f ? 0.3f : 0.f;
+            } else {
+                o.phase = 2;
+                o.vRelease = c.s.speed();
+                ovForced[o.kind]++;
+            }
+            return;
+        }
+        if (o.vAt2 < 0.f && x >= 2.f) o.vAt2 = c.s.speed();
+        // released
+        if (o.stoppedT < 0.f) {
+            if (c.s.speed() < 0.5f && x < 4.f) {
+                o.stoppedT = (float)time;
+                o.stopAt = x;
+                ovStopped[o.kind]++;
+                ovStopPast[o.kind] += x;
+            } else if (x >= 4.f) {
+                ovRan[o.kind]++;
+                o.phase = 3;
+                if (verbose)
+                    LOG("OVERSHOOT ran on: car %d t=%.1f released at %.1f m/s, %.1f m/s 2 m past its line, stop made %d, committed %d", i, time, o.vRelease, o.vAt2, (int)d.stopDone,
+                        (int)d.committed);
+            }
+        } else if (c.s.speed() > 1.f) {
+            ovWait[o.kind] += time - o.stoppedT;
+            o.phase = 3;
+            if (o.kind == 1) {
+                // going now: anyone at a line here who stopped before us, still waiting, with a movement across ours?
+                const AI::Connector& cc = G.conns[o.conn];
+                bool ahead = false;
+                for (int j = 0; j < (int)tc.drivers.size() && !ahead; j++) {
+                    const AI::Driver& q = tc.drivers[j];
+                    if (j == i || !q.active || q.path >= NL || q.routeLen < 1 || q.route[0] < NL || !q.stopDone || q.committed) continue;
+                    const int qc = q.route[0] - NL;
+                    if (G.conns[qc].node != cc.node || q.gateConn != qc || q.arrival > d.arrival - 0.05f) continue;
+                    for (const AI::Conflict& xc : cc.conflicts) ahead |= xc.other == qc;
+                }
+                ovAhead += ahead;
+            }
+        }
+    }
     float watchT0 = 0.f, watchT1 = 0.f;
     float bikeScale = 1.f;   // --bikes: more (or fewer) motorbikes and scooters in the mix
     // --respond x y t0: at t0 the car nearest to 150 m from (x, y) answers a call there with the siren on (the police
@@ -851,6 +950,7 @@ struct Sim {
             AI::DriveOut out;
             tc.drive(i, c.s, dt, out);
             c.ctl = out.ctl;
+            if (overshoot) overshootTick(i, c, *d);
             if (i == watchCar && time >= watchT0 && time <= watchT1 && ((int)(time * 60.0) % 6) == 0) {
                 const AI::LaneGraph& G = w->lg;
                 std::string where = G.isLane(d->path) ? StrFormat("lane %d u %.1f/%.1f stopU %.1f", d->path, d->u, G.lanes[d->path].u1, G.lanes[d->path].stopU)
@@ -1295,8 +1395,22 @@ struct Sim {
         printf("collisions: %ld (%.2f per vehicle-hour), hard (>3000 Ns): %ld (%.2f/veh-h)\n", collisions, collisions / Max(vh, 1e-6), hardCollisions, hardCollisions / Max(vh, 1e-6));
         printf("static impacts (walls/props >2500 Ns): %ld, props broken: %ld\n", staticImpacts, propHits);
         printf("red-light violations: %ld, stop-sign violations: %ld\n", tc.stats.redViolations, tc.stats.stopSignViolations);
+        if (overshoot) {
+            for (int k = 0; k < 2; k++)
+                printf("overshoot test, %s: %ld cars rolled 0.8 m past the line; %ld then stopped before 4 m past it (at %.1f m on average, then waited %.1f s to go), %ld ran on%s\n",
+                       k ? "all-way stops" : "written stop signs", ovForced[k], ovStopped[k], ovStopped[k] ? ovStopPast[k] / ovStopped[k] : 0.0,
+                       ovStopped[k] ? ovWait[k] / ovStopped[k] : 0.0, ovRan[k], k ? StrFormat("; %ld went before an earlier arrival waiting with a movement across theirs", ovAhead).c_str() : "");
+        }
 #ifndef TS_NO_RULES
         if (tc.stats.writtenStops > 0) printf("stops made at written stop signs: %ld\n", tc.stats.writtenStops);
+#endif
+#ifndef TS_NO_SWEEP
+        if (tc.stats.stopsPast > 0) printf("stops made over 0.4 m past the line at all-way stops and stop signs: %ld\n", tc.stats.stopsPast);
+#endif
+#ifndef TS_NO_SWEEP
+        if (tc.stats.sweepHolds + tc.stats.sweepYields + tc.stats.sweepRanOut > 0)
+            printf("long vehicles held for a car in their turn's sweep: %ld (gone on after the longest hold with one still there: %ld), cars stopped short of one turning: %ld\n",
+                   tc.stats.sweepHolds, tc.stats.sweepRanOut, tc.stats.sweepYields);
 #endif
         printf("stuck recoveries: %ld, three-point turns: %ld, relocalizations: %ld, deadlocks (>60 s waits): %ld, respawns: %ld, lifted off ledges: %ld\n", tc.stats.stuckEvents, tc.stats.kTurns, tc.stats.relocalizations, deadlocks, respawns, unhung);
         printf("pedestrians hit: %ld\n", pedHits);
@@ -1600,10 +1714,241 @@ struct Sim {
         printf("meet test: %d meeting points, %d touched, %d not past each other, least gap %.2f m\n", k, touched, standoffs, worst);
     }
 
+#ifndef TS_NO_SWEEP
+    // Two long vehicles at one junction whose tight turns each sweep the other's incoming lane (each connector's sweep
+    // zones reach the other's approach lane), coming up to it together: --sweepduel X Y R MODEL [stopsigns]. Every such
+    // pair at the junctions of 3 or more approaches within R m of (X, Y), the junction made an all-way stop (or, with
+    // "stopsigns", uncontrolled with stop signs on the two approaches), both fronts 30 m from their lanes' ends at 6 m/s,
+    // for 90 s. Each run ends "through" (both 20 m into their exits; the least gap between the bodies) or "STANDOFF"
+    // (where each stands: its distance to its line, stopDone, its target speed).
+    void sweepDuel(vec2 at, float radius, const char* name, bool signs) {
+        AI::LaneGraph& G = w->lg;
+        int m = -1;
+        for (int i = 0; i < (int)models.size(); i++)
+            if (models[i].name == name) m = i;
+        if (m < 0) {
+            printf("sweep duel: model %s not found\n", name);
+            return;
+        }
+        Vehicles::VehicleState tmp;
+        Vehicles::initVehicle(tmp, models[m], m, dvec3(0.0, 0.0, 0.0), 0.f);
+        const AI::VehicleInfo vi = AI::makeVehicleInfo(models[m], tmp);
+        const int sc = AI::sweepClass(vi);
+        if (sc < 0) {
+            printf("sweep duel: %s is not a long vehicle (wheelbase %.2f)\n", name, vi.wheelbase);
+            return;
+        }
+        const bool wide = AI::sweepWide(vi.halfWid);
+        peds.clear();
+        const float h = 1.f / 120.f;
+        int pairs = 0, standoffs = 0, touched = 0;
+        printf("sweep duel: %s (class %d) pairs within %.0f m of (%.0f, %.0f), %s\n", name, sc, radius, at.x, at.y, signs ? "stop signs on both" : "all-way stop");
+        for (int node = 0; node < (int)G.nodes.size(); node++) {
+            AI::NodeInfo& N = G.nodes[node];
+            if (N.approaches.size() < 3 || length(w->roads.nodes[node].p - at) > radius) continue;
+            G.ensureSweeps(node);
+            auto depth = [&](int conn, int lane) {   // from the lane's end back to where a wide one waiting there is swept
+                float best = -1.f;
+                for (const AI::SweepZone& z : G.conns[conn].sweep)
+                    if (z.lane == lane && z.at(sc, wide) < 1e8f) best = Max(best, G.lanes[lane].u1 - z.at(sc, wide));
+                return best;
+            };
+            for (int a = N.firstConn; a < N.firstConn + N.connCount; a++)
+                for (int b = a + 1; b < N.firstConn + N.connCount; b++) {
+                    const AI::Connector& A = G.conns[a];
+                    const AI::Connector& B = G.conns[b];
+                    const float dA = depth(a, B.from), dB = depth(b, A.from);
+                    if (A.approach == B.approach || dA < 0.f || dB < 0.f) continue;
+                    const u8 ctl0 = N.control;
+                    const bool sA0 = N.approaches[A.approach].stopSign, sB0 = N.approaches[B.approach].stopSign;
+                    N.control = signs ? 0 : 1;
+                    if (signs) N.approaches[A.approach].stopSign = N.approaches[B.approach].stopSign = true;
+                    cars.assign(2, SimCar());
+                    tc.drivers.clear();
+                    tc.drivers.resize(2);
+                    const int laneOf[2] = {A.from, B.from}, connOf[2] = {a, b}, exitOf[2] = {A.to, B.to};
+                    for (int q = 0; q < 2; q++) {
+                        SimCar& c = cars[q];
+                        c.used = true;
+                        c.model = m;
+                        c.uid = uidNext++;
+                        const AI::Lane& L = G.lanes[laneOf[q]];
+                        const float u = Max(L.u0 + 1.f, L.u1 - 30.f - vi.frontLen);
+                        vec3 pos = G.lanePos(laneOf[q], u);
+                        vec2 t = G.laneTangent(laneOf[q], u);
+                        Vehicles::initVehicle(c.s, models[m], m, dvec3(pos.x, pos.y, pos.z + 0.3), AI::dirYaw(t));
+                        c.info = AI::makeVehicleInfo(models[m], c.s);
+                        c.s.body.vel = vec3(t * 6.f, 0.f);
+                        for (int wv = 0; wv < c.s.wheelCount; wv++) c.s.wheels[wv].spinVel = 6.f / Max(models[m].wheels[wv].radius, 0.2f);
+                        AI::Driver& d = tc.attach(q, c.uid, hash32(c.uid * 7919u), c.info, laneOf[q], u);
+                        d.pers = AI::Personality();
+                        d.route[0] = G.connPath(connOf[q]);
+                        d.route[1] = exitOf[q];
+                        d.routeLen = 2;
+                    }
+                    float least = 1e9f, inAt[2] = {-1.f, -1.f}, outAt[2] = {-1.f, -1.f};
+                    const int traceA = getenv("DUEL_TRACE") ? atoi(getenv("DUEL_TRACE")) : -1;
+                    for (int st = 0; st < 90 * 120 && (outAt[0] < 0.f || outAt[1] < 0.f || st * h < Max(outAt[0], outAt[1]) + 10.f); st++) {
+                        if (st % 2 == 0) {
+                            fillBodies();
+                            tc.beginTick(time);
+                            for (int q = 0; q < 2; q++) {
+                                AI::DriveOut out;
+                                tc.drive(q, cars[q].s, 2.f * h, out);
+                                cars[q].ctl = out.ctl;
+                            }
+                        }
+                        for (int q = 0; q < 2; q++) Vehicles::stepVehicle(cars[q].s, cars[q].ctl, h);
+                        time += h;
+                        for (int q = 0; q < 2; q++) {
+                            const AI::Driver& d = tc.drivers[q];
+                            if (inAt[q] < 0.f && d.path == G.connPath(connOf[q])) inAt[q] = st * h;
+                            if (outAt[q] < 0.f && inAt[q] >= 0.f && d.path != G.connPath(connOf[q])) outAt[q] = st * h;
+                        }
+                        vec2 cc[2], ax[2][2], he[2];
+                        for (int q = 0; q < 2; q++) {
+                            mat3 R = cars[q].s.body.rotMat();
+                            cc[q] = (cars[q].s.body.pos.toVec3() + R * models[m].boxCenter).xy();
+                            vec2 f = normalize(cars[q].s.forward().xy());
+                            ax[q][0] = AI::rightOf(f);
+                            ax[q][1] = f;
+                            he[q] = vec2(models[m].boxHalf.x, models[m].boxHalf.y);
+                        }
+                        float sep = -1e9f;
+                        for (int q = 0; q < 2; q++)
+                            for (int k = 0; k < 2; k++) {
+                                vec2 n = ax[q][k];
+                                float ra = he[0].x * fabsf(dot(ax[0][0], n)) + he[0].y * fabsf(dot(ax[0][1], n));
+                                float rb = he[1].x * fabsf(dot(ax[1][0], n)) + he[1].y * fabsf(dot(ax[1][1], n));
+                                sep = Max(sep, fabsf(dot(cc[1] - cc[0], n)) - ra - rb);
+                            }
+                        least = Min(least, sep);
+                        if (traceA == a && st % 30 == 0) {
+                            std::string tr;
+                            for (int q = 0; q < 2; q++) {
+                                const AI::Driver& d = tc.drivers[q];
+                                tr += StrFormat(" | %c path %d u %.1f v %.1f vT %.1f stop %.1f obst %.1f stopDone %d committed %d held %d", q ? 'B' : 'A', d.path, d.u, cars[q].s.speed(), d.vTarget, d.stopDist, d.obstDist,
+                                                (int)d.stopDone, (int)d.committed, (int)d.sweepWait);
+                            }
+                            printf("    t %.1f gap %.2f%s\n", st * h, sep, tr.c_str());
+                        }
+                    }
+                    pairs++;
+                    touched += least < 0.f;
+                    std::string where;
+                    if (tc.drivers[0].path != laneOf[0] && tc.drivers[1].path != laneOf[1]) {   // (both on from their lanes, the way they were sent or another)
+                        where = StrFormat("through: A into its turn at %.1f s, B at %.1f s; least gap %.2f m%s", inAt[0], inAt[1], least, least < 0.f ? "  TOUCHED" : "");
+                        if (inAt[0] < 0.f || inAt[1] < 0.f) where += " (one went another way)";
+                    } else {
+                        standoffs++;
+                        where = "STANDOFF after 90 s (one or both still on its lane):";
+                        for (int q = 0; q < 2; q++) {
+                            const AI::Driver& d = tc.drivers[q];
+                            const AI::Lane& L = G.lanes[laneOf[q]];
+                            const float line = (L.stopU >= 0.f ? L.stopU : L.u1 - 0.6f) - (d.u + d.info.frontLen);
+                            const std::string at = d.path == laneOf[q] ? StrFormat("%.1f m before its line", line) : (d.path == G.connPath(connOf[q]) ? std::string("in its turn") : std::string("through"));
+                            where += StrFormat(" %c %s, stopDone %d, v %.1f vT %.1f, held %d;", q ? 'B' : 'A', at.c_str(), (int)d.stopDone, cars[q].s.speed(), d.vTarget, (int)d.sweepWait);
+                        }
+                    }
+                    printf("  node %d (%.0f, %.0f): A conn %d (turn %d) from lane %d sweeps B's lane %d to %.1f m back; B conn %d (turn %d) from lane %d sweeps A's to %.1f m back | %s\n",
+                           node, w->roads.nodes[node].p.x, w->roads.nodes[node].p.y, a, A.turn, A.from, B.from, dA, b, B.turn, B.from, dB, where.c_str());
+                    N.control = ctl0;
+                    N.approaches[A.approach].stopSign = sA0;
+                    N.approaches[B.approach].stopSign = sB0;
+                }
+        }
+        printf("sweep duel: %d pairs, %d standoffs, %d touched\n", pairs, standoffs, touched);
+    }
+#endif
+
     // Single-vehicle turning test: every model through every movement of the node nearest `at` (made uncontrolled),
     // measuring how far the body strays outside its lane (left = toward opposing traffic) on the connector and on the
     // first 15 m of the exit lane, and the front-axle tracking error.
     int traceConn = -1;
+#ifndef TS_NO_SWEEP
+    // (the sweep zones' clip, as lanes.cpp: the least u of a quad in a lane-end frame - x = u, y = lat - within |lat| <= m)
+    static float zoneClipMinU(const vec2* q, float m) {
+        vec2 a[12], b[12];
+        int na = 4;
+        for (int i = 0; i < 4; i++) a[i] = q[i];
+        for (int side = 0; side < 2; side++) {
+            const float sg = side == 0 ? 1.f : -1.f;
+            int nb = 0;
+            for (int i = 0; i < na; i++) {
+                const vec2 pa = a[i], pb = a[(i + 1) % na];
+                const float da = sg * pa.y - m, db = sg * pb.y - m;
+                if (da <= 0.f) b[nb++] = pa;
+                if ((da <= 0.f) != (db <= 0.f)) b[nb++] = pa + (pb - pa) * (da / (da - db));
+            }
+            na = nb;
+            if (na == 0) return 1e9f;
+            for (int i = 0; i < na; i++) a[i] = b[i];
+        }
+        float mn = 1e9f;
+        for (int i = 0; i < na; i++) mn = Min(mn, a[i].x);
+        return mn;
+    }
+    // lanes.cpp's sweep-zone run (ensureSweeps) for one connector and one lane, with the vehicle given: how far behind
+    // the lane's line its body reaches within `band` of the lane's middle (-1e9: not at all) - for calibrating the
+    // design vehicles against the real bodies (the turn test's zone check)
+    static float designDepth(const AI::LaneGraph& G, int ci, int lane, float W, float maxSteer, float fOver, float rOver, float hw, float band, float marginK = 0.f,
+                             float marginMax = 0.f, float latGain = 0.3f) {
+        const AI::Connector& c = G.conns[ci];
+        const AI::Lane& L = G.lanes[lane];
+        const vec2 p1 = G.lanePos(lane, L.u1).xy(), t1 = G.laneTangent(lane, L.u1), r1 = AI::rightOf(t1);
+        const float wait = L.stopU >= 0.f ? L.stopU : L.u1 - 0.6f;
+        std::vector<vec2> poly;
+        const AI::Lane& Lin = G.lanes[c.from];
+        const AI::Lane& Lout = G.lanes[c.to];
+        for (float u = Max(Lin.u0, Lin.u1 - 10.f); u < Lin.u1 - 0.25f; u += 0.5f) poly.push_back(G.lanePos(c.from, u).xy());
+        const size_t laneInEnd = poly.size();
+        for (const vec3& q : c.pts) poly.push_back(q.xy());
+        for (float u = Lout.u0 + 0.5f; u <= Min(Lout.u1, Lout.u0 + 20.f); u += 0.5f) poly.push_back(G.lanePos(c.to, u).xy());
+        if (poly.size() < 4 || length2(poly[1] - poly[0]) < 1e-6f) return -1e9f;
+        float minU = 1e9f;
+        vec2 h0 = normalize(poly[1] - poly[0]);
+        vec2 R = poly[0];
+        float th = atan2f(h0.y, h0.x);
+        size_t idx = 0;
+        for (int step = 0; step < 300; step++) {
+            const vec2 hd(cosf(th), sinf(th));
+            const vec2 F = R + hd * W;
+            float best = 1e18f;
+            size_t bi = idx;
+            for (size_t j = idx; j + 1 < poly.size() && j < idx + 10; j++) {
+                float dd = distPointSegment2D(F, poly[j], poly[j + 1]);
+                if (dd < best) {
+                    best = dd;
+                    bi = j;
+                }
+            }
+            idx = bi;
+            if (idx + 2 >= poly.size()) break;
+            const vec2 tp = normalize(poly[idx + 1] - poly[idx] + vec2(1e-6f, 0.f));
+            const float e = cross(tp, F - poly[idx]);
+            const float psi = AI::wrapPi(atan2f(tp.y, tp.x) - th);
+            const float delta = Clamp(psi - atanf(latGain * e), -maxSteer, maxSteer);
+            const vec2 n(-hd.y, hd.x);
+            const vec2 fb = R + hd * (W + fOver), rb = R - hd * rOver;
+            const vec2 body[4] = {fb + n * hw, fb - n * hw, rb - n * hw, rb + n * hw};
+            static const int dtrace = getenv("TT_DTRACE") ? atoi(getenv("TT_DTRACE")) : -1;
+            if (dtrace == ci && band == AI::kSweepBand)
+                printf("    design W %.2f step %d idx %zu/%zu (lane in %zu) e %.2f psi %.2f delta %.2f\n", W, step, idx, poly.size(), laneInEnd, e, psi, delta);
+            if (idx + 1 >= laneInEnd && length2((fb + rb) * 0.5f - p1) <= 400.f) {
+                vec2 q[4];
+                for (int i = 0; i < 4; i++) {
+                    const vec2 dq = body[i] - p1;
+                    q[i] = vec2(L.u1 + dot(dq, t1), dot(dq, r1));
+                }
+                const float mu = zoneClipMinU(q, band + Clamp(fabsf(psi) * marginK, 0.f, marginMax));   // (wider while it is off its heading)
+                if (mu < wait + 0.3f) minU = Min(minU, Max(mu, wait - 18.f));
+            }
+            R += hd * 0.8f;
+            th += 0.8f * tanf(delta) / W;
+        }
+        return minU > 1e8f ? -1e9f : wait - minU;
+    }
+#endif
     void turnTest(vec2 at, const char* onlyModel) {
         AI::LaneGraph& G = w->lg;
         if (getenv("TT_TRACE")) traceConn = atoi(getenv("TT_TRACE"));
@@ -1629,6 +1974,10 @@ struct Sim {
             float leftFar;   // beyond 4.5 m into the exit lane: where cars wait at the opposing stop line
         };
         std::vector<Res> all;
+#ifndef TS_NO_SWEEP
+        struct ZoneCheck { int model, conn, lane; float real, realWide, zone, zoneWide; int cls; };
+        std::vector<ZoneCheck> zoneChecks;
+#endif
         const float h = 1.f / 120.f;
         for (int m = 0; m < (int)models.size(); m++) {
             if (models[m].cls >= Vehicles::VC_BOAT) continue;
@@ -1659,6 +2008,24 @@ struct Sim {
                         d.route[1] = C.to;
                         d.routeLen = 2;
                         Res r{m, cn, 0.f, 0.f, 0.f, 0.f, false, 0.f, c.info.wheelbase, c.info.maxSteer, 0.f};
+#ifndef TS_NO_SWEEP
+                        // the waiting places the real body crosses (the sweep zones' test, lanes.cpp, on this run)
+                        struct ZoneCand { int lane; vec2 p1, t1, r1; float u1, wait, minU, minUW; };
+                        std::vector<ZoneCand> zc;
+                        if ((C.turn == AI::TK_LEFT || C.turn == AI::TK_RIGHT) && C.minRadius <= 25.f) {
+                            const vec2 cMid = C.pts[C.pts.size() / 2].xy();
+                            for (int ai = 0; ai < (int)G.nodes[node].approaches.size(); ai++) {
+                                if (ai == C.approach) continue;
+                                for (int l2 : G.nodes[node].approaches[ai].inLanes) {
+                                    const AI::Lane& L2 = G.lanes[l2];
+                                    const vec2 p1 = G.lanePos(l2, L2.u1).xy();
+                                    if (length2(p1 - cMid) > 35.f * 35.f) continue;
+                                    const vec2 t1 = G.laneTangent(l2, L2.u1);
+                                    zc.push_back({l2, p1, t1, AI::rightOf(t1), L2.u1, L2.stopU >= 0.f ? L2.stopU : L2.u1 - 0.6f, 1e9f, 1e9f});
+                                }
+                            }
+                        }
+#endif
                         int exitLane = C.to, connPath = G.connPath(cn);
                         const Vehicles::VehicleModel& md = models[m];
                         for (int st = 0; st < 30 * 120; st++) {
@@ -1688,6 +2055,19 @@ struct Sim {
                             vec2 q[4] = {ctr + f * md.boxHalf.y + rr * md.boxHalf.x, ctr + f * md.boxHalf.y - rr * md.boxHalf.x, ctr - f * md.boxHalf.y - rr * md.boxHalf.x,
                                          ctr - f * md.boxHalf.y + rr * md.boxHalf.x};
                             float half = G.lanes[exitLane].width * 0.5f;
+#ifndef TS_NO_SWEEP
+                            if (onConn || onExit)
+                                for (ZoneCand& z : zc) {
+                                    vec2 qq[4];
+                                    for (int i = 0; i < 4; i++) {
+                                        const vec2 dq = q[i] - z.p1;
+                                        qq[i] = vec2(z.u1 + dot(dq, z.t1), dot(dq, z.r1));
+                                    }
+                                    const float mu = zoneClipMinU(qq, 1.2f), muW = zoneClipMinU(qq, 1.45f);   // (a car waiting there; a van, truck or bus)
+                                    if (mu < z.wait + 0.3f) z.minU = Min(z.minU, Max(mu, z.wait - 18.f));
+                                    if (muW < z.wait + 0.3f) z.minUW = Min(z.minUW, Max(muW, z.wait - 18.f));
+                                }
+#endif
                             // lateral offset of a point relative to the movement (in-lane, connector or exit lane,
                             // whichever contains its projection)
                             auto latOf = [&](vec2 pt) {
@@ -1729,6 +2109,35 @@ struct Sim {
                             }
                         }
                         all.push_back(r);
+#ifndef TS_NO_SWEEP
+                        G.ensureSweeps(node);
+                        const int sc = AI::sweepClass(c.info);
+                        for (const ZoneCand& z : zc) {
+                            if (z.minU > 1e8f && z.minUW > 1e8f) continue;
+                            float zone = -1e9f, zoneWide = -1e9f;
+                            for (const AI::SweepZone& sz : C.sweep)
+                                if (sz.lane == z.lane && sc >= 0) {
+                                    if (sz.u[sc] < 1e8f) zone = z.wait - sz.u[sc];
+                                    if (sz.uWide[sc] < 1e8f) zoneWide = z.wait - sz.uWide[sc];
+                                }
+                            // (for calibrating the zones, AI::kSweepBand / kSweepWidePerRad / kSweepWideMax: the class's design
+                            //  vehicle as lanes.cpp drives it, at bands of 1.2-2.2 m, then with the wide margin, then with the
+                            //  stiffer lateral gain of 0.75 - "zonecal class conn lane real realWide d1.2 d1.45 d1.7 d1.95 d2.2
+                            //  wide(1.7+2.5/0.5) g0.75(1.7)")
+                            if (getenv("TT_ZONECAL") && sc >= 0) {
+                                static const float kD[3][5] = {{4.0f, 0.60f, 1.0f, 1.9f, 1.2f}, {5.0f, 0.58f, 1.6f, 2.3f, 1.25f}, {6.1f, 0.60f, 2.7f, 3.8f, 1.30f}};
+                                auto f2 = [](float x) { return x > -1e8f ? StrFormat("%.2f", x) : std::string("-"); };
+                                const float* D = kD[sc];
+                                std::string ds;
+                                for (float band : {1.2f, 1.45f, 1.7f, 1.95f, 2.2f}) ds += " " + f2(designDepth(G, cn, z.lane, D[0], D[1], D[2], D[3], D[4], band));
+                                ds += " " + f2(designDepth(G, cn, z.lane, D[0], D[1], D[2], D[3], D[4], AI::kSweepBand, AI::kSweepWidePerRad, AI::kSweepWideMax));
+                                ds += " " + f2(designDepth(G, cn, z.lane, D[0], D[1], D[2], D[3], D[4], AI::kSweepBand, 0.f, 0.f, 0.75f));
+                                printf("  zonecal %d %d %d %s %s%s\n", sc, cn, z.lane, f2(z.minU > 1e8f ? -1e9f : z.wait - z.minU).c_str(),
+                                       f2(z.minUW > 1e8f ? -1e9f : z.wait - z.minUW).c_str(), ds.c_str());
+                            }
+                            zoneChecks.push_back({m, cn, z.lane, z.minU > 1e8f ? -1e9f : z.wait - z.minU, z.minUW > 1e8f ? -1e9f : z.wait - z.minUW, zone, zoneWide, sc});
+                        }
+#endif
                     }
         }
         const char* tn[] = {"straight", "right", "left", "uturn", "merge"};
@@ -1756,6 +2165,23 @@ struct Sim {
             const Res& r = all[k];
             printf("  %-22s conn %d %s: left(box) %.2f left(exit) %.2f right %.2f err %.2f done %d %.1fs\n", models[r.model].name.c_str(), r.conn, tn[G.conns[r.conn].turn], r.leftBox, r.leftExit, r.rightOut, r.err, (int)r.done, r.secs);
         }
+#ifndef TS_NO_SWEEP
+        // the real bodies' sweep of the waiting places against the zones of their sweepClass (lanes.cpp's design vehicles)
+        int covered = 0, longOnes = 0, coveredW = 0, longW = 0;
+        for (const ZoneCheck& z : zoneChecks) {
+            const bool ok = z.real < -1e8f || z.zone >= z.real - 0.3f, okW = z.realWide < -1e8f || z.zoneWide >= z.realWide - 0.3f;
+            longOnes += z.cls >= 0 && z.real > -1e8f;
+            covered += z.cls >= 0 && z.real > -1e8f && ok;
+            longW += z.cls >= 0 && z.realWide > -1e8f;
+            coveredW += z.cls >= 0 && z.realWide > -1e8f && okW;
+            auto f1 = [](float x) { return x > -1e8f ? StrFormat("%.1f", x) : std::string("-"); };
+            printf("  sweep %-22s conn %d (%s) lane %d: a car waiting there %s m behind the line, zone %s%s; a wide one %s m, zone %s%s\n", models[z.model].name.c_str(), z.conn,
+                   tn[G.conns[z.conn].turn], z.lane, f1(z.real).c_str(), z.cls < 0 ? "- (keeps to its path)" : f1(z.zone).c_str(), z.cls >= 0 && !ok ? " MISSED" : "",
+                   f1(z.realWide).c_str(), z.cls < 0 ? "-" : f1(z.zoneWide).c_str(), z.cls >= 0 && !okW ? " MISSED" : "");
+        }
+        printf("sweep zones against the real bodies: %d of %d long-body sweeps of a waiting car covered, %d of %d of a wide one; %d sweeps by cars\n", covered, longOnes, coveredW, longW,
+               (int)std::count_if(zoneChecks.begin(), zoneChecks.end(), [](const ZoneCheck& z) { return z.cls < 0; }));
+#endif
     }
 
     // street-takeover donuts: one car per model (or the named one) on the crossing nearest `at`, driven by
@@ -2170,6 +2596,59 @@ int main(int argc, char** argv) {
             printf("walk links checked: %d\n", (int)G.walkLinks.size());
             continue;
         }
+#ifndef TS_NO_SWEEP
+        if (!strcmp(argv[i], "--sweeps")) {
+            // the long vehicles' sweep zones (lanes.cpp): how far behind each lane's line the design van's, truck's and
+            // bus's body reaches, by depth, and the deepest ones; with a node, every zone of its turns
+            const int only = i + 1 < argc && argv[i + 1][0] != '-' ? atoi(argv[++i]) : -1;
+            const char* kCls[3] = {"van", "truck", "bus"};
+            const AI::LaneGraph& G = w.lg;
+            const double t0 = TimeSeconds();
+            for (int n = 0; n < (int)G.nodes.size(); n++) G.ensureSweeps(n);
+            printf("sweep zones of every junction worked out in %.3f s (in the game: each on first use)\n", TimeSeconds() - t0);
+            const float edges[6] = {0.5f, 1.5f, 3.f, 6.f, 10.f, 1e9f};
+            int hist[3][6] = {{0}}, histW[3][6] = {{0}};
+            struct Deep { float d; int conn, lane, cls; };
+            std::vector<Deep> deep;
+            int turns = 0;
+            for (int ci = 0; ci < (int)G.conns.size(); ci++) {
+                const AI::Connector& c = G.conns[ci];
+                turns += (c.turn == AI::TK_LEFT || c.turn == AI::TK_RIGHT) && c.minRadius <= 25.f;
+                for (const AI::SweepZone& z : c.sweep) {
+                    const AI::Lane& L = G.lanes[z.lane];
+                    const float wait = L.stopU >= 0.f ? L.stopU : L.u1 - 0.6f;
+                    for (int k = 0; k < 3; k++) {
+                        if (z.uWide[k] < 1e8f) {
+                            int b = 0;
+                            while (wait - z.uWide[k] > edges[b]) b++;
+                            histW[k][b]++;
+                        }
+                        if (z.u[k] > 1e8f) continue;
+                        const float dpt = wait - z.u[k];
+                        int b = 0;
+                        while (dpt > edges[b]) b++;
+                        hist[k][b]++;
+                        deep.push_back({dpt, ci, z.lane, k});
+                        if (c.node == only)
+                            printf("  node %d conn %d (%s, lane %d -> %d, radius %.1f): %s %.1f m behind the line of lane %d\n", only, ci, c.turn == AI::TK_LEFT ? "left" : "right",
+                                   c.from, c.to, c.minRadius, kCls[k], dpt, z.lane);
+                    }
+                }
+            }
+            std::sort(deep.begin(), deep.end(), [](const Deep& a, const Deep& b) { return a.d > b.d; });
+            printf("sweep zones over %d tight turns (radius 25 m or less):\n", turns);
+            for (int k = 0; k < 3; k++)
+                printf("  %s: behind the line by <0.5 m %d, 0.5-1.5 %d, 1.5-3 %d, 3-6 %d, 6-10 %d, 10+ %d | a wide one waiting: %d %d %d %d %d %d\n", kCls[k], hist[k][0], hist[k][1],
+                       hist[k][2], hist[k][3], hist[k][4], hist[k][5], histW[k][0], histW[k][1], histW[k][2], histW[k][3], histW[k][4], histW[k][5]);
+            for (size_t k = 0; k < deep.size() && k < 12; k++) {
+                const AI::Connector& c = G.conns[deep[k].conn];
+                vec2 np = w.roads.nodes[c.node].p;
+                printf("  deep: %s %.1f m on lane %d, conn %d (%s, node %d at %.0f %.0f, radius %.1f)\n", kCls[deep[k].cls], deep[k].d, deep[k].lane, deep[k].conn,
+                       c.turn == AI::TK_LEFT ? "left" : "right", c.node, np.x, np.y, c.minRadius);
+            }
+            continue;
+        }
+#endif
 #ifndef TS_NO_SECTIONS
         if (!strcmp(argv[i], "--sections")) {
             // each edge's cross-section as the lane graph has it (authored in hand mode: listed where its sides differ or
@@ -2186,6 +2665,14 @@ int main(int argc, char** argv) {
                 const bool own = fabsf(S.laneWidth - ri.laneWidth) > 0.01f || fabsf(S.speed - ri.speed) > 0.01f || S.median > 0.f || S.flags;
                 if (S.authored && (sides || own)) {
                     listed++;
+                    if (sides) {
+                        // (where its sidewalks run, at the middle of the edge: for placing a test there)
+                        const vec3 mp = E.posAt(E.length * 0.5f);
+                        const vec3 mt = E.tangentAt(E.length * 0.5f);
+                        const vec2 rt = normalize(vec2(mt.y, -mt.x));
+                        const vec2 sl = mp.xy() - rt * (S.kerb[0] + S.walk[0] * 0.5f), sr = mp.xy() + rt * (S.kerb[1] + S.walk[1] * 0.5f);
+                        printf("  edge %d middle (%.1f, %.1f): left sidewalk (%.1f, %.1f), right sidewalk (%.1f, %.1f)\n", ei, mp.x, mp.y, sl.x, sl.y, sr.x, sr.y);
+                    }
                     printf("edge %d (%s, %s, %d+%d lanes): lane %.2f median %.2f limit %.1f flags %d | kerb line L %.2f R %.2f (half width %.2f) | sidewalk L %.2f R %.2f (%.2f) | parking L %.2f R %.2f\n",
                            ei, E.name.c_str(), ri.name, (int)E.lanesF, (int)E.lanesB, S.laneWidth, S.median, S.speed, (int)S.flags, S.kerb[0], S.kerb[1], E.halfWidth,
                            S.walk[0], S.walk[1], E.sidewalk, S.park[0], S.park[1]);
@@ -2211,6 +2698,25 @@ int main(int argc, char** argv) {
             continue;
         }
 #endif
+        if (!strcmp(argv[i], "--lanetime")) {
+            // the lane graph's build time on this world: rebuilt N times (default 5) after the first, each time and the median
+            const int n = i + 1 < argc && argv[i + 1][0] != '-' ? Max(1, atoi(argv[++i])) : 5;
+            std::vector<double> ts;
+            for (int k = 0; k < n; k++) {
+#ifdef TS_HAND
+                if (World::gWorldKind == World::WorldKind::Hand) World3::buildLanes(w.lg, w.roads, &w.ov, 0);
+                else
+#endif
+                    w.lg.build(w.roads);
+                ts.push_back(w.lg.buildSeconds);
+            }
+            std::vector<double> sorted = ts;
+            std::sort(sorted.begin(), sorted.end());
+            printf("lane graph build:");
+            for (double t : ts) printf(" %.3f", t);
+            printf(" s; median %.3f s\n", sorted[sorted.size() / 2]);
+            continue;
+        }
         if (!strcmp(argv[i], "--sites") && i + 3 < argc) {
             // site elements near a point (venue anchors for the population: gates, terminals, docks, ramps)
             vec2 p((float)atof(argv[i + 1]), (float)atof(argv[i + 2]));
@@ -2411,6 +2917,20 @@ int main(int argc, char** argv) {
             sim.meetTest(e, argv[i + 2], argv[i + 3]);
             break;
         }
+        if (!strcmp(argv[i], "--sweepduel") && i + 4 < argc) {
+            // --sweepduel X Y R MODEL [stopsigns]: two long vehicles whose turns sweep each other's lanes, together at every
+            // such junction within R m (Sim::sweepDuel)
+#ifndef TS_NO_SWEEP
+            vec2 c((float)atof(argv[i + 1]), (float)atof(argv[i + 2]));
+            float r = (float)atof(argv[i + 3]);
+            const bool signs = i + 5 < argc && !strcmp(argv[i + 5], "stopsigns");
+            w.loadCells(c, r + 80.f);
+            static Sim sim;
+            sim.init(&w, c, 50.f, 0, 0);
+            sim.sweepDuel(c, r, argv[i + 4], signs);
+#endif
+            break;
+        }
         if (!strcmp(argv[i], "--uturntest") && i + 3 < argc) {
             // --uturntest X Y R [MODEL or A,B,...]: every model (or those named) round every dead end's turning circle
             // within R m of (X, Y)
@@ -2475,6 +2995,7 @@ int main(int argc, char** argv) {
                     sim.respondGoal.y = (float)atof(argv[++k]);
                     sim.respondAt = (float)atof(argv[++k]);
                 }
+                else if (!strcmp(argv[k], "--overshoot")) sim.overshoot = true;
                 else if (!strcmp(argv[k], "--watch") && k + 3 < argc) {
                     sim.watchCar = atoi(argv[++k]);
                     sim.watchT0 = (float)atof(argv[++k]);

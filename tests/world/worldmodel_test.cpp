@@ -913,6 +913,14 @@ static void testRoomLight() {
         {12, 1595, 0, 3, 1230,   0, 212},
         {12, 1213, 1, 0,   30, 255,   0},
         {12,  963, 1, 6,  125, 255,   0},
+        // day types: Friday night's extra night owl, gone again on Sunday night; a bar at 3:30 after Friday and after
+        // Thursday; an office on a Friday morning; a shop on a Sunday evening (weekend hours)
+        { 2, 2030, 1, 5,   60, 255, 196},
+        { 2, 2030, 1, 7,   60, 255,   0},
+        { 9,  100, 0, 5,  210, 255, 252},
+        { 9,  100, 0, 4,  210, 255,   0},
+        { 7, 1502, 1, 4,  600,   0, 230},
+        { 6, 2501, 1, 6, 1290, 255, 204},
     };
     int bad = 0;
     for (const Vector& v : kVectors) {
@@ -930,7 +938,7 @@ static void testRoomLight() {
 
     // the classes' properties over many rooms
     int always = 0, never = 0, dayHome = 0, darkHome = 0, shopNoon = 0, shopNight = 0, shopNightChanged = 0, homeChanged = 0, lateBar = 0, porch = 0;
-    int owlWeek = 0, owlSat = 0, owlFri = 0, owlMoved = 0, owlWeekOnly = 0, owlAt3 = 0;
+    int owlWeek = 0, owlSat = 0, owlFri = 0, owlSun = 0, owlMoved = 0, owlWeekOnly = 0, owlAt3 = 0, barThu = 0, barFri = 0, barSat = 0, barSun = 0;
     const int rooms = 2000;
     for (int r = 0; r < rooms; r++) {
         const u32 seed = roomSeed((u32)r * 7919u + 3u, (u32)r % 5u, (u32)r % 11u);
@@ -947,14 +955,20 @@ static void testRoomLight() {
         homeChanged += (roomLight(RS_HOME_LIVING, seed, 1u, 2u, 1230u, 255u) > 0u) != (roomLight(RS_HOME_LIVING, seed, 1u, 3u, 1230u, 255u) > 0u);
         lateBar += roomLight(RS_NIGHTLIFE, seed, 0u, 3u, 60u, 255u) > 0u;             // 1:00, from the evening before
         porch += roomLight(RS_PORCH, seed, 1u, 2u, 1290u, 255u) > 0u && roomLight(RS_PORCH, seed, 1u, 2u, 180u, 255u) == 0u;
-        // night owls (the living rooms' late lamps): the same rooms every night, a few more on Saturday and Sunday nights
-        // (Friday night is a weekday's), all out by 3:00
+        // night owls (the living rooms' late lamps): the same rooms every night, a few more on Friday and Saturday nights,
+        // all out by 3:00
         const bool wedNight = roomLight(RS_HOME_LIVING, seed, 1u, 3u, 60u, 255u) > 0u;   // Thursday 1:00
         const bool thuNight = roomLight(RS_HOME_LIVING, seed, 1u, 4u, 60u, 255u) > 0u;   // Friday 1:00
         const bool satNight = roomLight(RS_HOME_LIVING, seed, 1u, 6u, 60u, 255u) > 0u;   // Sunday 1:00
         owlWeek += wedNight;
         owlSat += satNight;
         owlFri += roomLight(RS_HOME_LIVING, seed, 1u, 5u, 60u, 255u) > 0u;                // Saturday 1:00
+        owlSun += roomLight(RS_HOME_LIVING, seed, 1u, 7u, 60u, 255u) > 0u;                // Monday 1:00
+        // the day types: bars at 3:30 after Thursday, Friday, Saturday and Sunday (late on Friday and Saturday nights)
+        barThu += roomLight(RS_NIGHTLIFE, seed, 0u, 4u, 210u, 255u) > 0u;
+        barFri += roomLight(RS_NIGHTLIFE, seed, 0u, 5u, 210u, 255u) > 0u;
+        barSat += roomLight(RS_NIGHTLIFE, seed, 0u, 6u, 210u, 255u) > 0u;
+        barSun += roomLight(RS_NIGHTLIFE, seed, 0u, 7u, 210u, 255u) > 0u;
         owlMoved += wedNight != thuNight;
         owlWeekOnly += wedNight && !satNight;
         owlAt3 += roomLight(RS_HOME_LIVING, seed, 1u, 3u, 180u, 255u) > 0u || roomLight(RS_HOME_LIVING, seed, 1u, 6u, 180u, 255u) > 0u;
@@ -965,8 +979,12 @@ static void testRoomLight() {
            "roomLight: shops at noon %d, at 3:00 %d (%d changed from one night to the next)", shopNoon, shopNight, shopNightChanged);
     EXPECT(homeChanged > rooms / 10, "roomLight: only %d of %d homes change from one evening to the next", homeChanged, rooms);
     EXPECT(lateBar > rooms * 8 / 10 && porch == rooms, "roomLight: bars at 1:00 %d, porch lights on at 21:30 and off at 3:00 %d of %d", lateBar, porch, rooms);
-    EXPECT(owlWeek > rooms * 4 / 100 && owlWeek < rooms * 8 / 100 && owlSat > owlWeek && owlSat < rooms * 11 / 100 && owlFri == owlWeek,
-           "roomLight: living rooms lit at 1:00 on weeknights %d, Saturday night %d, Friday night %d of %d", owlWeek, owlSat, owlFri, rooms);
+    EXPECT(owlWeek > rooms * 4 / 100 && owlWeek < rooms * 8 / 100 && owlSat > owlWeek && owlSat < rooms * 11 / 100 && owlFri == owlSat &&
+               owlSun == owlWeek,
+           "roomLight: living rooms lit at 1:00 on weeknights %d, Friday night %d, Saturday night %d, Sunday night %d of %d", owlWeek, owlFri, owlSat,
+           owlSun, rooms);
+    EXPECT(barFri > rooms * 7 / 10 && barSat == barFri && barThu < rooms / 4 && barSun == barThu,
+           "roomLight: bars lit at 3:30 after Thursday %d, Friday %d, Saturday %d, Sunday %d of %d", barThu, barFri, barSat, barSun, rooms);
     EXPECT(owlMoved == 0 && owlWeekOnly == 0 && owlAt3 == 0, "roomLight: night owls who change from one night to the next %d, lit on weeknights only %d, at 3:00 %d",
            owlMoved, owlWeekOnly, owlAt3);
 }
@@ -1200,6 +1218,15 @@ static void testRoadOverrides() {
             EXPECT(c9 && w9 && same(zw - zc, 0.15f, 1e-3f) && b20 && !c20 && de->sidewalk > 2.f,
                    "overrides: the surface round a written bulb (9 m: class %d %.2f, written %d %.2f; 20 m: 18 m bulb %d, class %d)", (int)c9, zc, (int)w9, zw,
                    (int)b20, (int)c20);
+            // the ring is open across the street's mouth, where the street's carriageway runs on into the disc, and the
+            // street's own sidewalks stop where they meet the ring: inside the disc it is all road (as roadmesh draws it)
+            const float hw = de->halfWidth, mid = 8.f + de->sidewalk * 0.5f;
+            float zIn = 0.f, zMouth = 0.f, zStrip = 0.f, zRing = 0.f;
+            const bool in = written.roadSurfaceHeight(n0 + vec2(2.f, 0.f), &zIn), mo = written.roadSurfaceHeight(n0 + vec2(mid, 0.f), &zMouth),
+                       st = written.roadSurfaceHeight(n0 + vec2(1.f, hw + 0.5f), &zStrip), ri = written.roadSurfaceHeight(n0 + vec2(0.f, mid), &zRing);
+            EXPECT(in && mo && st && ri && hw + 0.5f < 7.9f && same(zMouth, zIn, 0.05f) && same(zStrip, zIn, 0.05f) && same(zRing - zIn, 0.15f, 0.05f),
+                   "overrides: a bulb's mouth and its street's sidewalks (road %.2f; mouth %+.2f, sidewalk inside the disc %+.2f, ring %+.2f)", zIn,
+                   zMouth - zIn, zStrip - zIn, zRing - zIn);
         }
     }
     {   // a lane width, a shoulder without parking, and a tunnel
