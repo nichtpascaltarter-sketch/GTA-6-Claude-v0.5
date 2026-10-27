@@ -541,8 +541,10 @@ Kind `palette` (lib/palettes/<family>.ntw): header `family` id req. A palette is
 What the buildings compiler (src/world/worldmodel.h compileBuildings) reads so far, and requires:
 - A plan's `meta` class and size, its footprint (3 points or more), its floors (one or more: each one's layout, `z`
   and `h`), its roof (`form`, `pitch`, `overhang`, and `material`: without one, gravel on a flat roof and shingles on
-  a pitched one) and its facade's `style` and `palette`. It compiles to a shell: the floors, each floor's exterior
-  walls (its layout's walls with `ext`) with their doors and windows, the roof and the look.
+  a pitched one), its facade's `style` and `palette`, and its main entrance (its `entrance` of kind `main`, else its
+  first). It compiles to a shell: the floors, each floor's exterior walls (its layout's walls with `ext`) with their
+  doors and windows, the roof, the look, and which of its doors is the main entrance (the street door the game's
+  people use).
 - A window takes the light schedule of its `room`, and a door that of the room it opens into from outside
   (`leads=out:<room>`: a glass door is lit as its shop or hall is): the room's `sched` where that names one of
   src/world/roomlight.h's classes (`always`, `never`, `home_living`, `home_kitchen`, `home_bed`, `home_bath`, `shop`,
@@ -564,8 +566,8 @@ What the buildings compiler (src/world/worldmodel.h compileBuildings) reads so f
   footprint of 3 points), `building.option` (a `config` field that is no option of the plan, or a choice the option
   lacks).
 - Interior walls, rooms, stairs, lifts, slots, furnishing, spots and lights compile with the interiors, and a plan's
-  options' features, its entrances, and a building's slots, overrides, occupancy and outbuildings after; they are read
-  and checked already.
+  options' features, its other entrances, and a building's slots, overrides, occupancy and outbuildings after; they
+  are read and checked already.
 
 ### 9.11 `places`: world/places/places.ntw
 

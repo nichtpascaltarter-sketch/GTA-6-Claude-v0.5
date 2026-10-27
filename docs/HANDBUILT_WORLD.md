@@ -718,7 +718,12 @@ compiled data. Nothing is invented:
   - the far LOD: the walls, the glass flush with them, the doors and the roofs, about a fifth of the triangles;
   - collision: the walls' bounds in the plan's frame, one box, from the foundation to the roof (doors are shut until
     the interiors come);
-  - the foundation goes down to 0.3 m under the lowest ground at the walls, so a building on a slope stands on it.
+  - the foundation goes down to 0.3 m under the lowest ground at the walls, so a building on a slope stands on it;
+  - the game's building queries see each placement as a building (`BuildingSet::pointInBuilding`, `buildingsNear` and
+    what is built on them: peds' spawn, flee and window-shopping checks, traffic, police, wildlife, missions, the map):
+    a record with the box of its walls, its height, floors and front, its plan's class as its style, and its street
+    door at its plan's main entrance (`Building::doorAlong`, which `game/ai.cpp` uses for the people who step out of and
+    into buildings; a building whose main entrance isn't on its front has none).
 
   The cell census (section 13.3) sets the near shell's budget. Today a near cell averages 39k triangles (p99 144k, at
   most 171k), and a house costs about 2,400 triangles of its cell's mesh, roads included. Cells hold few buildings:

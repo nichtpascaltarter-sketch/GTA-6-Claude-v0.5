@@ -123,6 +123,8 @@ void writeBuildings(const HandBuildings& b, WorldBinWriter& out) {
                     w.putU32(o.room);
                 }
             }
+            w.putU32(s.entranceWall < 0 ? kNone32 : (u32)s.entranceWall);
+            w.putU32(s.entranceOpening < 0 ? kNone32 : (u32)s.entranceOpening);
         }
         out.addCompressed("library", w.bytes);
     }
@@ -188,7 +190,7 @@ bool readBuildings(const WorldBinView& bin, HandBuildings& out, std::string* err
             l.baseMaterial = (u8)bm;
         }
         n = r.getU32();
-        if (!left(r, n, 68u)) return fail(error, "world.bin's library section is truncated (shells)");   // (68: the least a shell takes)
+        if (!left(r, n, 76u)) return fail(error, "world.bin's library section is truncated (shells)");   // (76: the least a shell takes)
         b.shells.resize(n);
         for (HandShell& s : b.shells) {
             const std::string what = "world.bin's library section: shell " + (s.id = r.getString()) + " is damaged";
@@ -244,6 +246,12 @@ bool readBuildings(const WorldBinView& bin, HandBuildings& out, std::string* err
                     o.kind = (u16)kind;
                 }
             }
+            // the main entrance: a door of one of its walls, or none
+            const u32 ew = r.getU32(), eo = r.getU32();
+            const bool none = ew == kNone32 && eo == kNone32;
+            if (r.bad || (!none && (ew >= walls || eo >= s.walls[ew].openings.size() || !s.walls[ew].openings[eo].door()))) return fail(error, what);
+            s.entranceWall = none ? -1 : (int)ew;
+            s.entranceOpening = none ? -1 : (int)eo;
         }
         if (!r.done()) return fail(error, "world.bin's library section has bytes past its end, or is truncated");
     }

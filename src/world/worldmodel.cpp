@@ -1031,6 +1031,15 @@ struct Loader {
             } else if (r.type == "facade") {
                 pl.facade = ref(r, "style");
                 pl.palette = ref(r, "palette");
+            } else if (r.type == "entrance") {
+                PlanEntrance e;
+                e.id = r.id;
+                const std::string door = text(r, "door");
+                const size_t dot = door.find('.');
+                e.floor = dot == std::string::npos ? std::string() : door.substr(0, dot);
+                e.door = dot == std::string::npos ? door : door.substr(dot + 1);
+                e.kind = text(r, "kind");
+                pl.entrances.push_back(e);
             } else if (r.type == "option") {
                 PlanOption o;
                 o.id = r.id;

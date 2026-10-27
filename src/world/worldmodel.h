@@ -492,6 +492,11 @@ struct PlanFloor {
     Ref layout;
     float z = 0.f, h = 0.f;            // above the plan's ground floor
 };
+struct PlanEntrance {                  // entrance main door=f0.d1 kind=main
+    std::string id;
+    std::string floor, door;           // the door: a floor's id and its layout's door's
+    std::string kind;                  // main, service, garage, fire
+};
 struct PlanOption {                    // option porch choices=none,screened,open default=none
     std::string id;
     std::vector<std::string> choices;
@@ -510,6 +515,7 @@ struct Plan {
     Ref roofMaterial;
     Ref facade, palette;               // facade style= and palette=
     std::vector<PlanOption> options;
+    std::vector<PlanEntrance> entrances;
 };
 struct FacadeTrim {
     std::string kind;                  // band, cornice, quoin, eyebrow
@@ -836,6 +842,7 @@ bool placeOnTerrain(const BakedTerrain& baked, const RoadNetwork& roads, const s
 //   stairs, corridors and lobbies always; stores, plant rooms and utility rooms never);
 // - a placement per building file whose plan= names a plan: the plan's shell, at=, z=, yaw (radians), mirror, and its
 //   config's palette, roof material and facade style where it gives them.
+// A shell's main entrance is its plan's entrance of kind main (else its first) where that is a door in an exterior wall.
 // Findings: building.kind (a material piece whose code= the game lacks), building.shape (a plan without a floor or a
 // footprint of 3 points), building.option (a config field that names no option of the plan, or a choice the option
 // doesn't have). References that name nothing are worldv's, and left out. False when it reported anything.

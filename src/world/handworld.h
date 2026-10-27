@@ -28,15 +28,16 @@ const u8* embeddedWorldBin(size_t* size);
 // reason on anything missing or malformed.
 bool loadHandTerrain(const WorldBinView& bin, WorldMap& map, std::string* error);
 
-// The hand-built buildings at load (handshells.cpp): each placement's streaming cell, and a facade entry for each
-// window and glass door, appended to `bs.facades` (the renderer uploads them with the building set's): flagged a
+// The hand-built buildings at load (handshells.cpp): each placement's streaming cell; its record in the building set
+// `bs`, for the game's building queries (pointInBuilding, buildingsNear and what is built on them); and a facade entry
+// for each window and glass door, appended to `bs.facades` (the renderer uploads them with the set's): flagged a
 // hand-built window with the schedule class of the room behind it (roomlight.h handWindowFlags)
 void prepareHandBuildings(HandBuildings& hb, BuildingSet& bs);
 
 // The load on the loading thread: world.bin from `worldFile` when one is given (development: --worldfile=<path>), else
 // the embedded one; the terrain into `map`; its roads sections into `roads` (roadsbin.h), or an empty network when it
 // has none, and what they author beyond it (roadoverrides.h) into the game's copy; its blocks (blocksbin.h) and its
-// buildings (buildingsbin.h) into theirs; `buildings`, the generated world's building set, empty but for the hand-built
+// buildings (buildingsbin.h) into theirs; `buildings`, the building set, with the hand-built buildings' records and their
 // windows' facade entries. Sets gMap, gRoads, gRoadOverrides, gHandBlocks, gHandBuildings and gBuildings.
 bool loadHandWorld(const char* worldFile, WorldMap& map, RoadNetwork& roads, BuildingSet& buildings, std::string* error);
 
