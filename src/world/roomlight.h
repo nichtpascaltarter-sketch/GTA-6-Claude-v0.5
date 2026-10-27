@@ -49,47 +49,91 @@ struct RoomInterval {
     u8 chance, level, jitter, daily;
 };
 
-// Three intervals per day type (weekdays, then weekends); a chance of 0 marks an unused one
-inline const RoomInterval* roomScheduleIntervals(u32 schedule, u32 weekend) {
-    static const RoomInterval kTable[RS_COUNT][2][3] = {
+// The day types. A day's intervals cover its daytime and its night (past midnight), so the days that differ in either
+// have their own: Monday to Thursday, Friday (a working day before a night out), Saturday, and Sunday (a day off before
+// a working day). Friday and Saturday nights are the late ones.
+enum RoomDayType : u8 { RD_WEEKDAY = 0, RD_FRIDAY, RD_SATURDAY, RD_SUNDAY, RD_COUNT };
+
+// The day type of a game day (day % 7: 0 Monday ... 4 Friday, 5 Saturday, 6 Sunday)
+inline u32 roomDayType(u32 day) {
+    const u32 w = day % 7u;
+    return w < 4u ? 0u : w - 3u;
+}
+
+// Three intervals per day type (Monday-Thursday, Friday, Saturday, Sunday); a chance of 0 marks an unused one
+inline const RoomInterval* roomScheduleIntervals(u32 schedule, u32 dayType) {
+    static const RoomInterval kTable[RS_COUNT][RD_COUNT][3] = {
         // RS_ALWAYS
-        {{{0, 1440, 255, 255, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}}, {{0, 1440, 255, 255, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}}},
+        {{{0, 1440, 255, 255, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}},
+         {{0, 1440, 255, 255, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}},
+         {{0, 1440, 255, 255, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}},
+         {{0, 1440, 255, 255, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}}},
         // RS_NEVER
-        {{{0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}}, {{0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}}},
-        // RS_HOME_LIVING: 6:30-7:45; 18:00-23:15 (weekends 9:00-12:00; 17:30-24:00); night owls: from about 22:00 a
-        // lamp or the TV stays on until 1:30-3:00 in 1 living room of 17, the same ones every night (about 1 home in
-        // 9, at two rooms a home on this schedule: living room, dining room, hall), 1 in 12 on Saturday and Sunday
-        // nights (a weekend is Saturday and Sunday here, so Friday night keeps the weekdays' share)
+        {{{0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}},
+         {{0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}},
+         {{0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}},
+         {{0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}}},
+        // RS_HOME_LIVING: 6:30-7:45; 18:00-23:15 (Friday to 24:00; weekends 9:00-12:00, and from 17:30 to 24:00 on
+        // Saturday, to 23:15 on Sunday); night owls: from about 22:00 a lamp or the TV stays on until 1:30-3:00 in 1
+        // living room of 17, the same ones every night (about 1 home in 9, at two rooms a home on this schedule: living
+        // room, dining room, hall), 1 in 12 on Friday and Saturday nights
         {{{390, 465, 70, 220, 30, 1}, {1080, 1395, 205, 255, 45, 1}, {1320, 1575, 14, 200, 45, 0}},
-         {{540, 720, 70, 220, 45, 1}, {1050, 1440, 215, 255, 45, 1}, {1320, 1575, 21, 200, 45, 0}}},
-        // RS_HOME_KITCHEN: 6:00-7:45; 18:00-21:00 (weekends 8:00-10:30; 18:00-21:30)
+         {{390, 465, 70, 220, 30, 1}, {1080, 1440, 215, 255, 45, 1}, {1320, 1575, 21, 200, 45, 0}},
+         {{540, 720, 70, 220, 45, 1}, {1050, 1440, 215, 255, 45, 1}, {1320, 1575, 21, 200, 45, 0}},
+         {{540, 720, 70, 220, 45, 1}, {1050, 1395, 205, 255, 45, 1}, {1320, 1575, 14, 200, 45, 0}}},
+        // RS_HOME_KITCHEN: 6:00-7:45; 18:00-21:00 (Friday to 21:30; weekends 8:00-10:30, then 18:00-21:30 on Saturday,
+        // to 21:00 on Sunday)
         {{{360, 465, 170, 255, 30, 1}, {1080, 1260, 200, 255, 45, 1}, {0, 0, 0, 0, 0, 0}},
-         {{480, 630, 150, 255, 45, 1}, {1080, 1290, 200, 255, 45, 1}, {0, 0, 0, 0, 0, 0}}},
-        // RS_HOME_BED: 5:45-6:45; 21:30-23:45 (weekends 7:30-9:00; 22:30-1:00)
+         {{360, 465, 170, 255, 30, 1}, {1080, 1290, 200, 255, 45, 1}, {0, 0, 0, 0, 0, 0}},
+         {{480, 630, 150, 255, 45, 1}, {1080, 1290, 200, 255, 45, 1}, {0, 0, 0, 0, 0, 0}},
+         {{480, 630, 150, 255, 45, 1}, {1080, 1260, 200, 255, 45, 1}, {0, 0, 0, 0, 0, 0}}},
+        // RS_HOME_BED: 5:45-6:45; 21:30-23:45 (Friday and Saturday nights 22:30-1:00; weekends up at 7:30-9:00)
         {{{345, 405, 90, 150, 20, 1}, {1290, 1425, 150, 150, 40, 1}, {0, 0, 0, 0, 0, 0}},
-         {{450, 540, 70, 150, 40, 1}, {1350, 1500, 150, 150, 45, 1}, {0, 0, 0, 0, 0, 0}}},
-        // RS_HOME_BATH: 6:00-7:00; 21:30-22:30 (weekends 8:00-9:30; 22:30-23:30)
+         {{345, 405, 90, 150, 20, 1}, {1350, 1500, 150, 150, 45, 1}, {0, 0, 0, 0, 0, 0}},
+         {{450, 540, 70, 150, 40, 1}, {1350, 1500, 150, 150, 45, 1}, {0, 0, 0, 0, 0, 0}},
+         {{450, 540, 70, 150, 40, 1}, {1290, 1425, 150, 150, 40, 1}, {0, 0, 0, 0, 0, 0}}},
+        // RS_HOME_BATH: 6:00-7:00; 21:30-22:30 (Friday and Saturday nights 22:30-23:30; weekends 8:00-9:30)
         {{{360, 420, 140, 255, 25, 1}, {1290, 1350, 90, 255, 30, 1}, {0, 0, 0, 0, 0, 0}},
-         {{480, 570, 120, 255, 40, 1}, {1350, 1410, 90, 255, 30, 1}, {0, 0, 0, 0, 0, 0}}},
+         {{360, 420, 140, 255, 25, 1}, {1350, 1410, 90, 255, 30, 1}, {0, 0, 0, 0, 0, 0}},
+         {{480, 570, 120, 255, 40, 1}, {1350, 1410, 90, 255, 30, 1}, {0, 0, 0, 0, 0, 0}},
+         {{480, 570, 120, 255, 40, 1}, {1290, 1350, 90, 255, 30, 1}, {0, 0, 0, 0, 0, 0}}},
         // RS_SHOP: 8:00-21:00, then display lighting until 6:00 in 4 shops of 10 (weekends 9:00-22:00)
         {{{480, 1260, 245, 255, 30, 0}, {1260, 1800, 100, 110, 0, 0}, {0, 0, 0, 0, 0, 0}},
+         {{480, 1260, 245, 255, 30, 0}, {1260, 1800, 100, 110, 0, 0}, {0, 0, 0, 0, 0, 0}},
+         {{540, 1320, 240, 255, 30, 0}, {1320, 1800, 100, 110, 0, 0}, {0, 0, 0, 0, 0, 0}},
          {{540, 1320, 240, 255, 30, 0}, {1320, 1800, 100, 110, 0, 0}, {0, 0, 0, 0, 0, 0}}},
         // RS_OFFICE: 7:30-19:00; late workers 19:00-22:00; the cleaners 20:00-22:30 (weekends a few 10:00-15:00)
         {{{450, 1140, 235, 255, 30, 0}, {1140, 1320, 40, 255, 45, 1}, {1200, 1350, 60, 200, 20, 1}},
+         {{450, 1140, 235, 255, 30, 0}, {1140, 1320, 40, 255, 45, 1}, {1200, 1350, 60, 200, 20, 1}},
+         {{600, 900, 25, 255, 45, 1}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}},
          {{600, 900, 25, 255, 45, 1}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}}},
-        // RS_RESTAURANT: 11:00-23:00 (weekends 10:00-23:30)
-        {{{660, 1380, 240, 255, 30, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}}, {{600, 1410, 240, 255, 30, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}}},
-        // RS_NIGHTLIFE: 18:00-3:00 (weekends 17:00-4:00)
-        {{{1080, 1620, 235, 255, 45, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}}, {{1020, 1680, 245, 255, 45, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}}},
+        // RS_RESTAURANT: 11:00-23:00 (Friday to 23:30; weekends from 10:00, to 23:30 on Saturday)
+        {{{660, 1380, 240, 255, 30, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}},
+         {{660, 1410, 240, 255, 30, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}},
+         {{600, 1410, 240, 255, 30, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}},
+         {{600, 1380, 240, 255, 30, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}}},
+        // RS_NIGHTLIFE: 18:00-3:00 (Friday and Saturday nights 17:00-4:00)
+        {{{1080, 1620, 235, 255, 45, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}},
+         {{1020, 1680, 245, 255, 45, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}},
+         {{1020, 1680, 245, 255, 45, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}},
+         {{1080, 1620, 235, 255, 45, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}}},
         // RS_GARAGE: 6:30-7:30; 17:30-19:00 (weekends 10:00-11:30; 16:00-18:00)
         {{{390, 450, 60, 255, 20, 1}, {1050, 1140, 80, 255, 30, 1}, {0, 0, 0, 0, 0, 0}},
+         {{390, 450, 60, 255, 20, 1}, {1050, 1140, 80, 255, 30, 1}, {0, 0, 0, 0, 0, 0}},
+         {{600, 690, 40, 255, 45, 1}, {960, 1080, 40, 255, 45, 1}, {0, 0, 0, 0, 0, 0}},
          {{600, 690, 40, 255, 45, 1}, {960, 1080, 40, 255, 45, 1}, {0, 0, 0, 0, 0, 0}}},
         // RS_DUSK: all day, so whenever it is dark
-        {{{0, 1440, 255, 255, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}}, {{0, 1440, 255, 255, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}}},
-        // RS_PORCH: noon to 23:00, so from dusk (weekends to 0:00)
-        {{{720, 1380, 255, 255, 30, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}}, {{720, 1440, 255, 255, 30, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}}},
+        {{{0, 1440, 255, 255, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}},
+         {{0, 1440, 255, 255, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}},
+         {{0, 1440, 255, 255, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}},
+         {{0, 1440, 255, 255, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}}},
+        // RS_PORCH: noon to 23:00, so from dusk (Friday and Saturday nights to 0:00)
+        {{{720, 1380, 255, 255, 30, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}},
+         {{720, 1440, 255, 255, 30, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}},
+         {{720, 1440, 255, 255, 30, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}},
+         {{720, 1380, 255, 255, 30, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}}},
     };
-    return kTable[schedule < (u32)RS_COUNT ? schedule : (u32)RS_NEVER][weekend != 0u ? 1 : 0];
+    return kTable[schedule < (u32)RS_COUNT ? schedule : (u32)RS_NEVER][dayType < (u32)RD_COUNT ? dayType : 0u];
 }
 
 // The mixing of src/core/rng.h hash32, spelt out for the HLSL copy
@@ -132,7 +176,7 @@ inline u32 roomLight(u32 schedule, u32 seed, u32 windows, u32 day, u32 minute, u
     for (u32 back = 0u; back < 2u; back++) {           // today's intervals, then yesterday's that run past midnight
         if (back == 1u && day == 0u) break;
         const u32 d = day - back;
-        const RoomInterval* iv = roomScheduleIntervals(schedule, d % 7u >= 5u ? 1u : 0u);
+        const RoomInterval* iv = roomScheduleIntervals(schedule, roomDayType(d));
         const u32 m = minute + back * 1440u;              // the minute on that day's clock
         for (u32 k = 0u; k < 3u; k++) {
             const RoomInterval r = iv[k];

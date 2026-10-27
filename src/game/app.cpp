@@ -961,6 +961,7 @@ struct App {
                 // nothing forced - what happens round the player, counted
                 autoDuration = 200.5f;
                 vec2 q(2713.f, 763.f);
+                if (World::isHandWorld()) q = vec2(1539.1f, 175.9f);   // (the hand-built pilot: the Paseo del Rio's river-side sidewalk)
                 p.pos = dvec3(q.x, q.y, game.groundHeight(q.x, q.y, 20.f));
                 env.timeOfDay = 16.f;
             } else if (autoplay == "copbreak") {

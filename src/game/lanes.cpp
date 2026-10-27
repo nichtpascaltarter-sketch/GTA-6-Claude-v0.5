@@ -562,6 +562,148 @@ int LaneGraph::nearestWalk(vec2 p, float maxDist, float* xOut, float* latOut) co
     return best;
 }
 
+// Where long vehicles sweep waiting cars at a junction (SweepZone), worked out on first use - a long vehicle coming up to
+// it (traffic_core.cpp) - rather than with the graph, which is on the game's load path. A design van, truck and bus
+// are driven through each tight turn at walking pace: a bicycle model whose front axle tracks the path within its steering
+// lock (as traffic_core's Stanley steering does for long wheelbases), from the lane in to 20 m into the lane out. Where
+// its body crosses the end of another approach's lane, within a waiting car's width of its middle and behind that
+// lane's line, a car waiting there would be hit (the harness's turn test at the pilot's node 6: a bus 2.4 m into the
+// opposing lane on a right turn into a narrow street; a step van's tail cutting the corner of a left turn into the car
+// at the side street's line, pilot seed 2). traffic_core holds the long vehicle at its line while a car stands there,
+// and stops cars still coming short of it while the long vehicle turns
+void LaneGraph::ensureSweeps(int ni) const {
+    if (ni < 0 || ni >= (int)nodes.size() || ni >= (int)sweepDone.size() || sweepDone[ni]) return;
+    sweepDone[ni] = 1;
+    const NodeInfo& N = nodes[ni];
+    if (N.approaches.size() < 3 || N.gradeSeparated) return;
+    struct Design {
+        float W, maxSteer, fOver, rOver, hw;
+    };
+    // (wheelbase, steering lock, front and rear overhang, half width: a step van, a box truck, a city bus - each a little
+    //  over the vehicles of its sweepClass)
+    const Design kDesign[3] = {{4.0f, 0.60f, 1.0f, 1.9f, 1.2f}, {5.0f, 0.58f, 1.6f, 2.3f, 1.25f}, {6.1f, 0.60f, 2.7f, 3.8f, 1.30f}};
+    // (the band round the waiting lane's middle the body must keep out of: kSweepBand, ai_core.h)
+    // the min u of a quad (lane-end frame: x = u, y = lat) within |lat| <= m, 1e9 when it lies outside
+    auto clipMinU = [](const vec2* q, float m) -> float {
+        vec2 a[12], b[12];
+        int na = 4;
+        for (int i = 0; i < 4; i++) a[i] = q[i];
+        for (int side = 0; side < 2; side++) {
+            const float sg = side == 0 ? 1.f : -1.f;
+            int nb = 0;
+            for (int i = 0; i < na; i++) {
+                const vec2 pa = a[i], pb = a[(i + 1) % na];
+                const float da = sg * pa.y - m, db = sg * pb.y - m;
+                if (da <= 0.f) b[nb++] = pa;
+                if ((da <= 0.f) != (db <= 0.f)) b[nb++] = pa + (pb - pa) * (da / (da - db));
+            }
+            na = nb;
+            if (na == 0) return 1e9f;
+            for (int i = 0; i < na; i++) a[i] = b[i];
+        }
+        float mn = 1e9f;
+        for (int i = 0; i < na; i++) mn = Min(mn, a[i].x);
+        return mn;
+    };
+    struct Cand {
+        int lane;
+        vec2 p1, t1, r1;
+        float u1, wait;
+        float minU[3], minUW[3];
+    };
+    std::vector<Cand> cands;
+    std::vector<vec2> poly;
+    for (int ci = N.firstConn; ci < N.firstConn + N.connCount; ci++) {
+        const Connector& c = conns[ci];
+        if ((c.turn != TK_LEFT && c.turn != TK_RIGHT) || c.minRadius > 25.f || (lanes[c.from].flags & (LF_HIGHWAY | LF_RAMP))) continue;
+        // the lanes whose end the body might reach: the other approaches' arriving lanes, ending near the turn
+        cands.clear();
+        const vec2 cMid = c.pts[c.pts.size() / 2].xy();
+        for (int ai = 0; ai < (int)N.approaches.size(); ai++) {
+            if (ai == c.approach) continue;
+            for (int l : N.approaches[ai].inLanes) {
+                const Lane& L = lanes[l];
+                if (length2(lanePos(l, L.u1).xy() - cMid) > 35.f * 35.f) continue;
+                Cand k;
+                k.lane = l;
+                k.p1 = lanePos(l, L.u1).xy();
+                k.t1 = laneTangent(l, L.u1);
+                k.r1 = rightOf(k.t1);
+                k.u1 = L.u1;
+                k.wait = L.stopU >= 0.f ? L.stopU : L.u1 - 0.6f;
+                for (int q = 0; q < 3; q++) k.minU[q] = k.minUW[q] = 1e9f;
+                cands.push_back(k);
+            }
+        }
+        if (cands.empty()) continue;
+        // the path: the last 10 m of the lane in, the connector, the first 20 m of the lane out
+        poly.clear();
+        const Lane& Lin = lanes[c.from];
+        const Lane& Lout = lanes[c.to];
+        for (float u = Max(Lin.u0, Lin.u1 - 10.f); u < Lin.u1 - 0.25f; u += 0.5f) poly.push_back(lanePos(c.from, u).xy());
+        const size_t laneInEnd = poly.size();
+        for (const vec3& q : c.pts) poly.push_back(q.xy());
+        for (float u = Lout.u0 + 0.5f; u <= Min(Lout.u1, Lout.u0 + 20.f); u += 0.5f) poly.push_back(lanePos(c.to, u).xy());
+        if (poly.size() < 4 || length2(poly[1] - poly[0]) < 1e-6f) continue;
+        for (int k = 0; k < 3; k++) {
+            const Design& D = kDesign[k];
+            vec2 h0 = normalize(poly[1] - poly[0]);
+            vec2 R = poly[0];
+            float th = atan2f(h0.y, h0.x);
+            size_t idx = 0;
+            for (int step = 0; step < 300; step++) {
+                const vec2 hd(cosf(th), sinf(th));
+                const vec2 F = R + hd * D.W;
+                float best = 1e18f;
+                size_t bi = idx;
+                for (size_t j = idx; j + 1 < poly.size() && j < idx + 10; j++) {
+                    float dd = distPointSegment2D(F, poly[j], poly[j + 1]);
+                    if (dd < best) {
+                        best = dd;
+                        bi = j;
+                    }
+                }
+                idx = bi;
+                if (idx + 2 >= poly.size()) break;
+                const vec2 tp = normalize(poly[idx + 1] - poly[idx] + vec2(1e-6f, 0.f));
+                const float e = cross(tp, F - poly[idx]);   // + = front left of the path
+                const float psi = wrapPi(atan2f(tp.y, tp.x) - th);
+                // (the lateral gain traffic_core's steering has at a turn's exit speeds, 2.2 / (v + 1.5) at 5-6 m/s: the real
+                //  bodies come back onto their line that slowly)
+                const float delta = Clamp(psi - atanf(0.3f * e), -D.maxSteer, D.maxSteer);
+                // the body now, in each candidate lane's end frame (once the front axle is past the lane in's end)
+                const vec2 n(-hd.y, hd.x);
+                const vec2 fb = R + hd * (D.W + D.fOver), rb = R - hd * D.rOver;
+                const vec2 body[4] = {fb + n * D.hw, fb - n * D.hw, rb - n * D.hw, rb + n * D.hw};
+                for (size_t ci2 = idx + 1 < laneInEnd ? cands.size() : 0; ci2 < cands.size(); ci2++) {
+                    Cand& cd = cands[ci2];
+                    if (length2((fb + rb) * 0.5f - cd.p1) > 400.f) continue;
+                    vec2 q[4];
+                    for (int i = 0; i < 4; i++) {
+                        const vec2 dq = body[i] - cd.p1;
+                        q[i] = vec2(cd.u1 + dot(dq, cd.t1), dot(dq, cd.r1));
+                    }
+                    const float mu = clipMinU(q, kSweepBand), muW = clipMinU(q, kSweepBand + Clamp(fabsf(psi) * kSweepWidePerRad, 0.f, kSweepWideMax));
+                    if (mu < cd.wait + 0.3f) cd.minU[k] = Min(cd.minU[k], Max(mu, cd.wait - 18.f));
+                    if (muW < cd.wait + 0.3f) cd.minUW[k] = Min(cd.minUW[k], Max(muW, cd.wait - 18.f));
+                }
+                R += hd * 0.8f;
+                th += 0.8f * tanf(delta) / D.W;
+            }
+        }
+        for (const Cand& cd : cands) {
+            if (cd.minUW[0] > 1e8f && cd.minUW[1] > 1e8f && cd.minUW[2] > 1e8f) continue;   // (the wide band holds the narrow one)
+            SweepZone z;
+            z.lane = cd.lane;
+            for (int k = 0; k < 3; k++) {
+                z.u[k] = cd.minU[k];
+                z.uWide[k] = cd.minUW[k];
+            }
+            c.sweep.push_back(z);
+        }
+    }
+}
+
 // ---------------------------------------------------------------------------------------------------------------------
 // Build
 void LaneGraph::build(const World::RoadNetwork& rn, const World::RoadOverrides* ov) {
@@ -577,6 +719,7 @@ void LaneGraph::build(const World::RoadNetwork& rn, const World::RoadOverrides* 
     edgeCurv.assign(NE, {});
     walkNodes.clear();
     walkLinks.clear();
+    sweepDone.assign(NN, 0);   // (long vehicles' sweep zones: per junction on first use, ensureSweeps)
 
     // ---- each edge's cross-section. The kerb lines and sidewalks are the edge's own per side (RoadEdge::halfWidthSide and
     //      sidewalkSide: what the mesher draws, the symmetric halfWidth and sidewalk in the procedural world). The lane

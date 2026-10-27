@@ -462,6 +462,7 @@ struct Animator {
     float noseLo[2] = {0.f, 0.f}, noseHi[2] = {0.f, 0.f};   // where that nose may be, along the foot from the heel (m): found closer while it stands
     bool noseTest[2] = {false, false};        // its probe went there this update, not under its heel
     bool scanLate[2] = {false, false};        // its swing's first ground scan came late: no fit, only the touchdown's pick
+    bool qsSwing[2] = {false, false};         // its swing took over from a quick step that ended inside it (a short catch-up)
     float rootRatio = 1.f;                    // the share of its gait's travel the body actually covers (held back: below 1)
     // (a step on stairs - quick or standing: the ground scanned along the foot where it lands, kept with the world while
     // the step lasts and after, and the tread its landing is fitted to)

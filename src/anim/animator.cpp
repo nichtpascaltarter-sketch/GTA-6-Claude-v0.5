@@ -897,6 +897,7 @@ static void footPlanting(Animator& A, const AnimInput& in, float dt, Pose& p, bo
                     const bool held = A.footHold[s];
                     A.planted[s] = true;
                     A.footHold[s] = false;
+                    A.qsSwing[s] = false;
                     if (!held) {
                         vec3 h = shownHeel(s);
                         A.plantP[s] = vec3(h.x, h.y, 0.f) + vec3(A.landScanDir[s].x, A.landScanDir[s].y, 0.f) * tdShift;
@@ -1062,6 +1063,8 @@ static void footPlanting(Animator& A, const AnimInput& in, float dt, Pose& p, bo
                 A.stepT[s] = -1.f;
                 A.planted[s] = true;
                 A.footHold[s] = false;
+                A.groundAhead[s] = s ? A.footR : A.footL;   // (the ground it stands on, not what it saw before the step)
+                A.qsSwing[s] = swingU[s] > 0.f;   // (down inside the gait's swing: lifted again at once, a short catch-up)
                 A.plantSlack[s] = fitted ? fabsf(A.stepFitShift[s]) : 0.f;
                 A.plantP[s] = A.stepTo[s];
                 A.plantYaw[s] = A.stepToYaw[s];
@@ -1142,6 +1145,7 @@ static void footPlanting(Animator& A, const AnimInput& in, float dt, Pose& p, bo
                 A.plantYaw[s] = wrapAngle(fyaw[s] + A.corrYaw[s]);
                 A.plantSlack[s] = Max(A.plantSlack[s], tdShift);
                 A.footHold[s] = true;
+                A.qsSwing[s] = false;
             } else if (Min(heel[s].z, ball[s].z) + blendLift[s] > 0.012f * scale || A.moveW < 0.3f) {
                 // (onto the tread its landing was fitted to by the time it lands: quicker for a fit made late in the swing)
                 const bool fitted = A.stairLand[s] > -8.f || length2(A.wallPull[s]) > 1e-6f;
@@ -1317,6 +1321,8 @@ static void footPlanting(Animator& A, const AnimInput& in, float dt, Pose& p, bo
             if (first || again) {
                 if (first && swingU[s] >= 0.6f) A.scanLate[s] = true;
                 A.scanLand[s] = lm;
+                // (the catch-up swing after a quick step comes down short of where it was to land: scanned from further back)
+                if (first && swingU[s] >= 0.6f && A.qsSwing[s]) lm = lm - vec3(sdw.x, sdw.y, 0.f) * (0.12f * scale);
                 lm = rotate(qBack, lm) - d;
                 A.scanWant = true;
                 A.scanFoot = (u8)s;
@@ -2080,7 +2086,7 @@ void Animator::init(const Skeleton* s, u32 variationSeed) {
         armRest[k] = quat();
         groundRaw[k] = groundAhead[k] = pivotW[k] = stairShift[k] = 0.f;
         stairLand[k] = flatLand[k] = -9.f;
-        landScanHave[k] = heelProbe[k] = noseTest[k] = scanLate[k] = false;
+        landScanHave[k] = heelProbe[k] = noseTest[k] = scanLate[k] = qsSwing[k] = false;
         noseAt[k] = 9.f;
         stairRear[k] = 9.f;
         stairBall[k] = ballProbe[k] = false;
@@ -3366,7 +3372,7 @@ void Animator::update(const AnimInput& in, float dt, bool cheap) {
                 planted[s] = plantedPrev[s] = footHold[s] = probeAhead[s] = scanDone[s] = false;
                 stairShift[s] = 0.f;
                 stairLand[s] = flatLand[s] = -9.f;
-                landScanHave[s] = heelProbe[s] = noseTest[s] = scanLate[s] = false;
+                landScanHave[s] = heelProbe[s] = noseTest[s] = scanLate[s] = qsSwing[s] = false;
                 noseAt[s] = 9.f;
                 stairRear[s] = 9.f;
                 wallPull[s] = vec3(0);

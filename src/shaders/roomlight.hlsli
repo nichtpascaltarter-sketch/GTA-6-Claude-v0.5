@@ -7,35 +7,61 @@
 #ifndef ROOMLIGHT_HLSLI
 #define ROOMLIGHT_HLSLI
 
-// The header's kTable, packed: index (schedule * 2 + weekend) * 3 + k (weekend: day % 7 >= 5);
-//   x = start | end << 16;  y = chance | level << 8 | jitter << 16 | daily << 24
-static const uint2 kRoomIntervals[78] = {
-    uint2(0x05a00000u, 0x0000ffffu), uint2(0x00000000u, 0x00000000u), uint2(0x00000000u, 0x00000000u),   // RS_ALWAYS, weekdays
-    uint2(0x05a00000u, 0x0000ffffu), uint2(0x00000000u, 0x00000000u), uint2(0x00000000u, 0x00000000u),   // RS_ALWAYS, weekends
-    uint2(0x00000000u, 0x00000000u), uint2(0x00000000u, 0x00000000u), uint2(0x00000000u, 0x00000000u),   // RS_NEVER, weekdays
-    uint2(0x00000000u, 0x00000000u), uint2(0x00000000u, 0x00000000u), uint2(0x00000000u, 0x00000000u),   // RS_NEVER, weekends
-    uint2(0x01d10186u, 0x011edc46u), uint2(0x05730438u, 0x012dffcdu), uint2(0x06270528u, 0x002dc80eu),   // RS_HOME_LIVING, weekdays
-    uint2(0x02d0021cu, 0x012ddc46u), uint2(0x05a0041au, 0x012dffd7u), uint2(0x06270528u, 0x002dc815u),   // RS_HOME_LIVING, weekends
-    uint2(0x01d10168u, 0x011effaau), uint2(0x04ec0438u, 0x012dffc8u), uint2(0x00000000u, 0x00000000u),   // RS_HOME_KITCHEN, weekdays
-    uint2(0x027601e0u, 0x012dff96u), uint2(0x050a0438u, 0x012dffc8u), uint2(0x00000000u, 0x00000000u),   // RS_HOME_KITCHEN, weekends
-    uint2(0x01950159u, 0x0114965au), uint2(0x0591050au, 0x01289696u), uint2(0x00000000u, 0x00000000u),   // RS_HOME_BED, weekdays
-    uint2(0x021c01c2u, 0x01289646u), uint2(0x05dc0546u, 0x012d9696u), uint2(0x00000000u, 0x00000000u),   // RS_HOME_BED, weekends
-    uint2(0x01a40168u, 0x0119ff8cu), uint2(0x0546050au, 0x011eff5au), uint2(0x00000000u, 0x00000000u),   // RS_HOME_BATH, weekdays
-    uint2(0x023a01e0u, 0x0128ff78u), uint2(0x05820546u, 0x011eff5au), uint2(0x00000000u, 0x00000000u),   // RS_HOME_BATH, weekends
-    uint2(0x04ec01e0u, 0x001efff5u), uint2(0x070804ecu, 0x00006e64u), uint2(0x00000000u, 0x00000000u),   // RS_SHOP, weekdays
-    uint2(0x0528021cu, 0x001efff0u), uint2(0x07080528u, 0x00006e64u), uint2(0x00000000u, 0x00000000u),   // RS_SHOP, weekends
-    uint2(0x047401c2u, 0x001effebu), uint2(0x05280474u, 0x012dff28u), uint2(0x054604b0u, 0x0114c83cu),   // RS_OFFICE, weekdays
-    uint2(0x03840258u, 0x012dff19u), uint2(0x00000000u, 0x00000000u), uint2(0x00000000u, 0x00000000u),   // RS_OFFICE, weekends
-    uint2(0x05640294u, 0x001efff0u), uint2(0x00000000u, 0x00000000u), uint2(0x00000000u, 0x00000000u),   // RS_RESTAURANT, weekdays
-    uint2(0x05820258u, 0x001efff0u), uint2(0x00000000u, 0x00000000u), uint2(0x00000000u, 0x00000000u),   // RS_RESTAURANT, weekends
-    uint2(0x06540438u, 0x002dffebu), uint2(0x00000000u, 0x00000000u), uint2(0x00000000u, 0x00000000u),   // RS_NIGHTLIFE, weekdays
-    uint2(0x069003fcu, 0x002dfff5u), uint2(0x00000000u, 0x00000000u), uint2(0x00000000u, 0x00000000u),   // RS_NIGHTLIFE, weekends
-    uint2(0x01c20186u, 0x0114ff3cu), uint2(0x0474041au, 0x011eff50u), uint2(0x00000000u, 0x00000000u),   // RS_GARAGE, weekdays
-    uint2(0x02b20258u, 0x012dff28u), uint2(0x043803c0u, 0x012dff28u), uint2(0x00000000u, 0x00000000u),   // RS_GARAGE, weekends
-    uint2(0x05a00000u, 0x0000ffffu), uint2(0x00000000u, 0x00000000u), uint2(0x00000000u, 0x00000000u),   // RS_DUSK, weekdays
-    uint2(0x05a00000u, 0x0000ffffu), uint2(0x00000000u, 0x00000000u), uint2(0x00000000u, 0x00000000u),   // RS_DUSK, weekends
-    uint2(0x056402d0u, 0x001effffu), uint2(0x00000000u, 0x00000000u), uint2(0x00000000u, 0x00000000u),   // RS_PORCH, weekdays
-    uint2(0x05a002d0u, 0x001effffu), uint2(0x00000000u, 0x00000000u), uint2(0x00000000u, 0x00000000u),   // RS_PORCH, weekends
+// The header's kTable, packed: index (schedule * 4 + day type) * 3 + k (day type: roomDayType: Monday-Thursday,
+// Friday, Saturday, Sunday);  x = start | end << 16;  y = chance | level << 8 | jitter << 16 | daily << 24
+static const uint2 kRoomIntervals[156] = {
+    uint2(0x05a00000u, 0x0000ffffu), uint2(0x00000000u, 0x00000000u), uint2(0x00000000u, 0x00000000u),   // RS_ALWAYS, Monday-Thursday
+    uint2(0x05a00000u, 0x0000ffffu), uint2(0x00000000u, 0x00000000u), uint2(0x00000000u, 0x00000000u),   // RS_ALWAYS, Friday
+    uint2(0x05a00000u, 0x0000ffffu), uint2(0x00000000u, 0x00000000u), uint2(0x00000000u, 0x00000000u),   // RS_ALWAYS, Saturday
+    uint2(0x05a00000u, 0x0000ffffu), uint2(0x00000000u, 0x00000000u), uint2(0x00000000u, 0x00000000u),   // RS_ALWAYS, Sunday
+    uint2(0x00000000u, 0x00000000u), uint2(0x00000000u, 0x00000000u), uint2(0x00000000u, 0x00000000u),   // RS_NEVER, Monday-Thursday
+    uint2(0x00000000u, 0x00000000u), uint2(0x00000000u, 0x00000000u), uint2(0x00000000u, 0x00000000u),   // RS_NEVER, Friday
+    uint2(0x00000000u, 0x00000000u), uint2(0x00000000u, 0x00000000u), uint2(0x00000000u, 0x00000000u),   // RS_NEVER, Saturday
+    uint2(0x00000000u, 0x00000000u), uint2(0x00000000u, 0x00000000u), uint2(0x00000000u, 0x00000000u),   // RS_NEVER, Sunday
+    uint2(0x01d10186u, 0x011edc46u), uint2(0x05730438u, 0x012dffcdu), uint2(0x06270528u, 0x002dc80eu),   // RS_HOME_LIVING, Monday-Thursday
+    uint2(0x01d10186u, 0x011edc46u), uint2(0x05a00438u, 0x012dffd7u), uint2(0x06270528u, 0x002dc815u),   // RS_HOME_LIVING, Friday
+    uint2(0x02d0021cu, 0x012ddc46u), uint2(0x05a0041au, 0x012dffd7u), uint2(0x06270528u, 0x002dc815u),   // RS_HOME_LIVING, Saturday
+    uint2(0x02d0021cu, 0x012ddc46u), uint2(0x0573041au, 0x012dffcdu), uint2(0x06270528u, 0x002dc80eu),   // RS_HOME_LIVING, Sunday
+    uint2(0x01d10168u, 0x011effaau), uint2(0x04ec0438u, 0x012dffc8u), uint2(0x00000000u, 0x00000000u),   // RS_HOME_KITCHEN, Monday-Thursday
+    uint2(0x01d10168u, 0x011effaau), uint2(0x050a0438u, 0x012dffc8u), uint2(0x00000000u, 0x00000000u),   // RS_HOME_KITCHEN, Friday
+    uint2(0x027601e0u, 0x012dff96u), uint2(0x050a0438u, 0x012dffc8u), uint2(0x00000000u, 0x00000000u),   // RS_HOME_KITCHEN, Saturday
+    uint2(0x027601e0u, 0x012dff96u), uint2(0x04ec0438u, 0x012dffc8u), uint2(0x00000000u, 0x00000000u),   // RS_HOME_KITCHEN, Sunday
+    uint2(0x01950159u, 0x0114965au), uint2(0x0591050au, 0x01289696u), uint2(0x00000000u, 0x00000000u),   // RS_HOME_BED, Monday-Thursday
+    uint2(0x01950159u, 0x0114965au), uint2(0x05dc0546u, 0x012d9696u), uint2(0x00000000u, 0x00000000u),   // RS_HOME_BED, Friday
+    uint2(0x021c01c2u, 0x01289646u), uint2(0x05dc0546u, 0x012d9696u), uint2(0x00000000u, 0x00000000u),   // RS_HOME_BED, Saturday
+    uint2(0x021c01c2u, 0x01289646u), uint2(0x0591050au, 0x01289696u), uint2(0x00000000u, 0x00000000u),   // RS_HOME_BED, Sunday
+    uint2(0x01a40168u, 0x0119ff8cu), uint2(0x0546050au, 0x011eff5au), uint2(0x00000000u, 0x00000000u),   // RS_HOME_BATH, Monday-Thursday
+    uint2(0x01a40168u, 0x0119ff8cu), uint2(0x05820546u, 0x011eff5au), uint2(0x00000000u, 0x00000000u),   // RS_HOME_BATH, Friday
+    uint2(0x023a01e0u, 0x0128ff78u), uint2(0x05820546u, 0x011eff5au), uint2(0x00000000u, 0x00000000u),   // RS_HOME_BATH, Saturday
+    uint2(0x023a01e0u, 0x0128ff78u), uint2(0x0546050au, 0x011eff5au), uint2(0x00000000u, 0x00000000u),   // RS_HOME_BATH, Sunday
+    uint2(0x04ec01e0u, 0x001efff5u), uint2(0x070804ecu, 0x00006e64u), uint2(0x00000000u, 0x00000000u),   // RS_SHOP, Monday-Thursday
+    uint2(0x04ec01e0u, 0x001efff5u), uint2(0x070804ecu, 0x00006e64u), uint2(0x00000000u, 0x00000000u),   // RS_SHOP, Friday
+    uint2(0x0528021cu, 0x001efff0u), uint2(0x07080528u, 0x00006e64u), uint2(0x00000000u, 0x00000000u),   // RS_SHOP, Saturday
+    uint2(0x0528021cu, 0x001efff0u), uint2(0x07080528u, 0x00006e64u), uint2(0x00000000u, 0x00000000u),   // RS_SHOP, Sunday
+    uint2(0x047401c2u, 0x001effebu), uint2(0x05280474u, 0x012dff28u), uint2(0x054604b0u, 0x0114c83cu),   // RS_OFFICE, Monday-Thursday
+    uint2(0x047401c2u, 0x001effebu), uint2(0x05280474u, 0x012dff28u), uint2(0x054604b0u, 0x0114c83cu),   // RS_OFFICE, Friday
+    uint2(0x03840258u, 0x012dff19u), uint2(0x00000000u, 0x00000000u), uint2(0x00000000u, 0x00000000u),   // RS_OFFICE, Saturday
+    uint2(0x03840258u, 0x012dff19u), uint2(0x00000000u, 0x00000000u), uint2(0x00000000u, 0x00000000u),   // RS_OFFICE, Sunday
+    uint2(0x05640294u, 0x001efff0u), uint2(0x00000000u, 0x00000000u), uint2(0x00000000u, 0x00000000u),   // RS_RESTAURANT, Monday-Thursday
+    uint2(0x05820294u, 0x001efff0u), uint2(0x00000000u, 0x00000000u), uint2(0x00000000u, 0x00000000u),   // RS_RESTAURANT, Friday
+    uint2(0x05820258u, 0x001efff0u), uint2(0x00000000u, 0x00000000u), uint2(0x00000000u, 0x00000000u),   // RS_RESTAURANT, Saturday
+    uint2(0x05640258u, 0x001efff0u), uint2(0x00000000u, 0x00000000u), uint2(0x00000000u, 0x00000000u),   // RS_RESTAURANT, Sunday
+    uint2(0x06540438u, 0x002dffebu), uint2(0x00000000u, 0x00000000u), uint2(0x00000000u, 0x00000000u),   // RS_NIGHTLIFE, Monday-Thursday
+    uint2(0x069003fcu, 0x002dfff5u), uint2(0x00000000u, 0x00000000u), uint2(0x00000000u, 0x00000000u),   // RS_NIGHTLIFE, Friday
+    uint2(0x069003fcu, 0x002dfff5u), uint2(0x00000000u, 0x00000000u), uint2(0x00000000u, 0x00000000u),   // RS_NIGHTLIFE, Saturday
+    uint2(0x06540438u, 0x002dffebu), uint2(0x00000000u, 0x00000000u), uint2(0x00000000u, 0x00000000u),   // RS_NIGHTLIFE, Sunday
+    uint2(0x01c20186u, 0x0114ff3cu), uint2(0x0474041au, 0x011eff50u), uint2(0x00000000u, 0x00000000u),   // RS_GARAGE, Monday-Thursday
+    uint2(0x01c20186u, 0x0114ff3cu), uint2(0x0474041au, 0x011eff50u), uint2(0x00000000u, 0x00000000u),   // RS_GARAGE, Friday
+    uint2(0x02b20258u, 0x012dff28u), uint2(0x043803c0u, 0x012dff28u), uint2(0x00000000u, 0x00000000u),   // RS_GARAGE, Saturday
+    uint2(0x02b20258u, 0x012dff28u), uint2(0x043803c0u, 0x012dff28u), uint2(0x00000000u, 0x00000000u),   // RS_GARAGE, Sunday
+    uint2(0x05a00000u, 0x0000ffffu), uint2(0x00000000u, 0x00000000u), uint2(0x00000000u, 0x00000000u),   // RS_DUSK, Monday-Thursday
+    uint2(0x05a00000u, 0x0000ffffu), uint2(0x00000000u, 0x00000000u), uint2(0x00000000u, 0x00000000u),   // RS_DUSK, Friday
+    uint2(0x05a00000u, 0x0000ffffu), uint2(0x00000000u, 0x00000000u), uint2(0x00000000u, 0x00000000u),   // RS_DUSK, Saturday
+    uint2(0x05a00000u, 0x0000ffffu), uint2(0x00000000u, 0x00000000u), uint2(0x00000000u, 0x00000000u),   // RS_DUSK, Sunday
+    uint2(0x056402d0u, 0x001effffu), uint2(0x00000000u, 0x00000000u), uint2(0x00000000u, 0x00000000u),   // RS_PORCH, Monday-Thursday
+    uint2(0x05a002d0u, 0x001effffu), uint2(0x00000000u, 0x00000000u), uint2(0x00000000u, 0x00000000u),   // RS_PORCH, Friday
+    uint2(0x05a002d0u, 0x001effffu), uint2(0x00000000u, 0x00000000u), uint2(0x00000000u, 0x00000000u),   // RS_PORCH, Saturday
+    uint2(0x056402d0u, 0x001effffu), uint2(0x00000000u, 0x00000000u), uint2(0x00000000u, 0x00000000u),   // RS_PORCH, Sunday
 };
 static const uint kRoomScheduleCount = 13u;   // RS_COUNT
 static const uint kRoomScheduleNever = 1u;    // RS_NEVER
@@ -59,6 +85,12 @@ uint roomHash(uint x) {
     return x;
 }
 
+// The day type of a game day (roomlight.h roomDayType): 0 Monday-Thursday, 1 Friday, 2 Saturday, 3 Sunday
+uint roomDayType(uint day) {
+    const uint w = day % 7u;
+    return w < 4u ? 0u : w - 3u;
+}
+
 // homes (2..5), garages (10), dusk (11) and porch (12) lights switch off in daylight
 uint roomScheduleDaylit(uint s) { return ((s >= 2u && s <= 5u) || s == 10u || s == 11u || s == 12u) ? 1u : 0u; }
 
@@ -72,7 +104,7 @@ uint roomLight(uint schedule, uint seed, uint windows, uint day, uint minute, ui
     [loop] for (uint back = 0u; back < 2u; back++) {   // today's intervals, then yesterday's that run past midnight
         if (back == 1u && day == 0u) break;
         const uint d = day - back;
-        const uint base = (sc * 2u + (d % 7u >= 5u ? 1u : 0u)) * 3u;
+        const uint base = (sc * 4u + roomDayType(d)) * 3u;
         const uint m = minute + back * 1440u;          // the minute on that day's clock
         [loop] for (uint k = 0u; k < 3u; k++) {
             const uint2 iv = kRoomIntervals[base + k];
