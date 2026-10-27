@@ -15,6 +15,7 @@
 #include "blocksbin.h"
 #include "buildingsbin.h"
 #include "buildings.h"
+#include "interiors.h"
 #include "worldtypes.h"
 #include "../core/jobs.h"
 #include <cstdio>
@@ -235,8 +236,10 @@ bool loadHandWorld(const char* worldFile, WorldMap& map, RoadNetwork& roads, Bui
     buildings.cellLists.assign((size_t)kCellsPerSide * kCellsPerSide, {});
     buildings.openCellLists.assign((size_t)kCellsPerSide * kCellsPerSide, {});
     gBuildings = &buildings;
-    // the placements' cells, their records in the building set and their windows' facade entries
+    // the placements' cells, their records in the building set and their windows' facade entries; and the interiors of
+    // those whose plans have rooms (interiorhand.cpp), which gInteriors then holds
     prepareHandBuildings(handBuildings, buildings);
+    prepareHandInteriors(handBuildings, map);
     LOG("Hand world: terrain, %zu road nodes, %zu edges (%zu with overrides), %zu ground polygons, %zu props, %zu lamps, %zu parcels, %zu lots, %zu paths, "
         "%zu spots, %zu colliders and %zu buildings (%zu shells, %zu window facades) from %s (%zu KB, %zu sections) in %.2f s",
         roads.nodes.size(), roads.edges.size(), overrides.edges.size(), blocks.ground.size(), blocks.props.size(), blocks.lamps.size(), blocks.parcels.size(),

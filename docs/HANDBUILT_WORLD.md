@@ -713,19 +713,35 @@ compiled data. Nothing is invented:
   So far (stage 1's part 3, `src/world/handshells.cpp`) each placement is drawn into the cell that holds its
   footprint's centre, built afresh with the cell rather than cached per plan:
   - the near LOD: the walls with their real openings and a base, the openings' reveals, each window's glass 10 cm
-    in (below), the doors' leaves (panel, glass, roll-up, garage), sills, glazing bars by the window's kind, shutters
-    (fixed pairs, or Bahama shutters propped out), the look's trims (bands at the floor lines, a cornice, quoins,
-    hoods over the windows), and the roof: flat behind a parapet with its coping, or gable, hip or shed with its
-    overhang, fascia and soffit (over a rectangular footprint; any other is flat for now);
+    in (below), the doors' leaves (panel, glass, roll-up, garage; a building with an interior has its doorways open
+    through the wall over a threshold, and its interior hangs the leaves), sills, glazing bars by the window's kind,
+    shutters (fixed pairs, or Bahama shutters propped out), the look's trims (bands at the floor lines, a cornice,
+    quoins, hoods over the windows), and the roof: flat behind a parapet with its coping, or gable, hip or shed with
+    its overhang, fascia and soffit (over a rectangular footprint; any other is flat for now). A wall a neighbour
+    stands against (a party wall) is drawn above the neighbour's top only, and so are its trims, so neither shows in
+    the neighbour's rooms;
   - the far LOD: the walls, the glass flush with them, the doors and the roofs, about a fifth of the triangles;
-  - collision: the walls' bounds in the plan's frame, one box, from the foundation to the roof (doors are shut until
-    the interiors come);
+  - collision: the walls' bounds in the plan's frame, one box, from the foundation to the roof; for a building with an
+    interior, its parts: the foundation up to the ground floor, each exterior wall floor by floor with its doorways
+    open (a lintel over each), and the roof down to the top floor's ceiling. A ground-floor door whose ground outside
+    lies lower than a threshold's step gets a stoop: a landing level with the floor out to the sidewalk, or 0.9 m deep
+    with steps down (the walk steps onto a box only within 0.35 m of its feet);
   - the foundation goes down to 0.3 m under the lowest ground at the walls, so a building on a slope stands on it;
   - the game's building queries see each placement as a building (`BuildingSet::pointInBuilding`, `buildingsNear` and
     what is built on them: peds' spawn, flee and window-shopping checks, traffic, police, wildlife, missions, the map):
     a record with the box of its walls, its height, floors and front, its plan's class as its style, and its street
     door at its plan's main entrance (`Building::doorAlong`, which `game/ai.cpp` uses for the people who step out of and
-    into buildings; a building whose main entrance isn't on its front has none).
+    into buildings; a building whose main entrance isn't on its front has none);
+  - each placement whose plan has rooms gets an interior (`src/world/interiorhand.cpp`, an `IK_HAND` interior in a set
+    of hand mode's own, built from the library's interiors' plans and streamed, drawn and collided as the generator's
+    are by `game/interiors_game.cpp`; its record keeps `Building::interior` at -1, so its street door stays the
+    people's): the exterior walls' inner faces with the windows' inner reveals, glass and boards, the inside walls with
+    their doorways' frames, floors and ceilings with their stairwells, the stairs (a box per tread, and a ramp of thin
+    colliders three to a tread, which the walk climbs as the warehouse mezzanine's), balustrades where a floor stops at
+    a well, the doors' leaves (hinged and pairs, which swing; an `opening` has none) and the lights (section 7.8). Its
+    colliders and leaves collide (`interiors_game.cpp` gives them positive collision keys), and inside it the
+    third-person camera keeps under the ceilings (`game/camera.cpp`). No furniture, people or nav yet;
+    `--handtour <names>|all` walks the player through every door and up every stair into each room.
 
   The cell census (section 13.3) sets the near shell's budget. Today a near cell averages 39k triangles (p99 144k, at
   most 171k), and a house costs about 2,400 triangles of its cell's mesh, roads included. Cells hold few buildings:
@@ -757,6 +773,10 @@ it is an extension of that.
 **Exterior:** the shell per plan and option set (walls with door gaps, roof, porches) as boxes, built on first use and
 instanced per placement into the cell's collision. That replaces today's one box per far building and the hollowed shells.
 
+So far (`src/world/handshells.cpp` and `interiorhand.cpp`): the shell's parts are in the cell's collision at every LOD
+(section 7.2); the interior's (inside walls, the upper floors' slabs, the stairs' ramps and landings, balustrades) are
+built with its mesh, per building rather than per floor, and added near the player; the doors' leaves are dynamic.
+
 **Interior: per floor.** Each layout's collision (walls, slabs, stair ramps, furniture) is built on first use and cached
 in layout space:
 - it is added to the physics world when the floor loads, and removed when it unloads;
@@ -764,6 +784,9 @@ in layout space:
 - a building's floors above and below the loaded ones keep only their slabs and the shell.
 
 ### 7.4 Interiors at scale: streaming
+
+So far a hand-built building's interior streams as the generator's do: the whole building within 480 m of the camera,
+built on a worker; b005's twelve hold 120 rooms in 60k triangles.
 
 **What is resident:**
 
@@ -902,8 +925,12 @@ enough; a windowless room follows its schedule alone.
 The function is integer arithmetic over a hash, with no floating-point state. So the C++ copy (resident rooms, spill
 lights) and the facade shader's HLSL copy (windows) agree bit for bit, and a selftest compares them. A hand-built
 window's facade entry carries its room's class in the entry's flags (`kFacadeHandWindow`, the class in bits 8-11), and
-the selftest's vectors send such flags through the shader too. A window lit at
-2 km is lit when you walk up to it, and it goes dark at the same minute.
+the selftest's vectors send such flags through the shader too. A window lit at 2 km is lit when you walk up to it, and
+it goes dark at the same minute. So far a hand-built interior's room (`interiorhand.cpp` `handRoomLight`) takes the
+state of its windows: its window's facade entry's class and room hash, as the shader takes them, so its lamps and
+ambient are on when its windows show it lit; a room with no window, its own seed. Each room has a fixture by its type (a
+pendant, downlight or troffer), and a building's lamps only light while all its rooms have ambient volumes (the renderer
+keeps 32, nearest first), so none lights the street.
 
 **What worldc compiles.** Per layout, shared by every placement of it:
 

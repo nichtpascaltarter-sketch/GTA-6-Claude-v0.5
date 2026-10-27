@@ -38,6 +38,7 @@ enum InteriorKind : u8 {
     IK_CARWASH,        // Sunwash Car Wash
     IK_RES_LOBBY,      // ground-floor lobby of a residential tower (elevator up to its unit)
     IK_CONDO,          // upper-floor condo / penthouse unit (safehouses: Sol Beach Condo, Downtown Penthouse)
+    IK_HAND,           // a hand-built building's floors and rooms (interiorhand.cpp: from the library's interiors' plans)
     IK_COUNT
 };
 
@@ -186,6 +187,20 @@ extern InteriorSet* gInteriors;
 
 // World generation: after the buildings exist (BuildingSet::generate). Marks Building::interior.
 void planInteriors(WorldMap& map, const RoadNetwork& roads, BuildingSet& bs);
+// Hand mode (handworld.cpp, after prepareHandBuildings): an IK_HAND interior for each hand-built building whose plan
+// has rooms, in a set of their own that gInteriors points at (nullptr where none has). Its frame's origin is the middle
+// of the plan's front wall's centreline, its x the plan's (mirrored where the placement is). The buildings' records keep
+// Building::interior at -1: their street doors stay the people's (game/ai.cpp). `map` gives the ground under them.
+struct HandBuildings;
+void prepareHandInteriors(const HandBuildings& hb, const WorldMap& map);
+// The walk through one of them that --handtour follows (interiors_game.cpp): from outside its main entrance through
+// every door and up every stair into each of its rooms, as world points, with the room each one is in (-1: outside or
+// in a doorway, -2 on a stair). False for an interior that isn't a hand-built one.
+bool handInteriorTour(int interior, std::vector<vec3>& points, std::vector<int>& rooms);
+// A hand-built interior's room's lamps at a game day and hour and the frame's darkness (Render::Renderer::roomNight):
+// its light state (roomlight.h roomLight, docs/HANDBUILT_WORLD.md 7.8) as its windows show it from outside, 0 off to
+// about 1; -1 for another kind of interior (interiors_game.cpp's schedules light those)
+float handRoomLight(int interior, int room, u32 day, float hour, u32 night);
 
 // ---- building shell hooks (buildmesh.cpp) ----
 // Facade wall a -> b (z0..z1, facade uv u0..u0+uLen, v = z - vBase) of an interior building with its openings cut

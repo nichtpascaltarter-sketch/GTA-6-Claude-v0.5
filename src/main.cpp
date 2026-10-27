@@ -42,6 +42,7 @@
 #include "world/interiortower.cpp"
 #include "world/interiorgarages.cpp"
 #include "world/interiorresidences.cpp"
+#include "world/interiorhand.cpp"
 #include "world/interiors.cpp"
 #include "world/gridcodec.cpp"
 #include "world/lz.cpp"

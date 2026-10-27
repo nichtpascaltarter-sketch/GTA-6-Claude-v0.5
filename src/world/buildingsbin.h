@@ -149,11 +149,14 @@ struct HandBuildings {
     // Not in world.bin: what the game derives at load (handshells.cpp prepareHandBuildings). Per streaming cell, the
     // placements whose footprint's centre lies in it; per placement, its record in the building set (-1: none) and where
     // its openings start in openingFacades, which holds the facade entry of each opening of each wall in turn (kNone32:
-    // none, a door's leaf)
+    // none, a door's leaf); and where its walls and its outline's edges start in wallCover and edgeCover, which hold the
+    // height (absolute) up to which a neighbour hides that wall's or edge's outer face: a party wall (-1e9: none)
     std::vector<std::vector<int>> placementsByCell;
     std::vector<int> placementBuilding;
     std::vector<u32> firstOpening;
     std::vector<u32> openingFacades;
+    std::vector<u32> firstWall, firstEdge;
+    std::vector<float> wallCover, edgeCover;
 };
 
 // Adds "library" and "buildings" (each only when it has something)

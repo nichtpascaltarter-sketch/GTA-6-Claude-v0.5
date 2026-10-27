@@ -573,9 +573,10 @@ What the buildings compiler (src/world/worldmodel.h compileBuildings) reads so f
   - the inside walls (those without `ext`) with their doors;
   - every door's leaf (9.8's door leaves: where its hinges are and the side it opens to) and the rooms each side of
     its wall, found from the room polygons (`out`: none);
-  - the stairs: each floor's layout's, with their ends resolved on the plan's floors (a layout several floors share
-    gives each its own where the ends are relative). Their `treads` and `rise` are derived as the validator derives
-    them, and `landing` defaults to `w`. A stair whose ends name no floor or room, or don't climb, is left to worldv.
+  - the stairs: each floor's layout's, with their ends resolved on the plan's floors (a relative end on the next floor
+    up or down by height, as the validator finds it, whatever order the plan lists its floors in; a layout several
+    floors share gives each its own). Their `treads` and `rise` are derived as the validator derives them, and
+    `landing` defaults to `w`. A stair whose ends name no floor or room, or don't climb, is left to worldv.
 - Lifts, slots, furnishing, spots and lights compile with the interiors later, and a plan's options' features, its
   other entrances, and a building's slots, overrides, occupancy and outbuildings after; they are read and checked
   already.

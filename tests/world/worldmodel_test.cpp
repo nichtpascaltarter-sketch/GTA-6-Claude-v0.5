@@ -1358,6 +1358,42 @@ static bool readsBack(const HandBuildings& in, HandBuildings& back, std::string&
     return view.open(bin.data(), bin.size(), &why) && readBuildings(view, back, &why);
 }
 
+// A layout three floors share, its stair's ends relative (0:hall to +1:hall): the next floor up by height, whatever the
+// order the plan lists its floors in (as worldv's neighbour()): f0 climbs to f1, f1 to f2, and the top floor's is left
+// out, though the plan lists f2 before f1
+static void testStairFloors() {
+    const std::string world = "ntw 1 world\nworld palmera name=\"P\"\ndistrict cl name=\"C\"\n";
+    const std::string plan =
+        "ntw 1 plan id=lib.plan.midrise.stack_a\n"
+        "meta class=midrise family=stack floors=3 size=6.00x8.00\n"
+        "footprint poly=0.00,0.00;6.00,0.00;6.00,8.00;0.00,8.00\n"
+        "floor f0 layout=lib.layout.midrise.stack_a z=0.00 h=3.00\n"
+        "floor f2 layout=lib.layout.midrise.stack_a z=6.00 h=3.00\n"
+        "floor f1 layout=lib.layout.midrise.stack_a z=3.00 h=3.00\n"
+        "roof form=flat\n";
+    const std::string layout =
+        "ntw 1 layout id=lib.layout.midrise.stack_a\n"
+        "wall w1 a=0.00,0.00 b=6.00,0.00 t=0.25 ext=front\n"
+        "wall w2 a=6.00,0.00 b=6.00,8.00 t=0.25 ext=right\n"
+        "wall w3 a=6.00,8.00 b=0.00,8.00 t=0.25 ext=back\n"
+        "wall w4 a=0.00,8.00 b=0.00,0.00 t=0.25 ext=left\n"
+        "room hall type=hall poly=0.00,0.00;6.00,0.00;6.00,8.00;0.00,8.00\n"
+        "stair st1 from=0:hall to=+1:hall run=1.00,1.00;1.00,6.04 w=1.00 kind=straight rise=0.18\n";
+    Model m;
+    std::vector<Error> errors;
+    const bool ok = loadTexts({{"lib/plans/midrise/stack_a.ntw", plan}, {"lib/layouts/midrise/stack_a.ntw", layout}, {"world.ntw", world}}, m, errors);
+    HandBuildings out;
+    const bool compiled = ok && errors.empty() && compileBuildings(m, out, errors);
+    EXPECT(compiled && errors.empty() && out.shells.size() == 1, "stair floors: compiled (%zu findings)", errors.size());
+    if (!compiled || out.shells.size() != 1) return;
+    const HandShell& s = out.shells[0];
+    // (floors in the plan's order: f0 0, f2 1, f1 2)
+    EXPECT(s.stairs.size() == 2 && s.stairs[0].fromFloor == 0 && s.stairs[0].toFloor == 2 && s.stairs[1].fromFloor == 2 && s.stairs[1].toFloor == 1 &&
+               s.stairs[0].fromRoom == 0u && s.stairs[0].toRoom == 0u && s.stairs[0].treads == 17u && same(s.stairs[0].rise, 0.18f),
+           "stair floors: %zu stairs (%d to %d, %d to %d)", s.stairs.size(), s.stairs.empty() ? -1 : s.stairs[0].fromFloor, s.stairs.empty() ? -1 : s.stairs[0].toFloor,
+           s.stairs.size() < 2 ? -1 : s.stairs[1].fromFloor, s.stairs.size() < 2 ? -1 : s.stairs[1].toFloor);
+}
+
 static void testBuildings() {
     const std::string world = "ntw 1 world\nworld palmera name=\"P\"\ndistrict cl name=\"C\"\n";
     const std::string catalog =
@@ -2509,6 +2545,7 @@ int main() {
     testWalkAndSpots();
     testColliders();
     testBuildings();
+    testStairFloors();
     testErrors();
     testRoadsSection();
     testRoadOverrides();
