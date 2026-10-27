@@ -334,7 +334,8 @@ std::vector<KindDef> build() {
         k.kind = "catalog";
         k.version = 1;
         k.records.push_back(Rec("piece", 2, false,
-                                {R("code", VT_ANY), F("size", VT_ANY, 2), F("variants", VT_INT), F("params", VT_LIST), F("collide", VT_WORD, -1, "box|cylinder|none")}));
+                                {R("code", VT_ANY), F("size", VT_ANY, 2), F("variants", VT_INT), F("params", VT_LIST), F("collide", VT_WORD, -1, "box|cylinder|none"),
+                                 F("body", VT_ANY, 2)}));
         kinds.push_back(k);
     }
     return kinds;

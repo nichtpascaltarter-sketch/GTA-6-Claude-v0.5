@@ -31,7 +31,8 @@ float3 archLightColor(uint idx) {
 
 // style: 0 punched windows, 1 curtain wall, 2 ribbon windows, 3 balconies/condo, 4 industrial (few windows),
 //        5 house (shuttered windows), 6 art deco (vertical fins + eyebrows)
-// flags: bit0 storefront ground floor, bit1 has sign band, bit2 neon trim, bit3 blinds common, bit4 office
+// flags: bit0 storefront ground floor, bit1 has sign band, bit2 neon trim, bit3 blinds common, bit4 office, bit5 parking
+//        garage (buildings.h kFacadeParking)
 
 float3 unpackColor(uint c) { return float3(c & 255, (c >> 8) & 255, (c >> 16) & 255) / 255.0; }
 
@@ -270,8 +271,10 @@ float3 shopInterior(float3 roomPos, float3 dir, float3 roomSize, uint h) {
 // room types, so the room draws one from its hash by the building's use: shops keep shop hours (cafes a restaurant's);
 // offices work office hours, with some corridors and the lobbies lit around the clock; industrial buildings work the
 // same hours with a few lights always on; homes mix living rooms, kitchens, bedrooms and bathrooms, and the stairwell
-// bays of apartment blocks stay lit on every floor. (The hand-built world's window records carry each room's class.)
-uint facadeRoomSchedule(uint rh, uint stairHash, uint style, bool office, bool storefront, bool cafe, bool ground) {
+// bays of apartment blocks stay lit on every floor; a parking garage's decks stay lit all night, as a stairwell does.
+// (The hand-built world's window records carry each room's class.)
+uint facadeRoomSchedule(uint rh, uint stairHash, uint style, bool office, bool storefront, bool cafe, bool ground, bool parking) {
+    if (parking) return kRoomAlways;
     if (storefront) return cafe ? kRoomRestaurant : kRoomShop;
     float u = hashF(rh + 41u);
     if (office) return ground || u < 0.07 ? kRoomAlways : kRoomOffice;
@@ -458,7 +461,7 @@ FacadeResult shadeFacade(uint id, float2 uv, float3 N, float3 T, float3 B, float
         // (facadeRoomSchedule), and the building's litFrac leaves some of its rooms empty.
         bool cafe = storefront && shopIsCafe(shopHash);
         uint stairHash = hash3u(uint3((uint)(bayIdx + 3000.0), 91u, seed));
-        uint sched = facadeRoomSchedule(roomHash, stairHash, style, office, storefront, cafe, ground);
+        uint sched = facadeRoomSchedule(roomHash, stairHash, style, office, storefront, cafe, ground, (flags & 32u) != 0u);
         bool vacant = !storefront && sched != kRoomAlways && hashF(roomHash + 11u) >= saturate(0.35 + f.litFrac);
         uint level = vacant ? 0u : roomLight(sched, lh >> 20, 1u, gRoomClock.x, gRoomClock.y, gRoomClock.z);
         bool lit = level > 0u;

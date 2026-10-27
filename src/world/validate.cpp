@@ -6,6 +6,7 @@
 #include "worldmodel.h"
 #include <algorithm>
 #include <atomic>
+#include <cstdlib>
 #include <filesystem>
 #include <map>
 #include <memory>
@@ -37,6 +38,7 @@ const std::vector<CheckInfo> kChecks = {
     {"ref.form", "a field that names records doesn't have its shape (<edge>:<side>, a list of edges, ...)"},
     {"ref.missing", "a reference names nothing"},
     {"ref.kind", "a reference names a record of the wrong kind"},
+    {"piece.body", "a catalog piece's body= (its solid part) isn't WxDxH, or doesn't fit inside its size="},
     // inside a layout, unit or fit-out (docs/HANDBUILT_WORLD.md 9.1, and the kit's limits of 4.9)
     {"wall.cross", "two walls cross, or run along each other"},
     {"room.closed", "a room's polygon has an edge no wall closes, or no proper shape (outdoor rooms are open)"},
@@ -538,6 +540,24 @@ struct Scanner {
                 if (p.size() == 3 && p[0] == "lib" && p[1] == c && allParts(p)) cls = c;
             if (!cls) form(r, "a piece's id is lib.<kit|prop|veg|light|fence>.<name> (lib.kit.sofa_3seat)");
             def(r.id, cls ? cls : "piece", r.line);
+            // its solid part fits inside it
+            if (const Ntw::Field* b = r.field("body")) {
+                const auto dims = [](const std::string& t, float out[3]) {
+                    const std::vector<std::string> d = split(t, 'x');
+                    if (d.size() != 3) return false;
+                    for (int i = 0; i < 3; i++) {
+                        char* end = nullptr;
+                        out[i] = strtof(d[(size_t)i].c_str(), &end);
+                        if (d[(size_t)i].empty() || *end || !(out[i] > 0.f)) return false;
+                    }
+                    return true;
+                };
+                float bd[3] = {0.f, 0.f, 0.f}, sd[3] = {0.f, 0.f, 0.f};
+                const Ntw::Field* s = r.field("size");
+                if (!dims(b->value, bd)) error(b->line, "piece.body", "piece " + r.id + " body=" + b->value + ": not WxDxH, each over 0");
+                else if (s && dims(s->value, sd) && (bd[0] > sd[0] || bd[1] > sd[1] || bd[2] > sd[2]))
+                    error(b->line, "piece.body", "piece " + r.id + " body=" + b->value + ": doesn't fit inside its size=" + s->value);
+            }
         }
     }
 

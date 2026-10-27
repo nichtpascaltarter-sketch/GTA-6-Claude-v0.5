@@ -325,9 +325,11 @@ bool compileModel(std::vector<Source>& files, const std::vector<size_t>& which, 
         size_t implied = 0;
         for (const HandSpot& x : blocks.blocks.spots) implied += (x.flags & HandSpot::IMPLIED) != 0;
         const HandBlocks& hb = blocks.blocks;
-        if (ok && (!hb.parcels.empty() || !hb.lots.empty() || !hb.paths.empty() || !hb.plazas.empty() || !hb.steps.empty() || !hb.spots.empty()))
-            printf("worldc: %zu parcels, %zu lots (%zu bays on %zu links); walks: %zu paths, %zu plazas, %zu flights of steps; %zu spots (%zu implied)\n",
-                   hb.parcels.size(), hb.lots.size(), bays, links, hb.paths.size(), hb.plazas.size(), hb.steps.size(), hb.spots.size(), implied);
+        if (ok && (!hb.parcels.empty() || !hb.lots.empty() || !hb.paths.empty() || !hb.plazas.empty() || !hb.steps.empty() || !hb.spots.empty() ||
+                   !hb.colliders.empty()))
+            printf("worldc: %zu parcels, %zu lots (%zu bays on %zu links); walks: %zu paths, %zu plazas, %zu flights of steps; %zu spots (%zu implied); %zu "
+                   "colliders\n",
+                   hb.parcels.size(), hb.lots.size(), bays, links, hb.paths.size(), hb.plazas.size(), hb.steps.size(), hb.spots.size(), implied, hb.colliders.size());
         return ok;
     };
     if (roads.nodes.empty() && roads.edges.empty()) return sections();

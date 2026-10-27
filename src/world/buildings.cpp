@@ -616,6 +616,8 @@ void BuildingSet::generate(WorldMap& map, const RoadNetwork& roads) {
                         wall = vec3(0.8f);
                         frame = vec3(0.4f);
                         f.litFrac = 0.9f;
+                        flags |= kFacadeParking;   // (a parking garage: decks, lit all night, not a household's rooms)
+                        b.use = BU_PARKING;
                         break;
                     case BS_CHURCH:
                         style = 0;
@@ -830,6 +832,8 @@ void BuildingSet::addSiteBuilding(WorldMap& map, const SiteBuildingReq& q, u32 s
     switch (st) {
         case BS_GARAGE:
             style = 2; floorH = 3.0f; groundH = 3.5f; bay = 6.f; wallMat = MAT_CONCRETE; wall = vec3(0.86f); frame = vec3(0.45f); f.litFrac = 0.95f;
+            flags |= kFacadeParking;
+            b.use = BU_PARKING;
             break;
         case BS_WAREHOUSE: case BS_FACTORY: case BS_BARN:
             style = 4; floorH = br.range(9.f, 11.f); groundH = floorH; bay = br.range(6.f, 8.f);

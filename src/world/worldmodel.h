@@ -463,6 +463,8 @@ struct LibItem {
     vec3 size = vec3(0.f);             // size=WxDxH; 0: unknown
     int variants = 0;
     std::string collide;               // box, cylinder, none
+    vec3 body = vec3(0.f);             // body=WxDxH: its solid part where that isn't the whole piece (a tree's trunk, a
+                                       // street light's pole); 0: its size
 };
 
 // ------------------------------------------------------------------------------------------------------------ the model
@@ -691,6 +693,8 @@ bool compileBlocks(const Model& model, BlocksOut& out, std::vector<Error>& error
 //   (catalogcodes.h seatSpec: a bench's, a bus shelter's, facing the piece's front, a place every 0.6 m), a bus
 //   shelter's a bus stop's wait (the nearest stop within 15 m of it, under cover), and every other bus stop on a
 //   compiled edge a wait standing by the kerb (at its wait=, else in the middle of its side's sidewalk; for 6).
+// - the colliders: each prop's whose piece collides (collide= box or cylinder), at its body= (the solid part: a trunk,
+//   a pole) or else its size=, times the prop's scale, a box turned with the prop, from the prop's base up.
 // Findings: block.lot (levels= under 1, a lot without rows, a row of no bays, a row or ramp on a level the lot doesn't
 // have, an entry or exit past its edge's ends, nothing on level 0 for the entry, a level no ramp reaches, one-way
 // aisles that leave a part of the lot that can't be reached or left), block.shape (a row's line of fewer than 2 points

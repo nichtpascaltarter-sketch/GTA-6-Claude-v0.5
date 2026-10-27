@@ -416,6 +416,8 @@ What the blocks compiler (src/world/worldmodel.h compileBlocks) reads so far, an
   `h.mm-h.mm` ranges joined by `;` (a range may run past midnight); `ages` as `min-max`; `cap` 1 without it (a queue's
   a place every 0.75 m); `prop` the nearest prop of that piece, within 2 m. A bench and a bus shelter imply their
   seats (a place every 0.6 m), and every bus stop its wait (the shelter's bench where one stands within 15 m).
+- Every prop whose piece has a `collide` box or cylinder gets that collider, at the piece's `body` or else its `size`,
+  times the prop's scale, from its base up: what walkers steer round and turning circles keep clear of.
 - Fences are read and checked, and compile later.
 
 **Spot kinds.** Outdoors: `bench`, `wall_sit`, `steps_sit`, `lean`, `smoke`, `phone`, `busstop_wait`, `queue`, `window`,
@@ -567,7 +569,7 @@ trees and plants, lights, fences) and the parameters they take. References to `l
 
 | Record | Id | Fields |
 |---|---|---|
-| `piece` | req | `code` req (the C++ enum or function that builds it, as written in the code: `FURN_SOFA`), `size` compound `WxDxH` (2), `variants` integer, `params` list, `collide` word `box`/`cylinder`/`none` (a collider of the piece's real size, height included, so the AI tells low cover from high) |
+| `piece` | req | `code` req (the C++ enum or function that builds it, as written in the code: `FURN_SOFA`), `size` compound `WxDxH` (2), `variants` integer, `params` list, `collide` word `box`/`cylinder`/`none` (a collider of the piece's real size, height included, so the AI tells low cover from high), `body` compound `WxDxH` (2; the solid part the collider takes where that isn't the whole piece: a tree's trunk, a pole, inside its `size`) |
 
 ---
 

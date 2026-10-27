@@ -51,8 +51,8 @@ struct CollisionBox {
     vec3 he;     // half extents (x along ax, y along perp, z)
 };
 
-// Site structures (walls, signs, fences, parked aircraft, stops...) standing within margin of p, between p.z and
-// p.z + height (cellgen.cpp)
+// Site structures (walls, signs, fences, parked aircraft, stops...), and in hand mode the blocks' props (their
+// colliders: blocksbin.h), standing within margin of p, between p.z and p.z + height (cellgen.cpp)
 bool siteColliderNear(vec3 p, float margin, float height);
 
 

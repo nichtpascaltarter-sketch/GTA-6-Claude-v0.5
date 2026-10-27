@@ -8,8 +8,8 @@
 //   world.bin (src/world/blocksbin.h), a parcel's levelling (WorldMap::flattenPoly), the level ground that people and
 //   vehicles stand on (HandBlocks::padHeight), and the grading written for a parcel that only grades the terrain
 //   (Hand::placeOnTerrain); the sections for the AI's graphs (compileBlockSections): parcels, lots with their drive
-//   graphs, the walk graph's inputs and the spots (written and implied), on the graded ground and through world.bin,
-//   damaged ones refused, and the findings;
+//   graphs, the walk graph's inputs and the spots (written and implied), the props' colliders and their queries, on the
+//   graded ground and through world.bin, damaged ones refused, and the findings;
 // - the roads through world.bin (src/world/roadsbin.h): back exactly as written, and damaged sections refused; with
 //   what they author beyond the network (src/world/roadoverrides.h), each side's kerb line, sidewalk and parking
 //   (applyRoadSides, RoadEdge::halfWidthSide), and the host loader (loadRoadsFile);
@@ -1185,6 +1185,104 @@ static void testWalkAndSpots() {
     if (e2.size() != 8) printErrors(m2, e2);
 }
 
+// The props' colliders (worldmodel.h compileBlockSections, blocksbin.h "blocks.colliders"): a tree's trunk (its body=,
+// scaled with the tree), a bench's box turned with it, a bollard at its size=, nothing for a shrub; on the props' bases
+// (placeOnTerrain); the queries the AI asks (HandBlocks::colliderNear: margin and height); through world.bin, and damaged
+// sections or a collider naming a prop the blocks don't have refused
+static void testColliders() {
+    const std::string world = "ntw 1 world\nworld palmera name=\"P\"\ndistrict cl name=\"C\"\n";
+    const std::string catalog =
+        "ntw 1 catalog\n"
+        "piece lib.veg.palm code=PROP_PALM size=4.00x4.00x8.00 variants=4 collide=cylinder body=0.52x0.52x8.00\n"
+        "piece lib.veg.shrub code=PROP_BUSH size=1.80x1.80x1.60 variants=4 collide=none\n"
+        "piece lib.prop.bench code=PROP_BENCH size=1.80x0.60x0.90 variants=1 collide=box\n"
+        "piece lib.prop.bollard code=PROP_BOLLARD size=0.30x0.30x1.00 variants=1 collide=cylinder\n"
+        "piece lib.light.street_cobra code=PROP_STREETLIGHT size=0.40x2.40x8.80 variants=2 collide=cylinder body=0.34x0.34x8.80\n";
+    const std::string block =
+        "ntw 1 block id=cl.b001 district=cl\n"
+        "tree kind=lib.veg.palm at=100.00,100.00 h=12.00\n"
+        "plant kind=lib.veg.shrub at=110.00,100.00\n"
+        "prop kind=lib.prop.bench at=120.00,100.00 yaw=90.0\n"
+        "prop kind=lib.prop.bollard at=130.00,100.00 z=0.50\n"
+        "light kind=lib.light.street_cobra at=140.00,100.00\n";
+    Model m;
+    std::vector<Error> errors;
+    const bool ok = loadTexts({{"lib/catalog.ntw", catalog}, {"block.ntw", block}, {"world.ntw", world}}, m, errors);
+    BlocksOut out;
+    const RoadNetwork none;
+    const RoadIndex noIndex;
+    const bool compiled = ok && compileBlocks(m, out, errors) && compileBlockSections(m, noIndex, none, out, errors);
+    EXPECT(compiled && errors.empty() && out.blocks.props.size() == 5 && out.blocks.colliders.size() == 4, "colliders: %zu props, %zu colliders, %zu findings",
+           out.blocks.props.size(), out.blocks.colliders.size(), errors.size());
+    if (!errors.empty()) printErrors(m, errors);
+    if (out.blocks.colliders.size() != 4) return;
+    const HandBlocks& hb = out.blocks;
+    const HandCollider &palm = hb.colliders[0], &bench = hb.colliders[1], &bollard = hb.colliders[2], &pole = hb.colliders[3];
+    // the palm's trunk, 0.52 m at scale 1 and 12 m tall at 1.5; the bench's 1.8 x 0.6 box, its width along the piece's
+    // +x (north at yaw 90); the bollard at its size, 0.5 m up; the street light's pole
+    EXPECT(palm.kind == HandCollider::CYLINDER && palm.prop == 0 && same(palm.he.x, 0.39f) && same(palm.z0, 0.f) && same(palm.z1, 12.f) && same(palm.c.x, 100.f) &&
+               bench.kind == HandCollider::BOX && bench.prop == 2 && same(bench.he.x, 0.9f) && same(bench.he.y, 0.3f) && same(bench.z1, 0.9f) &&
+               same(fabsf(bench.ax.y), 1.f) && same(bench.ax.x, 0.f) && bollard.kind == HandCollider::CYLINDER && bollard.prop == 3 && same(bollard.he.x, 0.15f) &&
+               same(bollard.z1, 1.f) && pole.prop == 4 && same(pole.he.x, 0.17f) && same(pole.z1, 8.8f),
+           "colliders: the trunk, the bench, the bollard and the pole");
+    // on the props' bases: the terrain at 3 m, the bollard 0.5 m above it
+    BakedTerrain baked;
+    baked.ok = true;
+    baked.res = kHeightRes;
+    baked.cell = kHeightCell;
+    baked.originX = baked.originY = -kWorldHalf;
+    baked.heightUnit = 0.01f;
+    baked.height.assign((size_t)kHeightRes * kHeightRes, (i16)300);
+    baked.water.assign(baked.height.size(), (i16)0);
+    WorldBinWriter w;
+    std::string why, report;
+    EXPECT(placeOnTerrain(baked, none, {}, out, w, &why, &report), "colliders: placed (%s)", why.c_str());
+    EXPECT(same(palm.z0, 3.f, 0.011f) && same(palm.z1, 15.f, 0.011f) && same(bollard.z0, 3.5f, 0.011f) && same(bollard.z1, 4.5f, 0.011f) && same(bench.z0, hb.props[2].pos.z),
+           "colliders: on the props' bases");
+    const std::vector<u8> bin = w.finish();
+    WorldBinView view;
+    HandBlocks back;
+    EXPECT(view.open(bin.data(), bin.size(), &why) && view.find("blocks.colliders") && readBlocks(view, back, &why), "colliders: read back (%s)", why.c_str());
+    bool same_ = back.colliders.size() == 4;
+    for (size_t i = 0; same_ && i < 4; i++) {
+        const HandCollider &a = back.colliders[i], &b = hb.colliders[i];
+        same_ = a.kind == b.kind && a.prop == b.prop && a.c.x == b.c.x && a.c.y == b.c.y && a.z0 == b.z0 && a.z1 == b.z1 && a.he.x == b.he.x && a.he.y == b.he.y &&
+                a.ax.x == b.ax.x && a.ax.y == b.ax.y;
+    }
+    EXPECT(same_ && back.collidersByCell.size() == (size_t)kCellsPerSide * kCellsPerSide, "colliders: the section read back differs");
+    // the queries: within the margin of the trunk (1 m out, 0.39 of trunk: 0.61 m clear), of the bench's side (0.4 m
+    // from its middle, 0.3 deep: 0.1 clear) and not its end (1.2 m along it, 0.9 wide: 0.3 clear); above the palm, not
+    const float g = 3.f;
+    const bool nearTrunk = back.colliderNear(vec3(101.f, 100.f, g), 0.7f, 2.f), clearTrunk = !back.colliderNear(vec3(101.f, 100.f, g), 0.5f, 2.f);
+    const bool side = back.colliderNear(vec3(120.4f, 100.f, g), 0.2f, 2.f), end = !back.colliderNear(vec3(120.f, 101.2f, g), 0.2f, 2.f);
+    const bool above = !back.colliderNear(vec3(100.f, 100.f, 16.f), 1.f, 2.f), below = back.colliderNear(vec3(100.f, 100.f, 1.5f), 0.1f, 2.f);
+    EXPECT(nearTrunk && clearTrunk && side && end && above && below, "colliders: the queries (%d %d %d %d %d %d)", nearTrunk, clearTrunk, side, end, above, below);
+    // damaged, and a collider naming a prop the blocks don't have
+    std::vector<u8> payload;
+    EXPECT(view.bytes("blocks.colliders", payload) && payload.size() == 8 + 4 * 40, "colliders: the section's bytes (%zu)", payload.size());
+    for (int k = 0; k < 4; k++) {
+        std::vector<u8> bad = payload;
+        if (k == 0) bad.resize(bad.size() - 4);
+        if (k == 1) bad.push_back(0);
+        if (k == 2) bad[0] = 5;
+        if (k == 3) bad[8] = 7;   // (the first collider's kind)
+        WorldBinWriter w2;
+        w2.addCompressed("blocks.colliders", bad);
+        const std::vector<u8> b2 = w2.finish();
+        WorldBinView v2;
+        HandBlocks hb2;
+        why.clear();
+        EXPECT(v2.open(b2.data(), b2.size(), &why) && !readBlocks(v2, hb2, &why) && !why.empty() && hb2.colliders.empty(), "colliders: damaged section %d was read", k);
+    }
+    WorldBinWriter w3;
+    w3.addCompressed("blocks.colliders", payload);   // (without "blocks": none of its props)
+    const std::vector<u8> b3 = w3.finish();
+    WorldBinView v3;
+    HandBlocks hb3;
+    why.clear();
+    EXPECT(v3.open(b3.data(), b3.size(), &why) && !readBlocks(v3, hb3, &why) && why.find("prop") != std::string::npos, "colliders: colliders without their props were read");
+}
+
 static void testErrors() {
     const std::string roads =
         "ntw 1 roads district=cl\n"
@@ -1964,6 +2062,7 @@ int main() {
     testGradeOnly();
     testBlockSections();
     testWalkAndSpots();
+    testColliders();
     testErrors();
     testRoadsSection();
     testRoadOverrides();

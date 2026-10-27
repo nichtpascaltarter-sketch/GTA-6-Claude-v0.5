@@ -78,6 +78,10 @@ jobs:
         run: |
           g++ -std=c++17 -O2 -Wall -Wextra -Werror -fsanitize=undefined -fno-sanitize-recover=undefined tests/updater/update_logic_test.cpp -o /tmp/neontide-update-logic-test
           /tmp/neontide-update-logic-test
+      - name: Test the bundled compiler's payload tool (payload.txt, the cache check, appending to an exe)
+        run: |
+          g++ -std=c++17 -O2 -Wall -Wextra -Werror -fsanitize=undefined -fno-sanitize-recover=undefined tools/payload.cpp -o /tmp/neontide-payload
+          sh tests/updater/payload_test.sh /tmp/neontide-payload
       - name: Test world file formats (NTG grids, NTW parser, formatter and schema, LZ, world.bin)
         run: |
           g++ -std=c++17 -O2 -Wall -Wextra -Werror -fsanitize=undefined -fno-sanitize-recover=undefined tests/world/world_format_test.cpp -o /tmp/neontide-world-format-test

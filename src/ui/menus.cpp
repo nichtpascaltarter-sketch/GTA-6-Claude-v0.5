@@ -673,10 +673,14 @@ MenuAction drawUpdateCorner(const MenuState& st, const Layout& L, const Nav& n, 
         title = "DOWNLOADING UPDATE";
         if (u.bytes > 0) right = StrFormat("%.1f MB", (double)u.bytes / 1048576.0);
         break;
-    case UPD_UNPACKING: title = "UNPACKING UPDATE"; break;
+    case UPD_UNPACKING:
+        title = "UNPACKING UPDATE";
+        message = u.detail;   // (the bundled compiler: unpacked the first time)
+        break;
     case UPD_BUILDING:
         title = "BUILDING UPDATE";
         right = clockTime(u.seconds);
+        message = u.detail;   // (the bundled compiler builds it)
         break;
     case UPD_READY:
         title = "UPDATE READY";

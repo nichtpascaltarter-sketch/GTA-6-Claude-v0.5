@@ -1053,6 +1053,26 @@ bool compileBlockSections(const Model& model, const RoadIndex& index, const Road
         h.target = w.id;
         hb.spots.push_back(h);
     }
+    // ---------------------------------------------------------------- the colliders: each prop's, as its piece gives it
+    // (collide= box or cylinder, at its body= or else its size=, times the prop's scale), from the prop's base up
+    hb.colliders.clear();
+    for (size_t k = 0; k < hb.props.size(); k++) {
+        const LibItem* it = pieceOf(k);
+        if (!it || (it->collide != "box" && it->collide != "cylinder")) continue;
+        const PropInstance& pr = hb.props[k];
+        const vec3 dim = (it->body.x > 0.f ? it->body : it->size) * pr.scale;
+        if (!(dim.x > 0.f && dim.y > 0.f && dim.z > 0.f)) continue;   // (a piece without a size: none to give)
+        HandCollider c;
+        c.kind = it->collide == "box" ? HandCollider::BOX : HandCollider::CYLINDER;
+        c.prop = (int)k;
+        c.c = pr.pos.xy();
+        c.z0 = 0.f;   // (above the prop's base until placeOnTerrain)
+        c.z1 = dim.z;
+        const float yaw = pr.yaw - propYawOffset(pr.type);   // (the piece's frame: its width along its +x)
+        c.he = c.kind == HandCollider::BOX ? vec2(dim.x, dim.y) * 0.5f : vec2(Max(dim.x, dim.y) * 0.5f);
+        c.ax = c.kind == HandCollider::BOX ? vec2(cosf(yaw), sinf(yaw)) : vec2(1.f, 0.f);
+        hb.colliders.push_back(c);
+    }
     return errors.size() == errorsBefore;
 }
 
@@ -1062,7 +1082,7 @@ bool placeOnTerrain(const BakedTerrain& baked, const RoadNetwork& roads, const s
     if (report) report->clear();
     // (a parcel that only grades the terrain, with no ground or dressing, is still something to do: its pad)
     if (roads.edges.empty() && hb.ground.empty() && hb.props.empty() && hb.lamps.empty() && blocks.pads.empty() && hb.parcels.empty() && hb.lots.empty() &&
-        hb.paths.empty() && hb.plazas.empty() && hb.steps.empty() && hb.spots.empty())
+        hb.paths.empty() && hb.plazas.empty() && hb.steps.empty() && hb.spots.empty() && hb.colliders.empty())
         return true;
     const auto fail = [error](const char* why) {
         if (error) *error = why;
@@ -1156,6 +1176,11 @@ bool placeOnTerrain(const BakedTerrain& baked, const RoadNetwork& roads, const s
     for (HandSpot& s : hb.spots) {
         s.at.z += s.prop >= 0 && (size_t)s.prop < hb.props.size() ? hb.props[(size_t)s.prop].pos.z : groundAt(s.at.xy());
         for (vec3& q : s.line) q.z += groundAt(q.xy());
+    }
+    for (HandCollider& c : hb.colliders) {
+        const float base = c.prop >= 0 && (size_t)c.prop < hb.props.size() ? hb.props[(size_t)c.prop].pos.z : groundAt(c.c);
+        c.z0 += base;
+        c.z1 += base;
     }
     writeBlocks(hb, out);
     return true;
