@@ -223,6 +223,14 @@ bool readRoadOverrides(const WorldBinView& bin, const RoadNetwork& roads, RoadOv
 }
 
 void applyRoadSides(const RoadOverrides& ov, RoadNetwork& roads) {
+    // each dead end's turning circle as written; the lookup table then reaches as far as the widest bulb
+    bool bulbs = false;
+    for (const RoadOverrides::NodeRule& r : ov.nodes)
+        if (r.node >= 0 && (size_t)r.node < roads.nodes.size() && r.bulb > 0.f) {
+            roads.nodes[(size_t)r.node].bulb = r.bulb;
+            bulbs = true;
+        }
+    if (bulbs && !roads.hash.empty()) roads.buildHash();
     if (ov.edges.size() != roads.edges.size()) return;
     for (size_t i = 0; i < roads.edges.size(); i++) {
         RoadEdge& e = roads.edges[i];

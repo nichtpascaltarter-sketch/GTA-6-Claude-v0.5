@@ -1575,8 +1575,10 @@ void RoadNetwork::generate(WorldMap& map) {
     // other with nothing to resolve it (the AI agent's traffic_sim --overlaps; the deadlocks where 9th Avenue runs inside
     // Bayshore Boulevard and where the Solano Causeway comes in along 35th Street). So the lower road gives way where it lies
     // on top of the higher one: a stretch of it beside the higher road at under 32 degrees, with its centreline on the
-    // higher road's carriageway (or within 0.8 of its own half width of the higher road's centreline) for 8 m or more
-    // outside both roads' junction areas (the cut-backs the intersection pass sets below), goes. The whole run where the
+    // higher road's carriageway (or within 0.8 of its own half width of the higher road's centreline), or with its lanes
+    // over the higher road's lanes by a metre or more (9th Avenue's kerb lanes in Bayshore Boulevard's, their centrelines
+    // 16 m apart), for 8 m or more outside both roads' junction areas (the cut-backs the intersection pass sets below),
+    // goes; not where the two are one road continuing through a node of its own, which narrows there. The whole run where the
     // carriageways overlap goes with it, and the rest of the edge too when less than 20 m of it would be left, or less than
     // 40 m running on beside the higher road. A cut end is joined back to the higher road at about 65 degrees, at a new
     // junction on it. What the lower road leaves behind is tidied: a road left with a free end under 20 m goes; a junction
@@ -1668,7 +1670,20 @@ void RoadNetwork::generate(WorldMap& map) {
         }
         // ---- find the stretches: every 2 m along each road, the winning road whose carriageway it overlaps, and whether
         // it lies on top of it (deep)
-        const float kStep = 2.f, kParallel = 0.85f, kDeepMin = 8.f, kMinPiece = 20.f;
+        const float kStep = 2.f, kParallel = 0.85f, kDeepMin = 8.f, kMinPiece = 20.f, kLaneOverlap = 1.f;
+        // how far a road's lanes reach from its centreline, the wider side's (as the lane graph lays them out: a two-way
+        // road's from its centre line, past half its class's median; a one-way road's centred)
+        auto laneReach = [](const RoadEdge& e) {
+            const RoadClassInfo& ri = roadInfo(e.cls);
+            if (e.lanesF > 0 && e.lanesB > 0) return (ri.median > 0.f ? ri.median * 0.5f : 0.f) + (float)Max(e.lanesF, e.lanesB) * ri.laneWidth;
+            return (float)(e.lanesF + e.lanesB) * ri.laneWidth * 0.5f;
+        };
+        // two edges of one road joined end to end at a node of their own (a road narrowing as it goes on)
+        auto continues = [&](const RoadEdge& a, const RoadEdge& b) {
+            for (int na : {a.n0, a.n1})
+                if ((na == b.n0 || na == b.n1) && nodeDeg[(size_t)na] == 2) return true;
+            return false;
+        };
         struct Cut {
             float s0, s1;          // the stretch (arc length from n0), first and last sample inside
             int win0, win1;        // the road it lies in at its two ends
@@ -1715,7 +1730,8 @@ void RoadNetwork::generate(WorldMap& map) {
                             bestD = d;
                             inside[(size_t)j] = ai;
                             float sA = Lerp(C2[ai][k], C2[ai][k + 1], tt);
-                            deep[(size_t)j] = d <= Max(A.halfWidth, 0.8f * B.halfWidth) && s > bLo && s < bHi && sA > cutBack(ai, 0) + 1.f &&
+                            const bool lanesOver = d <= laneReach(A) + laneReach(B) - kLaneOverlap && !continues(A, B);
+                            deep[(size_t)j] = (d <= Max(A.halfWidth, 0.8f * B.halfWidth) || lanesOver) && s > bLo && s < bHi && sA > cutBack(ai, 0) + 1.f &&
                                               sA < lenOf(ai) - cutBack(ai, 1) - 1.f;
                         }
                     }

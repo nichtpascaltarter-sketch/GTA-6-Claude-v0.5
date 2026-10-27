@@ -14,8 +14,8 @@ static const uint2 kRoomIntervals[78] = {
     uint2(0x05a00000u, 0x0000ffffu), uint2(0x00000000u, 0x00000000u), uint2(0x00000000u, 0x00000000u),   // RS_ALWAYS, weekends
     uint2(0x00000000u, 0x00000000u), uint2(0x00000000u, 0x00000000u), uint2(0x00000000u, 0x00000000u),   // RS_NEVER, weekdays
     uint2(0x00000000u, 0x00000000u), uint2(0x00000000u, 0x00000000u), uint2(0x00000000u, 0x00000000u),   // RS_NEVER, weekends
-    uint2(0x01d10186u, 0x011edc46u), uint2(0x05730438u, 0x012dffcdu), uint2(0x00000000u, 0x00000000u),   // RS_HOME_LIVING, weekdays
-    uint2(0x02d0021cu, 0x012ddc46u), uint2(0x05a0041au, 0x012dffd7u), uint2(0x00000000u, 0x00000000u),   // RS_HOME_LIVING, weekends
+    uint2(0x01d10186u, 0x011edc46u), uint2(0x05730438u, 0x012dffcdu), uint2(0x06270528u, 0x002dc80eu),   // RS_HOME_LIVING, weekdays
+    uint2(0x02d0021cu, 0x012ddc46u), uint2(0x05a0041au, 0x012dffd7u), uint2(0x06270528u, 0x002dc815u),   // RS_HOME_LIVING, weekends
     uint2(0x01d10168u, 0x011effaau), uint2(0x04ec0438u, 0x012dffc8u), uint2(0x00000000u, 0x00000000u),   // RS_HOME_KITCHEN, weekdays
     uint2(0x027601e0u, 0x012dff96u), uint2(0x050a0438u, 0x012dffc8u), uint2(0x00000000u, 0x00000000u),   // RS_HOME_KITCHEN, weekends
     uint2(0x01950159u, 0x0114965au), uint2(0x0591050au, 0x01289696u), uint2(0x00000000u, 0x00000000u),   // RS_HOME_BED, weekdays
@@ -39,6 +39,15 @@ static const uint2 kRoomIntervals[78] = {
 };
 static const uint kRoomScheduleCount = 13u;   // RS_COUNT
 static const uint kRoomScheduleNever = 1u;    // RS_NEVER
+// The schedule classes (roomlight.h RoomSchedule), for the facades that pick one
+static const uint kRoomAlways = 0u;
+static const uint kRoomHomeLiving = 2u;
+static const uint kRoomHomeKitchen = 3u;
+static const uint kRoomHomeBed = 4u;
+static const uint kRoomHomeBath = 5u;
+static const uint kRoomShop = 6u;
+static const uint kRoomOffice = 7u;
+static const uint kRoomRestaurant = 8u;
 
 // src/core/rng.h hash32's mixing (roomlight.h roomHash)
 uint roomHash(uint x) {

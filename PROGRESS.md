@@ -159,6 +159,12 @@ Everything (code, models, textures, animation, audio, music, voices, map) is gen
   the room light schedules (roomlight.hlsli: world/roomlight.h's roomLight in HLSL, checked bit for bit against the C++
   by --roomlighttest), ready for the facades' lit windows, with the frame's game day (Environment::gameDay) and
   darkness (Renderer::roomNight()).
+- Windows lit by household (facade.hlsli; world/roomlight.h): every window's room in the city follows the room light
+  schedules, the same function as the hand-built world's rooms, on the frame's game day, minute and darkness: homes
+  light up as it gets dark (living rooms and kitchens in the evening, bedrooms late, weekends later), a few night owls
+  stay up until 1:30-3:00 (about 1 home in 9, more on Saturday and Sunday nights), stairwells, lobbies and some office
+  corridors stay lit, offices work the day with late workers and cleaners after, and shops keep their hours with
+  some display lighting through the night.
 - Audio (src/audio, done by agent): WASAPI mixer (192 voices, 3D, doppler, reverb, ducking), 79 synthesized SFX,
   9 engine kinds, sirens/horns/skids/rotors/boats, ambience beds, procedural music engine, 9 radio stations with DJs,
   ads and talk (live timelines), dynamic mission score. Formant TTS voices (src/audio/speech*).

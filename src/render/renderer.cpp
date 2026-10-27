@@ -1,6 +1,7 @@
 #include "renderer.h"
 #include "../world/worldmap.h"
 #include "../world/handworld.h"
+#include "../world/roomlight.h"
 #include "../platform/platform.h"
 
 namespace Render {
@@ -438,6 +439,11 @@ void Renderer::updateFrameConstants(const Camera& cam, const Environment& env, f
     gfx::ctx->prepareBindlessRead(materials->normalArr.res);
     gfx::ctx->prepareBindlessRead(props->foliageArr.res);
     world->bindlessFrame(f.bindlessFacade);
+    // The room lights' clock: the facade windows' roomLight() takes the same three integers as the CPU's copy
+    f.roomClock[0] = env.gameDay;
+    f.roomClock[1] = World::roomMinute(env.timeOfDay);
+    f.roomClock[2] = roomNightLevel;
+    f.roomClock[3] = 0u;
     frameCB.data = f;
     frameCB.upload();
 }

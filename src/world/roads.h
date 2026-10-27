@@ -43,6 +43,8 @@ struct RoadNode {
     u8 control = 0;    // 0 none, 1 stop signs, 2 traffic lights
     bool highway = false;
     float radius = 0;  // intersection clearing radius
+    float bulb = 0;    // a dead end's turning circle as the hand-built roads write it (RoadOverrides::NodeRule::bulb, set with
+                       // each side's widths by roadsbin.h applyRoadSides); 0: none written, the class's (bulbRadius)
 };
 
 struct RoadEdge {
@@ -109,7 +111,8 @@ struct RoadNetwork {
     // Junction surface height at p inside node n's disc: height of the nearest incident road centreline
     float junctionZ(const RoadNode& n, vec2 p) const;
     // Radius of the paved turning bulb at a dead end (two-way lanes, streets and rural roads that end: roadmesh paves the
-    // circle, with the road's sidewalk around it), 0 at any other node
+    // circle, with the road's sidewalk around it), 0 at any other node. Where the hand-built roads write one
+    // (RoadNode::bulb), that one: the mesher, the grading and the lane graph's U-turn and walk ring all use it
     float bulbRadius(const RoadNode& n) const;
     void edgesInRect(vec2 mn, vec2 mx, std::vector<int>& out) const;
     float totalLength(RoadClass c) const;

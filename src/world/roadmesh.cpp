@@ -1290,7 +1290,11 @@ void buildRoadCell(const RoadNetwork& net, const RoadOverrides* ov, const WorldM
         for (auto& p : poly) p = p - o3 + vec3(0, 0, 0.005f);
         out.road.polygon(poly, vec3(0, 0, 1), white, matAsphalt, 1.f);
         // Where only the expressway and its ramps meet (a ramp merging or leaving), the median barrier and the yellow lines
-        // beside it run straight on through the node: no gap, no blunt barrier end facing the traffic
+        // beside it run on through the node: no gap, no blunt barrier end facing the traffic. They follow the curve the
+        // expressway's lanes take through it (the lane graph's connector between the two cut points, lanes.cpp addConn: a
+        // cubic Bezier on the edge's direction at each cut point), so the fast lanes keep their 0.3 m from the barrier on both
+        // sides. A straight run through the node centre cut into that where the expressway bends at the node: by 0.33 m at
+        // the Sol Expressway's Flamingo Boulevard Exit (a 1.2 degree bend), which put the barrier 3 cm into the fast lane.
         {
             int hA = -1, hB = -1;
             bool hwyOnly = true;
@@ -1304,25 +1308,67 @@ void buildRoadCell(const RoadNetwork& net, const RoadOverrides* ov, const WorldM
             }
             if (hwyOnly && hB >= 0 && dot(ap[hA].dir, ap[hB].dir) < -0.9f) {
                 const float bw = 0.3f, bh = 0.85f;
-                vec3 mid(nd.p, (ap[hA].cutPt.z + ap[hB].cutPt.z) * 0.5f);
-                const vec3 run[3] = {ap[hA].cutPt, mid, ap[hB].cutPt};
-                for (int k = 0; k < 2; k++) {
-                    vec3 a3 = run[k], b3 = run[k + 1];
+                // an approach's edge direction at its cut point, away from the node (as laneTangent blends it near a vertex)
+                auto awayAt = [&](const Approach& X) {
+                    const RoadEdge& e = net.edges[X.edge];
+                    float s = Clamp(X.outgoing ? e.cut0 : e.length - e.cut1, 0.f, e.length);
+                    size_t m = e.pts.size(), i = (size_t)(std::upper_bound(e.dist.begin(), e.dist.end(), s) - e.dist.begin());
+                    if (i == 0) i = 1;
+                    if (i >= m) i = m - 1;
+                    vec2 d = normalize(e.pts[i].xy() - e.pts[i - 1].xy());
+                    float seg = e.dist[i] - e.dist[i - 1], t = seg > 1e-5f ? (s - e.dist[i - 1]) / seg : 0.f;
+                    if (t > 0.7f && i + 1 < m) d = normalize(lerp(d, normalize(e.pts[i + 1].xy() - e.pts[i].xy()), (t - 0.7f) / 0.6f));
+                    else if (t < 0.3f && i >= 2) d = normalize(lerp(d, normalize(e.pts[i - 1].xy() - e.pts[i - 2].xy()), (0.3f - t) / 0.6f));
+                    return X.outgoing ? d : d * -1.f;
+                };
+                const vec3 c0 = ap[hA].cutPt, c3 = ap[hB].cutPt;
+                const vec2 t0 = awayAt(ap[hA]) * -1.f, t3 = awayAt(ap[hB]);
+                const float D = length(c3.xy() - c0.xy());
+                vec2 h1 = t0 * Max(D * 0.38f, 0.5f), h2 = t3 * Max(D * 0.38f, 0.5f);
+                const float den = cross(t0, t3);
+                if (fabsf(den) > 0.15f) {   // the two directions meet ahead: the connector's arc rule
+                    vec2 w = c3.xy() - c0.xy();
+                    float ta = cross(w, t3) / den, tb = cross(w, t0) / den;
+                    if (ta > 0.15f * D && tb > 0.15f * D && ta < 2.5f * D && tb < 2.5f * D) {
+                        h1 = t0 * (ta * 0.56f);
+                        h2 = t3 * (tb * 0.56f);
+                    }
+                }
+                const vec2 bz0 = c0.xy(), bz1 = c0.xy() + h1, bz2 = c3.xy() - h2, bz3 = c3.xy();
+                const int segs = Clamp((int)((length(h1) + length(bz2 - bz1) + length(h2)) / 1.f), 6, 48);
+                std::vector<vec3> run((size_t)segs + 1);
+                for (int k = 0; k <= segs; k++) {
+                    float t = (float)k / segs, u = 1.f - t;
+                    vec2 q = bz0 * (u * u * u) + bz1 * (3.f * u * u * t) + bz2 * (3.f * u * t * t) + bz3 * (t * t * t);
+                    run[(size_t)k] = vec3(q, Lerp(c0.z, c3.z, t));
+                }
+                // each point's right: its two segments' mean, so the quads meet without gaps on the curve
+                std::vector<vec3> rt(run.size());
+                for (size_t k = 0; k < run.size(); k++) {
+                    vec2 d = run[Min(k + 1, run.size() - 1)].xy() - run[k > 0 ? k - 1 : 0].xy();
+                    d = length(d) > 1e-5f ? normalize(d) : t0;
+                    rt[k] = vec3(d.y, -d.x, 0.f);
+                }
+                float sAt = 0.f;
+                for (int k = 0; k < segs; k++) {
+                    vec3 a3 = run[(size_t)k], b3 = run[(size_t)k + 1], ra = rt[(size_t)k], rb = rt[(size_t)k + 1];
                     vec2 d = b3.xy() - a3.xy();
                     float L = length(d);
                     if (L < 0.05f) continue;
                     d = d / L;
                     vec3 r(d.y, -d.x, 0.f);
-                    vec3 p0 = a3 - r * bw - o3, p1 = b3 - r * bw - o3, q0 = a3 + r * bw - o3, q1 = b3 + r * bw - o3, up(0, 0, bh);
-                    out.road.quadFacing(p0 + up, q0 + up, q1 + up, p1 + up, vec2(0, 0), vec2(0.6f, 0), vec2(0.6f, L), vec2(0, L), white, matConcrete, vec3(0, 0, 1));
-                    out.road.quadFacing(q1, q0, q0 + up, q1 + up, vec2(L, 0), vec2(0, 0), vec2(0, bh), vec2(L, bh), white, matConcrete, r);
-                    out.road.quadFacing(p0, p1, p1 + up, p0 + up, vec2(0, 0), vec2(L, 0), vec2(L, bh), vec2(0, bh), white, matConcrete, r * -1.f);
+                    vec3 p0 = a3 - ra * bw - o3, p1 = b3 - rb * bw - o3, q0 = a3 + ra * bw - o3, q1 = b3 + rb * bw - o3, up(0, 0, bh);
+                    float v0 = sAt, v1 = sAt + L;
+                    out.road.quadFacing(p0 + up, q0 + up, q1 + up, p1 + up, vec2(0, v0), vec2(0.6f, v0), vec2(0.6f, v1), vec2(0, v1), white, matConcrete, vec3(0, 0, 1));
+                    out.road.quadFacing(q1, q0, q0 + up, q1 + up, vec2(v1, 0), vec2(v0, 0), vec2(v0, bh), vec2(v1, bh), white, matConcrete, r);
+                    out.road.quadFacing(p0, p1, p1 + up, p0 + up, vec2(v0, 0), vec2(v1, 0), vec2(v1, bh), vec2(v0, bh), white, matConcrete, r * -1.f);
                     roadRailCollision(out, a3, b3, r, -bw, bw, bh);
                     for (int s = -1; s <= 1; s += 2) {
-                        vec3 l0 = a3 + r * (s * 0.5f - 0.075f) - o3 + vec3(0, 0, 0.025f), l1 = a3 + r * (s * 0.5f + 0.075f) - o3 + vec3(0, 0, 0.025f);
-                        vec3 m1 = b3 + r * (s * 0.5f + 0.075f) - o3 + vec3(0, 0, 0.025f), m0 = b3 + r * (s * 0.5f - 0.075f) - o3 + vec3(0, 0, 0.025f);
+                        vec3 l0 = a3 + ra * (s * 0.5f - 0.075f) - o3 + vec3(0, 0, 0.025f), l1 = a3 + ra * (s * 0.5f + 0.075f) - o3 + vec3(0, 0, 0.025f);
+                        vec3 m1 = b3 + rb * (s * 0.5f + 0.075f) - o3 + vec3(0, 0, 0.025f), m0 = b3 + rb * (s * 0.5f - 0.075f) - o3 + vec3(0, 0, 0.025f);
                         out.decals.quadFacing(l0, l1, m1, m0, vec2(0, 0), vec2(1, 0), vec2(1, 1), vec2(0, 1), white, matYellow, vec3(0, 0, 1));
                     }
+                    sAt = v1;
                 }
             }
         }

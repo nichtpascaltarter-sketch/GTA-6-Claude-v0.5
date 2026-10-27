@@ -29,7 +29,7 @@ inline RoomIn sweepInputs(u32 i) {
     r.night = kSweepNight[ni];
     r.minute = mi < 110u ? mi * 13u : 1439u;
     r.day = di < 14u ? di : 4294967290u;
-    r.seed = si < 19u ? si * 211u : 4095u;
+    r.seed = si < 19u ? si * 205u : 4095u;
     return r;
 }
 
@@ -63,6 +63,11 @@ const RoomVector kRoomVectors[] = {
         { 2, 2541, 0, 3, 1230,   0,   0},
         { 2, 3982, 1, 0,   30, 255,   0},
         { 2,  198, 1, 6,  125, 255,   0},
+        // night owls: one on a weeknight at 1:00, one of Saturday night's extra ones (and on a weeknight), out by 3:00
+        { 2, 1029, 1, 3,   60, 255, 150},
+        { 2, 2030, 1, 6,   60, 255, 196},
+        { 2, 2030, 1, 3,   60, 255,   0},
+        { 2, 1029, 1, 3,  180, 255,   0},
         { 3, 3481, 1, 2, 1230, 255,   0},
         { 3,  122, 1, 2,  420, 255, 238},
         { 3, 1194, 0, 2,   90, 255,   0},
