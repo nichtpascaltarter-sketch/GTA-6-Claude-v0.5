@@ -1776,6 +1776,23 @@ void TrafficCore::plan(Driver& d, const Vehicles::VehicleState& s, vec2 pos, vec
                     const Driver& o = drivers[e.driver];
                     const int sc = sweepClass(o.info);
                     if (sc < 0 || e.dist < -25.f || e.dist > G.conns[e.conn].length + 4.f || (gateStop > 1e8f && e.dist < -0.5f)) continue;
+                    // two long ones coming up to an all-way stop (or both to stop signs), each turn sweeping the other's lane:
+                    // each stopping short of the other's sweep, neither reached its line to stop there and get its turn - for
+                    // good, as that stop is the only way on. Of such a pair (it still short of our sweep, and so stopping short
+                    // of it for us) the lower uid goes on to its line and takes its turn as usual; the other stays short
+                    if (e.dist < -0.5f && d.uid < o.uid && distToEnd <= 25.f && o.path == G.conns[e.conn].from) {
+                        const int sd = sweepClass(d.info);
+                        const NodeInfo& Nn = G.nodes[node];
+                        if (sd >= 0 && (Nn.control == 1 || (Nn.approaches[G.conns[cid].approach].stopSign && Nn.approaches[G.conns[e.conn].approach].stopSign))) {
+                            G.ensureSweeps(node);
+                            bool shortOfOurs = false;
+                            for (const SweepZone& z : G.conns[cid].sweep) {
+                                const float zo = z.at(sd, sweepWide(o.info.halfWid));
+                                if (z.lane == o.path && zo < 1e8f && zo - 0.4f - (o.u + o.info.frontLen) > -0.3f) shortOfOurs = true;
+                            }
+                            if (shortOfOurs) continue;
+                        }
+                    }
                     G.ensureSweeps(node);
                     for (const SweepZone& z : G.conns[e.conn].sweep) {
                         const float zu = z.at(sc, sweepWide(d.info.halfWid));
