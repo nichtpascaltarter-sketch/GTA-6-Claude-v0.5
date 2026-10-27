@@ -1012,7 +1012,11 @@ float TrafficCore::gate(Driver& d, int conn, float distToEntry, float v, bool in
     // into the box to clear the junction (the box holds it at its hold point until the oncoming traffic has stopped)
     const bool toHold = N.control == 2 && c.holdS > 0.f && (c.turn == TK_LEFT || c.turn == TK_UTURN) &&
                         G.movementSignal(c.node, c.approach, c.turn, time) == SIG_GREEN;
-    if (lineDist < -0.4f && (N.control != 1 || d.stopDone) && !toHold) {
+    // A written stop sign is not passed by its line alone: a car that ran past it without stopping, or stopped past it,
+    // makes its stop and gives way first (the default branch below, whose go commits it). Committed by the line, it went
+    // on with neither. Only one still moving 2 m past its line, in the junction's mouth, goes on, as at a red light
+    const bool signStop = N.approaches[c.approach].stopSign && !emergency && (d.stopDone || lineDist > -2.f || v < 0.5f);
+    if (lineDist < -0.4f && (N.control != 1 || d.stopDone) && !toHold && !signStop) {
         if (N.control != 2 || d.amberGo || G.movementSignal(c.node, c.approach, c.turn, time) != SIG_RED || lineDist < -2.f) {
             d.committed = true;
             return FREE;
@@ -1142,14 +1146,23 @@ float TrafficCore::gate(Driver& d, int conn, float distToEntry, float v, bool in
                     if (e.driver != d.vehicle && e.dist > 0.5f && e.dist < G.conns[e.conn].length - 6.f) return Max(lineDist, 0.f);
                 return FREE;
             }
-            // a stop sign as written at an otherwise uncontrolled junction: a full stop at the line first, then give way
-            if (N.approaches[c.approach].stopSign && !d.stopDone && !emergency) return Max(lineDist, 0.f);
+            // a stop sign as written at an otherwise uncontrolled junction: a full stop at the line first, then give way.
+            // Its go commits it (the line doesn't, above): a gap check that flickers once it has started doesn't stop it
+            // again in the junction's mouth
+            const bool sign = N.approaches[c.approach].stopSign && !emergency;
+            if (sign && !d.stopDone) return Max(lineDist, 0.f);
             bool yields = false;
             for (const Conflict& x : c.conflicts) yields |= x.yield != 0 || x.merge != 0;
-            if (!yields && c.conflicts.empty()) return FREE;
+            if (!yields && c.conflicts.empty()) {
+                if (sign) d.committed = true;
+                return FREE;
+            }
             if (exitBlocked() && impatience < 1.f && c.turn != TK_STRAIGHT) return Max(lineDist, 0.f);
             float margin = d.pers.gapTime - 2.f;
-            if (conflictsClear(d, c, conn, distToEntry, v, false, margin) || d.waitTime > 20.f) return FREE;
+            if (conflictsClear(d, c, conn, distToEntry, v, false, margin) || d.waitTime > 20.f) {
+                if (sign) d.committed = true;
+                return FREE;
+            }
             return Max(lineDist, 0.f);
         }
     }
