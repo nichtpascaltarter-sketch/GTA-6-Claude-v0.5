@@ -165,6 +165,11 @@ struct Building {
     u32 roofTint = 0xffffffffu; // tile / shingle / metal roof colour of pitched archetype roofs
     int face = -1;              // street side the lot fronts (road edge * 2 + side), -1 for site buildings
     u8 use = BU_DEFAULT;        // BuildingUse: BU_PARKING for a parking garage
+    // The street door that people step out of and walk into (game/ai.cpp aiBuildingDoorNear): doorAlong along ax from c,
+    // 0 (the street facade's middle) for the generated buildings; a hand-built building's is its plan's main entrance
+    // (world/handshells.cpp), and noStreetDoor leaves out one whose main entrance isn't on its front
+    float doorAlong = 0.f;
+    bool noStreetDoor = false;
 };
 
 enum ArchFlags : u8 { ABF_CORNER = 1, ABF_MURAL = 2, ABF_CORNER_LEFT = 4, ABF_OLD = 8, ABF_ACCENT = 16 };

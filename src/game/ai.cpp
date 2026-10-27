@@ -366,9 +366,11 @@ vec2 aiWalkRound(GameWorld& g, int id, vec2 goal, float want, float dt) {
     return pa.detourT > 0.f ? pa.detour : goal;
 }
 
-// A street door of a building near p: the middle of the street facade at ground level, on the side p is on, with a
-// clear straight walk to p. Used by peds stepping out of and walking into buildings (population.cpp, pedai.cpp).
-// Industrial blocks, garages, sheds and buildings hosting an enterable interior (interiors_game.cpp) are skipped.
+// A street door of a building near p: its door on the street facade at ground level (the facade's middle, or a
+// hand-built building's main entrance: Building::doorAlong), on the side p is on, with a clear straight walk to p. Used
+// by peds stepping out of and walking into buildings (population.cpp, pedai.cpp). Industrial blocks, garages, sheds,
+// buildings hosting an enterable interior (interiors_game.cpp) and hand-built ones without a street door on their front
+// (Building::noStreetDoor) are skipped.
 bool aiBuildingDoorNear(const GameWorld& g, vec2 p, float r, u32 seed, vec3& out) {
     const World::BuildingSet* bs = g.buildings ? g.buildings : World::gBuildings;
     if (!bs || bs->buildings.empty()) return false;
@@ -380,10 +382,10 @@ bool aiBuildingDoorNear(const GameWorld& g, vec2 p, float r, u32 seed, vec3& out
     float bestZ = 0.f;
     for (int i : nb) {
         const World::Building& b = bs->buildings[i];
-        if (b.interior >= 0) continue;
+        if (b.interior >= 0 || b.noStreetDoor) continue;
         u8 st = b.style;
         if (st == World::BS_WAREHOUSE || st == World::BS_FACTORY || st == World::BS_BARN || st == World::BS_GARAGE || st == World::BS_SHACK) continue;
-        vec2 door = b.c + b.front * (b.hy + 0.45f);
+        vec2 door = b.c + b.ax * b.doorAlong + b.front * (b.hy + 0.45f);
         vec2 rp = p - door;
         float d = length(rp);
         if (d > r || d < 2.f || dot(rp, b.front) < 1.f) continue;   // on the street side, not right on top of it
@@ -420,10 +422,10 @@ bool aiBuildingDoorAway(const GameWorld& g, vec2 p, vec2 threat, float r, vec3& 
     float atZ = 0.f;
     for (int i : nb) {
         const World::Building& b = bs->buildings[i];
-        if (b.interior >= 0) continue;
+        if (b.interior >= 0 || b.noStreetDoor) continue;
         u8 st = b.style;
         if (st == World::BS_WAREHOUSE || st == World::BS_FACTORY || st == World::BS_BARN || st == World::BS_GARAGE || st == World::BS_SHACK) continue;
-        vec2 door = b.c + b.front * (b.hy + 0.45f);
+        vec2 door = b.c + b.ax * b.doorAlong + b.front * (b.hy + 0.45f);
         vec2 run = door - p;
         float d = length(run);
         if (d > r || d < 1.5f || dot(p - door, b.front) < 0.5f) continue;   // (from the street side)

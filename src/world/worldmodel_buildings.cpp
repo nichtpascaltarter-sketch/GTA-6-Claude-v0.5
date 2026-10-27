@@ -137,6 +137,10 @@ bool compileBuildings(const Model& model, HandBuildings& out, std::vector<Error>
             out.shells.push_back(s);   // (kept, so the placements' shell indices stay the plans')
             continue;
         }
+        // the main entrance (the plan's entrance kind=main, else its first): which of the shell's walls and openings
+        const PlanEntrance* entrance = nullptr;
+        for (const PlanEntrance& e : pl.entrances)
+            if (!entrance || (e.kind == "main" && entrance->kind != "main")) entrance = &e;
         for (size_t fi = 0; fi < pl.floors.size(); fi++) {
             const PlanFloor& f = pl.floors[fi];
             s.floors.push_back(HandShell::Floor{f.id, f.z, f.h});
@@ -153,6 +157,10 @@ bool compileBuildings(const Model& model, HandBuildings& out, std::vector<Error>
                 w.side = (u8)(lw.ext == "front" ? 0 : lw.ext == "right" ? 1 : lw.ext == "back" ? 2 : 3);
                 for (const LayoutOpening& o : lay.openings) {
                     if (o.wall != lw.id) continue;
+                    if (entrance && o.door && o.id == entrance->door && f.id == entrance->floor) {
+                        s.entranceWall = (int)s.walls.size();
+                        s.entranceOpening = (int)w.openings.size();
+                    }
                     HandShell::Opening op;
                     const int k = buildingWord(o.door ? "door" : "window", o.kind);
                     op.kind = (u16)((k < 0 ? 0 : k) | (o.door ? 0x100 : 0));

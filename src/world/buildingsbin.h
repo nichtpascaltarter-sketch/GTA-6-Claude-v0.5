@@ -17,7 +17,8 @@
 //     centreline, in the plan's frame), t (f32), side (u32: 0 front, 1 right, 2 back, 3 left), openings (u32 count,
 //     then per opening: kind (u32: a HandWindowKind, or a HandDoorKind | 0x100 for a door), at, w, h, sill (f32),
 //     schedule (u32: the RoomSchedule of the room behind a window, or inside a door from outside; 0xffffffff: none),
-//     room (u32: that room's index among its floor's layout's rooms; 0xffffffff: none)))
+//     room (u32: that room's index among its floor's layout's rooms; 0xffffffff: none))), entrance (u32 wall, u32
+//     opening: the main entrance, a door of one of the walls; 0xffffffff each: none)
 // Section "buildings" (WSK_LZ): version u32 (kBuildingsSectionVersion), count u32, then per building: id (string),
 //   shell (u32), x, y, z (its ground floor's absolute height), yaw (radians) (f32), mirror (u32), palette (5 u32, as a
 //   shell's), roof material (u32; 0xffffffff: the shell's), look (u32; 0xffffffff: the shell's)
@@ -28,7 +29,7 @@
 
 namespace World {
 
-constexpr u32 kLibrarySectionVersion = 2;   // (2: an opening's room)
+constexpr u32 kLibrarySectionVersion = 3;   // (2: an opening's room; 3: a shell's main entrance)
 constexpr u32 kBuildingsSectionVersion = 1;
 constexpr u32 kNone32 = 0xffffffffu;
 
@@ -89,6 +90,7 @@ struct HandShell {                     // a plan's outside, in its own frame (fr
     u8 roofMaterial = 0;
     std::vector<Floor> floors;
     std::vector<Wall> walls;
+    int entranceWall = -1, entranceOpening = -1;   // the main entrance: a door in one of the walls (-1: none)
 };
 
 struct HandPlacement {
@@ -107,9 +109,11 @@ struct HandBuildings {
     std::vector<HandShell> shells;
     std::vector<HandPlacement> placements;
     // Not in world.bin: what the game derives at load (handshells.cpp prepareHandBuildings). Per streaming cell, the
-    // placements whose footprint's centre lies in it; per placement, where its openings start in openingFacades, which
-    // holds the facade entry of each opening of each wall in turn (kNone32: none, a door's leaf)
+    // placements whose footprint's centre lies in it; per placement, its record in the building set (-1: none) and where
+    // its openings start in openingFacades, which holds the facade entry of each opening of each wall in turn (kNone32:
+    // none, a door's leaf)
     std::vector<std::vector<int>> placementsByCell;
+    std::vector<int> placementBuilding;
     std::vector<u32> firstOpening;
     std::vector<u32> openingFacades;
 };

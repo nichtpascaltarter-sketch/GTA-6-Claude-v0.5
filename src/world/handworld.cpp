@@ -229,12 +229,13 @@ bool loadHandWorld(const char* worldFile, WorldMap& map, RoadNetwork& roads, Bui
     static HandBuildings handBuildings;
     if (!readBuildings(bin, handBuildings, error)) return false;
     gHandBuildings = &handBuildings;
-    // the generated world's building set: empty, with its cell lists (the hand-built buildings aren't in it)
+    // the building set, with its cell lists: the hand-built buildings' records (for the game's building queries) and
+    // their windows' facade entries
     buildings = BuildingSet();
     buildings.cellLists.assign((size_t)kCellsPerSide * kCellsPerSide, {});
     buildings.openCellLists.assign((size_t)kCellsPerSide * kCellsPerSide, {});
     gBuildings = &buildings;
-    // the placements' cells, and their windows' facade entries for the renderer to upload with the building set's
+    // the placements' cells, their records in the building set and their windows' facade entries
     prepareHandBuildings(handBuildings, buildings);
     LOG("Hand world: terrain, %zu road nodes, %zu edges (%zu with overrides), %zu ground polygons, %zu props, %zu lamps, %zu parcels, %zu lots, %zu paths, "
         "%zu spots, %zu colliders and %zu buildings (%zu shells, %zu window facades) from %s (%zu KB, %zu sections) in %.2f s",

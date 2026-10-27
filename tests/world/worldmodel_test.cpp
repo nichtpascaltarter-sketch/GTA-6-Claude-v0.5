@@ -1312,7 +1312,8 @@ static bool sameBuildings(const HandBuildings& a, const HandBuildings& b) {
         const HandShell &x = a.shells[i], &y = b.shells[i];
         ok = x.id == y.id && x.cls == y.cls && x.size.x == y.size.x && x.size.y == y.size.y && x.footprint.size() == y.footprint.size() && x.look == y.look &&
              x.roofForm == y.roofForm && x.pitch == y.pitch && x.overhang == y.overhang && x.roofMaterial == y.roofMaterial && x.floors.size() == y.floors.size() &&
-             x.walls.size() == y.walls.size() && memcmp(x.palette, y.palette, sizeof(x.palette)) == 0;
+             x.walls.size() == y.walls.size() && memcmp(x.palette, y.palette, sizeof(x.palette)) == 0 && x.entranceWall == y.entranceWall &&
+             x.entranceOpening == y.entranceOpening;
         for (size_t p = 0; ok && p < x.footprint.size(); p++) ok = x.footprint[p].x == y.footprint[p].x && x.footprint[p].y == y.footprint[p].y;
         for (size_t f = 0; ok && f < x.floors.size(); f++) ok = x.floors[f].id == y.floors[f].id && x.floors[f].z == y.floors[f].z && x.floors[f].h == y.floors[f].h;
         for (size_t w = 0; ok && w < x.walls.size(); w++) {
@@ -1372,7 +1373,9 @@ static void testBuildings() {
         "floor f0 layout=lib.layout.shop.two_a_f0 z=0.00 h=4.00\n"
         "floor f1 layout=lib.layout.shop.two_a_f1 z=4.00 h=3.00\n"
         "roof form=flat\n"
-        "facade style=lib.facade.stucco_a palette=lib.palette.shop.blue\n";
+        "facade style=lib.facade.stucco_a palette=lib.palette.shop.blue\n"
+        "entrance back door=f0.d2 kind=service\n"
+        "entrance main door=f0.d1 kind=main\n";
     const std::string cottage =
         "ntw 1 plan id=lib.plan.house.cottage_a\n"
         "meta class=house family=cottage floors=1 size=8.00x12.00\n"
@@ -1461,6 +1464,8 @@ static void testBuildings() {
                s.palette[PAL_WALL] == 0xff901eu && s.palette[PAL_TRIM] == 0xffffffu && s.palette[PAL_DOOR] == 0x202020u && s.palette[PAL_ACCENT] == 0x0080ffu &&
                s.palette[PAL_ROOF] == kNone32 && s.roofForm == RFORM_FLAT && s.roofMaterial == MAT_ROOF_GRAVEL && s.floors.size() == 2 && s.walls.size() == 8,
            "buildings: the shop's shell (%zu floors, %zu walls)", s.floors.size(), s.walls.size());
+    // its main entrance: the shop's door (the entrance kind=main, not the first, a service one through a partition)
+    EXPECT(s.entranceWall == 0 && s.entranceOpening == 0, "buildings: the shop's main entrance (%d %d)", s.entranceWall, s.entranceOpening);
     if (s.floors.size() == 2 && s.walls.size() == 8) {
         EXPECT(s.floors[0].id == "f0" && same(s.floors[0].z, 0.f) && same(s.floors[0].h, 4.f) && s.floors[1].id == "f1" && same(s.floors[1].z, 4.f) &&
                    same(s.floors[1].h, 3.f),
@@ -1488,7 +1493,8 @@ static void testBuildings() {
     // the cottage: no look or palette of its own; a gable of shingles by default
     const HandShell& c = out.shells[(size_t)ci];
     EXPECT(c.cls == shellClass("house") && c.look == -1 && c.palette[PAL_WALL] == kNone32 && c.roofForm == RFORM_GABLE && same(c.pitch, 30.f) && same(c.overhang, 0.4f) &&
-               c.roofMaterial == MAT_ROOF_SHINGLE && c.floors.size() == 1 && same(c.floors[0].h, 2.8f) && c.walls.size() == 4,
+               c.roofMaterial == MAT_ROOF_SHINGLE && c.floors.size() == 1 && same(c.floors[0].h, 2.8f) && c.walls.size() == 4 && c.entranceWall == -1 &&
+               c.entranceOpening == -1,
            "buildings: the cottage's shell");
     // the placements, in the building files' order: the shop as placed; the cottage mirrored, turned -30 degrees, with
     // the config's palette (a roof colour too), roof material and look (and its porch, one of the plan's choices)
@@ -1568,6 +1574,14 @@ static void testBuildings() {
     HandBuildings hb3;
     why.clear();
     EXPECT(v3.open(b3.data(), b3.size(), &why) && !readBuildings(v3, hb3, &why) && why.find("building") != std::string::npos, "buildings: placements without shells were read");
+    // a main entrance that is a window, or past the walls
+    for (int k = 0; k < 2; k++) {
+        HandBuildings bad = out;
+        if (k == 0) bad.shells[(size_t)si].entranceOpening = 1;   // (n1, a shop window)
+        if (k == 1) bad.shells[(size_t)si].entranceWall = 8;
+        HandBuildings badBack;
+        EXPECT(!readsBack(bad, badBack, why) && badBack.shells.empty(), "buildings: a main entrance that is no door was read (%d)", k);
+    }
     // the smallest records, 100 of each, each list last in its section (so a reader's bound past a record's least
     // refuses it): looks with no id or trims; a look's trims; shells with no id, footprint, floors or walls, and
     // placements with no id; a shell's floors; a floor's walls; a wall's openings

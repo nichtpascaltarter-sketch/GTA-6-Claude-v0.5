@@ -627,16 +627,74 @@ void buildTrims(const BuildCtx& x, bool parapet) {
     }
 }
 
+// A placement as the game's building queries know a building (BuildingSet::pointInBuilding, buildingsNear, and what
+// is built on them: peds' spawn, flee and window-shopping checks, traffic, police, wildlife, missions, the map): the box
+// of its walls' outer faces in the plan's frame, from its ground floor to its walls' top (the roof deck or the eaves),
+// its floors, its plan's class as its style (the class list is BuildingStyle's order; a landmark a tower), its front,
+// and its street door at its main entrance where that is on its front wall (else none: game/ai.cpp leaves it out). It
+// has no facade entry (the shell draws it) and no interior yet, and a seed without a garage (buildings.h
+// houseGarage), so the population parks no car on a driveway that isn't there.
+Building buildingRecord(const HandShell& s, const HandPlacement& p, const Frame& fr) {
+    Building b;
+    float t = 0.25f;
+    const float top = shellTop(s, &t);
+    const std::vector<vec2> outer = offsetPoly(s.footprint, t * 0.5f);
+    vec2 lo = outer[0], hi = outer[0];
+    for (vec2 q : outer) {
+        lo = vec2(Min(lo.x, q.x), Min(lo.y, q.y));
+        hi = vec2(Max(hi.x, q.x), Max(hi.y, q.y));
+    }
+    b.c = fr.point((lo + hi) * 0.5f);
+    b.ax = normalize(fr.dir(vec2(1.f, 0.f)));
+    b.hx = (hi.x - lo.x) * 0.5f;
+    b.hy = (hi.y - lo.y) * 0.5f;
+    b.baseZ = p.z;
+    b.height = top;
+    int floors = 0;
+    for (const HandShell::Floor& f : s.floors) {
+        bool walls = false;
+        for (const HandShell::Wall& w : s.walls) walls = walls || &s.floors[(size_t)w.floor] == &f;
+        floors += walls ? 1 : 0;
+    }
+    b.floors = (u16)Max(floors, 1);
+    b.style = (u8)(s.cls >= 0 && s.cls < (int)BS_COUNT ? s.cls : (int)BS_TOWER);
+    b.roof = (u8)(s.roofForm == RFORM_GABLE ? ROOF_GABLE : s.roofForm == RFORM_HIP || s.roofForm == RFORM_MANSARD ? ROOF_HIP
+                  : s.roofForm == RFORM_SHED ? ROOF_SHED : s.roofForm == RFORM_BARREL ? ROOF_BARREL : ROOF_FLAT);
+    b.seed = (hash32(hashString(p.id.c_str())) / 20u) * 10u + 7u;   // (seed % 10 = 7: no garage)
+    b.facade = kNone32;
+    b.front = normalize(fr.dir(vec2(0.f, -1.f)));   // (the plan's front faces -y)
+    b.region = gMap ? (u8)gMap->regionAt(b.c.x, b.c.y) : (u8)0;
+    b.lotKind = 0;
+    b.lotHy = b.hy;
+    b.lotC = b.c;
+    b.lotHx = b.hx;
+    b.roofColor = 0u;
+    b.noStreetDoor = true;
+    if (s.entranceWall >= 0 && (size_t)s.entranceWall < s.walls.size()) {
+        const HandShell::Wall& w = s.walls[(size_t)s.entranceWall];
+        const vec2 d = w.b - w.a;
+        if (w.side == 0 && length2(d) > 1e-6f && (size_t)s.entranceOpening < w.openings.size()) {
+            const vec2 door = w.a + normalize(d) * w.openings[(size_t)s.entranceOpening].at;   // (on the wall's centreline)
+            b.doorAlong = dot(fr.point(door) - b.c, b.ax);
+            b.noStreetDoor = false;
+        }
+    }
+    return b;
+}
+
 }  // namespace handshells_detail
 
-// At load (handworld.cpp): each placement's streaming cell (its footprint's centre), and a facade entry for each
-// window and glass door, appended to `bs.facades` for the renderer's upload. An entry is one window cell (facade.hlsli)
-// the size of the glass, flagged a hand-built window with the class of the room behind it (roomlight.h
-// handWindowFlags), a storefront's where it is one, an office's for an office; the windows of one room share its seed,
-// so they show the same room and light together. Entries that come out the same are shared.
+// At load (handworld.cpp):
+// - each placement's streaming cell (its footprint's centre), and its record in the building set `bs`, for the game's
+//   building queries (buildingRecord);
+// - a facade entry for each window and glass door, appended to `bs.facades` for the renderer's upload. An entry is one
+//   window cell (facade.hlsli) the size of the glass, flagged a hand-built window with the class of the room behind it
+//   (roomlight.h handWindowFlags), a storefront's where it is one, an office's for an office; the windows of one room
+//   share its seed, so they show the same room and light together. Entries that come out the same are shared.
 void prepareHandBuildings(HandBuildings& hb, BuildingSet& bs) {
     using namespace handshells_detail;
     hb.placementsByCell.assign((size_t)kCellsPerSide * kCellsPerSide, {});
+    hb.placementBuilding.assign(hb.placements.size(), -1);
     hb.firstOpening.assign(hb.placements.size(), kNone32);
     hb.openingFacades.clear();
     std::map<std::string, u32> shared;
@@ -652,7 +710,13 @@ void prepareHandBuildings(HandBuildings& hb, BuildingSet& bs) {
         c = c * (1.f / (float)s.footprint.size());
         const int cx = (int)floorf((c.x + kWorldHalf) / kCellSize), cy = (int)floorf((c.y + kWorldHalf) / kCellSize);
         if (cx < 0 || cy < 0 || cx >= kCellsPerSide || cy >= kCellsPerSide) continue;
-        hb.placementsByCell[(size_t)cy * kCellsPerSide + cx].push_back((int)pi);
+        const size_t cell = (size_t)cy * kCellsPerSide + cx;
+        hb.placementsByCell[cell].push_back((int)pi);
+        if (cell < bs.cellLists.size()) {   // (handworld.cpp sizes the building set's cell lists)
+            hb.placementBuilding[pi] = (int)bs.buildings.size();
+            bs.cellLists[cell].push_back((int)bs.buildings.size());
+            bs.buildings.push_back(buildingRecord(s, p, fr));
+        }
         hb.firstOpening[pi] = (u32)hb.openingFacades.size();
         const Paint pt = paintOf(hb, p, s);
         const u32 nameHash = hashString(p.id.c_str());
