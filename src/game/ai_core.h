@@ -90,6 +90,10 @@ struct Approach {
     u8 axis = 0;              // signal axis
     u8 rank = 0;              // priority rank at uncontrolled nodes (1 = main road)
     bool crosswalk = false;
+    // as the world writes them (RoadOverrides' NodeRule, the hand-built world): traffic arriving here stops at its line
+    // and then gives way (a stop sign at an otherwise uncontrolled junction), gives way without stopping (yield), or may
+    // not turn right on red
+    bool stopSign = false, giveWay = false, noRedTurn = false;
     float cut = 0.f;          // intersection box cut-back along the edge
     float crossS = 0.f;       // distance from the node (along the edge) of the crosswalk center line
     float hw = 0.f, sw = 0.f; // paved half width, sidewalk width (the wider side's)
@@ -107,6 +111,8 @@ struct NodeInfo {
     u8 axisCount = 0;
     bool deadEnd = false;
     bool uturnBlocked = false;    // dead end whose turning circle is obstructed (routing avoids it)
+    bool ruled = false;           // its control written in the world (RoadOverrides' NodeRule), not derived
+    float bulb = 0.f;             // a dead end's turning-circle radius as written (0: derived, RoadNetwork::bulbRadius)
     bool gradeSeparated = false;
     int firstConn = 0, connCount = 0;
     std::vector<Approach> approaches;
@@ -454,6 +460,7 @@ struct Driver {
 
 struct TrafficStats {
     long redViolations = 0, stopSignViolations = 0, stuckEvents = 0, recoveries = 0, relocalizations = 0, deadlockBreaks = 0;
+    long writtenStops = 0;   // full stops made at stop signs as the world writes them (two-way stops: RoadOverrides' NodeRule)
     long kTurns = 0;
 };
 

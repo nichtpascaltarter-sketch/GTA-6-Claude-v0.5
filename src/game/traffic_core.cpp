@@ -797,7 +797,7 @@ void TrafficCore::localize(Driver& d, const Vehicles::VehicleState& s) {
                         stats.redViolations++;
                         d.redViolation = true;
                     }
-                    if (G.nodes[c.node].control == 1 && !d.stopDone) stats.stopSignViolations++;
+                    if ((G.nodes[c.node].control == 1 || G.nodes[c.node].approaches[c.approach].stopSign) && !d.stopDone) stats.stopSignViolations++;
                 }
             }
             d.u = u;
@@ -1022,6 +1022,7 @@ float TrafficCore::gate(Driver& d, int conn, float distToEntry, float v, bool in
     if (atLine && !d.stopDone) {
         d.stopDone = true;
         d.arrival = (float)time;
+        if (N.approaches[c.approach].stopSign) stats.writtenStops++;
     }
     // box blocking: never enter unless the exit has room for us
     auto exitBlocked = [&]() -> bool {
@@ -1092,7 +1093,8 @@ float TrafficCore::gate(Driver& d, int conn, float distToEntry, float v, bool in
                     if (v * v / (2.f * 8.5f) < distToEntry - 0.3f) return Max(distToEntry - 0.3f, 0.f);
                     return FREE;
                 }
-                bool rightOnRed = c.turn == TK_RIGHT && d.pers.rightOnRed && L.right < 0 && !(L.flags & LF_HIGHWAY);
+                bool rightOnRed = c.turn == TK_RIGHT && d.pers.rightOnRed && L.right < 0 && !(L.flags & LF_HIGHWAY) &&
+                                  !N.approaches[c.approach].noRedTurn;   // (not where the world writes no right on red)
                 if (rightOnRed && d.stopDone && d.waitTime > 1.2f && !exitBlocked() &&
                     conflictsClear(d, c, conn, distToEntry, v, false, d.pers.gapTime)) {
                     // yield to everything: also no conflicting traffic with green
@@ -1140,6 +1142,8 @@ float TrafficCore::gate(Driver& d, int conn, float distToEntry, float v, bool in
                     if (e.driver != d.vehicle && e.dist > 0.5f && e.dist < G.conns[e.conn].length - 6.f) return Max(lineDist, 0.f);
                 return FREE;
             }
+            // a stop sign as written at an otherwise uncontrolled junction: a full stop at the line first, then give way
+            if (N.approaches[c.approach].stopSign && !d.stopDone && !emergency) return Max(lineDist, 0.f);
             bool yields = false;
             for (const Conflict& x : c.conflicts) yields |= x.yield != 0 || x.merge != 0;
             if (!yields && c.conflicts.empty()) return FREE;
@@ -1638,7 +1642,7 @@ void TrafficCore::plan(Driver& d, const Vehicles::VehicleState& s, vec2 pos, vec
     // harness: 10 red runs in 5 minutes at node 306 by the I-38 ramps, 3 at nodes 272 / 274 on Bayshore Boulevard)
     auto stopsAhead = [&](const Connector& c2, float line2) {
         const int ctl = G.nodes[c2.node].control;
-        if (ctl == 1) return true;
+        if (ctl == 1 || G.nodes[c2.node].approaches[c2.approach].stopSign) return true;
         if (ctl != 2) return false;
         SignalState s2 = G.movementSignal(c2.node, c2.approach, c2.turn, time);
         if (s2 == SIG_RED) return true;
@@ -1711,16 +1715,21 @@ void TrafficCore::plan(Driver& d, const Vehicles::VehicleState& s, vec2 pos, vec
                 // is still in this box, where that junction's gate never runs - so the stop and the turn in its order are
                 // made here, and its gate takes them over on its lane. Held at that line for good, a left turner on green
                 // blocked this box, and 50-120 cars queued behind and across it (the harness: Sol Beach, nodes 2546 / 2544)
-                if (G.nodes[c2.node].control == 1 && line2 < 2.2f && v < 0.5f && d.preStop < 0) {
+                // (a stop sign there as written, at an otherwise uncontrolled junction: the same stop, then its give way)
+                const bool allWay2 = G.nodes[c2.node].control == 1, stopSign2 = !allWay2 && G.nodes[c2.node].approaches[c2.approach].stopSign;
+                if ((allWay2 || stopSign2) && line2 < 2.2f && v < 0.5f && d.preStop < 0) {
                     d.preStop = id2;
                     d.arrival = (float)time;
                     d.waitTime = 0.f;  // (as its gate would: the wait there starts now)
+                    if (stopSign2) stats.writtenStops++;
                 }
                 if (d.preStop == id2 && !d.preGo) {
                     float toEntry2 = line2 + (L1.stopU >= 0.f ? L1.u1 - L1.stopU : 0.6f);
                     bool exitBlocked2 = d.obstDist < toEntry2 + c2.length + d.info.halfLen * 2.f + 1.5f && d.obstSpeed < 1.5f &&
                                         d.obstDist > toEntry2 + 1.f;
-                    d.preGo = (!exitBlocked2 || d.waitTime > 30.f) && (stopGrant(d, id2) || d.waitTime > 25.f);
+                    const bool turnFree = stopSign2 ? (conflictsClear(d, c2, id2, toEntry2, v, false, d.pers.gapTime - 2.f) || d.waitTime > 20.f)
+                                                    : (stopGrant(d, id2) || d.waitTime > 25.f);
+                    d.preGo = (!exitBlocked2 || d.waitTime > 30.f) && turnFree;
                 }
                 if (!d.preGo) stopDist = Min(stopDist, Max(line2, 0.f));
             }

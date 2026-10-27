@@ -232,6 +232,57 @@ struct World3 {
     // the hand-built world (--worldbin): its roads and overrides read from a world.bin, the terrain the bake came from,
     // no sites (the generator laid out the procedural world's: plaza walks, pads, structures) and an empty building set
     // with its cell lists, as the game's hand mode sets them up
+    // test rules written over the world's (--stopsigns: every uncontrolled junction a two-way stop, its main road the most
+    // collinear pair of edges; --noredturn: no right on red at any signal)
+    bool testStops = false, testNoRed = false;
+    void testRules() {
+        using RO = World::RoadOverrides;
+        std::vector<int> at(roads.nodes.size(), -1);
+        for (int r = 0; r < (int)ov.nodes.size(); r++)
+            if (ov.nodes[r].node >= 0 && ov.nodes[r].node < (int)at.size()) at[ov.nodes[r].node] = r;
+        int stops = 0, noRed = 0;
+        for (int ni = 0; ni < (int)roads.nodes.size(); ni++) {
+            const World::RoadNode& n = roads.nodes[ni];
+            if (n.edges.size() < 3) continue;
+            if (at[ni] < 0) {
+                at[ni] = (int)ov.nodes.size();
+                RO::NodeRule nr;
+                nr.node = ni;
+                ov.nodes.push_back(nr);
+            }
+            RO::NodeRule& R = ov.nodes[at[ni]];
+            if (testNoRed && n.control == 2) {
+                R.noRedTurn = n.edges;
+                noRed++;
+            }
+            if (testStops && n.control == 0) {
+                // the main road: the most collinear pair of edges out of the node
+                std::vector<vec2> dir;
+                for (int ei : n.edges) {
+                    const World::RoadEdge& e = roads.edges[ei];
+                    vec2 q = e.n0 == ni ? e.pts[Min((size_t)1, e.pts.size() - 1)].xy() : e.pts[e.pts.size() >= 2 ? e.pts.size() - 2 : 0].xy();
+                    vec2 d = q - n.p;
+                    dir.push_back(length2(d) > 1e-6f ? normalize(d) : vec2(1, 0));
+                }
+                int bi = 0, bj = 1;
+                float best = 2.f;
+                for (int i = 0; i < (int)dir.size(); i++)
+                    for (int j = i + 1; j < (int)dir.size(); j++)
+                        if (dot(dir[i], dir[j]) < best) {
+                            best = dot(dir[i], dir[j]);
+                            bi = i;
+                            bj = j;
+                        }
+                R.control = RO::CTRL_STOP;
+                R.flags = 0;
+                R.stops.clear();
+                for (int k = 0; k < (int)n.edges.size(); k++)
+                    if (k != bi && k != bj) R.stops.push_back(n.edges[k]);
+                stops++;
+            }
+        }
+        LOG("--worldbin test rules: %d junctions made two-way stops, %d signals with no right on red", stops, noRed);
+    }
     bool buildHand(const char* path) {
         map.generate();
         World::gMap = &map;
@@ -251,7 +302,9 @@ struct World3 {
         buildings.openCellLists.assign((size_t)World::kCellsPerSide * World::kCellsPerSide, {});
         World::gBuildings = &buildings;
         Phys::gCollision = &cw;
-        LOG("--worldbin %s: %zu road nodes, %zu edges (%zu with overrides)", path, roads.nodes.size(), roads.edges.size(), ov.edges.size());
+        LOG("--worldbin %s: %zu road nodes, %zu edges (%zu with overrides), %zu node rules", path, roads.nodes.size(), roads.edges.size(), ov.edges.size(),
+            ov.nodes.size());
+        if (testStops || testNoRed) testRules();
         buildLanes(lg, roads, &ov, 0);
         return true;
     }
@@ -1242,6 +1295,9 @@ struct Sim {
         printf("collisions: %ld (%.2f per vehicle-hour), hard (>3000 Ns): %ld (%.2f/veh-h)\n", collisions, collisions / Max(vh, 1e-6), hardCollisions, hardCollisions / Max(vh, 1e-6));
         printf("static impacts (walls/props >2500 Ns): %ld, props broken: %ld\n", staticImpacts, propHits);
         printf("red-light violations: %ld, stop-sign violations: %ld\n", tc.stats.redViolations, tc.stats.stopSignViolations);
+#ifndef TS_NO_RULES
+        if (tc.stats.writtenStops > 0) printf("stops made at written stop signs: %ld\n", tc.stats.writtenStops);
+#endif
         printf("stuck recoveries: %ld, three-point turns: %ld, relocalizations: %ld, deadlocks (>60 s waits): %ld, respawns: %ld, lifted off ledges: %ld\n", tc.stats.stuckEvents, tc.stats.kTurns, tc.stats.relocalizations, deadlocks, respawns, unhung);
         printf("pedestrians hit: %ld\n", pedHits);
         if (nParked > 0) printf("parked cars: %d, waits over 30 s behind one: %ld\n", nParked, parkBlocks);
@@ -1795,6 +1851,10 @@ int main(int argc, char** argv) {
     int firstArg = 1;
 #ifdef TS_HAND
     if (argc > 2 && !strcmp(argv[1], "--worldbin")) {
+        for (int k = 3; k < argc; k++) {
+            if (!strcmp(argv[k], "--stopsigns")) w.testStops = true;
+            if (!strcmp(argv[k], "--noredturn")) w.testNoRed = true;
+        }
         if (!w.buildHand(argv[2])) return 1;
         firstArg = 3;
     } else

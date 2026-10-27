@@ -21,12 +21,10 @@
 #include "src/world/roadnet.cpp"
 #include "src/world/worldmodel.cpp"
 #include "src/world/worldmodel_roads.cpp"
-// the game's lane graph, built as the game builds it (validate_lanes.h). Its code is the AI agent's: until its set 21
-// casts it, one conditional there (lanes.cpp:1088) mixes an enum and a u8, which -Wextra rejects. Drop the pragma then.
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wextra"
-#include "src/game/lanes.cpp"
-#pragma GCC diagnostic pop
+#include "src/world/lz.cpp"
+#include "src/world/worldbin.cpp"
+#include "src/world/roadsbin.cpp"   // (applyRoadSides: each side's own widths, as hand mode loads the roads)
+#include "src/game/lanes.cpp"   // the game's lane graph, built as the game builds it (validate_lanes.h)
 #include "src/world/validate.cpp"
 #include "src/world/validate_layout.cpp"
 #include "src/world/validate_roads.cpp"
