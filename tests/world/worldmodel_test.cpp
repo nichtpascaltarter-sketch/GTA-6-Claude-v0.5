@@ -828,6 +828,11 @@ static void testRoomLight() {
         { 2, 2541, 0, 3, 1230,   0,   0},
         { 2, 3982, 1, 0,   30, 255,   0},
         { 2,  198, 1, 6,  125, 255,   0},
+        // night owls: one on a weeknight at 1:00, one of Saturday night's extra ones (and on a weeknight), out by 3:00
+        { 2, 1029, 1, 3,   60, 255, 150},
+        { 2, 2030, 1, 6,   60, 255, 196},
+        { 2, 2030, 1, 3,   60, 255,   0},
+        { 2, 1029, 1, 3,  180, 255,   0},
         { 3, 3481, 1, 2, 1230, 255,   0},
         { 3,  122, 1, 2,  420, 255, 238},
         { 3, 1194, 0, 2,   90, 255,   0},
@@ -925,6 +930,7 @@ static void testRoomLight() {
 
     // the classes' properties over many rooms
     int always = 0, never = 0, dayHome = 0, darkHome = 0, shopNoon = 0, shopNight = 0, shopNightChanged = 0, homeChanged = 0, lateBar = 0, porch = 0;
+    int owlWeek = 0, owlSat = 0, owlFri = 0, owlMoved = 0, owlWeekOnly = 0, owlAt3 = 0;
     const int rooms = 2000;
     for (int r = 0; r < rooms; r++) {
         const u32 seed = roomSeed((u32)r * 7919u + 3u, (u32)r % 5u, (u32)r % 11u);
@@ -941,6 +947,17 @@ static void testRoomLight() {
         homeChanged += (roomLight(RS_HOME_LIVING, seed, 1u, 2u, 1230u, 255u) > 0u) != (roomLight(RS_HOME_LIVING, seed, 1u, 3u, 1230u, 255u) > 0u);
         lateBar += roomLight(RS_NIGHTLIFE, seed, 0u, 3u, 60u, 255u) > 0u;             // 1:00, from the evening before
         porch += roomLight(RS_PORCH, seed, 1u, 2u, 1290u, 255u) > 0u && roomLight(RS_PORCH, seed, 1u, 2u, 180u, 255u) == 0u;
+        // night owls (the living rooms' late lamps): the same rooms every night, a few more on Saturday and Sunday nights
+        // (Friday night is a weekday's), all out by 3:00
+        const bool wedNight = roomLight(RS_HOME_LIVING, seed, 1u, 3u, 60u, 255u) > 0u;   // Thursday 1:00
+        const bool thuNight = roomLight(RS_HOME_LIVING, seed, 1u, 4u, 60u, 255u) > 0u;   // Friday 1:00
+        const bool satNight = roomLight(RS_HOME_LIVING, seed, 1u, 6u, 60u, 255u) > 0u;   // Sunday 1:00
+        owlWeek += wedNight;
+        owlSat += satNight;
+        owlFri += roomLight(RS_HOME_LIVING, seed, 1u, 5u, 60u, 255u) > 0u;                // Saturday 1:00
+        owlMoved += wedNight != thuNight;
+        owlWeekOnly += wedNight && !satNight;
+        owlAt3 += roomLight(RS_HOME_LIVING, seed, 1u, 3u, 180u, 255u) > 0u || roomLight(RS_HOME_LIVING, seed, 1u, 6u, 180u, 255u) > 0u;
     }
     EXPECT(always == rooms * 5 && never == 0, "roomLight: always %d of %d, never %d", always, rooms * 5, never);
     EXPECT(dayHome == 0 && darkHome > rooms * 7 / 10, "roomLight: homes at 20:30, by day %d, by night %d of %d", dayHome, darkHome, rooms);
@@ -948,6 +965,10 @@ static void testRoomLight() {
            "roomLight: shops at noon %d, at 3:00 %d (%d changed from one night to the next)", shopNoon, shopNight, shopNightChanged);
     EXPECT(homeChanged > rooms / 10, "roomLight: only %d of %d homes change from one evening to the next", homeChanged, rooms);
     EXPECT(lateBar > rooms * 8 / 10 && porch == rooms, "roomLight: bars at 1:00 %d, porch lights on at 21:30 and off at 3:00 %d of %d", lateBar, porch, rooms);
+    EXPECT(owlWeek > rooms * 4 / 100 && owlWeek < rooms * 8 / 100 && owlSat > owlWeek && owlSat < rooms * 11 / 100 && owlFri == owlWeek,
+           "roomLight: living rooms lit at 1:00 on weeknights %d, Saturday night %d, Friday night %d of %d", owlWeek, owlSat, owlFri, rooms);
+    EXPECT(owlMoved == 0 && owlWeekOnly == 0 && owlAt3 == 0, "roomLight: night owls who change from one night to the next %d, lit on weeknights only %d, at 3:00 %d",
+           owlMoved, owlWeekOnly, owlAt3);
 }
 
 // ---------------------------------------------------------------------------------------- the roads through world.bin
@@ -1148,6 +1169,39 @@ static void testRoadOverrides() {
                bulb->control == RoadOverrides::CTRL_AUTO && same(bulb->bulb, 8.f) && yld && yld->control == RoadOverrides::CTRL_YIELD &&
                yld->yields == std::vector<int>({roadEdgeOf("sb.e0003")}),
            "overrides: %zu node rules (a signal, a bulb, a yield)", ov.nodes.size());
+    {   // a written turning circle is the dead end's bulb (RoadNetwork::bulbRadius: the mesher, the grading and the lane
+        // graph read that one number), the surface queries reaching its rim; without one, the class's; and a bulb
+        // written on a node that isn't a dead end changes nothing
+        const int dead = roadNodeOf("cl.n0003"), cross4 = roadNodeOf("cl.n0001");
+        const bool deadEnd = dead >= 0 && rn.nodes[(size_t)dead].edges.size() == 1;
+        const RoadEdge* de = deadEnd ? &rn.edges[(size_t)rn.nodes[(size_t)dead].edges[0]] : nullptr;
+        RoadNetwork classed = rn, written = rn, wide = rn;
+        applyRoadSides(RoadOverrides(), classed);
+        applyRoadSides(ov, written);
+        RoadOverrides wideOv = ov;
+        for (RoadOverrides::NodeRule& r : wideOv.nodes)
+            if (r.node == dead) r.bulb = 18.f;
+        RoadOverrides::NodeRule onCross;
+        onCross.node = cross4;
+        onCross.bulb = 12.f;
+        wideOv.nodes.push_back(onCross);
+        applyRoadSides(wideOv, wide);
+        EXPECT(de && cross4 >= 0 && same(classed.bulbRadius(classed.nodes[(size_t)dead]), de->halfWidth + 4.5f) &&
+                   same(written.bulbRadius(written.nodes[(size_t)dead]), 8.f) && same(wide.bulbRadius(wide.nodes[(size_t)dead]), 18.f) &&
+                   wide.bulbRadius(wide.nodes[(size_t)cross4]) == 0.f,
+               "overrides: a dead end's bulb, written (8 m, 18 m) or the class's");
+        if (de) {
+            // 9 m out beyond the dead end (the road runs east from it): the class's bulb paves it, the written 8 m one has
+            // its sidewalk ring there; 20 m out only the 18 m one's ring reaches
+            const vec2 n0 = rn.nodes[(size_t)dead].p, out9 = n0 + vec2(-9.f, 0.f), out20 = n0 + vec2(-20.f, 0.f);
+            float zc = 0.f, zw = 0.f, zb = 0.f, z20 = 0.f;
+            const bool c9 = classed.roadSurfaceHeight(out9, &zc), w9 = written.roadSurfaceHeight(out9, &zw), b20 = wide.roadSurfaceHeight(out20, &zb),
+                       c20 = classed.roadSurfaceHeight(out20, &z20);
+            EXPECT(c9 && w9 && same(zw - zc, 0.15f, 1e-3f) && b20 && !c20 && de->sidewalk > 2.f,
+                   "overrides: the surface round a written bulb (9 m: class %d %.2f, written %d %.2f; 20 m: 18 m bulb %d, class %d)", (int)c9, zc, (int)w9, zw,
+                   (int)b20, (int)c20);
+        }
+    }
     {   // a lane width, a shoulder without parking, and a tunnel
         const std::string roads =
             "ntw 1 roads district=cl\n"

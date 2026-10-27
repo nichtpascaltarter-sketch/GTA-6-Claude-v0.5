@@ -5,6 +5,7 @@
 #include "common.hlsli"
 #include "skycommon.hlsli"
 #include "materials.hlsli"
+#include "roomlight.hlsli"
 
 struct FacadeGPU {
     float floorH, groundH, bayW, winW;   // winW: window width fraction of bay
@@ -209,9 +210,10 @@ float3 garmentPattern(float u, float v, uint h, float3 wallC) {
 
 // Interior mapping for a shop behind a storefront (one space per sign, 3 bays): grocery / pharmacy shelving,
 // clothing rails or a cafe, with a free-standing fixture in the middle and ceiling light panels (> 1 = emitter).
+bool shopIsCafe(uint h) { float kind = hashF(h + 40u); return kind >= 0.7 && kind < 0.9; }
 float3 shopInterior(float3 roomPos, float3 dir, float3 roomSize, uint h) {
     float kind = hashF(h + 40u);
-    bool cafe = kind >= 0.7 && kind < 0.9;
+    bool cafe = shopIsCafe(h);
     bool clothing = kind >= 0.45 && kind < 0.7;
     float3 invD = 1.0 / (dir + (dir == 0) * 1e-5);
     float3 tPlanes = max((roomSize * (dir > 0) - roomPos) * invD, 0.0);
@@ -262,6 +264,20 @@ float3 shopInterior(float3 roomPos, float3 dir, float3 roomSize, uint h) {
         }
     }
     return c * lerp(1.0, 0.65, saturate(t / (D * 1.6)));
+}
+
+// The schedule class of a window's room (roomlight.hlsli; docs/HANDBUILT_WORLD.md 7.8). Procedural facades carry no
+// room types, so the room draws one from its hash by the building's use: shops keep shop hours (cafes a restaurant's);
+// offices work office hours, with some corridors and the lobbies lit around the clock; industrial buildings work the
+// same hours with a few lights always on; homes mix living rooms, kitchens, bedrooms and bathrooms, and the stairwell
+// bays of apartment blocks stay lit on every floor. (The hand-built world's window records carry each room's class.)
+uint facadeRoomSchedule(uint rh, uint stairHash, uint style, bool office, bool storefront, bool cafe, bool ground) {
+    if (storefront) return cafe ? kRoomRestaurant : kRoomShop;
+    float u = hashF(rh + 41u);
+    if (office) return ground || u < 0.07 ? kRoomAlways : kRoomOffice;
+    if (style == 4u) return u < 0.12 ? kRoomAlways : kRoomOffice;
+    if (style != 5u && !ground && hashF(stairHash) < 0.12) return kRoomAlways;
+    return u < 0.32 ? kRoomHomeLiving : (u < 0.48 ? kRoomHomeKitchen : (u < 0.86 ? kRoomHomeBed : kRoomHomeBath));
 }
 
 // streetMark: the wall's vertex alpha - 1 on a wall that looks onto a street, 0.5 on the sides and backs that don't
@@ -434,21 +450,23 @@ FacadeResult shadeFacade(uint id, float2 uv, float3 N, float3 T, float3 B, float
             coverC *= 0.72 + 0.28 * sin(wl.x * 40.0 + hashF(roomHash + 8u) * 6.0) * sin(wl.x * 40.0 + hashF(roomHash + 8u) * 6.0);
             coverTrans = 0.3;
         }
-        // Lighting schedule: every room has its own switch-on / switch-off times, so windows light up one by
-        // one at dusk and go dark gradually through the night (some stay lit all night, early risers at dawn).
-        float hour = gTime.y;
-        float hc = hour < 12.0 ? hour + 24.0 : hour;             // evening-continuous clock: 12..36
-        bool occupied = hashF(roomHash + 11u) < f.litFrac * (office ? 0.85 : 0.65);
-        float onT = 17.0 + hashF(roomHash + 15u) * 3.8;
-        float offT = 21.3 + pow(hashF(roomHash + 16u), 1.6) * 7.0;
-        bool allNight = hashF(roomHash + 17u) < 0.06;
-        bool eveningLit = hc >= onT && (hc < offT || allNight) && hc < 30.5 + hashF(roomHash + 18u);
-        bool morningLit = hour > 5.2 + hashF(roomHash + 19u) && hour < 7.4 + hashF(roomHash + 20u) * 1.3 && hashF(roomHash + 21u) < 0.35;
-        bool officeLit = office && hour > 7.0 + hashF(roomHash + 22u) * 1.5 && hour < 17.5 + pow(hashF(roomHash + 23u), 3.0) * 5.0;
-        bool shopOpen = storefront && hour > 7.0 + hashF(lh + 24u) && hour < 22.0 + hashF(lh + 25u) * 3.0;
-        bool display = storefront && hashF(lh + 27u) < 0.4;   // closed shops that keep their display lighting on
-        bool lit = storefront ? (shopOpen || display)
-                              : (occupied && (office ? officeLit || (eveningLit && hashF(roomHash + 26u) < 0.3) : (eveningLit || morningLit)));
+        // Lighting schedule (docs/HANDBUILT_WORLD.md 7.8): the room's light state is roomLight() (roomlight.hlsli, the
+        // CPU's world/roomlight.h bit for bit) at the frame's game day, minute and darkness. Windows light up one by
+        // one as it gets dark and follow their household's evening (weekends differ, a few night owls stay up until
+        // 1:30-3:00), shops their hours, offices the working day; a window lit from afar is lit up close. Procedural
+        // facades carry no room types: the room's schedule class comes from its hash and the building's use
+        // (facadeRoomSchedule), and the building's litFrac leaves some of its rooms empty.
+        bool cafe = storefront && shopIsCafe(shopHash);
+        uint stairHash = hash3u(uint3((uint)(bayIdx + 3000.0), 91u, seed));
+        uint sched = facadeRoomSchedule(roomHash, stairHash, style, office, storefront, cafe, ground);
+        bool vacant = !storefront && sched != kRoomAlways && hashF(roomHash + 11u) >= saturate(0.35 + f.litFrac);
+        uint level = vacant ? 0u : roomLight(sched, lh >> 20, 1u, gRoomClock.x, gRoomClock.y, gRoomClock.z);
+        bool lit = level > 0u;
+        bool shopOpen = storefront && level > 160u;   // open (level 191..254), or only the display lighting (82..109)
+        bool display = storefront && lit && !shopOpen;
+        // offices outside the working day (late workers, the cleaners) have only some of their fixtures on
+        bool afterHours = sched == kRoomOffice && (gRoomClock.x % 7u >= 5u || gRoomClock.y < 450u || gRoomClock.y >= 1140u);
+        float levelK = (float)level / 222.0;   // the lamp's level: bedside and late lamps dimmer than a room's main light
         // Lamp colour by colour temperature: homes mostly warm 2700-3000 K with some 4000 K kitchens and cool LED, table
         // lamps candle-warm, offices 3500-5200 K, the TV a flickering blue; shops halogen .. LED
         float cctH = hashF(roomHash + 12u);
@@ -475,10 +493,9 @@ FacadeResult shadeFacade(uint id, float2 uv, float3 N, float3 T, float3 B, float
         // ceiling fixture or a corner lamp, darker corners, the shade or panels glowing); room light levels vary over
         // three stops (a reading lamp .. a bright kitchen), a TV alone lights a room dimly.
         float shopNits = lerp(160.0, 14.0, gExposure.w);
-        // (offices lit outside working hours, by cleaners or a late shift, have only some of their fixtures on)
-        float lampNits = storefront ? shopNits * (0.45 + 0.9 * hashF(lh + 14u))
-                       : (office ? 12.0 * exp2(hashF(lh + 14u) * 2.0 - 1.2) * (officeLit ? 1.0 : 0.45)
-                                 : 10.0 * exp2(hashF(lh + 14u) * 3.0 - 1.8) * (lamp.kind == 1u ? 0.55 : (lamp.kind == 3u ? 0.3 : 1.0)));
+        float lampNits = levelK * (storefront ? shopNits * (0.45 + 0.9 * hashF(lh + 14u))
+                                   : (office ? 12.0 * exp2(hashF(lh + 14u) * 2.0 - 1.2) * (afterHours ? 0.45 : 1.0)
+                                             : 10.0 * exp2(hashF(lh + 14u) * 3.0 - 1.8) * (lamp.kind == 1u ? 0.55 : (lamp.kind == 3u ? 0.3 : 1.0))));
         float3 emLamp = 0;
         if (lit) emLamp = (storefront ? room : rv.albedo * rv.lamp + rv.glow) * lightC * lampNits;
         // a covering right behind the glass is lit from the street (albedo) and glows with the room light behind it

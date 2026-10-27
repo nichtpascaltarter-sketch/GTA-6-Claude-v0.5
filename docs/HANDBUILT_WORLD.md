@@ -599,9 +599,10 @@ They are Python, run with `-I`, and never ship. The game doesn't know they exist
   12): so far each edge's widths and speed as written, else its class's, and each node's control, stops, yields,
   no-red-turn approaches and bulb as written. Host tools read all three with `loadRoadsFile`. Each side of an edge
   keeps its own kerb line and sidewalk (`roadsbin.h` `applyRoadSides`), which the mesher draws and the lane graph
-  reads through `RoadEdge::halfWidthSide` and `sidewalkSide`, so the two agree. The compiler and worldv name a node's
-  legs and resolve its signal plan with one implementation (`worldmodel.h` `nodeLegs`, `resolvePlan`), as the lane
-  graph sees the legs. The other kinds' sections come with their consumers;
+  reads through `RoadEdge::halfWidthSide` and `sidewalkSide`, so the two agree; likewise a dead end's written
+  turning circle, which `RoadNetwork::bulbRadius` returns to the mesher, the grading and the lane graph alike. The
+  compiler and worldv name a node's legs and resolve its signal plan with one implementation (`worldmodel.h`
+  `nodeLegs`, `resolvePlan`), as the lane graph sees the legs. The other kinds' sections come with their consumers;
 - the terrain graded under the roads (step 5, section 3.3), with today's grading (`src/world/roadgrade.cpp`), stored
   as a delta on the bake in world.bin's `terrain.grade`. The game adds it to the baked heights at load;
 - the blocks (stage 1's part 2), with the catalog: the parcels' ground, paint and pads, the plazas, and the dressing
@@ -1331,7 +1332,9 @@ cuts; grade separation. Beyond it (4.4 shows them in a file):
    lane kept clear (`clear=`).
 9. **Off-street parking.** A `lot` block in the block file: entered by a curb cut, with bay `row`s and their aisles,
    `ramp`s between levels and a level per row.
-10. **Dead ends.** `bulb=<radius>` on the node, or none, in which case long vehicles avoid it.
+10. **Dead ends.** `bulb=<radius>` on the node, or none, in which case long vehicles avoid it. The written radius is
+    the bulb the game paves and grades, and the one the lane graph turns and walks round (`RoadNetwork::bulbRadius`);
+    without one a two-way lane, street or rural road still gets its class's (its half width plus 4.5 m).
 11. **z everywhere.** Every lane, connector and stop takes its z from the edge `profile` and `deck`. Lanes on a deck
     don't conflict with the lanes under it.
 12. **No overlapping carriageways.** Two edges may not run inside each other's half width for more than ~10 m outside

@@ -68,7 +68,9 @@ void RoadNetwork::buildHash() {
     for (size_t i = 0; i < edges.size(); i++) {
         const RoadEdge& e = edges[i];
         float r = e.halfWidth + e.sidewalk + 2.f;
-        if (bulbRadius(nodes[e.n0]) > 0.f || bulbRadius(nodes[e.n1]) > 0.f) r += 4.5f;   // the turning bulb reaches past the width
+        const float br0 = bulbRadius(nodes[e.n0]), br1 = bulbRadius(nodes[e.n1]);
+        if (br0 > 0.f || br1 > 0.f) r += 4.5f;   // the turning bulb reaches past the width
+        if (nodes[e.n0].bulb > 0.f || nodes[e.n1].bulb > 0.f) r = Max(r, Max(br0, br1) + e.sidewalk + 2.f);   // a written one maybe further
         vec2 mn(1e9f), mx(-1e9f);
         for (auto& p : e.pts) { mn = vmin(mn, p.xy()); mx = vmax(mx, p.xy()); }
         mn -= vec2(r);
@@ -251,6 +253,7 @@ bool RoadNetwork::nearRoad(vec2 p, float margin) const {
 
 float RoadNetwork::bulbRadius(const RoadNode& n) const {
     if (n.edges.size() != 1) return 0.f;
+    if (n.bulb > 0.f) return n.bulb;   // the hand-built roads' own (RoadOverrides::NodeRule::bulb)
     const RoadEdge& e = edges[n.edges[0]];
     if ((e.flags & (RF_UNPAVED | RF_ONEWAY)) || e.lanesF == 0 || e.lanesB == 0) return 0.f;
     if (e.cls != RC_LANE && e.cls != RC_STREET && e.cls != RC_RURAL) return 0.f;

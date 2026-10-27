@@ -56,9 +56,12 @@ inline const RoomInterval* roomScheduleIntervals(u32 schedule, u32 weekend) {
         {{{0, 1440, 255, 255, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}}, {{0, 1440, 255, 255, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}}},
         // RS_NEVER
         {{{0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}}, {{0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}}},
-        // RS_HOME_LIVING: 6:30-7:45; 18:00-23:15 (weekends 9:00-12:00; 17:30-24:00)
-        {{{390, 465, 70, 220, 30, 1}, {1080, 1395, 205, 255, 45, 1}, {0, 0, 0, 0, 0, 0}},
-         {{540, 720, 70, 220, 45, 1}, {1050, 1440, 215, 255, 45, 1}, {0, 0, 0, 0, 0, 0}}},
+        // RS_HOME_LIVING: 6:30-7:45; 18:00-23:15 (weekends 9:00-12:00; 17:30-24:00); night owls: from about 22:00 a
+        // lamp or the TV stays on until 1:30-3:00 in 1 living room of 17, the same ones every night (about 1 home in
+        // 9, at two rooms a home on this schedule: living room, dining room, hall), 1 in 12 on Saturday and Sunday
+        // nights (a weekend is Saturday and Sunday here, so Friday night keeps the weekdays' share)
+        {{{390, 465, 70, 220, 30, 1}, {1080, 1395, 205, 255, 45, 1}, {1320, 1575, 14, 200, 45, 0}},
+         {{540, 720, 70, 220, 45, 1}, {1050, 1440, 215, 255, 45, 1}, {1320, 1575, 21, 200, 45, 0}}},
         // RS_HOME_KITCHEN: 6:00-7:45; 18:00-21:00 (weekends 8:00-10:30; 18:00-21:30)
         {{{360, 465, 170, 255, 30, 1}, {1080, 1260, 200, 255, 45, 1}, {0, 0, 0, 0, 0, 0}},
          {{480, 630, 150, 255, 45, 1}, {1080, 1290, 200, 255, 45, 1}, {0, 0, 0, 0, 0, 0}}},

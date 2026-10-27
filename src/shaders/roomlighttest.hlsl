@@ -23,7 +23,7 @@ void roomSweepInputs(uint i, out uint schedule, out uint seed, out uint windows,
     night = kSweepNight[ni];
     minute = mi < 110u ? mi * 13u : 1439u;
     day = di < 14u ? di : 4294967290u;
-    seed = si < 19u ? si * 211u : 4095u;
+    seed = si < 19u ? si * 205u : 4095u;   // (stride 205: the seeds include night owls, weekday and weekend)
 }
 
 RWStructuredBuffer<uint> uOut : register(u0);

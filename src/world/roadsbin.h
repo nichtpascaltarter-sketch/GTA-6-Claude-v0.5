@@ -46,9 +46,10 @@ void writeRoadOverrides(const RoadOverrides& ov, WorldBinWriter& out);
 bool readRoadOverrides(const WorldBinView& bin, const RoadNetwork& roads, RoadOverrides& out, std::string* error);
 
 // Each side's own kerb line and sidewalk from the overrides into the network's edges (RoadEdge::halfWidthSide and
-// sidewalkSide): the wider side's are halfWidth and sidewalk already, so only the narrower side is trimmed. Nothing
-// changes where `ov` has no edges (the procedural world, or a world.bin without overrides). The game (handworld.cpp),
-// the compiler (worldc) and loadRoadsFile apply it as they read the roads.
+// sidewalkSide): the wider side's are halfWidth and sidewalk already, so only the narrower side is trimmed. And each
+// dead end's turning circle where one is written (RoadNode::bulb, which RoadNetwork::bulbRadius returns). Nothing
+// changes where `ov` has no edges and no bulbs (the procedural world, or a world.bin without overrides). The game
+// (handworld.cpp), the compiler (worldc) and loadRoadsFile apply it as they read the roads.
 void applyRoadSides(const RoadOverrides& ov, RoadNetwork& roads);
 
 // The roads of a world.bin file, read on the host without the game (tools/traffic_sim on the hand-built streets): its

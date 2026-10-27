@@ -7301,6 +7301,18 @@ struct App {
                 game.gpsRoute.clear();
                 break;
             case UI::MA_RUN_BENCHMARK:   // from the settings menu: run the scenes, show the results, back to the main menu
+                if (World::isHandWorld()) {
+                    // its five scenes are places in the procedural city, and the hand-built world has no main menu to come
+                    // back to (see MA_QUIT_TO_MENU): say so and go back to the game
+                    menu.screen = UI::MENU_NONE;
+                    game.paused = false;
+                    Platform::setMouseCaptured(Platform::hasFocus() && !autotest);
+#ifdef HAVE_AUDIO
+                    Audio::setPaused(false);
+#endif
+                    game.notify("BENCHMARK", "Its scenes are in the procedural city: start the game without --world=hand to run it");
+                    break;
+                }
                 benchFromMenu = true;
                 autoplay = "benchmark";
                 startNewGame();

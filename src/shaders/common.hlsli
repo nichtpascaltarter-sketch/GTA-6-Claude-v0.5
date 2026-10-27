@@ -43,6 +43,8 @@ cbuffer FrameCB : register(b0) {
     float4 gRenderFlags;       // x reduce flashing (accessibility), yzw unused
     uint4 gBindlessMat;        // heap indices (bindless arrays): x material table, y albedo array, z normal array, w foliage
     uint4 gBindlessFacade;     // heap indices: x facade table, y shop sign atlas, z facade night lighting, w unused
+    uint4 gRoomClock;          // the room lights' clock (roomlight.hlsli roomLight, the same integers as the CPU's): x game
+                               // day, y minute of the day (0..1439), z how dark it is outside (0..255), w unused
 };
 
 // Global resources bound once per frame at high slots (see Renderer::bindGlobals)

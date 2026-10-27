@@ -54,6 +54,7 @@ struct FrameConstants {
     vec4 renderFlags;  // x reduce flashing (accessibility), yzw unused
     u32 bindlessMat[4];     // heap indices: material table, albedo array, normal array, foliage cards
     u32 bindlessFacade[4];  // heap indices: facade table, shop sign atlas, facade night lighting, unused
+    u32 roomClock[4];       // the room lights' clock (world/roomlight.h): game day, minute of the day, darkness (roomNight()), 0
 };
 
 struct ShadowConstants {
