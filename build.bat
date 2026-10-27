@@ -53,14 +53,18 @@ exit /b 1
 echo Building with MSVC...
 cl /nologo /std:c++17 /utf-8 /O2 /EHsc tools\embed_shaders.cpp /Fe:build\embed_shaders.exe /Fo:build\embed_shaders.obj || exit /b 1
 build\embed_shaders.exe src\shaders build\gen\shaders_embedded.h || exit /b 1
-rem The hand-built world (docs\HANDBUILT_WORLD.md): tools\worldc compiles world\ into build\gen\world.bin and world.rc,
-rem and rc turns them into build\gen\world.res for the link (src\world\handworld.cpp reads it with --world=hand)
+rem The hand-built world (docs\HANDBUILT_WORLD.md): tools\worldc compiles world\ into build\gen\world.bin and world.rc
+rem (:worldc), and rc turns them into build\gen\world.res for the link (src\world\handworld.cpp reads it with
+rem --world=hand); without them the exe is built without it
 cl /nologo /std:c++17 /utf-8 /O2 /EHsc /I. tools\worldc.cpp /Fe:build\worldc.exe /Fo:build\worldc.obj || exit /b 1
-build\worldc.exe --world=world --out=build\gen\world.bin || exit /b 1
+call :worldc
+set "WORLD_RES="
+if not defined WORLDOK goto msvc_link
 pushd build\gen || exit /b 1
 rc /nologo /fo world.res world.rc || exit /b 1
 popd
 set "WORLD_RES=build\gen\world.res"
+:msvc_link
 cl /nologo /std:c++17 /utf-8 /O2 /Oi /GS- /EHsc /MT /DNDEBUG /bigobj /W3 /wd4244 /wd4267 /wd4305 /wd4018 /wd4146 /wd4996 %NTVER% /Ibuild\gen src\main.cpp /Fe:bin\NeonTide.exe /Fo:build\main.obj /link /SUBSYSTEM:WINDOWS dxgi.lib uuid.lib ole32.lib oleaut32.lib winmm.lib shell32.lib user32.lib gdi32.lib kernel32.lib avrt.lib winhttp.lib bcrypt.lib %WORLD_RES% || exit /b 1
 echo Built bin\NeonTide.exe
 set "NTCXX=msvc"
@@ -72,11 +76,14 @@ g++ -O2 -std=c++17 tools\embed_shaders.cpp -o build\embed_shaders.exe || exit /b
 build\embed_shaders.exe src\shaders build\gen\shaders_embedded.h || exit /b 1
 rem The hand-built world (docs\HANDBUILT_WORLD.md): tools\worldc and windres, as in the MSVC branch
 g++ -O2 -std=c++17 -I. tools\worldc.cpp -o build\worldc.exe || exit /b 1
-build\worldc.exe --world=world --out=build\gen\world.bin || exit /b 1
+call :worldc
+set "WORLD_OBJ="
+if not defined WORLDOK goto mingw_link
 pushd build\gen || exit /b 1
 windres world.rc -O coff -o world_res.o || exit /b 1
 popd
 set "WORLD_OBJ=build\gen\world_res.o"
+:mingw_link
 g++ -std=c++17 -O2 -DNDEBUG -march=x86-64-v2 -mfpmath=sse -fno-strict-aliasing %NTVER% -Ibuild\gen src\main.cpp -o bin\NeonTide.exe -s -static -static-libgcc -static-libstdc++ -mwindows -ldxgi -luuid -lole32 -loleaut32 -lwinmm -lshell32 -luser32 -lgdi32 -lkernel32 -lavrt -lwinhttp -lbcrypt %WORLD_OBJ% || exit /b 1
 echo Built bin\NeonTide.exe
 set "NTCXX=mingw"
@@ -84,6 +91,22 @@ goto built
 
 :built
 if defined NTBUNDLE call :bundle
+exit /b 0
+
+rem ------------------------------------------------------------------------------------------------------------------
+rem tools\worldc, just built, compiles world\ into build\gen\world.bin and world.rc: WORLDOK when it did. Some machines
+rem will not start a program that was just built (an antivirus, or Windows' Smart App Control, may block a new one), so
+rem it gets one more try 5 seconds later; then the game is built without the hand-built world. The game is complete
+rem without it: only --world=hand has nothing to load (it says so), and updates keep working on such a machine.
+:worldc
+set "WORLDOK="
+build\worldc.exe --world=world --out=build\gen\world.bin && set "WORLDOK=1"
+if defined WORLDOK exit /b 0
+echo NOTE: build\worldc.exe did not run. Trying again in 5 seconds...
+ping -n 6 127.0.0.1 >nul
+build\worldc.exe --world=world --out=build\gen\world.bin && set "WORLDOK=1"
+if defined WORLDOK exit /b 0
+echo NOTE: build\worldc.exe did not run again, so the exe is built without the hand-built world: the game is complete, only --world=hand has nothing to load.
 exit /b 0
 
 rem ------------------------------------------------------------------------------------------------------------------

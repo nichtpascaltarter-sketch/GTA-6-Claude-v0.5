@@ -35,7 +35,13 @@ jobs:
           call tests\ui\build.bat || exit /b 1
       - name: Build game
         shell: cmd
-        run: call build.bat
+        run: |
+          call build.bat || exit /b 1
+          rem (build.bat builds without the hand-built world where worldc.exe will not start; here it must)
+          if not exist build\gen\world.res (
+            echo build.bat built the exe without the hand-built world: build\worldc.exe did not run
+            exit /b 1
+          )
       - name: Check that the exe carries its commit (the updater compares it with main)
         shell: pwsh
         run: |

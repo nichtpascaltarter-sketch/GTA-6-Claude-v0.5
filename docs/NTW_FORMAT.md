@@ -496,6 +496,9 @@ How the validator reads a layout's geometry:
 - **Where doors lead.** `leads` names rooms, slots or `out`. A slot's entry door names the slot (`leads=hall:s1`). In
   a layout, `out` is only through an exterior wall (`ext=`); in a unit or fit-out, `out` is anywhere outside its
   `slot_size` rectangle (the slot's entry and the layout's corridor are there).
+- **Door leaves.** `swing=in` opens into the building through an exterior wall, and into the room `leads` names second
+  between rooms; `out` the other way. `hinge` is the side of the opening its hinges are on, seen from where the door is
+  pushed open (the side it swings away from). Without them a door is `in` and `left`. A mirrored plan swaps the sides.
 - **Stair runs.** `run` is the flight's centreline from its foot:
   - `straight` and `escalator`: 2 points;
   - `dogleg`: 4, with the middle two at the landing's mid-depth, so each flight is its segment less half the landing;
@@ -565,9 +568,17 @@ What the buildings compiler (src/world/worldmodel.h compileBuildings) reads so f
 - Findings: `building.kind` (a material whose `code` the game lacks), `building.shape` (a plan without a floor or a
   footprint of 3 points), `building.option` (a `config` field that is no option of the plan, or a choice the option
   lacks).
-- Interior walls, rooms, stairs, lifts, slots, furnishing, spots and lights compile with the interiors, and a plan's
-  options' features, its other entrances, and a building's slots, overrides, occupancy and outbuildings after; they
-  are read and checked already.
+- Its interior's plan, from the same layouts:
+  - each floor's rooms, in its layout's order: the type, the light schedule (as its windows'), `lux` and the polygon;
+  - the inside walls (those without `ext`) with their doors;
+  - every door's leaf (9.8's door leaves: where its hinges are and the side it opens to) and the rooms each side of
+    its wall, found from the room polygons (`out`: none);
+  - the stairs: each floor's layout's, with their ends resolved on the plan's floors (a layout several floors share
+    gives each its own where the ends are relative). Their `treads` and `rise` are derived as the validator derives
+    them, and `landing` defaults to `w`. A stair whose ends name no floor or room, or don't climb, is left to worldv.
+- Lifts, slots, furnishing, spots and lights compile with the interiors later, and a plan's options' features, its
+  other entrances, and a building's slots, overrides, occupancy and outbuildings after; they are read and checked
+  already.
 
 ### 9.11 `places`: world/places/places.ntw
 

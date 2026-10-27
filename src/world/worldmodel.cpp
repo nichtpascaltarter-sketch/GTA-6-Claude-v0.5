@@ -1079,6 +1079,8 @@ struct Loader {
                 o.kind = text(r, "kind");
                 o.room = text(r, "room");
                 o.leads = text(r, "leads");
+                o.hinge = text(r, "hinge");
+                o.swing = text(r, "swing");
                 l.openings.push_back(o);
             } else if (r.type == "room") {
                 LayoutRoom rm;
@@ -1086,8 +1088,23 @@ struct Loader {
                 rm.src = at(r.line);
                 rm.type = text(r, "type");
                 rm.sched = text(r, "sched");
+                rm.lux = integer(r, "lux");
                 rm.poly = points(r, "poly");
                 l.rooms.push_back(rm);
+            } else if (r.type == "stair") {
+                LayoutStair s;
+                s.id = r.id;
+                s.src = at(r.line);
+                s.from = text(r, "from");
+                s.to = text(r, "to");
+                s.run = points(r, "run");
+                s.w = num(r, "w");
+                s.kind = text(r, "kind");
+                s.treads = integer(r, "treads");
+                s.rise = num(r, "rise");
+                s.landing = num(r, "landing", -1.f);
+                s.walk = num(r, "walk", -1.f);
+                l.stairs.push_back(s);
             }
         }
         m.library.back().table = (int)m.layouts.size();

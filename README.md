@@ -60,6 +60,10 @@ source on your PC; open or unmerged pull requests are never built.
     [The bundled compiler](#the-bundled-compiler)).
 
   Without a compiler, the main menu says what building needs, and nothing is downloaded.
+- Some PCs will not start a program that the build has just made: an antivirus, or Windows' Smart App Control, may
+  block a new one. One of the tools `build.bat` makes and runs, `build\worldc.exe`, packs the hand-built world; when
+  it will not start (it gets a second try 5 seconds later), the game is built without that world and `build.log` says
+  so. The game is complete without it: only `--world=hand` has nothing to load. So updates keep working on such a PC.
 - If a build fails, the game keeps running the version it has. The main menu offers **Open log**, which opens
   `build.log` in the update's folder. That commit is not built again with the same compiler; the next commit on
   `main` is. Old update folders are removed. A build without a commit (`unknown`) updates to `main`'s newest once. A

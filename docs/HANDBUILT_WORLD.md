@@ -618,10 +618,12 @@ They are Python, run with `-I`, and never ship. The game doesn't know they exist
   in hand mode with the blocks;
 - the buildings (stage 1's part 3), with the plans, floor layouts, facade styles and palettes they name: each plan's
   shell (its floors, each floor's exterior walls with their doors and windows, every window with the light schedule
-  of the room behind it, its roof and its look) in world.bin's `library` section, and each building's placement (its
-  plan, position, yaw and mirror, and its configuration's palette, roof and look) in `buildings`
-  (`src/world/buildingsbin.h`), which the game reads in hand mode and draws into the cells (section 7.2). The
-  interiors, the plans' options and features, and the outbuildings come later.
+  of the room behind it, its roof, its look and its main entrance) and its interior's plan (each floor's rooms, its
+  inside walls, every door's leaf with the rooms each side, and the stairs between the floors) in world.bin's
+  `library` section, and each building's placement (its plan, position, yaw and mirror, and its configuration's
+  palette, roof and look) in `buildings` (`src/world/buildingsbin.h`), which the game reads in hand mode and draws
+  into the cells (section 7.2). The interiors in the game, the plans' slots, options and features, and the
+  outbuildings come later.
 
 A places, unit, fit-out or set file stops the build until its compiler exists. Reference checks beyond what the
 compile needs (step 3) are worldv's, which CI runs on `world/`. The roads section stores floats for now; quantising it

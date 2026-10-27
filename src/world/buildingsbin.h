@@ -2,8 +2,9 @@
 // library's plans, with their floor layouts and looks, into shells, and the building files into placements of them
 // (worldmodel.h compileBuildings); hand mode reads both (handworld.cpp) into gHandBuildings and draws the shells into
 // the cells (handshells.cpp). A shell is what the outside of a building needs: its floors' heights, its exterior walls
-// with their windows and doors, its roof and its look. The interiors (rooms, stairs, slots, furnishing) come later,
-// from the same plans.
+// with their windows and doors, its roof and its look; and what its interior's plan needs: each floor's rooms, its
+// inside walls with their doors, and the stairs between the floors. Slots, units, furnishing, spots and lights come
+// later, from the same plans.
 //
 // Section "library" (WSK_LZ), little-endian: version u32 (kLibrarySectionVersion), then
 //   looks (a facade style each): count u32, then per look: id (string), wall material, wall colour (u32: MaterialId,
@@ -17,8 +18,16 @@
 //     centreline, in the plan's frame), t (f32), side (u32: 0 front, 1 right, 2 back, 3 left), openings (u32 count,
 //     then per opening: kind (u32: a HandWindowKind, or a HandDoorKind | 0x100 for a door), at, w, h, sill (f32),
 //     schedule (u32: the RoomSchedule of the room behind a window, or inside a door from outside; 0xffffffff: none),
-//     room (u32: that room's index among its floor's layout's rooms; 0xffffffff: none))), entrance (u32 wall, u32
-//     opening: the main entrance, a door of one of the walls; 0xffffffff each: none)
+//     room (u32: that room's index among its floor's rooms; 0xffffffff: none), and for a door: hinge (u32: 0 at its
+//     end toward the wall's a, 1 toward b), swing (u32: the side of the wall its leaf opens to, 0 left of a -> b, 1
+//     right), leads (u32 left, u32 right: the rooms each side, as room; 0xffffffff: outside))), entrance (u32 wall,
+//     u32 opening: the main entrance, a door of one of the walls; 0xffffffff each: none), rooms (u32 count, then per
+//     room, each floor's in its layout's order: floor (u32), type (u32: HandRoomType), schedule (u32: RoomSchedule),
+//     lux (u32: 0 none), poly (points, in the plan's frame)), partitions (the inside walls: u32 count, then per wall:
+//     floor (u32), a, b (xy), t (f32), openings (as a wall's: doors)), stairs (u32 count, then per stair: from floor,
+//     room, to floor, room (u32 each: its foot's and its top's), kind (u32: HandStairKind), run (points: its
+//     centreline from the foot), w (f32), treads (u32: its risers), rise (f32), landing (f32: its depth), walk (f32:
+//     the walking line's distance from the centre or the inner corner; -1: the centreline))
 // Section "buildings" (WSK_LZ): version u32 (kBuildingsSectionVersion), count u32, then per building: id (string),
 //   shell (u32), x, y, z (its ground floor's absolute height), yaw (radians) (f32), mirror (u32), palette (5 u32, as a
 //   shell's), roof material (u32; 0xffffffff: the shell's), look (u32; 0xffffffff: the shell's)
@@ -29,7 +38,7 @@
 
 namespace World {
 
-constexpr u32 kLibrarySectionVersion = 3;   // (2: an opening's room; 3: a shell's main entrance)
+constexpr u32 kLibrarySectionVersion = 4;   // (2: an opening's room; 3: a shell's main entrance; 4: its interior's plan)
 constexpr u32 kBuildingsSectionVersion = 1;
 constexpr u32 kNone32 = 0xffffffffu;
 
@@ -43,8 +52,12 @@ enum HandWindowKind : u8 { WIN_FIXED = 0, WIN_DHUNG, WIN_CASEMENT, WIN_SLIDER, W
 enum HandDoorKind : u8 { DOOR_HINGED = 0, DOOR_PAIR, DOOR_SLIDING, DOOR_REVOLVING, DOOR_ROLLUP, DOOR_LIFT, DOOR_OPENING, DOOR_COUNT };
 enum HandShutterKind : u8 { SHUTTER_NONE = 0, SHUTTER_FIXED, SHUTTER_BAHAMA, SHUTTER_COUNT };
 enum HandRoofForm : u8 { RFORM_FLAT = 0, RFORM_GABLE, RFORM_HIP, RFORM_SHED, RFORM_MANSARD, RFORM_BARREL, RFORM_COUNT };
+enum HandRoomType : u8 { ROOM_LIVING = 0, ROOM_KITCHEN, ROOM_BED, ROOM_BATH, ROOM_HALL, ROOM_STAIR, ROOM_OFFICE, ROOM_SHOP, ROOM_STORE, ROOM_LOBBY,
+                         ROOM_CORRIDOR, ROOM_PLANT, ROOM_GARAGE, ROOM_DINING, ROOM_UTILITY, ROOM_RESTAURANT, ROOM_BAR, ROOM_COUNT };
+enum HandStairKind : u8 { STAIR_STRAIGHT = 0, STAIR_DOGLEG, STAIR_QUARTER, STAIR_WINDER, STAIR_SPIRAL, STAIR_CURVED, STAIR_ESCALATOR, STAIR_COUNT };
 // The words for each (the format's): the index of `word` in `kind`'s list, or -1
-int buildingWord(const char* kind, const std::string& word);   // kind: "slot", "trim", "window", "door", "shutters", "roof"
+int buildingWord(const char* kind, const std::string& word);   // kind: "slot", "trim", "window", "door", "shutters", "roof",
+                                                               // "room", "stair"
 
 struct HandLook {                      // a facade style
     std::string id;
@@ -60,7 +73,8 @@ struct HandLook {                      // a facade style
     u8 baseMaterial = 0;
 };
 
-struct HandShell {                     // a plan's outside, in its own frame (front-left corner, +x along the front)
+struct HandShell {                     // a plan's outside and its interior's plan, in its own frame (front-left corner, +x
+                                       // along the front)
     struct Floor {
         std::string id;
         float z = 0.f, h = 0.f;
@@ -69,15 +83,36 @@ struct HandShell {                     // a plan's outside, in its own frame (fr
         u16 kind = 0;                  // a HandWindowKind, or a HandDoorKind | 0x100
         float at = 0.f, w = 0.f, h = 0.f, sill = 0.f;
         u32 schedule = kNone32;        // the RoomSchedule (roomlight.h) of the room behind a window or inside a door
-        u32 room = kNone32;            // that room: its index among the floor's layout's rooms
+        u32 room = kNone32;            // that room: its index among the floor's rooms
+        // a door's leaf: its hinge at the opening's end toward the wall's a (0) or b (1), opening to the left (0) or right
+        // (1) of a -> b; and the rooms each side (kNone32: outside)
+        u8 hinge = 0, swing = 0;
+        u32 left = kNone32, right = kNone32;
         bool door() const { return (kind & 0x100u) != 0; }
     };
     struct Wall {
         int floor = 0;
         vec2 a = vec2(0.f), b = vec2(0.f);
         float t = 0.f;
-        u8 side = 0;                   // 0 front, 1 right, 2 back, 3 left
+        u8 side = 0;                   // 0 front, 1 right, 2 back, 3 left (an inside wall's: 0)
         std::vector<Opening> openings;
+    };
+    struct Room {                      // a floor's room, each floor's in its layout's order (Opening::room counts them)
+        int floor = 0;
+        u8 type = ROOM_LIVING;
+        u32 schedule = kNone32;        // its RoomSchedule
+        u32 lux = 0;                   // (0: none written)
+        std::vector<vec2> poly;
+    };
+    struct Stair {                     // from its foot on one floor to its top on another
+        int fromFloor = 0, toFloor = 0;
+        u32 fromRoom = kNone32, toRoom = kNone32;   // (indices among their floors' rooms)
+        u8 kind = STAIR_STRAIGHT;
+        std::vector<vec2> run;         // its centreline from the foot (docs/NTW_FORMAT.md 9.8's stair runs)
+        float w = 0.f;
+        u32 treads = 0;                // its risers, each `rise` high: they climb from the foot's floor to the top's
+        float rise = 0.f, landing = 0.f;
+        float walk = -1.f;             // the walking line's (-1: the centreline)
     };
     std::string id;
     int cls = 0;
@@ -89,8 +124,11 @@ struct HandShell {                     // a plan's outside, in its own frame (fr
     float pitch = 0.f, overhang = 0.f;
     u8 roofMaterial = 0;
     std::vector<Floor> floors;
-    std::vector<Wall> walls;
+    std::vector<Wall> walls;           // the exterior walls
     int entranceWall = -1, entranceOpening = -1;   // the main entrance: a door in one of the walls (-1: none)
+    std::vector<Room> rooms;
+    std::vector<Wall> partitions;      // the inside walls, with their doors
+    std::vector<Stair> stairs;
 };
 
 struct HandPlacement {

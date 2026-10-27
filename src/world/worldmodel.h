@@ -453,8 +453,8 @@ struct Building {
 };
 
 // ---------------------------------------------------------------- the library's buildings: plans, floor layouts, looks
-// (docs/NTW_FORMAT.md 9.7-9.10), typed so far as the shells need them: the walls, their openings and the rooms behind
-// them; the stairs, slots, furnishing and the rest stay in File::doc for the interiors
+// (docs/NTW_FORMAT.md 9.7-9.10), typed so far as the shells and the interiors' plans need them: the walls, their
+// openings, the rooms and the stairs; the slots, furnishing and the rest stay in File::doc
 struct LayoutWall {
     std::string id;
     Src src;
@@ -472,12 +472,24 @@ struct LayoutOpening {                 // a door or a window, in a wall
     std::string kind;                  // hinged, pair, ...; fixed, dhung, storefront, ...
     std::string room;                  // a window's room
     std::string leads;                 // a door's rooms (room:room, out:room)
+    std::string hinge, swing;          // a door's: left, right; in, out (empty: none written)
 };
 struct LayoutRoom {
     std::string id;
     Src src;
     std::string type, sched;           // living, kitchen, ...; its sched= (empty: by its type)
+    int lux = 0;                       // its lux= (0: none written)
     std::vector<vec2> poly;
+};
+struct LayoutStair {
+    std::string id;
+    Src src;
+    std::string from, to;              // f0.hall, f1.hall; or 0:hall, +1:hall, -1:hall (a room of this floor, above, below)
+    std::vector<vec2> run;             // the flight's centreline from its foot
+    float w = 0.f;
+    std::string kind;                  // straight, dogleg, quarter, winder, spiral, curved, escalator
+    int treads = 0;                    // 0: none written
+    float rise = 0.f, landing = -1.f, walk = -1.f;   // (0, -1, -1: none written)
 };
 struct Layout {
     std::string id;
@@ -485,6 +497,7 @@ struct Layout {
     std::vector<LayoutWall> walls;
     std::vector<LayoutOpening> openings;
     std::vector<LayoutRoom> rooms;
+    std::vector<LayoutStair> stairs;
 };
 struct PlanFloor {
     std::string id;                    // f0, f1, ..., b1, attic, roof
