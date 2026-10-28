@@ -19,6 +19,9 @@
 # - a plan fits the frontage and the depth, and suits the parcel's use;
 # - no plan with the same palette twice within three placements, no palette twice side by side, and no house plan
 #   twice in neighbouring parcels;
+# - the palettes draw from a generator of their own, seeded with the block id and the seed (the text "cl.b014 6"),
+#   after every other draw: so blocks whose plans draw alike don't repeat each other's colours, and a palette moves no
+#   building;
 # - a casita is the gable one or its flat-roofed twin by a draw of its own per parcel, never three alike side by side,
 #   and a gable casita's palette is the casita family's of the colour it drew (its tile roof tinted); both come after
 #   the seeded draws, so they change no other building;
@@ -371,12 +374,15 @@ def family(p):
     return pal.split(".")[2] if pal.count(".") >= 3 else "calle"
 
 
+# the palettes' own generator, seeded with the block id and the seed (Python hashes a text seed with SHA-512): after
+# every other draw, so that it moves no building, and blocks whose plans draw alike still get colours of their own
+prng = random.Random("%s %d" % (BLOCK, SEED))
 recent = []
 for pl in placements:
     fam = palettes[family(pl["plan"])]
     avoid = {r[1] for r in recent[-1:]} | {r[1] for r in recent[-3:] if r[0] == pl["plan"]}
     choice = [c for c in fam if c not in avoid] or fam
-    pl["palette"] = rng.choice(choice)
+    pl["palette"] = prng.choice(choice)
     recent.append((pl["plan"], pl["palette"]))
 # a casita is the gable plan or its twin by a draw of its own (its parcel id's CRC), but never the third alike side by
 # side (neighbouring parcels of one face); a gable casita takes the casita palette of its colour
