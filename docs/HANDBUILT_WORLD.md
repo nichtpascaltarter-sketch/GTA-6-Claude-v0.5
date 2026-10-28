@@ -104,6 +104,8 @@ Startup builds the world in this order. The timings are from a regression log: n
 Cells are generated on demand:
 - The renderer streams 256 m cells: near LOD within 420 m, far LOD within 2,300 m.
 - Each streamed cell calls `World::generateCell(cx, cy, detail, CellGeometry&)` (cellgen.cpp) on a job thread.
+- A frame's new cells go to the job queue together, under one lock and with at most one wake per worker
+  (`Jobs::submitBatch`), with up to 6 cells in flight.
 - That call returns one opaque mesh, decals, prop instances, lights and collision boxes for the cell.
 - The frame uploads the finished cells (their buffers and collision), near before far and nearest first: up to 4 cells
   and 64k triangles a frame, and a bigger cell alone (`world_render.cpp`).
