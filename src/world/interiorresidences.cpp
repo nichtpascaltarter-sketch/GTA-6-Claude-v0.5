@@ -323,7 +323,8 @@ void layoutCondoUnit(IB& b) {
     int clos = closet ? room(b, vec3(cabX1 + pt, yS + pt * 0.5f, 0.f), vec3(closX1, Y1, H), vec3(26.f, 24.f, 21.f), 0.f, LS_ALWAYS) : -1;
     int kit = alcove ? room(b, vec3(alX0, yS + pt * 0.5f, 0.f), vec3(X1, Y1, H), warm, 0.15f, LS_ALWAYS) : -1;
     // doors
-    const float bdY = Y0 + (yS - Y0) * 0.72f, baX = (X0 + xb) * 0.5f, clX = closet ? (cabX1 + pt + closX1) * 0.5f : 0.f;
+    // (the bathroom's door in the bedroom's corner by the living room: the bed's head is against the middle of that wall)
+    const float bdY = Y0 + (yS - Y0) * 0.72f, baX = xb - pt * 0.5f - 0.5f, clX = closet ? (cabX1 + pt + closX1) * 0.5f : 0.f;
     if (alcove) {
         // wide opening between the living room and the kitchen alcove
         const InteriorRoom& rl = d.rooms[living];
@@ -575,9 +576,10 @@ void layoutCondoUnit(IB& b) {
         u32 duvet = top ? C(0.92f, 0.9f, 0.86f) : C(hsv(r.f(), 0.25f, 0.8f));
         areaRug(b, vec3(bcx, BY1 - 1.5f, 0.f), bw + 1.3f, 2.6f, top ? C(0.66f, 0.62f, 0.56f) : C(0.82f, 0.78f, 0.7f), top ? C(0.3f, 0.27f, 0.24f) : C(0.5f, 0.55f, 0.6f));
         bed(b, vec3(bcx, BY1 - 1.12f, 0.f), kPi, bw, 2.1f, wood, duvet, r.next(), false);
+        // one nightstand: the bathroom's door is on the other side (that one's draw stays in the random stream)
         float ns = bw * 0.5f + 0.32f;
         if (bcx - ns - 0.25f > X0) nightstand(b, vec3(bcx - ns, BY1 - 0.22f, 0.f), kPi, wood, bedroom, r.next());
-        if (bcx + ns + 0.25f < xb - pt * 0.5f) nightstand(b, vec3(bcx + ns, BY1 - 0.22f, 0.f), kPi, wood, bedroom, r.next());
+        if (bcx + ns + 0.25f < xb - pt * 0.5f) (void)r.next();
         dresser(b, vec3(X0, Y0 + 1.6f, 0.f), -kHalfPi, 1.3f, wood, r.next());
         {
             At at(b, vec3(X0, Y0 + 1.6f, 0.f), -kHalfPi);   // mirror over the dresser
@@ -621,12 +623,13 @@ void layoutCondoUnit(IB& b) {
         marker(b, IM_BED, vec3(bcx, BY1 - 2.25f - 0.45f, 0.f), 0.f);
         marker(b, IM_MIRROR, vec3(X0 + 1.0f, Y0 + 1.6f, 0.f), -kHalfPi);
     }
-    // ---- bathroom: tub along the back wall, toilet, vanity; walk-in closet with wardrobes
+    // ---- bathroom: tub along the back wall, toilet, vanity in the back corner past the door; walk-in closet with
+    // wardrobes
     {
         float bcx = (X0 + xb) * 0.5f, BY0 = yS + pt * 0.5f;
         bathtub(b, vec3(bcx, Y1, 0.f), kPi, Min(1.7f, xb - X0 - 0.2f), top ? Gy(0.9f) : C(hsv(r.f(), 0.3f, 0.85f)));
         toilet(b, vec3(X0 + 0.31f, BY0 + 0.55f, 0.f), -kHalfPi);
-        bathSink(b, vec3(xb - pt * 0.5f, BY0 + 0.7f, 0.f), kHalfPi, top ? Gy(0.15f) : Gy(0.95f), bath);
+        bathSink(b, vec3(xb - pt * 0.5f, Y1 - 0.47f, 0.f), kHalfPi, top ? Gy(0.15f) : Gy(0.95f), bath);
         domeLight(b, vec3(bcx, (BY0 + Y1) * 0.5f, H), bath, 150.f, vec3(1.f, 0.95f, 0.88f));
     }
     if (closet) {

@@ -620,7 +620,7 @@ void layoutClothes(IB& b) {
         box(b, vec3(0.f, 0.f, 1.0f), vec3(0.35f, 0.03f, 0.95f), C(0.2f, 0.16f, 0.12f), M(MAT_WOOD), SK_NONE);
         box(b, vec3(0.f, -0.031f, 1.0f), vec3(0.31f, 0.001f, 0.9f), Gy(0.95f), M(MAT_CHROME), SK_NONE);
         collide(b, vec3(0.f, 0.f, 1.0f), vec3(0.35f, 0.05f, 1.0f));
-        marker(b, IM_MIRROR, vec3(mx, yF - 1.2f, 0.f), 0.f);
+        marker(b, IM_MIRROR, vec3(0.f, -0.9f, 0.f), 0.f);   // (in the mirror's frame: 0.9 m in front of it)
     }
     // ---- cash desk near the door on the fitting-room side
     {
@@ -688,9 +688,9 @@ void layoutClothes(IB& b) {
         float cxm = (X0 + X1) * 0.5f;
         float ya = Y0 + 4.6f, yb2 = yF - 1.4f;
         int rows = Max(1, (int)((yb2 - ya) / 2.6f));
+        const float span = (X1 - X0) - 4.2f;
         for (int j = 0; j < rows; j++) {
             float y = ya + (yb2 - ya) * (j + 0.5f) / rows;
-            float span = (X1 - X0) - 4.2f;
             for (int i = 0; i < 2; i++) {
                 float x = cxm + (i == 0 ? -1.f : 1.f) * span * 0.25f;
                 if ((i + j) & 1) roundRack(b, vec3(x, y, 0.f), 0.55f, r.next());
@@ -699,7 +699,8 @@ void layoutClothes(IB& b) {
         }
         scenario(b, vec3(cxm, ya + 1.2f, 0.f), r.range(-1.f, 1.f), 14, SR_SHOPPER, SF_OPTIONAL);
         scenario(b, vec3(cxm + 1.2f, yb2 - 0.3f, 0.f), kPi * 0.8f, 14, SR_SHOPPER, SF_OPTIONAL);
-        scenario(b, vec3(cxm - 1.6f, (ya + yb2) * 0.5f, 0.f), 0.5f, 7, SR_CLERK, SF_STAFF | SF_OPTIONAL);
+        // the floor clerk at the first row's fold table, on its aisle side facing it
+        scenario(b, vec3(cxm - span * 0.25f + 1.25f, ya + (yb2 - ya) * 0.5f / rows, 0.f), kHalfPi, 7, SR_CLERK, SF_STAFF | SF_OPTIONAL);
     }
     // ---- lights: black cone pendants down the middle, downlights along the walls, the neon name
     {

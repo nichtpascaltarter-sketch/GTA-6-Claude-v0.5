@@ -70,7 +70,8 @@ State gIS;
 // The collision world's "cell" key of an interior's colliders (sub 0) and of its doors' leaves (1 + the door): positive
 // (the collision world takes a collider whose owner, its key, is negative for one it has freed), past the streaming
 // cells' (below 2 * 80 * 80) and the ramps' (activities.cpp, 1000000 + i)
-int colKeyFor(int def, int sub) { return 2000000 + def * 256 + sub; }
+const int kColKeyBase = 2000000;
+int colKeyFor(int def, int sub) { return kColKeyBase + def * 256 + sub; }
 
 float cellDistance(vec2 p, dvec3 cam) {
     float cs = World::kCellSize;
@@ -979,6 +980,7 @@ void tideTest(GameWorld& g, float dt) {
         gTT.st = 0.f;
     };
     if (!gTT.init) {
+        if (!mu::gShops.init) return;   // (the shop list, which holds the shop's story gate, comes with the first update)
         gTT.init = true;
         gTT.def = World::gInteriors->byName(arg);
         if (gTT.def < 0) gTT.def = World::gInteriors->byKind(World::IK_MODSHOP, 0);
@@ -989,6 +991,12 @@ void tideTest(GameWorld& g, float dt) {
             return;
         }
         const InteriorDef& d = defs[gTT.def];
+        // (a shop the story opens later, Tide Customs Sol Beach after low_tide: opened for the test)
+        for (const mu::ShopSite& s : mu::gShops.shops)
+            if (s.name && d.name == s.name && s.requiresFlag >= 0 && !mu::flag(g, s.requiresFlag)) {
+                mu::setFlag(g, s.requiresFlag, 1);
+                LOG("tidetest: '%s' opens with story flag %d: set for the test", d.name.c_str(), s.requiresFlag);
+            }
         gTT.lift = d.toWorld(mk->pos);
         vec3 ll = mk->pos;
         gTT.street = d.toWorld(vec3(ll.x, -9.f, 0.f));
@@ -1287,6 +1295,8 @@ void submitFreecam(Render::Renderer& R, const Render::Camera& cam, const Render:
 }
 
 bool isInside() { return gIS.playerInterior >= 0; }
+// A collider's owner (its collision key) is an interior's: its walls, furniture, floors, stairs or a door's leaf
+bool isColKey(int key) { return key >= kColKeyBase; }
 int currentInterior() { return gIS.playerInterior; }
 int currentRoom() { return gIS.playerRoom; }
 int currentKind() { return gIS.playerInterior >= 0 && World::gInteriors ? (int)World::gInteriors->defs[gIS.playerInterior].kind : -1; }

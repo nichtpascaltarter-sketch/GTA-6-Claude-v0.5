@@ -146,22 +146,57 @@ void glazeAll(IB& b, float clarity, u32 frameCol, bool storefront) {
     }
 }
 
-// Threshold under the entrance, landing and step down to the sidewalk (world ground is queried read-only)
+// How far the world's ground outside (the terrain, or a road or sidewalk surface) lies below the floor at model point
+// (x, y): negative above it. Read only
+float groundDrop(const InteriorDef& d, float x, float y) {
+    const vec3 p = d.toWorld(vec3(x, y, 0.f));
+    float gz = gMap ? gMap->heightAt(p.x, p.y) : d.origin.z;
+    float rz;
+    if (gRoads && gRoads->surfaceHeight(p.xy(), &rz, d.origin.z + 1.f) && rz > gz - 0.5f) gz = rz;
+    return d.origin.z - gz;
+}
+
+// Threshold under the entrance, landing and step down to the sidewalk (world ground is queried read-only). Where a
+// gutter, a strip of lower ground, lies between the facade and a sidewalk within a step of the floor (2.5 m out at
+// most), the landing reaches over it to the sidewalk, as the hand shells' stoops do (handshells.cpp buildStoops): the
+// walk takes a box's top only within 0.35 m of its feet (physics.cpp capsuleOverlap). The landing's collider runs on
+// 5 cm under the facade, into the building's foundation
 void entranceStep(IB& b, float x0, float x1) {
     const InteriorDef& d = *b.d;
-    vec3 outside = d.toWorld(vec3((x0 + x1) * 0.5f, -1.2f, 0.f));
-    float gz = gMap ? gMap->heightAt(outside.x, outside.y) : d.origin.z;
-    float rz;
-    if (gRoads && gRoads->surfaceHeight(outside.xy(), &rz, d.origin.z + 1.f) && rz > gz - 0.5f) gz = rz;
-    float drop = d.origin.z - gz;
+    const float drop = groundDrop(d, (x0 + x1) * 0.5f, -1.2f);
+    // (the ground a distance s out, the lowest across the door's width)
+    const auto dropAt = [&](float s) {
+        float g = -1e9f;
+        for (float k : {0.1f, 0.5f, 0.9f}) g = Max(g, groundDrop(d, Lerp(x0, x1, k), -s));
+        return g;
+    };
+    float gutter = dropAt(0.1f), reach = 0.f;
+    if (gutter > 0.12f)
+        for (int i = 0; i <= 15; i++) {
+            const float s = 0.25f + 0.15f * (float)i, g = dropAt(s);
+            if (s > 0.5f && g <= 0.18f) {
+                // (the sidewalk's edge, to 5 mm; the landing runs 3 cm onto it, just under its surface)
+                float s0 = s - 0.15f, s1 = s;
+                for (int k = 0; k < 5; k++) (dropAt((s0 + s1) * 0.5f) <= 0.18f ? s1 : s0) = (s0 + s1) * 0.5f;
+                reach = s1 + 0.03f;
+                break;
+            }
+            gutter = Max(gutter, g);
+        }
     InPart ip(b, IP_SHELL);
     // threshold through the wall
     box(b, vec3((x0 + x1) * 0.5f, kT * 0.5f, -0.02f), vec3((x1 - x0) * 0.5f, kT * 0.5f, 0.02f), Gy(0.55f), M(MAT_METAL_BRUSHED), SK_NZ);
-    if (drop > 0.06f) {
+    if (reach > 0.f) {
+        // the landing over the gutter, level with the floor, its sides down past the gutter's floor
+        float w = (x1 - x0) * 0.5f + 0.45f;
+        float z0 = -Min(Max(drop, gutter), 1.2f) - 0.15f;
+        box(b, vec3((x0 + x1) * 0.5f, -reach * 0.5f, z0 * 0.5f), vec3(w, reach * 0.5f, -z0 * 0.5f), Gy(0.72f), M(MAT_CONCRETE), SK_NZ | SK_PY);
+        collide(b, vec3((x0 + x1) * 0.5f, (0.05f - reach) * 0.5f, z0 * 0.5f), vec3(w, (reach + 0.05f) * 0.5f, -z0 * 0.5f));
+    } else if (drop > 0.06f) {
         float w = (x1 - x0) * 0.5f + 0.45f;
         float z0 = -Min(drop, 1.2f) - 0.15f;
         box(b, vec3((x0 + x1) * 0.5f, -0.55f, (z0 + 0.f) * 0.5f), vec3(w, 0.55f, (0.f - z0) * 0.5f), Gy(0.72f), M(MAT_CONCRETE), SK_NZ | SK_PY);
-        collide(b, vec3((x0 + x1) * 0.5f, -0.55f, z0 * 0.5f), vec3(w, 0.55f, -z0 * 0.5f));
+        collide(b, vec3((x0 + x1) * 0.5f, -0.525f, z0 * 0.5f), vec3(w, 0.575f, -z0 * 0.5f));
         if (drop > 0.3f) {
             float zs = -drop * 0.5f;
             box(b, vec3((x0 + x1) * 0.5f, -1.4f, (z0 + zs) * 0.5f), vec3(w, 0.3f, (zs - z0) * 0.5f), Gy(0.7f), M(MAT_CONCRETE), SK_NZ | SK_PY);
