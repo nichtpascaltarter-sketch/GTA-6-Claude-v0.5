@@ -1,0 +1,5 @@
+ntw 1 building id=cl.b014.s11 block=cl.b014 parcel=cl.b014.p07
+# the corner shop with a flat over it, its windows on both streets, facing Calle Siete
+# written by tools/author/street.py (seed 6): a re-run rewrites this file, unless this line goes
+place plan=lib.plan.shop.corner_c at=1204.55,464.70 z=4.13 yaw=0.0 mirror=1
+config palette=lib.palette.calle.mint

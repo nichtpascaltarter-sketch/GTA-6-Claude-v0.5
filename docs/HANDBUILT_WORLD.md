@@ -579,7 +579,8 @@ back from the sidewalk rather than from the outline, and with `--ground` every f
 ground: a corner plan where its side street's sidewalk reaches further in stands up to 2.1 m further in from it. It
 wrote b006's 21 buildings, b004's 17, b007's 10, b002's 18, b003's 17, b008's 20, b013's 15, b010's 16, b012's 14,
 b009's 21 and b011's 19 (seed 6 each), and its re-run for the twin rewrote only the 32 casitas of b002-b004 and
-b008-b013; a re-run rewrites only the files that still carry its line.
+b008-b013; then it wrote b014-b016's Calle Siete face, 27 buildings (their Avenida Flores face waits for its batch). A
+re-run rewrites only the files that still carry its line.
 
 So far `tools/author/dress.py` writes the generated part of the pilot's 25 block files: it cuts each block into
 parcels along its frontages, levels each parcel 0.2 m under the lowest sidewalk along it (its ground lies 0.03 m over
@@ -838,7 +839,8 @@ So far a hand-built building's interior streams as the generator's do: the whole
 built on a worker; b005's twelve hold 120 rooms in 60k triangles, with b006's 21 the 33 hold 348 rooms in 179k, and with
 b004's 17 and b007's 10 the 60 hold 699 rooms in 356k, and with b002's 18 and b003's 17 the 95 hold 1,116 rooms in 569k,
 and with b008's 20 and b013's 15 the 130 hold 1,482 rooms in 758k, and with b010's 16 and b012's 14 the 160 hold 1,809
-rooms in 927k, and with b009's 21 and b011's 19 the 200 hold 2,220 rooms in 1,139k.
+rooms in 927k, and with b009's 21 and b011's 19 the 200 hold 2,220 rooms in 1,139k, and with b014-b016's 27 on Calle
+Siete the 227 hold 2,448 rooms in 1,266k.
 The log gives each hand cell's build time (`Hand buildings: cell ...`) and, with each interior built, the interiors
 resident and how many of them are hand-built.
 
