@@ -2,4 +2,4 @@ ntw 1 building id=cl.b003.h13 block=cl.b003 parcel=cl.b003.p10
 # a two-storey casita, facing Paseo del Rio
 # written by tools/author/street.py (seed 6): a re-run rewrites this file, unless this line goes
 place plan=lib.plan.house.casita_d at=1377.84,218.62 z=4.09 yaw=350.4
-config palette=lib.palette.calle.sand
+config palette=lib.palette.casita.sand

@@ -1,0 +1,10 @@
+ntw 1 palette family=casita
+# the gable casitas: Calle Luna's colours (palettes/calle.ntw), each over a tile of its own (the roof's tint on the
+# terracotta: as it is, darker or darker still, and each of the three also redder); street.py gives a gable casita
+# the one of the colour it drew from Calle Luna's
+palette coral wall=#f2a58c trim=#f6f1e6 door=#3b5a52 accent=#2f6f68 roof=#ffa090
+palette mint wall=#a8dcc4 trim=#f7f4ec door=#7a3b2e accent=#c0573f roof=#ffffff
+palette sky wall=#9cc8e8 trim=#ffffff door=#264a6e accent=#e0b33f roof=#cc8070
+palette lemon wall=#f4dc84 trim=#fbf7ee door=#5a3a24 accent=#2e7d6b roof=#999088
+palette rose wall=#f0b4c4 trim=#fbf6f0 door=#45392e accent=#3a6ea5 roof=#ccc0b8
+palette sand wall=#e8d4b0 trim=#ffffff door=#6b2f1f accent=#4a7a3a roof=#996058

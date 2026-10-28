@@ -569,13 +569,17 @@ So far `tools/author/street.py` places a block's buildings along its streets: on
 and walk-ups, a corner plan at a corner with its side-street wall towards the side street, on a street a house in the
 middle of each parcel, with 1.5 m side yards (1.0 m on a lot too narrow for any house with them), and a parcel on no
 street (a park) left to its block file; mirrors alternating, no palette twice side by side, no plan with the same
-palette twice within three. Each ground floor stands 0.01 m over the sidewalk in front of it (the street's profile and
-its kerb), and with `--ground` (the compiled ground on a grid: `worldc --dump-ground`) at least 0.05 m over the ground
-under its footprint. A generated parcel's outline runs 0.5 m in under its streets (below), so the front line and a
-corner's side wall stand back from the sidewalk rather than from the outline, and with `--ground` every footprint stands
-on the parcel's level ground: a corner plan where its side street's sidewalk reaches further in stands up to 2.1 m
-further in from it. It wrote b006's 21 buildings, b004's 17, b007's 10, b002's 18, b003's 17, b008's 20, b013's 15,
-b010's 16, b012's 14, b009's 21 and b011's 19 (seed 6 each); a re-run rewrites only the files that still carry its line.
+palette twice within three. A casita is the gable one or its twin (the same two floors under a flat roof behind a
+parapet) by a draw of its own per parcel, never the third alike side by side, and a gable casita takes the casita
+palette of the colour it drew, its tile roof tinted: both come after the seeded draws, so they move no other building.
+Each ground floor stands 0.01 m over the sidewalk in front of it (the street's profile and its kerb), and with
+`--ground` (the compiled ground on a grid: `worldc --dump-ground`) at least 0.05 m over the ground under its footprint.
+A generated parcel's outline runs 0.5 m in under its streets (below), so the front line and a corner's side wall stand
+back from the sidewalk rather than from the outline, and with `--ground` every footprint stands on the parcel's level
+ground: a corner plan where its side street's sidewalk reaches further in stands up to 2.1 m further in from it. It
+wrote b006's 21 buildings, b004's 17, b007's 10, b002's 18, b003's 17, b008's 20, b013's 15, b010's 16, b012's 14,
+b009's 21 and b011's 19 (seed 6 each), and its re-run for the twin rewrote only the 32 casitas of b002-b004 and
+b008-b013; a re-run rewrites only the files that still carry its line.
 
 So far `tools/author/dress.py` writes the generated part of the pilot's 25 block files: it cuts each block into
 parcels along its frontages, levels each parcel 0.2 m under the lowest sidewalk along it (its ground lies 0.03 m over
