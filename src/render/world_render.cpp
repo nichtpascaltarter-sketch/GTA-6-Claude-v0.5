@@ -41,12 +41,21 @@ struct WorldRenderer {
     bool reduceFlashing = false;  // accessibility (renderer settings): blinking aviation lights pulse slowly instead
     std::atomic<int> inFlight{0};
     int uploadsPerFrame = 4;
+    u32 uploadTriangles = 64000;  // a frame's uploads stop short of this, but its first cell goes whatever its size
     int drawnCells = 0;
     // what the last update() did, for autoplay's frame log (game/app.cpp): its time, and the cells it uploaded
     double lastUpdateMs = 0.0;
     std::string lastUploads;   // "cx,cy near|far N tris; ..."
 
     static int key(int cx, int cy, int lod) { return (lod * World::kCellsPerSide + cy) * World::kCellsPerSide + cx; }
+    // the distance from the camera to a cell's square, in plan, as the rings measure it
+    static float cellDistance(int cx, int cy, dvec3 cam) {
+        const float cs = World::kCellSize;
+        const vec2 o = World::cellOrigin(cx, cy);
+        const float qx = Max(Max(o.x - (float)cam.x, 0.f), (float)cam.x - (o.x + cs));
+        const float qy = Max(Max(o.y - (float)cam.y, 0.f), (float)cam.y - (o.y + cs));
+        return sqrtf(qx * qx + qy * qy);
+    }
 
     void init(MaterialLibrary* m) {
         mats = m;
@@ -287,16 +296,34 @@ struct WorldRenderer {
         }
         std::sort(reqs.begin(), reqs.end(), [](const Req& a, const Req& b) { return a.d < b.d; });
         for (auto& r : reqs) requestCell(r.cx, r.cy, r.lod, now);
-        // Upload finished cells (budgeted)
-        int uploads = 0;
+        // Upload finished cells, near before far and nearest first, up to uploadsPerFrame cells and uploadTriangles
+        // triangles a frame: a cell that would take the frame past them waits for the next. The frame's first cell always
+        // goes, so one bigger than the budget goes alone and no cell waits for good.
+        struct Ready {
+            int lod;
+            float d;
+            int k;
+            StreamCell* c;
+        };
+        std::vector<Ready> ready;
         for (auto& kv : cells) {
             StreamCell* c = kv.second;
-            if (c->state.load() == 1 && uploads < uploadsPerFrame) {
-                upload(c);
-                uploads++;
-                lastUploads += StrFormat("%s%d,%d %s %u tris", lastUploads.empty() ? "" : "; ", c->cx, c->cy, c->lod == 0 ? "near" : "far",
-                                         (c->opaqueCount + c->decalCount) / 3u);
-            }
+            if (c->state.load() == 1) ready.push_back({c->lod, cellDistance(c->cx, c->cy, cam), kv.first, c});
+        }
+        std::sort(ready.begin(), ready.end(), [](const Ready& a, const Ready& b) {
+            return a.lod != b.lod ? a.lod < b.lod : a.d != b.d ? a.d < b.d : a.k < b.k;
+        });
+        int uploads = 0;
+        u32 tris = 0;
+        for (const Ready& r : ready) {
+            StreamCell* c = r.c;
+            const u32 t = (u32)((c->geo->opaque.indices.size() + c->geo->decals.indices.size()) / 3);
+            if (uploads == uploadsPerFrame || (uploads > 0 && tris + t > uploadTriangles)) break;
+            upload(c);
+            uploads++;
+            tris += t;
+            lastUploads += StrFormat("%s%d,%d %s %u tris", lastUploads.empty() ? "" : "; ", c->cx, c->cy, c->lod == 0 ? "near" : "far",
+                                     (c->opaqueCount + c->decalCount) / 3u);
         }
         // Evict cells not requested recently (only when not being generated)
         std::vector<int> dead;
