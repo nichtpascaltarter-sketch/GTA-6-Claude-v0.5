@@ -586,7 +586,8 @@ casitas of b002-b004 and b008-b013; then it wrote the Calle Siete face of b014-b
 (22), and the Avenida Flores face of b014-b016 (31) and of b017-b019 (27), which completes row 3; its re-run for the
 palettes' own seed recoloured 231 of the 274 buildings of b002-b004 and b007-b019 (b005 and b006 keep theirs); then it
 wrote the Avenida Flores face of b020-b022 (33) and of b023-b025 (26), across the avenue from row 3, then the Calle
-Nueve face of b020-b022 (26). A re-run rewrites only the files that still carry its line.
+Nueve face of b020-b022 (26) and of b023-b025 (20), which completes row 4. A re-run rewrites only the files that still
+carry its line.
 
 So far `tools/author/dress.py` writes the generated part of the pilot's 25 block files: it cuts each block into
 parcels along its frontages, levels each parcel 0.2 m under the lowest sidewalk along it (its ground lies 0.03 m over
@@ -849,7 +850,8 @@ rooms in 927k, and with b009's 21 and b011's 19 the 200 hold 2,220 rooms in 1,13
 Siete the 227 hold 2,448 rooms in 1,266k, and with b017-b019's 22 the 249 hold 2,640 rooms in 1,371k, and with
 b014-b016's 31 on Avenida Flores the 280 hold 3,111 rooms in 1,599k, and with b017-b019's 27 there the 307 hold 3,462
 rooms in 1,771k, and with b020-b022's 33 across the avenue the 340 hold 3,891 rooms in 1,981k, and with b023-b025's 26
-the 366 hold 4,245 rooms in 2,153k, and with b020-b022's 26 on Calle Nueve the 392 hold 4,464 rooms in 2,276k.
+the 366 hold 4,245 rooms in 2,153k, and with b020-b022's 26 on Calle Nueve the 392 hold 4,464 rooms in 2,276k, and
+with b023-b025's 20 the 412 hold 4,635 rooms in 2,371k.
 The log gives each hand cell's build time (`Hand buildings: cell ...`) and, with each interior built, the interiors
 resident and how many of them are hand-built.
 
