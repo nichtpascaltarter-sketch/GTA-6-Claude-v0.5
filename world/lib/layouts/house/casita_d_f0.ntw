@@ -1,0 +1,28 @@
+ntw 1 layout id=lib.layout.house.casita_d_f0
+# the casita's ground floor: the front door into a hall beside the living room, the stair behind the hall, the kitchen
+# behind the living room with the door to the back garden
+wall w1 a=0.00,0.00 b=9.00,0.00 t=0.25 ext=front
+wall w2 a=9.00,0.00 b=9.00,10.00 t=0.25 ext=right
+wall w3 a=9.00,10.00 b=0.00,10.00 t=0.25 ext=back
+wall w4 a=0.00,10.00 b=0.00,0.00 t=0.25 ext=left
+wall w5 a=6.40,4.40 b=9.00,4.40 t=0.12
+wall w6 a=6.40,0.00 b=6.40,10.00 t=0.12
+wall w7 a=0.00,5.60 b=6.40,5.60 t=0.12
+room hall type=hall poly=6.40,0.00;9.00,0.00;9.00,4.40;6.40,4.40 cap=2
+room stair type=stair poly=6.40,4.40;9.00,4.40;9.00,10.00;6.40,10.00 cap=2
+room living type=living poly=0.00,0.00;6.40,0.00;6.40,5.60;0.00,5.60 cap=5 sched=evening lux=150
+room kitchen type=kitchen poly=0.00,5.60;6.40,5.60;6.40,10.00;0.00,10.00 cap=4 lux=300
+door d1 wall=w1 at=7.70 w=0.95 h=2.10 kind=hinged hinge=left swing=in leads=out:hall
+door d2 wall=w6 at=2.20 w=0.90 h=2.10 kind=opening leads=hall:living
+door d3 wall=w5 at=1.30 w=0.90 h=2.10 kind=hinged hinge=right swing=out leads=hall:stair
+door d4 wall=w7 at=3.20 w=0.90 h=2.10 kind=opening leads=living:kitchen
+door d5 wall=w3 at=6.50 w=0.90 h=2.10 kind=hinged hinge=right swing=out leads=kitchen:out lock=key
+window n1 wall=w1 at=1.80 w=1.40 h=1.50 sill=0.90 kind=casement room=living
+window n2 wall=w1 at=4.60 w=1.40 h=1.50 sill=0.90 kind=casement room=living
+window n3 wall=w4 at=7.60 w=1.20 h=1.40 sill=0.90 kind=casement room=living
+window n4 wall=w4 at=2.40 w=1.20 h=1.40 sill=0.90 kind=casement room=kitchen
+window n5 wall=w3 at=4.80 w=1.20 h=1.20 sill=1.00 kind=casement room=kitchen
+window n6 wall=w2 at=2.20 w=0.80 h=1.20 sill=1.00 kind=fixed room=hall
+window n7 wall=w2 at=8.60 w=0.80 h=1.00 sill=1.60 kind=fixed room=stair
+stair st1 from=f0.stair to=f1.stair run=7.10,6.37;7.10,9.30;8.30,9.30;8.30,6.37 w=1.10 kind=dogleg treads=17 rise=0.18
+  landing=1.10

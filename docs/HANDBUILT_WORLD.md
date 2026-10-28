@@ -561,6 +561,13 @@ previews, and commits the text. For example:
 
 They are Python, run with `-I`, and never ship. The game doesn't know they exist.
 
+So far `tools/author/street.py` places a block's buildings along its streets: on an avenue a street wall of the
+shops and walk-ups, a corner plan at a corner with its side-street wall towards the side street, on a street a house in
+the middle of each parcel; mirrors alternating, no palette twice side by side, no plan with the same palette twice
+within three. Each ground floor stands 0.01 m over the sidewalk in front of it (the street's profile and its kerb),
+and with `--ground` (a dump of the compiled ground on a grid) at least 0.05 m over the ground under its footprint. It
+wrote b006's 21 buildings (seed 6); a re-run rewrites only the files that still carry its line.
+
 ---
 
 ## 6. Compiling and shipping
@@ -724,8 +731,9 @@ compiled data. Nothing is invented:
   - collision: the walls' bounds in the plan's frame, one box, from the foundation to the roof; for a building with an
     interior, its parts: the foundation up to the ground floor, each exterior wall floor by floor with its doorways
     open (a lintel over each), and the roof down to the top floor's ceiling. A ground-floor door whose ground outside
-    lies lower than a threshold's step gets a stoop: a landing level with the floor out to the sidewalk, or 0.9 m deep
-    with steps down (the walk steps onto a box only within 0.35 m of its feet);
+    lies lower than a threshold's step, anywhere within 0.3 m of its wall (a strip of it however narrow), gets a
+    stoop: a landing level with the floor out to the sidewalk, or 0.9 m deep with steps down (the walk steps onto a box
+    only within 0.35 m of its feet);
   - the foundation goes down to 0.3 m under the lowest ground at the walls, so a building on a slope stands on it;
   - the game's building queries see each placement as a building (`BuildingSet::pointInBuilding`, `buildingsNear` and
     what is built on them: peds' spawn, flee and window-shopping checks, traffic, police, wildlife, missions, the map):
@@ -788,7 +796,9 @@ in layout space:
 ### 7.4 Interiors at scale: streaming
 
 So far a hand-built building's interior streams as the generator's do: the whole building within 480 m of the camera,
-built on a worker; b005's twelve hold 120 rooms in 60k triangles.
+built on a worker; b005's twelve hold 120 rooms in 60k triangles, and with b006's 21 the 33 hold 348 rooms in 179k.
+The log gives each hand cell's build time (`Hand buildings: cell ...`) and, with each interior built, the interiors
+resident and how many of them are hand-built.
 
 **What is resident:**
 
