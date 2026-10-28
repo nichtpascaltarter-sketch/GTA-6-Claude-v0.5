@@ -22,31 +22,41 @@ void rollupDoors(IB& b, u32 color) {
         box(b, vec3(xc, kT + 0.25f, h + 0.28f), vec3((x1 - x0) * 0.5f + 0.15f, 0.25f, 0.28f), Gy(0.55f), steel, SK_NONE);   // coil housing
         for (float x : {x0 - 0.06f, x1 + 0.06f}) box(b, vec3(x, kT + 0.06f, h * 0.5f), vec3(0.06f, 0.06f, h * 0.5f), Gy(0.45f), steel, SK_NZ);
         box(b, vec3(xc, kT * 0.5f, -0.01f), vec3((x1 - x0) * 0.5f, kT * 0.5f, 0.01f), Gy(0.5f), M(MAT_METAL_BRUSHED), SK_NZ);
-        // apron ramp from the street up to the floor, stepped collision so tires climb it
-        vec3 outside = d.toWorld(vec3(xc, -2.6f, 0.f));
-        float gz = gMap ? gMap->heightAt(outside.x, outside.y) : d.origin.z;
-        float rz;
-        if (gRoads && gRoads->surfaceHeight(outside.xy(), &rz, d.origin.z + 1.f) && rz > gz - 0.5f) gz = rz;
-        float drop = Clamp(d.origin.z - gz, 0.f, 0.9f);
-        if (drop > 0.03f) {
-            float y0 = -Max(1.5f, drop * 6.f), w = (x1 - x0) * 0.5f + 0.4f;
-            quadF(b, vec3(xc - w, y0, -drop), vec3(xc + w, y0, -drop), vec3(xc + w, 0.f, 0.f), vec3(xc - w, 0.f, 0.f), vec3(0, -drop, -y0), Gy(0.66f), M(MAT_CONCRETE));
+        // apron ramp from the street up to the floor, stepped collision so tires climb it. Over a gutter (a strip of
+        // ground lower than the street between it and the facade, as entranceStep's) it runs out past the gutter, its
+        // sides and the bollards down to the gutter's floor
+        float drop = Clamp(groundDrop(d, xc, -2.6f), 0.f, 0.9f), low = drop, past = 0.f;
+        for (int i = 1; i <= 20; i++)
+            for (float k : {0.05f, 0.5f, 0.95f}) {
+                const float s = 0.15f * (float)i, g = groundDrop(d, Lerp(x0, x1, k), -s);
+                if (g > drop + 0.1f) {
+                    low = Max(low, g);
+                    past = s;
+                }
+            }
+        low = Min(low, 1.2f);
+        // (over a gutter by a street level with the floor, the apron still falls 3 cm: its outer end lies under the
+        // street's surface, not in it)
+        const float rd = past > 0.f ? Max(drop, 0.03f) : drop;
+        if (drop > 0.03f || past > 0.f) {
+            float y0 = -Max(Max(1.5f, rd * 6.f), past + 0.3f), w = (x1 - x0) * 0.5f + 0.4f;
+            quadF(b, vec3(xc - w, y0, -rd), vec3(xc + w, y0, -rd), vec3(xc + w, 0.f, 0.f), vec3(xc - w, 0.f, 0.f), vec3(0, -rd, -y0), Gy(0.66f), M(MAT_CONCRETE));
             for (int e = -1; e <= 1; e += 2) {
-                vec3 p0(xc + e * w, y0, -drop), p1(xc + e * w, 0.f, 0.f), p2(xc + e * w, 0.f, -drop - 0.2f), p3(xc + e * w, y0, -drop - 0.2f);
+                vec3 p0(xc + e * w, y0, -rd), p1(xc + e * w, 0.f, 0.f), p2(xc + e * w, 0.f, -low - 0.2f), p3(xc + e * w, y0, -low - 0.2f);
                 quadF(b, p3, p2, p1, p0, vec3((float)e, 0, 0), Gy(0.6f), M(MAT_CONCRETE));
             }
-            int ns = Max(2, (int)ceilf(drop / 0.06f));
+            int ns = Max(2, (int)ceilf(rd / 0.06f));
             for (int k = 0; k < ns; k++) {
                 float t0 = (float)k / ns, t1 = (float)(k + 1) / ns;
-                float top = -drop + drop * t1;
-                collideMM(b, vec3(xc - w, y0 * (1.f - t0), -drop - 0.4f), vec3(xc + w, y0 * (1.f - t1) + 0.001f, top));
+                float top = -rd + rd * t1;
+                collideMM(b, vec3(xc - w, y0 * (1.f - t0), -low - 0.4f), vec3(xc + w, y0 * (1.f - t1) + 0.001f, top));
             }
         }
         // bollards
         for (int e = -1; e <= 1; e += 2) {
-            vec3 bp(e < 0 ? x0 - 0.45f : x1 + 0.45f, -0.35f, -drop);
-            cyl(b, bp, 0.1f, 0.1f, 1.05f + drop, 10, C(0.95f, 0.75f, 0.05f), M(MAT_METAL_PAINTED), true);
-            collide(b, bp + vec3(0, 0, (1.05f + drop) * 0.5f), vec3(0.1f, 0.1f, (1.05f + drop) * 0.5f));
+            vec3 bp(e < 0 ? x0 - 0.45f : x1 + 0.45f, -0.35f, -low);
+            cyl(b, bp, 0.1f, 0.1f, 1.05f + low, 10, C(0.95f, 0.75f, 0.05f), M(MAT_METAL_PAINTED), true);
+            collide(b, bp + vec3(0, 0, (1.05f + low) * 0.5f), vec3(0.1f, 0.1f, (1.05f + low) * 0.5f));
         }
     }
 }
@@ -544,7 +554,7 @@ void layoutChopShop(IB& b) {
             picture(b, vec3(0.f, 0.f, 1.6f), 0.45f, 0.6f, r.next(), Gy(0.95f));
             gunSafe(b, vec3(0.8f, 0.f, 0.f), 0.f, Gy(0.15f));
         }
-        coffeeStation(b, vec3(ocx - os * 1.4f, oy0 + 0.02f, 0.f), 0.f, 1.2f, r.next());
+        coffeeStation(b, vec3(ocx - os * 0.6f, oy0 + 0.02f, 0.f), 0.f, 1.2f, r.next());   // (clear of the doorway)
         domeLight(b, vec3(ocx, (oy0 + oy1) * 0.5f, oH), office, 120.f);
     }
     // ---- parts room: shelving with parts and boxes, an engine block, transmission

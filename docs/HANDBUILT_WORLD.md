@@ -776,6 +776,8 @@ instanced per placement into the cell's collision. That replaces today's one box
 So far (`src/world/handshells.cpp` and `interiorhand.cpp`): the shell's parts are in the cell's collision at every LOD
 (section 7.2); the interior's (inside walls, the upper floors' slabs, the stairs' ramps and landings, balustrades) are
 built with its mesh, per building rather than per floor, and added near the player; the doors' leaves are dynamic.
+Birds don't perch on an interior's colliders, nor on the top of a wall that the next floor's wall stands on
+(`game/wildlife.cpp`).
 
 **Interior: per floor.** Each layout's collision (walls, slabs, stair ramps, furniture) is built on first use and cached
 in layout space:

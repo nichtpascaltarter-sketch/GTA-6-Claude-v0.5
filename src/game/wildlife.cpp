@@ -10,6 +10,10 @@
 
 namespace Game {
 
+namespace Interiors {
+bool isColKey(int key);   // interiors_game.cpp: a collider is an interior's (its walls, furniture, door leaves)
+}
+
 namespace Wildlife {
 void update(GameWorld& g, float dt);
 void submitRender(GameWorld& g);
@@ -748,17 +752,27 @@ void swimStep(GameWorld& g, Animal& a, vec3 wantVel, float dt, float accel, floa
 }
 
 // Landing spots around a group anchor: pole and post tops, lifeguard towers, low roof edges, pier railings, tree
-// crowns, open ground and the water surface.
+// crowns, open ground and the water surface. Not an interior's colliders (indoors), nor a roof edge another box sits
+// on (a hand-built shell's wall top under the next floor's wall: handshells.cpp hollowCollision)
 void findPerches(GameWorld& g, Group& G, float radius, int want, bool ground, bool water, bool posts, bool roofs, bool trees) {
     G.perches.clear();
     vec2 c = G.anchor.xy();
     if (Phys::gCollision && length2(c - gW.player.xy()) < 380.f * 380.f && (posts || roofs || trees)) {
         std::vector<int> ids;
         Phys::gCollision->collidersNear(c, radius, ids);
+        const auto covered = [&](vec3 p, int self) {
+            for (int o : ids) {
+                const Phys::Collider& q = Phys::gCollision->collider(o);
+                if (o == self || q.owner < 0 || q.kind != Phys::COL_BOX || fabsf(p.z - q.c.z) > q.he.z) continue;
+                const vec2 dd = p.xy() - q.c.xy();
+                if (fabsf(dot(dd, q.ax)) <= q.he.x && fabsf(dot(dd, perp(q.ax))) <= q.he.y) return true;
+            }
+            return false;
+        };
         for (int id : ids) {
             if ((int)G.perches.size() >= want) break;
             const Phys::Collider& col = Phys::gCollision->collider(id);
-            if (col.owner < 0) continue;
+            if (col.owner < 0 || Interiors::isColKey(col.owner)) continue;
             if (col.kind == Phys::COL_CYLINDER) {
                 bool tree = col.surface == Phys::SURF_WOOD;
                 if (tree && trees && col.he.z > 3.f) G.perches.push_back({col.c + vec3(frange(-0.8f, 0.8f), frange(-0.8f, 0.8f), col.he.z * 1.02f + 1.2f), 4});
@@ -772,7 +786,7 @@ void findPerches(GameWorld& g, Group& G, float radius, int want, bool ground, bo
                         float u = frange(-0.9f, 0.9f), side = frand() < 0.5f ? -1.f : 1.f;
                         vec2 p = frand() < 0.5f ? col.c.xy() + ax * (u * col.he.x) + ay * (side * col.he.y * 0.98f)
                                                 : col.c.xy() + ay * (u * col.he.y) + ax * (side * col.he.x * 0.98f);
-                        G.perches.push_back({vec3(p, top + 0.02f), 3});
+                        if (!covered(vec3(p, top + 0.02f), id)) G.perches.push_back({vec3(p, top + 0.02f), 3});
                     }
                 } else if (!building && posts && col.he.z > 1.5f) {
                     G.perches.push_back({vec3(col.c.xy(), top + 0.02f), 1});   // lifeguard towers, shelters
@@ -5402,7 +5416,7 @@ int sceneStageB(GameWorld& g, int s) {
             Phys::gCollision->collidersNear(gTestSpot.xy(), 250.f, ids);
             for (int id : ids) {
                 const Phys::Collider& c = Phys::gCollision->collider(id);
-                if (c.owner < 0 || c.kind != Phys::COL_BOX || fabsf(c.he.x - 0.9f) > 0.05f || fabsf(c.he.y - 0.6f) > 0.05f) continue;
+                if (c.owner < 0 || Interiors::isColKey(c.owner) || c.kind != Phys::COL_BOX || fabsf(c.he.x - 0.9f) > 0.05f || fabsf(c.he.y - 0.6f) > 0.05f) continue;
                 vec2 side = perp(c.ax);
                 auto open = [&](vec2 q) { return !g.buildings->pointInBuilding(q, 0.8f); };
                 if (!open(c.c.xy() + side * 3.5f)) side = -side;   // the open side of the bin, not the wall it stands against
