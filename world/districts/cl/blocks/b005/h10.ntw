@@ -1,4 +1,4 @@
 ntw 1 building id=cl.b005.h10 block=cl.b005 parcel=cl.b005.p02
-# a bungalow at the back of the lot, facing its yard
-place plan=lib.plan.house.bungalow_c at=1652.79,311.00 z=3.49 yaw=180.0 mirror=1
+# a bungalow at the back of the lot, facing its yard, its floor a step (0.2 m) over the yard's level
+place plan=lib.plan.house.bungalow_c at=1652.79,311.00 z=3.65 yaw=180.0 mirror=1
 config palette=lib.palette.bungalow.seafoam

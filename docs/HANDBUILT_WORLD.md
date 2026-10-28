@@ -616,7 +616,11 @@ wrote b006's 21 buildings (seed 6); a re-run rewrites only the files that still 
   (trees, plants, props and lights) in world.bin's `blocks` section (`src/world/blocksbin.h`), every height on the
   graded ground. The parcels' grades are graded before the roads, and a parcel that only grades the terrain is graded
   too. Hand mode draws each cell's share, a raised pad with its sides, and people and vehicles stand on the level
-  ground (pads, decks and levelled parcels: `HandBlocks::padHeight`, through `RoadNetwork::surfaceHeight`);
+  ground (pads, decks and levelled parcels: `HandBlocks::padHeight`, through `RoadNetwork::surfaceHeight`). The
+  junctions' corner sidewalks get level slabs too, out of sight under them, as the ground query leaves them out inside
+  the cut-backs (`worldmodel_blocks.cpp` `junctionCorners`). The generated parcels are levelled 0.2 m under the lowest
+  sidewalk along them, so a yard is a kerb's step down from the street (the promenade in terraces where its street
+  climbs);
 - what the AI's graphs read from the blocks (section 12), in sections beside `blocks` with the road overrides'
   conventions, one at a time: `blocks.parcels` (each parcel's id, use, the edge and side it fronts, and its grade),
   `blocks.lots` (each lot's curb cuts and rows, and the drive graph worldc derives from them: 12.2 #9), `blocks.walk`

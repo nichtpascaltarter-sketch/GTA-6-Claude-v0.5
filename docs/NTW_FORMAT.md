@@ -395,15 +395,18 @@ Header: `id` id req, `district` id req.
 
 What the blocks compiler (src/world/worldmodel.h compileBlocks) reads so far, and requires:
 - A parcel's `ground` covers its polygon, and its `paint` lies over that. A parcel with `grade` is level at it, and
-  the terrain blends back over `blend` metres outside it; its pads are level slabs `z` above the grade. Without
-  `grade` the ground follows the graded terrain, and a pad stands `z` above the terrain under its centre. A `plaza`
-  is paved unless its `ground` says otherwise. Polygons need 3 points or more.
+  the terrain blends back over `blend` metres outside it; its pads are level slabs `z` above the grade. Where its
+  `ground` covers it, the terrain goes 0.3 m under the grade, out of sight, so that the terrain's 8 m grid can't rise
+  through it beside a parcel levelled a little higher. Without `grade` the ground follows the graded terrain, and a
+  pad stands `z` above the terrain under its centre. A `plaza` is paved unless its `ground` says otherwise. Polygons
+  need 3 points or more.
 - Trees, plants and props are the catalog pieces their `kind` names, built by the piece's `code`. A tree's `h`
   scales its piece by the piece's `size` height, and a plant's `scale` scales it; trees and plants without `yaw`
   turn, and vary among the piece's `variants`, by their position, so that a row of them never repeats. A `light`
   is its fixture's piece and lamp (a street light's lamp hangs 2.2 m forward, 8.6 m up), or a lamp alone where its
   piece is one: on at dusk, or by its `sched`.
-- Every z is above the graded ground, or above the sidewalk or road where one runs under the record.
+- Every z is above the graded ground (a levelled parcel's grade, on one), or above the sidewalk or road where one
+  runs under the record.
 - A parcel's `use`, `front` and `grade` go to the AI's graphs as they are (frontage, curb cuts). A lot compiles to its
   drive graph (worldmodel.h compileBlockSections): a row's bays spread evenly along its line, facing its `yaw` (square
   to the line, to its left, without one); behind them an aisle, 6 m wide (4 m and one way where they are more than 15

@@ -405,6 +405,78 @@ float profileZ(const std::vector<vec2>& pr, float s) {
     return pr.back().y;
 }
 
+// The level slabs under a junction's corner sidewalks. The road mesh draws each corner between two approaches
+// (roadmesh.cpp: from the one's kerb at its cut-back round to the next one's, out by the narrower sidewalk, 0.15 m up),
+// but the ground query (roadnet.cpp roadSurfaceHeight) takes neither approach's sidewalk inside the cut-backs: there it
+// answered the junction's pavement, within its radius, and beyond that the terrain, graded 0.3 m under the road, so a
+// walk round the corner sank 0.45 m into the sidewalk it was drawn on (and a car's wheel as much). A corner's slabs
+// follow its drawn sidewalk 5 cm in from the kerb and the outer edge (their sides stay behind its curb face and skirt),
+// in pieces along it (six on a curve, four on a straight one), each level 2 cm under the drawn top at its lower end,
+// so nothing of them shows; the ground query takes them as it takes a pad (blocksbin.h padHeight). (The terrain itself
+// can't rise there: its 8 m grid would lift the road's edge with it.)
+void junctionCorners(const RoadNetwork& net, std::vector<GroundPoly>& out) {
+    struct Approach {
+        float ang;
+        vec2 dir;
+        vec3 cutPt;
+        float hwL, hwR, swL, swR;
+    };
+    std::vector<Approach> ap;
+    for (size_t ni = 0; ni < net.nodes.size(); ni++) {
+        const RoadNode& nd = net.nodes[ni];
+        if (nd.radius <= 0.f || nd.edges.size() < 3) continue;
+        ap.clear();
+        for (int ei : nd.edges) {   // (as roadmesh.cpp gathers them)
+            const RoadEdge& e = net.edges[(size_t)ei];
+            const bool out0 = e.n0 == (int)ni;
+            const vec3 p = e.posAt(out0 ? e.cut0 : e.length - e.cut1);
+            vec2 d = normalize(p.xy() - nd.p);
+            if (length2(p.xy() - nd.p) < 1e-4f) d = normalize((out0 ? e.pts[1] : e.pts[e.pts.size() - 2]).xy() - nd.p);
+            ap.push_back(Approach{atan2f(d.y, d.x), d, p, e.halfWidthSide(out0 ? -1 : 1), e.halfWidthSide(out0 ? 1 : -1), e.sidewalkSide(out0 ? -1 : 1),
+                                  e.sidewalkSide(out0 ? 1 : -1)});
+        }
+        std::sort(ap.begin(), ap.end(), [](const Approach& x, const Approach& y) { return x.ang < y.ang; });
+        for (size_t i = 0; i < ap.size(); i++) {
+            const Approach& A = ap[i];
+            const Approach& B = ap[(i + 1) % ap.size()];
+            const float swc = Min(A.swL, B.swR);
+            if (swc < 0.2f) continue;
+            const vec2 lA = perp(A.dir), lB = perp(B.dir);
+            const vec2 p1 = A.cutPt.xy() + lA * A.hwL, p2 = B.cutPt.xy() - lB * B.hwR, po1 = p1 + lA * swc, po2 = p2 - lB * swc;
+            const float den = cross(A.dir, B.dir);
+            vec2 C = (p1 + p2) * 0.5f, Co = (po1 + po2) * 0.5f;
+            bool curved = false;
+            if (fabsf(den) > 0.15f) {
+                const vec2 X = p1 + A.dir * (cross(p2 - p1, B.dir) / den);
+                if (length(X - nd.p) < nd.radius * 2.5f) {
+                    C = X;
+                    Co = po1 + A.dir * (cross(po2 - po1, B.dir) / den);
+                    curved = true;
+                }
+            }
+            const int pieces = curved ? 6 : 4;
+            vec2 qi[7], qo[7];
+            float qz[7];
+            for (int k = 0; k <= pieces; k++) {
+                const float t = (float)k / (float)pieces, a = (1 - t) * (1 - t), b = 2 * (1 - t) * t, c = t * t;
+                const vec2 q = p1 * a + C * b + p2 * c, o = po1 * a + Co * b + po2 * c;
+                const vec2 across = normalize(o - q);
+                qi[k] = q + across * 0.05f;
+                qo[k] = o - across * 0.05f;
+                qz[k] = Lerp(A.cutPt.z, B.cutPt.z, t);
+            }
+            for (int k = 0; k < pieces; k++) {
+                GroundPoly g;
+                g.kind = GK_PAVING;
+                g.flat = 1;
+                g.z = Min(qz[k], qz[k + 1]) + 0.15f - 0.02f;
+                g.poly = {qi[k], qi[k + 1], qo[k + 1], qo[k]};
+                out.push_back(g);
+            }
+        }
+    }
+}
+
 }  // namespace worldmodel_blocks_detail
 
 bool compileBlocks(const Model& model, BlocksOut& out, std::vector<Error>& errors) {
@@ -431,7 +503,7 @@ bool compileBlocks(const Model& model, BlocksOut& out, std::vector<Error>& error
             const Parcel& p = model.parcels[(size_t)pi];
             const std::string what = "parcel " + p.id;
             if (!polyOk(p.poly, p.src, what)) continue;
-            if (p.graded) out.pads.push_back(BlockPad{p.poly, p.grade, Max(p.blend, 0.f)});
+            if (p.graded) out.pads.push_back(BlockPad{p.poly, p.grade, Max(p.blend, 0.f), (u8)!p.ground.empty()});
             // the parcel's own ground, then its paint over it: level on its grade, else on the terrain
             const auto add = [&](GroundKind k, const std::vector<vec2>& poly, float lift) {
                 GroundPoly g;
@@ -1100,8 +1172,19 @@ bool placeOnTerrain(const BakedTerrain& baked, const RoadNetwork& roads, const s
         const int c = baked.water[i];
         map.waterLevel[i] = c <= 0 || c > (int)baked.levels.size() ? kNoWater : baked.levels[(size_t)c - 1];
     }
-    for (const BlockPad& p : blocks.pads) map.flattenPoly(p.poly, p.z, p.blend);
+    // A levelled parcel's ground covers the terrain under it, which goes 0.3 m lower, as under the roads: the terrain's
+    // 8 m grid would otherwise rise through the ground of a parcel levelled a little under its neighbour, between them
+    for (const BlockPad& p : blocks.pads) map.flattenPoly(p.poly, p.covered ? p.z - 0.3f : p.z, p.blend);
     gradeTerrainForRoads(roads, map, &decks);
+    // the slabs under the junctions' corner sidewalks (level, z absolute)
+    {
+        std::vector<GroundPoly> corners;
+        worldmodel_blocks_detail::junctionCorners(roads, corners);
+        for (GroundPoly& g : corners) {
+            hb.ground.push_back(std::move(g));
+            blocks.groundOnTerrain.push_back(0);
+        }
+    }
     std::vector<i16> delta(n, 0);
     size_t changed = 0;
     float largest = 0.f;
@@ -1123,10 +1206,17 @@ bool placeOnTerrain(const BakedTerrain& baked, const RoadNetwork& roads, const s
     }
     // the blocks on the graded ground: the graded heights as the game will have them (to the height layer's unit)
     for (size_t i = 0; i < n; i++) map.height[i] = (float)(baked.height[i] + delta[i]) * baked.heightUnit;
+    // (on a levelled parcel, its grade: the terrain lies lower under it, and under its front the roads' grading cut it)
     const auto groundAt = [&](vec2 p) {
         const float g = map.heightAt(p.x, p.y);
         float s = 0.f;
-        return !roads.edges.empty() && roads.roadSurfaceHeight(p, &s, g + 3.f) && s > g ? s : g;
+        float z = !roads.edges.empty() && roads.roadSurfaceHeight(p, &s, g + 3.f) && s > g ? s : g;
+        for (const HandParcel& q : hb.parcels)
+            if (!std::isnan(q.grade) && q.grade > z && pointInPolygon2D(p, q.poly.data(), (int)q.poly.size())) {
+                z = q.grade;
+                break;
+            }
+        return z;
     };
     for (PropInstance& p : hb.props) p.pos.z += groundAt(p.pos.xy());
     for (size_t i = 0; i < hb.lamps.size() && i < blocks.lampGroundAt.size(); i++) hb.lamps[i].pos.z += groundAt(blocks.lampGroundAt[i]);
