@@ -986,9 +986,10 @@ void prepareHandBuildings(HandBuildings& hb, BuildingSet& bs) {
 
 // A cell's share of the hand-built world's buildings: each placement whose footprint's centre lies in it, its shell
 // drawn by the LOD, and as collision at every LOD its footprint's bounds; or, for one with an interior, its shell's
-// parts (hollowCollision) and its doors' stoops. Logs each cell's build time: the stoops' ground probes are most of a
-// far build's and a fifth of a near one's, so when a cell passes ~5 ms in the game they can be worked out once per
-// placement at load (a cache per plan wouldn't give the same vertices: each wall is laid out in world space)
+// parts (hollowCollision) and its doors' stoops. Logs each cell's build time (docs/HANDBUILT_WORLD.md 7.2): past ~8 ms
+// on the test machine its placements can be built in parallel, and the stoops (a tenth of a near build, half a far one)
+// worked out once per placement at load; a cache per plan wouldn't give the same vertices, as each wall is laid out in
+// world space
 void buildHandBuildingsCell(const HandBuildings& hb, const WorldMap& map, int cx, int cy, bool detail, vec3 org, CellGeometry& out) {
     using namespace handshells_detail;
     const size_t cell = (size_t)cy * kCellsPerSide + cx;

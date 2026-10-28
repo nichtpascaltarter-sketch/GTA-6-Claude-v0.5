@@ -565,13 +565,15 @@ They are Python, run with `-I`, and never ship. The game doesn't know they exist
 
 So far `tools/author/street.py` places a block's buildings along its streets: on an avenue a street wall of the shops
 and walk-ups, a corner plan at a corner with its side-street wall towards the side street, on a street a house in the
-middle of each parcel; mirrors alternating, no palette twice side by side, no plan with the same palette twice within
-three. Each ground floor stands 0.01 m over the sidewalk in front of it (the street's profile and its kerb), and with
-`--ground` (the compiled ground on a grid: `worldc --dump-ground`) at least 0.05 m over the ground under its footprint.
-A generated parcel's outline runs 0.5 m in under its streets (below), so the front line and a corner's side wall stand
-back from the sidewalk rather than from the outline, and with `--ground` every footprint stands on the parcel's level
-ground. It wrote b006's 21 buildings, b004's 17, b007's 10, b002's 18 and b003's 17 (seed 6 each); a re-run rewrites
-only the files that still carry its line.
+middle of each parcel, with 1.5 m side yards (1.0 m on a lot too narrow for any house with them), and a parcel on no
+street (a park) left to its block file; mirrors alternating, no palette twice side by side, no plan with the same
+palette twice within three. Each ground floor stands 0.01 m over the sidewalk in front of it (the street's profile and
+its kerb), and with `--ground` (the compiled ground on a grid: `worldc --dump-ground`) at least 0.05 m over the ground
+under its footprint. A generated parcel's outline runs 0.5 m in under its streets (below), so the front line and a
+corner's side wall stand back from the sidewalk rather than from the outline, and with `--ground` every footprint stands
+on the parcel's level ground: a corner plan where its side street's sidewalk reaches further in stands up to 2.1 m
+further in from it. It wrote b006's 21 buildings, b004's 17, b007's 10, b002's 18, b003's 17, b008's 20 and b013's 15
+(seed 6 each); a re-run rewrites only the files that still carry its line.
 
 So far `tools/author/dress.py` writes the generated part of the pilot's 25 block files: it cuts each block into
 parcels along its frontages, levels each parcel 0.2 m under the lowest sidewalk along it (its ground lies 0.03 m over
@@ -772,10 +774,12 @@ compiled data. Nothing is invented:
     every door and up every stair into each room.
 
   Each cell's build is logged (`Hand buildings: cell ...`). Most of it was the stoops' ground probes, so the level
-  ground is indexed for them by 8 m tile (`HandBlocks::padHeight`): the busiest cell, 26 placements, builds in about
-  2.5-3 ms near and its far LOD in under 1 ms in the game. A cache per plan wouldn't give the same vertices, as each
-  wall is laid out in world space; when a cell passes about 5 ms, each placement's stoops can be worked out once at load
-  instead.
+  ground is indexed for them by 8 m tile (`HandBlocks::padHeight`): a cell of 26 placements builds in about 2.5-3 ms
+  near and its far LOD in under 1 ms on the test machine. A cache per plan wouldn't give the same vertices, as each wall
+  is laid out in world space. Cells build on a worker, so a near build may take up to about 8 ms there (3-4 ms on a
+  native build) while the frame holds: each autoplay logs its frames (`autoplay frames`, and the slowest with what they
+  streamed in). Past that, a cell's placements can be built in parallel on the idle workers, and the stoops worked out
+  once at load (which saves a tenth of a near build).
 
   The cell census (section 13.3) sets the near shell's budget. Today a near cell averages 39k triangles (p99 144k, at
   most 171k), and a house costs about 2,400 triangles of its cell's mesh, roads included. Cells hold few buildings:
@@ -822,9 +826,9 @@ in layout space:
 ### 7.4 Interiors at scale: streaming
 
 So far a hand-built building's interior streams as the generator's do: the whole building within 480 m of the camera,
-built on a worker; b005's twelve hold 120 rooms in 60k triangles, with b006's 21 the 33 hold 348 rooms in 179k, and
-with b004's 17 and b007's 10 the 60 hold 699 rooms in 356k, and with b002's 18 and b003's 17 the 95 hold 1,116 rooms
-in 569k.
+built on a worker; b005's twelve hold 120 rooms in 60k triangles, with b006's 21 the 33 hold 348 rooms in 179k, and with
+b004's 17 and b007's 10 the 60 hold 699 rooms in 356k, and with b002's 18 and b003's 17 the 95 hold 1,116 rooms in 569k,
+and with b008's 20 and b013's 15 the 130 hold 1,482 rooms in 758k.
 The log gives each hand cell's build time (`Hand buildings: cell ...`) and, with each interior built, the interiors
 resident and how many of them are hand-built.
 

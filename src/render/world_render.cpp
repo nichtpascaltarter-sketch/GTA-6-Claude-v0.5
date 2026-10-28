@@ -42,6 +42,9 @@ struct WorldRenderer {
     std::atomic<int> inFlight{0};
     int uploadsPerFrame = 4;
     int drawnCells = 0;
+    // what the last update() did, for autoplay's frame log (game/app.cpp): its time, and the cells it uploaded
+    double lastUpdateMs = 0.0;
+    std::string lastUploads;   // "cx,cy near|far N tris; ..."
 
     static int key(int cx, int cy, int lod) { return (lod * World::kCellsPerSide + cy) * World::kCellsPerSide + cx; }
 
@@ -247,6 +250,8 @@ struct WorldRenderer {
     }
 
     void update(dvec3 cam, double now) {
+        const double t0 = TimeSeconds();
+        lastUploads.clear();
         // Desired cells: near (LOD0) and far (LOD1) rings; nearest first
         int cps = World::kCellsPerSide;
         float cs = World::kCellSize;
@@ -289,6 +294,8 @@ struct WorldRenderer {
             if (c->state.load() == 1 && uploads < uploadsPerFrame) {
                 upload(c);
                 uploads++;
+                lastUploads += StrFormat("%s%d,%d %s %u tris", lastUploads.empty() ? "" : "; ", c->cx, c->cy, c->lod == 0 ? "near" : "far",
+                                         (c->opaqueCount + c->decalCount) / 3u);
             }
         }
         // Evict cells not requested recently (only when not being generated)
@@ -306,6 +313,7 @@ struct WorldRenderer {
             delete c;
             cells.erase(k);
         }
+        lastUpdateMs = (TimeSeconds() - t0) * 1000.0;
     }
 
     // Is the near (LOD0) version of this cell ready? Used to hide the far version.

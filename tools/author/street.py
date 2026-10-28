@@ -9,9 +9,13 @@
 # - a parcel's buildings stand along its front, 0.6 m behind the sidewalk (a generated parcel's outline runs 0.5 m in
 #   under the sidewalk: tools/author/dress.py), in from its sides; on an avenue they make a
 #   street wall: one or two of the street-front plans side by side, their party walls touching; on a street a house
-#   stands alone in the middle of its parcel;
+#   stands alone in the middle of its parcel, with side yards of 1.5 m, or 1.0 m on a lot too narrow for any house with
+#   them;
 # - a corner parcel (another street runs by its side) takes the corner plan at that end, its side-street wall (the
-#   plan's right, or mirrored its left) towards the side street;
+#   plan's right, or mirrored its left) towards the side street; with --ground, where that street's sidewalk reaches
+#   further into the parcel than its outline says, the corner plan stands further in from it (0.3 m at a time, up to
+#   2.1 m), every footprint corner still inside the parcel;
+# - a parcel on no street (no front=, as a park) is left to its block file;
 # - a plan fits the frontage and the depth, and suits the parcel's use;
 # - no plan with the same palette twice within three placements, no palette twice side by side, and no house plan
 #   twice in neighbouring parcels;
@@ -43,6 +47,8 @@ CORNER = "lib.plan.shop.corner_c"
 HOUSES = ["lib.plan.house.casita_d", "lib.plan.house.bungalow_c"]
 SETBACK, SIDE_GAP, HOUSE_GAP = 0.6, 0.4, 1.5   # (m: behind the sidewalk; in from a parcel's side; a house's side yard)
 UNDER = 0.5   # (m: how far a generated parcel's outline runs in under the streets along it, tools/author/dress.py)
+NARROW_GAP = 1.0   # (m: a house's side yard on a lot too narrow for any house with HOUSE_GAP)
+ASIDE = (0.0, 0.3, 0.6, 0.9, 1.2, 1.5, 1.8, 2.1)   # (m: a corner plan's set-ins from its side street, with --ground)
 
 
 # ------------------------------------------------------------------------------------------------ reading NTW
@@ -193,9 +199,12 @@ def extent(poly, u, n, o, t0, t1):
 rng = random.Random(SEED)
 print("street.py: block %s, seed %d" % (BLOCK, SEED))
 faces = {}
-for pid, kv in parcels:
-    faces.setdefault(kv["front"].split(":")[0], []).append((pid, kv))
 placements, skipped = [], []
+for pid, kv in parcels:
+    if "front" not in kv:   # (a parcel on no street, as a park: its block file dresses it)
+        skipped.append((pid, "no street front"))
+        continue
+    faces.setdefault(kv["front"].split(":")[0], []).append((pid, kv))
 for eid, plist in faces.items():
     e = edges[eid]
     P = [p for _, kv in plist for p in pts(kv["poly"])]
@@ -240,8 +249,9 @@ for eid, plist in faces.items():
                     ends[side] = oid
         corner = ("lo" in ends) if ("lo" in ends) != ("hi" in ends) else None
 
-        def lay(tl):
-            """The parcel's row with its front on the line tl: [(plan, s at its low end, mirrored)], or a reason."""
+        def lay(tl, aside=0.0):
+            """The parcel's row with its front on the line tl, and a corner plan `aside` further in from its side street:
+            [(plan, s at its low end, mirrored)], or a reason."""
             # (its span from 0.5 m behind the line, as a parcel's front edge isn't always square to the street; at a
             # corner's end at the line itself, the corner's cut)
             span = extent(poly, u, n, o, tl + 0.5, tl + 14.0)
@@ -251,7 +261,7 @@ for eid, plist in faces.items():
             span = (max(span[0], front[0]) if corner is True else span[0], min(span[1], front[1]) if corner is False else span[1])
             # (in from its sides; at a corner the building stands at the corner, out from under the side street's
             # sidewalk, and closer to its neighbour when it must)
-            c0, c1 = UNDER + 0.05, UNDER + 0.05
+            c0, c1 = UNDER + 0.05 + aside, UNDER + 0.05 + aside
             s0, s1 = span[0] + (c0 if corner is True else SIDE_GAP), span[1] - (c1 if corner is False else SIDE_GAP)
             if corner is not None and s1 - s0 < plans[CORNER]["w"] + min(plans[p]["w"] for p in STREET_WALL):
                 s0, s1 = (span[0] + c0, span[1] - 0.15) if corner else (span[0] + 0.15, span[1] - c1)
@@ -288,6 +298,8 @@ for eid, plist in faces.items():
                     s += plans[p]["w"]
             else:
                 fits = [p for p in HOUSES if plans[p]["w"] + 2 * HOUSE_GAP <= free + 2 * SIDE_GAP]
+                # (a lot too narrow for any house with HOUSE_GAP: NARROW_GAP)
+                fits = fits or [p for p in HOUSES if plans[p]["w"] + 2 * NARROW_GAP <= free + 2 * SIDE_GAP]
                 fits = [p for p in fits if p != prev_house] or fits
                 if not fits:
                     return "a %.1f m frontage takes no house" % free
@@ -306,11 +318,15 @@ for eid, plist in faces.items():
                             return "a footprint stands on the sidewalk"
             return row
 
-        # (on the face's front line, else up to 0.9 m further back where its front or a corner's cut asks for it)
+        # (on the face's front line, else up to 0.9 m further back where its front or a corner's cut asks for it; and a
+        # corner plan with --ground, where it fails as placed, set further in from its side street)
         state = rng.getstate()
-        for back in (0.0, 0.3, 0.6, 0.9):
-            rng.setstate(state)
-            got = lay(tf + back)
+        for aside in ASIDE if corner is not None and grid else (0.0,):
+            for back in (0.0, 0.3, 0.6, 0.9):
+                rng.setstate(state)
+                got = lay(tf + back, aside)
+                if isinstance(got, list):
+                    break
             if isinstance(got, list):
                 break
         if not isinstance(got, list):
