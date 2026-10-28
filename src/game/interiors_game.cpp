@@ -47,6 +47,7 @@ struct Loaded {
     std::vector<int> pedScenario;
     bool npcs = false;
     double lastSeen = 0.0;
+    int tris = 0;            // (its mesh's, for the resident count's log)
 };
 
 struct State {
@@ -221,8 +222,20 @@ void stream(Render::Renderer& R, GameWorld* g, dvec3 cam) {
             L->col = m.col;
             L->doors.assign(d.doors.size(), DoorState());
             for (size_t k = 0; k < L->doors.size(); k++) L->doors[k].colKey = colKeyFor((int)i, 1 + (int)k);
-            LOG("Interior '%s' built: %d triangles, %zu lights, %zu colliders, %zu door leaves in %.1f ms", d.name.c_str(), m.triangles, m.lights.size(), m.col.size(),
-                m.leaves.size(), m.ms);
+            L->tris = m.triangles;
+            // (and the interiors resident now: the hand-built ones' count and triangles set their stream radius)
+            int resident = 0, residentHand = 0, residentTris = 0;
+            for (const Loaded* o : gIS.slots)
+                if (o && o->state == 3) {
+                    resident++;
+                    residentHand += defs[(size_t)o->def].kind == World::IK_HAND ? 1 : 0;
+                    residentTris += o->tris;
+                }
+            resident++;
+            residentHand += d.kind == World::IK_HAND ? 1 : 0;
+            residentTris += m.triangles;
+            LOG("Interior '%s' built: %d triangles, %zu lights, %zu colliders, %zu door leaves in %.1f ms; resident %d (%d hand-built), %d triangles",
+                d.name.c_str(), m.triangles, m.lights.size(), m.col.size(), m.leaves.size(), m.ms, resident, residentHand, residentTris);
             delete L->mesh;
             L->mesh = nullptr;
             L->state = 3;

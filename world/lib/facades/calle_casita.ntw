@@ -1,0 +1,7 @@
+ntw 1 facade id=lib.facade.calle_casita
+# the casitas: smooth stucco on a stone plinth, a band at the floor line, casement windows between fixed shutters
+wall material=lib.kit.mat_stucco color=wall
+trim kind=band material=lib.kit.mat_stucco color=trim h=0.20
+window kind=casement frame=lib.kit.mat_frame color=trim shutters=fixed
+door style=lib.kit.door_panel color=door
+base h=0.50 material=lib.kit.mat_stone

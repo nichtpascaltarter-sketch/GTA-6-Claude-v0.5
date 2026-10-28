@@ -682,9 +682,13 @@ void buildStoops(const BuildCtx& x, std::vector<CollisionBox>& col) {
                 for (float k : {-0.4f, 0.f, 0.4f}) g = Min(g, groundOutside(x, cw + ow * s + aw * (o.w * 0.5f * k * 2.f), floorZ + 0.3f));
                 return g;
             };
-            if (ground(0.15f) >= floorZ - 0.12f) continue;   // (flush enough: a threshold's step)
+            // (flush enough: a threshold's step, at the wall's foot and a little way out; a strip of lower ground there,
+            // however narrow, takes a landing over it, as the walk would drop into it)
+            float nearest = 1e9f;
+            for (float k : {0.05f, 0.15f, 0.3f}) nearest = Min(nearest, ground(k));
+            if (nearest >= floorZ - 0.12f) continue;
             const float hw = o.w * 0.5f + 0.2f;
-            float s = 0.f, top = floorZ, lowest = ground(0.15f);
+            float s = 0.f, top = floorZ, lowest = nearest;
             const auto slab = [&](float s0, float s1, float zt) {
                 const float zb = Min(lowest, zt) - 0.15f;
                 const vec3 cc(cw + ow * ((s0 + s1) * 0.5f), (zt + zb) * 0.5f);
@@ -699,7 +703,7 @@ void buildStoops(const BuildCtx& x, std::vector<CollisionBox>& col) {
             // the landing: over a gutter to ground (a sidewalk) within a step of the floor, where that is within 1.2 m;
             // else 0.9 m deep, with steps down from it
             float sl = 0.9f;
-            for (float k = 0.45f; k <= 1.2f; k += 0.15f)
+            for (float k = 0.15f; k <= 1.2f; k += 0.15f)
                 if (ground(k + 0.1f) >= floorZ - 0.18f) {
                     sl = k + 0.1f;
                     break;
@@ -982,11 +986,25 @@ void prepareHandBuildings(HandBuildings& hb, BuildingSet& bs) {
 
 // A cell's share of the hand-built world's buildings: each placement whose footprint's centre lies in it, its shell
 // drawn by the LOD, and as collision at every LOD its footprint's bounds; or, for one with an interior, its shell's
-// parts (hollowCollision) and its doors' stoops
+// parts (hollowCollision) and its doors' stoops. Logs each cell's build time (the per-plan shell cache waits on it)
 void buildHandBuildingsCell(const HandBuildings& hb, const WorldMap& map, int cx, int cy, bool detail, vec3 org, CellGeometry& out) {
     using namespace handshells_detail;
     const size_t cell = (size_t)cy * kCellsPerSide + cx;
-    if (cell >= hb.placementsByCell.size()) return;
+    if (cell >= hb.placementsByCell.size() || hb.placementsByCell[cell].empty()) return;
+    const double t0 = TimeSeconds();
+    const size_t idx0 = out.opaque.indices.size();
+    struct Logged {
+        const HandBuildings& hb;
+        int cx, cy;
+        bool detail;
+        double t0;
+        size_t idx0;
+        const CellGeometry& out;
+        ~Logged() {
+            LOG("Hand buildings: cell %d,%d (%s): %zu placements, %zu triangles, %.1f ms", cx, cy, detail ? "near" : "far",
+                hb.placementsByCell[(size_t)cy * kCellsPerSide + cx].size(), (out.opaque.indices.size() - idx0) / 3, (TimeSeconds() - t0) * 1000.0);
+        }
+    } logged{hb, cx, cy, detail, t0, idx0, out};
     Out o;
     o.m = &out.opaque;
     o.org = org;
