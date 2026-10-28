@@ -12,6 +12,8 @@
 // Build from the repo root:  g++ -std=c++17 -O2 -I. tools/worldc.cpp -o build/worldc
 // Run from the repo root:    build/worldc [--world=world] [--out=build/gen/world.bin]
 //                            build/worldc --check=<file.ntw>     (one file against the schema, nothing written)
+//                            build/worldc --dump-ground=<file> --ground-box=<x0,y0,x1,y1 | block id> [--ground-step=0.25]
+//                              (also the compiled ground on a grid, for tools/author/street.py --ground)
 // Exit code 1 on any error, each reported as file:line.
 #include "tools/native_stubs.cpp"
 #include "src/world/ntw.cpp"
@@ -394,6 +396,94 @@ std::vector<Source> discover() {
     return files;
 }
 
+// --dump-ground: the compiled ground on a grid, as the game finds it in hand mode, for tools/author/street.py --ground
+// (docs/HANDBUILT_WORLD.md 5.3). Read back from the world.bin just written as hand mode reads it (handworld.cpp
+// loadHandTerrain's heights, readRoads, readRoadOverrides and applyRoadSides, readBlocks); at each point the graded
+// terrain, or the road, sidewalk or level ground over it as RoadNetwork::surfaceHeight answers in hand mode (the roads,
+// then the level ground: hand mode has no sites) from 3 m above the terrain, where that lies above 0.5 m under it.
+// Written as "grid x0= y0= step= nx= ny=" and ny rows of nx heights (south to north, west to east). The box is four
+// numbers, or a block's id for its parcels with 8 m around them, out to whole metres
+std::string gDumpGround, gGroundBox;
+float gGroundStep = 0.25f;
+
+bool dumpGround(const WorldBinView& bin) {
+    const auto failed = [](const std::string& why) {
+        fprintf(stderr, "worldc: --dump-ground: %s\n", why.c_str());
+        return false;
+    };
+    std::vector<u8> meta;
+    if (!bin.bytes("terrain", meta)) return failed("world.bin has no terrain record");
+    ByteReader r(meta.data(), meta.size());
+    r.getU32();   // (version, resolution, cell size, origin: compileTerrain wrote them)
+    r.getU32();
+    r.getF32();
+    r.getF32();
+    r.getF32();
+    const float unit = r.getF32();
+    if (r.bad || !(unit > 0.f)) return failed("the terrain record has no height unit");
+    std::vector<i16> height, grade;
+    GridInfo gi;
+    const WorldBinView::Section* hs = bin.find("terrain.height");
+    const auto grid16 = [&](const WorldBinView::Section* s, std::vector<i16>& v) {
+        return s->kind == WSK_GRID && decodeGrid(s->data, s->size, v, &gi) && gi.width == kHeightRes && gi.height == kHeightRes && gi.type == GRID_I16;
+    };
+    if (!hs || !grid16(hs, height)) return failed("world.bin's terrain.height is missing or damaged");
+    const WorldBinView::Section* gs = bin.find("terrain.grade");
+    if (gs && !grid16(gs, grade)) return failed("world.bin's terrain.grade is damaged");
+    static WorldMap map;   // (its heights only, as loadHandTerrain fills them: heightAt)
+    map.height.resize(height.size());
+    for (size_t i = 0; i < height.size(); i++) map.height[i] = gs ? (float)(height[i] + grade[i]) * unit : (float)height[i] * unit;
+    RoadNetwork roads;
+    std::string why;
+    if (bin.find("roads")) {
+        if (!readRoads(bin, roads, nullptr, nullptr, &why)) return failed(why);
+    } else {
+        roads.buildHash();
+    }
+    RoadOverrides overrides;
+    if (!readRoadOverrides(bin, roads, overrides, &why)) return failed(why);
+    applyRoadSides(overrides, roads);
+    HandBlocks blocks;
+    if (!readBlocks(bin, blocks, &why, (int)roads.edges.size())) return failed(why);
+    float x0 = 0.f, y0 = 0.f, x1 = 0.f, y1 = 0.f;
+    if (sscanf(gGroundBox.c_str(), "%f,%f,%f,%f", &x0, &y0, &x1, &y1) != 4) {
+        vec2 lo(1e30f), hi(-1e30f);
+        for (const HandParcel& p : blocks.parcels)
+            if (p.id.size() > gGroundBox.size() && p.id.compare(0, gGroundBox.size(), gGroundBox) == 0 && p.id[gGroundBox.size()] == '.')
+                for (vec2 q : p.poly) {
+                    lo = vmin(lo, q);
+                    hi = vmax(hi, q);
+                }
+        if (lo.x > hi.x) return failed("--ground-box: '" + gGroundBox + "' is neither x0,y0,x1,y1 nor a block with parcels");
+        x0 = floorf(lo.x - 8.f);
+        y0 = floorf(lo.y - 8.f);
+        x1 = ceilf(hi.x + 8.f);
+        y1 = ceilf(hi.y + 8.f);
+    }
+    const float st = gGroundStep;
+    if (!(st >= 0.05f) || !(x1 > x0) || !(y1 > y0) || ((x1 - x0) / st + 1.f) * ((y1 - y0) / st + 1.f) > 4e7f)
+        return failed("--ground-box or --ground-step: an empty grid, or more than 40 million points");
+    const int nx = (int)floorf((x1 - x0) / st + 0.5f) + 1, ny = (int)floorf((y1 - y0) / st + 0.5f) + 1;
+    std::string text = StrFormat("grid x0=%.3f y0=%.3f step=%.3f nx=%d ny=%d\n", x0, y0, st, nx, ny);
+    for (int j = 0; j < ny; j++) {
+        for (int i = 0; i < nx; i++) {
+            const vec2 p(x0 + st * (float)i, y0 + st * (float)j);
+            float g = map.heightAt(p.x, p.y), z = -1e9f, pz;
+            bool found = roads.roadSurfaceHeight(p, &z, g + 3.f);
+            if (blocks.padHeight(p, &pz, g + 3.f) && pz > z) {
+                z = pz;
+                found = true;
+            }
+            if (found && z > g - 0.5f) g = z;
+            text += StrFormat(i ? " %.3f" : "%.3f", g);
+        }
+        text += "\n";
+    }
+    if (!writeFile(gDumpGround, std::vector<u8>(text.begin(), text.end()))) return failed("cannot write " + gDumpGround);
+    printf("worldc: the ground on a %d by %d grid (%.2f m) from %.2f,%.2f -> %s\n", nx, ny, st, x0, y0, gDumpGround.c_str());
+    return true;
+}
+
 int run() {
     std::vector<Source> files = discover();
     for (Source& s : files) load(s);
@@ -458,7 +548,7 @@ int run() {
         return 1;
     }
     printf("worldc: %zu file(s) -> %s (%zu bytes, %zu sections) and %s\n", files.size(), gOut.c_str(), bin.size(), view.sections.size(), rcPath.c_str());
-    return 0;
+    return gDumpGround.empty() || dumpGround(view) ? 0 : 1;
 }
 
 int checkOne(const std::string& path) {
@@ -479,10 +569,18 @@ int main(int argc, char** argv) {
         if (a.rfind("--world=", 0) == 0) worldc::gWorld = a.substr(8);
         else if (a.rfind("--out=", 0) == 0) worldc::gOut = a.substr(6);
         else if (a.rfind("--check=", 0) == 0) check = a.substr(8);
+        else if (a.rfind("--dump-ground=", 0) == 0) worldc::gDumpGround = a.substr(14);
+        else if (a.rfind("--ground-box=", 0) == 0) worldc::gGroundBox = a.substr(13);
+        else if (a.rfind("--ground-step=", 0) == 0) worldc::gGroundStep = (float)atof(a.substr(14).c_str());
         else {
-            fprintf(stderr, "usage: worldc [--world=world] [--out=build/gen/world.bin] | worldc --check=<file.ntw>\n");
+            fprintf(stderr, "usage: worldc [--world=world] [--out=build/gen/world.bin] [--dump-ground=<file> --ground-box=<x0,y0,x1,y1 | block id> "
+                            "[--ground-step=0.25]] | worldc --check=<file.ntw>\n");
             return 2;
         }
+    }
+    if (!worldc::gDumpGround.empty() && worldc::gGroundBox.empty()) {
+        fprintf(stderr, "worldc: --dump-ground needs --ground-box\n");
+        return 2;
     }
     if (!check.empty()) return worldc::checkOne(check);
     return worldc::run();
