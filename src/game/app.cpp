@@ -138,6 +138,13 @@ struct App {
     float autoShotEvery = 4.f;
     float autoDuration = 30.f;
     int doorShot = 0;   // --autoplay cardoor: the next of its shots
+    // autoplay's frame log (every autoplay but the benchmark): each frame's time, its world update's (the streaming and
+    // its uploads, render/world_render.cpp) and what that uploaded, summed up when the run ends (autoplayFrameReport)
+    struct AutoFrame {
+        float t, ms, streamMs;
+        std::string uploads;
+    };
+    std::vector<AutoFrame> autoFrames;
     // the main menu's camera (updateMenuCamera)
     enum MenuPhase { MP_WAIT = 0, MP_FADE_IN, MP_SHOW, MP_FADE_OUT };
     int menuDrift = 0, menuPhase = MP_WAIT, menuSettled = 0;
@@ -6686,6 +6693,36 @@ struct App {
         }
     }
 
+    // The autoplay's frames: their time's median, p99 and max, how many took over 33 ms, the streaming's share (its
+    // world updates with their uploads), and the slowest frames and slowest updates with what they uploaded
+    void autoplayFrameReport() {
+        if (autoFrames.size() < 2) return;
+        std::vector<float> ms, sm;
+        size_t over = 0;
+        for (const AutoFrame& f : autoFrames) {
+            ms.push_back(f.ms);
+            sm.push_back(f.streamMs);
+            over += f.ms > 33.f;
+        }
+        std::sort(ms.begin(), ms.end());
+        std::sort(sm.begin(), sm.end());
+        const auto pct = [](const std::vector<float>& v, float q) { return v[Min((size_t)(q * (float)(v.size() - 1) + 0.5f), v.size() - 1)]; };
+        LOG("autoplay frames %zu: %.1f ms median, p99 %.1f, max %.1f; %zu over 33 ms; streaming %.2f ms median, p99 %.2f, max %.2f", autoFrames.size(),
+            pct(ms, 0.5f), pct(ms, 0.99f), ms.back(), over, pct(sm, 0.5f), pct(sm, 0.99f), sm.back());
+        std::vector<size_t> order(autoFrames.size());
+        for (size_t i = 0; i < order.size(); i++) order[i] = i;
+        for (int pass = 0; pass < 2; pass++) {
+            std::sort(order.begin(), order.end(), [&](size_t a, size_t b) {
+                return pass == 0 ? autoFrames[a].ms > autoFrames[b].ms : autoFrames[a].streamMs > autoFrames[b].streamMs;
+            });
+            for (size_t k = 0; k < Min(order.size(), (size_t)5); k++) {
+                const AutoFrame& f = autoFrames[order[k]];
+                LOG("autoplay %s %d: %.1f ms at t=%.2f, streaming %.2f ms, uploaded %s", pass == 0 ? "slowest frame" : "slowest streaming", (int)k + 1, f.ms, f.t,
+                    f.streamMs, f.uploads.empty() ? "nothing" : f.uploads.c_str());
+            }
+        }
+    }
+
     void benchFinishScene(const char* name) {
         std::vector<float> f = benchFrameMs;
         if (f.empty()) return;
@@ -6781,6 +6818,10 @@ struct App {
             float dt = (float)Min(now - lastTime, 0.1);
             rawFrameSec = now - lastTime;
             lastTime = now;
+#ifdef HAVE_GAMEPLAY
+            if (!autoplay.empty() && autoplay != "benchmark" && state == AS_PLAYING && renderer.world)   // (the frame just ended)
+                autoFrames.push_back({autoTime, (float)(rawFrameSec * 1000.0), (float)renderer.world->lastUpdateMs, renderer.world->lastUploads});
+#endif
             frameMs = Lerp(frameMs, dt * 1000.f, 0.05f);
             fps = frameMs > 0 ? 1000.f / frameMs : 0;
             if (state == AS_LOADING) {
@@ -7052,7 +7093,10 @@ struct App {
                     }
                     autoShot++;
                 }
-                if (autoTime > autoDuration) break;
+                if (autoTime > autoDuration) {
+                    autoplayFrameReport();
+                    break;
+                }
             }
 #endif
             // --menushot N: screenshot of the front end after N frames (automated menu test). With --menuup the frames
