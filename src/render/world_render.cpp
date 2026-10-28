@@ -40,6 +40,9 @@ struct WorldRenderer {
     int maxInFlight = 6;
     bool reduceFlashing = false;  // accessibility (renderer settings): blinking aviation lights pulse slowly instead
     std::atomic<int> inFlight{0};
+    // The request phase's new cells, queued together at its end (Jobs::submitBatch): one by one, the empty cells round
+    // a hand district finished while the loop still ran, and each submit fought the worker it had woken for the lock
+    std::vector<std::function<void()>> requestBatch;
     int uploadsPerFrame = 4;
     u32 uploadTriangles = 64000;  // a frame's uploads stop short of this, but its first cell goes whatever its size
     int drawnCells = 0;
@@ -153,12 +156,12 @@ struct WorldRenderer {
         c->lastUsed = now;
         cells[k] = c;
         inFlight++;
-        Jobs::submit([this, c] {
+        requestBatch.push_back([this, c] {
             c->geo = new World::CellGeometry();
             World::generateCell(c->cx, c->cy, c->lod == 0, *c->geo);
             c->state.store(1);
             inFlight--;
-        }, kJobLow);
+        });
     }
 
     // Light spilling out of shop windows at night: a wide warm light every ~8 m along the street front of every
@@ -296,6 +299,7 @@ struct WorldRenderer {
         }
         std::sort(reqs.begin(), reqs.end(), [](const Req& a, const Req& b) { return a.d < b.d; });
         for (auto& r : reqs) requestCell(r.cx, r.cy, r.lod, now);
+        Jobs::submitBatch(requestBatch, kJobLow);   // every cell counted in inFlight above is queued now
         // Upload finished cells, near before far and nearest first, up to uploadsPerFrame cells and uploadTriangles
         // triangles a frame: a cell that would take the frame past them waits for the next. The frame's first cell always
         // goes, so one bigger than the budget goes alone and no cell waits for good.

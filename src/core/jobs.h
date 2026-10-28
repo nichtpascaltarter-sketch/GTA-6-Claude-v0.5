@@ -16,6 +16,9 @@ void shutdown();
 int workerCount();
 // Queue a job. If counter is non-null it's incremented now and decremented on completion.
 void submit(std::function<void()> fn, JobPriority prio = kJobNormal, JobCounter* counter = nullptr);
+// Queue several jobs of one priority, in order, under one lock, then wake at most one worker per job (and no more
+// than there are). fns is left empty. With no workers they run inline, in order.
+void submitBatch(std::vector<std::function<void()>>& fns, JobPriority prio = kJobNormal);
 // Wait for counter to reach zero; the calling thread helps execute high/normal jobs meanwhile.
 void wait(JobCounter& counter);
 // Run fn(i) for i in [0,count) across workers, blocking until complete.

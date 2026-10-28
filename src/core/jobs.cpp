@@ -80,6 +80,25 @@ void submit(std::function<void()> fn, JobPriority prio, JobCounter* counter) {
     g_cv.notify_one();
 }
 
+void submitBatch(std::vector<std::function<void()>>& fns, JobPriority prio) {
+    if (fns.empty()) return;
+    if (g_threads.empty()) {  // no workers: run inline, in order
+        for (auto& fn : fns) fn();
+        fns.clear();
+        return;
+    }
+    {
+        std::lock_guard<std::mutex> lk(g_mutex);
+        for (auto& fn : fns) {
+            g_queues[prio].push_back(Job{std::move(fn), nullptr});
+            if (prio == kJobLow) g_lowCount++;
+        }
+    }
+    const size_t wake = Min(fns.size(), g_threads.size());
+    for (size_t i = 0; i < wake; i++) g_cv.notify_one();
+    fns.clear();
+}
+
 void wait(JobCounter& counter) {
     while (!counter.done()) {
         Job j;
