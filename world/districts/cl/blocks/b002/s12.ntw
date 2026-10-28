@@ -1,0 +1,5 @@
+ntw 1 building id=cl.b002.s12 block=cl.b002 parcel=cl.b002.p07
+# the corner shop with a flat over it, its windows on both streets, facing Paseo del Rio
+# written by tools/author/street.py (seed 6): a re-run rewrites this file, unless this line goes
+place plan=lib.plan.shop.corner_c at=1204.07,253.40 z=4.28 yaw=348.2 mirror=1
+config palette=lib.palette.calle.rose
