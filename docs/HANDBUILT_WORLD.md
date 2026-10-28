@@ -559,14 +559,23 @@ previews, and commits the text. For example:
   block file, as records that agents then move or delete.
 - `tools/author/units.py`: fills a midrise's unit slots from the allowed lists with household mixes.
 
-They are Python, run with `-I`, and never ship. The game doesn't know they exist.
+They are Python, run with `-I`, and never ship. The game doesn't know they exist. One host tool goes with them,
+`tools/author/worlddump.cpp`: it prints `dress.py`'s inputs, the compiled roads (world.bin) and the terrain's grids.
 
 So far `tools/author/street.py` places a block's buildings along its streets: on an avenue a street wall of the
 shops and walk-ups, a corner plan at a corner with its side-street wall towards the side street, on a street a house in
 the middle of each parcel; mirrors alternating, no palette twice side by side, no plan with the same palette twice
 within three. Each ground floor stands 0.01 m over the sidewalk in front of it (the street's profile and its kerb),
-and with `--ground` (a dump of the compiled ground on a grid) at least 0.05 m over the ground under its footprint. It
-wrote b006's 21 buildings (seed 6); a re-run rewrites only the files that still carry its line.
+and with `--ground` (a dump of the compiled ground on a grid) at least 0.05 m over the ground under its footprint. A
+generated parcel's outline runs 0.5 m in under its streets (below), so the front line and a corner's side wall stand
+back from the sidewalk rather than from the outline, and with `--ground` every footprint stands on the parcel's level
+ground. It wrote b006's 21 buildings, and b004's 17 and b007's 10 (seed 6 each); a re-run rewrites only the files that
+still carry its line.
+
+So far `tools/author/dress.py` writes the generated part of the pilot's 25 block files: it cuts each block into
+parcels along its frontages, levels each parcel 0.2 m under the lowest sidewalk along it (its ground lies 0.03 m over
+that) with its outline 0.5 m in under the streets, cuts the promenade into terraces where its street climbs, and
+dresses the sidewalks, the yards and the riverfront. It reads `worlddump`'s print of the roads and the terrain's grids.
 
 ---
 
@@ -800,7 +809,8 @@ in layout space:
 ### 7.4 Interiors at scale: streaming
 
 So far a hand-built building's interior streams as the generator's do: the whole building within 480 m of the camera,
-built on a worker; b005's twelve hold 120 rooms in 60k triangles, and with b006's 21 the 33 hold 348 rooms in 179k.
+built on a worker; b005's twelve hold 120 rooms in 60k triangles, with b006's 21 the 33 hold 348 rooms in 179k, and
+with b004's 17 and b007's 10 the 60 hold 699 rooms in 356k.
 The log gives each hand cell's build time (`Hand buildings: cell ...`) and, with each interior built, the interiors
 resident and how many of them are hand-built.
 

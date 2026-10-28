@@ -6,7 +6,8 @@
 # hand where the rules don't do (a re-run overwrites only the files it wrote, which say so).
 #
 # The rules:
-# - a parcel's buildings stand along its front, 0.6 m behind the sidewalk, in from its sides; on an avenue they make a
+# - a parcel's buildings stand along its front, 0.6 m behind the sidewalk (a generated parcel's outline runs 0.5 m in
+#   under the sidewalk: tools/author/dress.py), in from its sides; on an avenue they make a
 #   street wall: one or two of the street-front plans side by side, their party walls touching; on a street a house
 #   stands alone in the middle of its parcel;
 # - a corner parcel (another street runs by its side) takes the corner plan at that end, its side-street wall (the
@@ -17,7 +18,8 @@
 # - mirrors alternate, so that neighbours pair on their party walls;
 # - z: the sidewalk's height in front of the building (the street's profile, and 0.15 m of kerb) plus 0.01 m, and with
 #   --ground (the compiled ground on a grid: "grid x0= y0= step= nx= ny=" and ny rows of nx heights) also at least
-#   0.05 m over the ground under the footprint.
+#   0.05 m over the ground under the footprint (0.25 m in from its edges, half the grid's step), which on a levelled
+#   parcel must be its own level ground, not a sidewalk.
 # It prints its seed and a summary: placements per plan, and each parcel left empty with the reason.
 #
 # usage: python3 -I tools/author/street.py <world dir> <block id> [--seed N] [--ground grid.txt] [--write]
@@ -38,6 +40,7 @@ STREET_WALL = ["lib.plan.shop.flats_a", "lib.plan.midrise.walkup_b"]
 CORNER = "lib.plan.shop.corner_c"
 HOUSES = ["lib.plan.house.casita_d", "lib.plan.house.bungalow_c"]
 SETBACK, SIDE_GAP, HOUSE_GAP = 0.6, 0.4, 1.5   # (m: behind the sidewalk; in from a parcel's side; a house's side yard)
+UNDER = 0.5   # (m: how far a generated parcel's outline runs in under the streets along it, tools/author/dress.py)
 
 
 # ------------------------------------------------------------------------------------------------ reading NTW
@@ -204,9 +207,10 @@ for eid, plist in faces.items():
     xdir = (math.cos(math.radians(yaw)), math.sin(math.radians(yaw)))
     flip = xdir[0] * u[0] + xdir[1] * u[1] < 0            # (the plan's +x runs against the street's s)
     avenue = e.get("class") == "avenue"
-    # the face's front line: the parcels' fronts (their nearest points to the street), the median, and the setback
+    # the face's front line: the parcels' fronts (their nearest points to the street), the median, out from under the
+    # sidewalk (UNDER), and the setback
     fronts = sorted(min((p[0] - o[0]) * n[0] + (p[1] - o[1]) * n[1] for p in pts(kv["poly"])) for _, kv in plist)
-    tf = round(fronts[len(fronts) // 2] + SETBACK, 2)
+    tf = round(fronts[len(fronts) // 2] + UNDER + SETBACK, 2)
     plist.sort(key=lambda r: min((p[0] - o[0]) * u[0] + (p[1] - o[1]) * u[1] for p in pts(r[1]["poly"])))
     name = e.get("name", eid)
     prev_house = None
@@ -243,10 +247,12 @@ for eid, plist in faces.items():
             if not span or not front:
                 return "no 14 m deep footprint fits behind its front"
             span = (max(span[0], front[0]) if corner is True else span[0], min(span[1], front[1]) if corner is False else span[1])
-            # (in from its sides; at a corner the building stands at the corner, and closer to its neighbour when it must)
-            s0, s1 = span[0] + (0.05 if corner is True else SIDE_GAP), span[1] - (0.05 if corner is False else SIDE_GAP)
+            # (in from its sides; at a corner the building stands at the corner, out from under the side street's
+            # sidewalk, and closer to its neighbour when it must)
+            c0, c1 = UNDER + 0.05, UNDER + 0.05
+            s0, s1 = span[0] + (c0 if corner is True else SIDE_GAP), span[1] - (c1 if corner is False else SIDE_GAP)
             if corner is not None and s1 - s0 < plans[CORNER]["w"] + min(plans[p]["w"] for p in STREET_WALL):
-                s0, s1 = (span[0] + 0.05, span[1] - 0.15) if corner else (span[0] + 0.15, span[1] - 0.05)
+                s0, s1 = (span[0] + c0, span[1] - 0.15) if corner else (span[0] + 0.15, span[1] - c1)
             free = s1 - s0
             row = []
             if avenue or corner is not None:
@@ -285,12 +291,17 @@ for eid, plist in faces.items():
                     return "a %.1f m frontage takes no house" % free
                 p = fits[0] if len(fits) == 1 else rng.choice(fits)
                 row.append((p, (s0 + s1 - plans[p]["w"]) / 2, idx % 2 == 1))
-            # (every corner of every footprint inside the parcel)
+            # (every corner of every footprint inside the parcel, and with --ground on its level ground, not on the
+            # sidewalk its outline runs under: 0.25 m in, half the grid's step)
+            yard = float(kv["grade"]) + 0.03 if grid and "grade" in kv else None
             for p, s, m in row:
                 for a in (0.0, plans[p]["w"]):
                     for b in (0.0, plans[p]["d"]):
                         if not inside(poly, (o[0] + u[0] * (s + a) + n[0] * (tl + b), o[1] + u[1] * (s + a) + n[1] * (tl + b))):
                             return "a footprint pokes out of it"
+                        ai, bi = min(max(a, 0.25), plans[p]["w"] - 0.25), min(max(b, 0.25), plans[p]["d"] - 0.25)
+                        if yard is not None and ground(o[0] + u[0] * (s + ai) + n[0] * (tl + bi), o[1] + u[1] * (s + ai) + n[1] * (tl + bi)) > yard + 0.08:
+                            return "a footprint stands on the sidewalk"
             return row
 
         # (on the face's front line, else up to 0.9 m further back where its front or a corner's cut asks for it)
@@ -321,7 +332,7 @@ for eid, plist in faces.items():
             note = ""
             if grid:
                 gmax = max(ground(o[0] + u[0] * (s + a) + n[0] * (tl + b), o[1] + u[1] * (s + a) + n[1] * (tl + b))
-                           for a in [w * k / 8 for k in range(9)] for b in [d * k / 8 for k in range(9)])
+                           for a in [0.25 + (w - 0.5) * k / 8 for k in range(9)] for b in [0.25 + (d - 0.5) * k / 8 for k in range(9)])
                 if gmax + 0.05 > z:
                     note = " (raised %.2f m over the ground under it)" % (gmax + 0.05 - z)
                     z = gmax + 0.05
