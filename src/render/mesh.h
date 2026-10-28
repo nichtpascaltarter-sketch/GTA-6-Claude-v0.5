@@ -43,10 +43,14 @@ struct MeshData {
     bool empty() const { return indices.empty(); }
 
     u32 addVertex(vec3 p, vec3 n, vec3 t, vec2 uv, u32 color, u32 mat) {
+        return addVertexPacked(p, packNormalOct(n), packNormalOct(t), uv, color, mat);
+    }
+    // A vertex with its normal and tangent already packed (packNormalOct), as a quad's four corners share them
+    u32 addVertexPacked(vec3 p, u32 n, u32 t, vec2 uv, u32 color, u32 mat) {
         VtxStatic v;
         v.pos = p;
-        v.normal = packNormalOct(n);
-        v.tangent = packNormalOct(t);
+        v.normal = n;
+        v.tangent = t;
         v.uv = uv;
         v.color = color;
         v.mat = mat;
@@ -63,8 +67,9 @@ struct MeshData {
         vec3 n = normalize(cross(b - a, d - a));
         vec3 t = normalize(b - a);
         if (length2(b - a) < 1e-10f) t = normalize(c - d);
-        u32 i0 = addVertex(a, n, t, ua, color, mat), i1 = addVertex(b, n, t, ub, color, mat);
-        u32 i2 = addVertex(c, n, t, uc, color, mat), i3 = addVertex(d, n, t, ud, color, mat);
+        const u32 pn = packNormalOct(n), pt = packNormalOct(t);   // (once for the four corners)
+        u32 i0 = addVertexPacked(a, pn, pt, ua, color, mat), i1 = addVertexPacked(b, pn, pt, ub, color, mat);
+        u32 i2 = addVertexPacked(c, pn, pt, uc, color, mat), i3 = addVertexPacked(d, pn, pt, ud, color, mat);
         quadIdx(i0, i1, i2, i3);
     }
     // Quad whose winding is fixed so that its normal faces `facing` (robust for generated geometry).

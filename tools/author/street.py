@@ -17,12 +17,14 @@
 #   twice in neighbouring parcels;
 # - mirrors alternate, so that neighbours pair on their party walls;
 # - z: the sidewalk's height in front of the building (the street's profile, and 0.15 m of kerb) plus 0.01 m, and with
-#   --ground (the compiled ground on a grid: "grid x0= y0= step= nx= ny=" and ny rows of nx heights) also at least
-#   0.05 m over the ground under the footprint (0.25 m in from its edges, half the grid's step), which on a levelled
-#   parcel must be its own level ground, not a sidewalk.
+#   --ground (the compiled ground on a grid, as tools/worldc.cpp --dump-ground writes it: "grid x0= y0= step= nx= ny="
+#   and ny rows of nx heights) also at least 0.05 m over the ground under the footprint (0.25 m in from its edges, a
+#   step of worldc's grid), which on a levelled parcel must be its own level ground, not a sidewalk.
 # It prints its seed and a summary: placements per plan, and each parcel left empty with the reason.
 #
 # usage: python3 -I tools/author/street.py <world dir> <block id> [--seed N] [--ground grid.txt] [--write]
+# (the grid: build/worldc --dump-ground=grid.txt --ground-box=<block id>, a 0.25 m grid over the block's parcels and 8 m
+# around them)
 import math
 import os
 import random
@@ -292,7 +294,7 @@ for eid, plist in faces.items():
                 p = fits[0] if len(fits) == 1 else rng.choice(fits)
                 row.append((p, (s0 + s1 - plans[p]["w"]) / 2, idx % 2 == 1))
             # (every corner of every footprint inside the parcel, and with --ground on its level ground, not on the
-            # sidewalk its outline runs under: 0.25 m in, half the grid's step)
+            # sidewalk its outline runs under: 0.25 m in, a step of worldc's grid)
             yard = float(kv["grade"]) + 0.03 if grid and "grade" in kv else None
             for p, s, m in row:
                 for a in (0.0, plans[p]["w"]):

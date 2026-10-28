@@ -203,11 +203,17 @@ struct HandBlocks {
     std::vector<HandSpot> spots;       // "blocks.spots"
     std::vector<HandCollider> colliders;   // "blocks.colliders"
 
-    // Each cell's share (index cy * kCellsPerSide + cx): a polygon by its centroid, a prop or a lamp by its position.
-    // And the level ground (the flat polygons: pads, decks, levelled parcels and their paint) by every cell its outline
-    // reaches, edges included, for padHeight
-    std::vector<std::vector<int>> groundByCell, propsByCell, lampsByCell, levelByCell;
+    // Each cell's share (index cy * kCellsPerSide + cx): a polygon by its centroid, a prop or a lamp by its position
+    std::vector<std::vector<int>> groundByCell, propsByCell, lampsByCell;
     std::vector<std::vector<int>> collidersByCell;   // (in every cell a collider's footprint reaches)
+    // The level ground (the flat polygons: pads, decks, levelled parcels and their paint, the junctions' corner slabs)
+    // for padHeight, by tile over the box of all of it (levelOrg, levelNx by levelNy tiles of levelTile metres: 8 m,
+    // unless the level ground spans more than 4 km): a polygon in every tile its outline's box reaches, a little past its
+    // edges, in the polygons' order
+    std::vector<std::vector<int>> levelByTile;
+    vec2 levelOrg = vec2(0.f);
+    float levelTile = 8.f;
+    int levelNx = 0, levelNy = 0;
     void index();
 
     // Whether a collider comes within `margin` of p in plan and overlaps p.z to p.z + height in z, as
@@ -236,11 +242,11 @@ struct HandBlocks {
     // does (the terrain, the roads and the sites answer there). A raised pad then has a step at its edge, which people
     // and vehicles climb or are stopped by as at a kerb.
     bool padHeight(vec2 p, float* z, float maxZ) const {
-        const int cx = (int)floorf((p.x + kWorldHalf) / kCellSize), cy = (int)floorf((p.y + kWorldHalf) / kCellSize);
-        if (cx < 0 || cy < 0 || cx >= kCellsPerSide || cy >= kCellsPerSide || levelByCell.empty()) return false;
+        const int tx = (int)floorf((p.x - levelOrg.x) / levelTile), ty = (int)floorf((p.y - levelOrg.y) / levelTile);
+        if (tx < 0 || ty < 0 || tx >= levelNx || ty >= levelNy) return false;
         bool found = false;
         float best = -1e9f;
-        for (int gi : levelByCell[(size_t)cy * kCellsPerSide + cx]) {
+        for (int gi : levelByTile[(size_t)ty * (size_t)levelNx + (size_t)tx]) {
             const GroundPoly& g = ground[(size_t)gi];
             if (g.z > maxZ || g.z <= best) continue;
             bool in = false;   // (even-odd)

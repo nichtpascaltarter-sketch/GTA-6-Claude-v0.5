@@ -561,13 +561,14 @@ previews, and commits the text. For example:
 
 They are Python, run with `-I`, and never ship. The game doesn't know they exist. One host tool goes with them,
 `tools/author/worlddump.cpp`: it prints `dress.py`'s inputs, the compiled roads (world.bin) and the terrain's grids.
+`worldc --dump-ground` prints `street.py`'s (section 6.1).
 
-So far `tools/author/street.py` places a block's buildings along its streets: on an avenue a street wall of the
-shops and walk-ups, a corner plan at a corner with its side-street wall towards the side street, on a street a house in
-the middle of each parcel; mirrors alternating, no palette twice side by side, no plan with the same palette twice
-within three. Each ground floor stands 0.01 m over the sidewalk in front of it (the street's profile and its kerb),
-and with `--ground` (a dump of the compiled ground on a grid) at least 0.05 m over the ground under its footprint. A
-generated parcel's outline runs 0.5 m in under its streets (below), so the front line and a corner's side wall stand
+So far `tools/author/street.py` places a block's buildings along its streets: on an avenue a street wall of the shops
+and walk-ups, a corner plan at a corner with its side-street wall towards the side street, on a street a house in the
+middle of each parcel; mirrors alternating, no palette twice side by side, no plan with the same palette twice within
+three. Each ground floor stands 0.01 m over the sidewalk in front of it (the street's profile and its kerb), and with
+`--ground` (the compiled ground on a grid: `worldc --dump-ground`) at least 0.05 m over the ground under its footprint.
+A generated parcel's outline runs 0.5 m in under its streets (below), so the front line and a corner's side wall stand
 back from the sidewalk rather than from the outline, and with `--ground` every footprint stands on the parcel's level
 ground. It wrote b006's 21 buildings, b004's 17, b007's 10, b002's 18 and b003's 17 (seed 6 each); a re-run rewrites
 only the files that still carry its line.
@@ -606,6 +607,11 @@ dresses the sidewalks, the yards and the riverfront. It reads `worlddump`'s prin
 8. Write per-file content hashes, so only changed files are re-parsed and only dirty sections rebuilt. A one-building edit
    recompiles in under 2 s.
 
+`worldc --dump-ground=<file> --ground-box=<x0,y0,x1,y1 | block id> [--ground-step=0.25]` also writes the compiled ground
+on a grid, for `tools/author/street.py --ground`: it reads back the world.bin it wrote as hand mode does (the graded
+heights, the roads with each side's widths, the blocks) and takes at each point the terrain, or the road, sidewalk or
+level ground over it as `RoadNetwork::surfaceHeight` finds it. A block's id boxes its parcels with 8 m around them.
+
 **What it compiles so far:**
 - the terrain (stage 0);
 - the roads (stage 1), through the world model (`src/world/worldmodel.h`), with the world, district, signal and transit
@@ -625,7 +631,8 @@ dresses the sidewalks, the yards and the riverfront. It reads `worlddump`'s prin
   (trees, plants, props and lights) in world.bin's `blocks` section (`src/world/blocksbin.h`), every height on the
   graded ground. The parcels' grades are graded before the roads, and a parcel that only grades the terrain is graded
   too. Hand mode draws each cell's share, a raised pad with its sides, and people and vehicles stand on the level
-  ground (pads, decks and levelled parcels: `HandBlocks::padHeight`, through `RoadNetwork::surfaceHeight`). The
+  ground (pads, decks and levelled parcels: `HandBlocks::padHeight`, through `RoadNetwork::surfaceHeight`, which looks
+  only at the polygons of the point's 8 m tile, indexed at load). The
   junctions' corner sidewalks get level slabs too, out of sight under them, as the ground query leaves them out inside
   the cut-backs (`worldmodel_blocks.cpp` `junctionCorners`). The generated parcels are levelled 0.2 m under the lowest
   sidewalk along them, so a yard is a kerb's step down from the street (the promenade in terraces where its street
@@ -763,6 +770,12 @@ compiled data. Nothing is invented:
     colliders and leaves collide, as every interior's do, and inside it the third-person camera keeps under the
     ceilings (`game/camera.cpp`). No furniture, people or nav yet; `--handtour <names>|all` walks the player through
     every door and up every stair into each room.
+
+  Each cell's build is logged (`Hand buildings: cell ...`). Most of it was the stoops' ground probes, so the level
+  ground is indexed for them by 8 m tile (`HandBlocks::padHeight`): the busiest cell, 26 placements, builds in about
+  2.5-3 ms near and its far LOD in under 1 ms in the game. A cache per plan wouldn't give the same vertices, as each
+  wall is laid out in world space; when a cell passes about 5 ms, each placement's stoops can be worked out once at load
+  instead.
 
   The cell census (section 13.3) sets the near shell's budget. Today a near cell averages 39k triangles (p99 144k, at
   most 171k), and a house costs about 2,400 triangles of its cell's mesh, roads included. Cells hold few buildings:

@@ -78,26 +78,44 @@ void HandBlocks::index() {
     groundByCell.assign(cells, {});
     propsByCell.assign(cells, {});
     lampsByCell.assign(cells, {});
-    levelByCell.assign(cells, {});
     for (size_t i = 0; i < ground.size(); i++) {
         vec2 c(0.f);
         for (const vec2& p : ground[i].poly) c += p;
         if (ground[i].poly.empty()) continue;
         const int k = cellOf(c * (1.f / (float)ground[i].poly.size()));
         if (k >= 0) groundByCell[(size_t)k].push_back((int)i);
-        if (!ground[i].flat || ground[i].poly.size() < 3) continue;
-        // the level ground: in every cell its outline's box reaches, a little past its edges
-        vec2 lo(1e30f), hi(-1e30f);
-        for (const vec2& p : ground[i].poly) {
-            lo = vmin(lo, p);
-            hi = vmax(hi, p);
+    }
+    // the level ground by tile (padHeight), over the box of all of it with a metre to spare
+    levelByTile.clear();
+    levelNx = levelNy = 0;
+    vec2 lo(1e30f), hi(-1e30f);
+    for (const GroundPoly& g : ground)
+        if (g.flat && g.poly.size() >= 3)
+            for (const vec2& p : g.poly) {
+                lo = vmin(lo, p);
+                hi = vmax(hi, p);
+            }
+    if (lo.x <= hi.x) {
+        levelOrg = lo - vec2(1.f);
+        levelTile = Max(8.f, Max(hi.x - lo.x, hi.y - lo.y) / 512.f);
+        levelNx = (int)floorf((hi.x + 1.f - levelOrg.x) / levelTile) + 1;
+        levelNy = (int)floorf((hi.y + 1.f - levelOrg.y) / levelTile) + 1;
+        levelByTile.assign((size_t)levelNx * (size_t)levelNy, {});
+        for (size_t i = 0; i < ground.size(); i++) {
+            const GroundPoly& g = ground[i];
+            if (!g.flat || g.poly.size() < 3) continue;
+            vec2 a(1e30f), b(-1e30f);
+            for (const vec2& p : g.poly) {
+                a = vmin(a, p);
+                b = vmax(b, p);
+            }
+            const int x0 = Clamp((int)floorf((a.x - 0.05f - levelOrg.x) / levelTile), 0, levelNx - 1),
+                      x1 = Clamp((int)floorf((b.x + 0.05f - levelOrg.x) / levelTile), 0, levelNx - 1);
+            const int y0 = Clamp((int)floorf((a.y - 0.05f - levelOrg.y) / levelTile), 0, levelNy - 1),
+                      y1 = Clamp((int)floorf((b.y + 0.05f - levelOrg.y) / levelTile), 0, levelNy - 1);
+            for (int y = y0; y <= y1; y++)
+                for (int x = x0; x <= x1; x++) levelByTile[(size_t)y * (size_t)levelNx + (size_t)x].push_back((int)i);
         }
-        const int x0 = Clamp((int)floorf((lo.x - 0.05f + kWorldHalf) / kCellSize), 0, kCellsPerSide - 1),
-                  x1 = Clamp((int)floorf((hi.x + 0.05f + kWorldHalf) / kCellSize), 0, kCellsPerSide - 1);
-        const int y0 = Clamp((int)floorf((lo.y - 0.05f + kWorldHalf) / kCellSize), 0, kCellsPerSide - 1),
-                  y1 = Clamp((int)floorf((hi.y + 0.05f + kWorldHalf) / kCellSize), 0, kCellsPerSide - 1);
-        for (int y = y0; y <= y1; y++)
-            for (int x = x0; x <= x1; x++) levelByCell[(size_t)y * kCellsPerSide + x].push_back((int)i);
     }
     for (size_t i = 0; i < props.size(); i++) {
         const int k = cellOf(props[i].pos.xy());

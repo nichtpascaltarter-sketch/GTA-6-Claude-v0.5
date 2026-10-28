@@ -644,12 +644,21 @@ static void testBlocks() {
         draped.z = 9.f;
         draped.poly = {vec2(300.f, 100.f), vec2(310.f, 100.f), vec2(310.f, 110.f)};
         edge.ground.push_back(draped);
+        // and a long low pad under both, over many of the index's 8 m tiles: the higher answers where they overlap,
+        // the low one in its middle tiles and at its far end, nothing past the level ground's box
+        GroundPoly low = pad;
+        low.z = 2.f;
+        low.poly = {vec2(200.f, 90.f), vec2(280.f, 90.f), vec2(280.f, 120.f), vec2(200.f, 120.f)};
+        edge.ground.push_back(low);
         edge.index();
-        float left = 0.f, right = 0.f, dz = 0.f;
+        float left = 0.f, right = 0.f, dz = 0.f, mid = 0.f, end = 0.f, past = 0.f;
         const bool l = edge.padHeight(vec2(255.f, 105.f), &left, 100.f), r = edge.padHeight(vec2(259.f, 105.f), &right, 100.f),
-                   d = edge.padHeight(vec2(307.f, 102.f), &dz, 100.f);
-        EXPECT(l && same(left, 6.f) && r && same(right, 6.f) && !d && edge.groundByCell.size() == edge.levelByCell.size(),
-               "blocks: a pad across a cell's edge (%d %d), a draped polygon (%d)", l, r, d);
+                   d = edge.padHeight(vec2(307.f, 102.f), &dz, 100.f), m = edge.padHeight(vec2(229.f, 104.f), &mid, 100.f),
+                   e = edge.padHeight(vec2(279.9f, 119.9f), &end, 100.f), o = edge.padHeight(vec2(285.f, 105.f), &past, 100.f);
+        EXPECT(l && same(left, 6.f) && r && same(right, 6.f) && !d && m && same(mid, 2.f) && e && same(end, 2.f) && !o && edge.levelNx >= 10 &&
+                   edge.levelByTile.size() == (size_t)edge.levelNx * (size_t)edge.levelNy,
+               "blocks: a pad across a cell's edge (%d %d), a draped polygon (%d), a long pad's middle and end (%d %d), past it (%d)", l, r, d,
+               m, e, o);
     }
     // damaged: refused with a reason, nothing read; none: empty
     std::vector<u8> payload;
