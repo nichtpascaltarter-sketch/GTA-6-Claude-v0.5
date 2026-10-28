@@ -19,6 +19,9 @@
 # - a plan fits the frontage and the depth, and suits the parcel's use;
 # - no plan with the same palette twice within three placements, no palette twice side by side, and no house plan
 #   twice in neighbouring parcels;
+# - a casita is the gable one or its flat-roofed twin by a draw of its own per parcel, never three alike side by side,
+#   and a gable casita's palette is the casita family's of the colour it drew (its tile roof tinted); both come after
+#   the seeded draws, so they change no other building;
 # - mirrors alternate, so that neighbours pair on their party walls;
 # - z: the sidewalk's height in front of the building (the street's profile, and 0.15 m of kerb) plus 0.01 m, and with
 #   --ground (the compiled ground on a grid, as tools/worldc.cpp --dump-ground writes it: "grid x0= y0= step= nx= ny="
@@ -34,6 +37,7 @@ import os
 import random
 import re
 import sys
+import zlib
 
 WORLD, BLOCK = sys.argv[1], sys.argv[2]
 OPTS = sys.argv[3:]
@@ -45,6 +49,10 @@ MARK = "# written by tools/author/street.py"
 STREET_WALL = ["lib.plan.shop.flats_a", "lib.plan.midrise.walkup_b"]
 CORNER = "lib.plan.shop.corner_c"
 HOUSES = ["lib.plan.house.casita_d", "lib.plan.house.bungalow_c"]
+# the casita's flat-roofed twin on its two floors, and the gable casita's palettes (Calle Luna's colours, each with a
+# roof tint): both decided after the seeded draws, so that they move no other file
+CASITA, TWIN = "lib.plan.house.casita_d", "lib.plan.house.casita_e"
+ROOFED = "casita"   # (the palette family of the gable casitas: a palette of the same name as Calle Luna's it drew)
 SETBACK, SIDE_GAP, HOUSE_GAP = 0.6, 0.4, 1.5   # (m: behind the sidewalk; in from a parcel's side; a house's side yard)
 UNDER = 0.5   # (m: how far a generated parcel's outline runs in under the streets along it, tools/author/dress.py)
 NARROW_GAP = 1.0   # (m: a house's side yard on a lot too narrow for any house with HOUSE_GAP)
@@ -355,7 +363,7 @@ for eid, plist in faces.items():
                     note = " (raised %.2f m over the ground under it)" % (gmax + 0.05 - z)
                     z = gmax + 0.05
             placements.append({"parcel": pid, "plan": p, "at": at, "z": math.ceil(z * 100 - 1e-6) / 100, "yaw": yaw, "mirror": m,
-                               "street": name, "corner": p == CORNER, "note": note})
+                               "street": name, "corner": p == CORNER, "note": note, "face": eid, "idx": idx})
 
 # ------------------------------------------------------------------------------------------------ palettes, ids
 def family(p):
@@ -370,6 +378,23 @@ for pl in placements:
     choice = [c for c in fam if c not in avoid] or fam
     pl["palette"] = rng.choice(choice)
     recent.append((pl["plan"], pl["palette"]))
+# a casita is the gable plan or its twin by a draw of its own (its parcel id's CRC), but never the third alike side by
+# side (neighbouring parcels of one face); a gable casita takes the casita palette of its colour
+run = []
+for pl in placements:
+    if pl["plan"] != CASITA or TWIN not in plans:
+        run = []
+        continue
+    if run and (run[-1]["face"], run[-1]["idx"] + 1) != (pl["face"], pl["idx"]):
+        run = []
+    twin = zlib.crc32(pl["parcel"].encode()) & 1 == 1
+    if len(run) >= 2 and run[-1]["plan"] == run[-2]["plan"]:
+        twin = run[-1]["plan"] == CASITA
+    if twin:
+        pl["plan"] = TWIN
+    elif ROOFED in palettes:
+        pl["palette"] = pl["palette"].replace(".calle.", ".%s." % ROOFED)
+    run.append(pl)
 letter = {"shop": "s", "midrise": "m", "house": "h"}
 existing = {f for f in os.listdir(bdir) if f.endswith(".ntw") and f != "block.ntw"}
 for k, pl in enumerate(placements, 1):
@@ -378,7 +403,8 @@ for k, pl in enumerate(placements, 1):
 # ------------------------------------------------------------------------------------------------ output
 WHAT = {"lib.plan.shop.flats_a": "a shop with a flat over it", "lib.plan.midrise.walkup_b": "a three-storey walk-up",
         "lib.plan.shop.corner_c": "the corner shop with a flat over it, its windows on both streets",
-        "lib.plan.house.casita_d": "a two-storey casita", "lib.plan.house.bungalow_c": "a bungalow"}
+        "lib.plan.house.casita_d": "a two-storey casita", "lib.plan.house.casita_e": "a two-storey casita with a flat roof",
+        "lib.plan.house.bungalow_c": "a bungalow"}
 counts = {}
 for pl in placements:
     counts[pl["plan"]] = counts.get(pl["plan"], 0) + 1
