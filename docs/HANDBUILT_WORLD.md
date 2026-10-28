@@ -569,8 +569,8 @@ within three. Each ground floor stands 0.01 m over the sidewalk in front of it (
 and with `--ground` (a dump of the compiled ground on a grid) at least 0.05 m over the ground under its footprint. A
 generated parcel's outline runs 0.5 m in under its streets (below), so the front line and a corner's side wall stand
 back from the sidewalk rather than from the outline, and with `--ground` every footprint stands on the parcel's level
-ground. It wrote b006's 21 buildings, and b004's 17 and b007's 10 (seed 6 each); a re-run rewrites only the files that
-still carry its line.
+ground. It wrote b006's 21 buildings, b004's 17, b007's 10, b002's 18 and b003's 17 (seed 6 each); a re-run rewrites
+only the files that still carry its line.
 
 So far `tools/author/dress.py` writes the generated part of the pilot's 25 block files: it cuts each block into
 parcels along its frontages, levels each parcel 0.2 m under the lowest sidewalk along it (its ground lies 0.03 m over
@@ -810,7 +810,8 @@ in layout space:
 
 So far a hand-built building's interior streams as the generator's do: the whole building within 480 m of the camera,
 built on a worker; b005's twelve hold 120 rooms in 60k triangles, with b006's 21 the 33 hold 348 rooms in 179k, and
-with b004's 17 and b007's 10 the 60 hold 699 rooms in 356k.
+with b004's 17 and b007's 10 the 60 hold 699 rooms in 356k, and with b002's 18 and b003's 17 the 95 hold 1,116 rooms
+in 569k.
 The log gives each hand cell's build time (`Hand buildings: cell ...`) and, with each interior built, the interiors
 resident and how many of them are hand-built.
 
