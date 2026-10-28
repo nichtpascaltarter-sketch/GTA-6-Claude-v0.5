@@ -2,4 +2,4 @@ ntw 1 building id=cl.b014.s06 block=cl.b014 parcel=cl.b014.p04
 # a shop with a flat over it, facing Avenida Flores
 # written by tools/author/street.py (seed 6): a re-run rewrites this file, unless this line goes
 place plan=lib.plan.shop.flats_a at=1274.59,547.85 z=4.05 yaw=179.7
-config palette=lib.palette.calle.sky
+config palette=lib.palette.calle.coral

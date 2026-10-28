@@ -2,4 +2,4 @@ ntw 1 building id=cl.b013.s03 block=cl.b013 parcel=cl.b013.p02
 # a shop with a flat over it, facing Calle Luna
 # written by tools/author/street.py (seed 6): a re-run rewrites this file, unless this line goes
 place plan=lib.plan.shop.flats_a at=1883.83,360.80 z=3.39 yaw=0.0 mirror=1
-config palette=lib.palette.calle.mint
+config palette=lib.palette.calle.rose
