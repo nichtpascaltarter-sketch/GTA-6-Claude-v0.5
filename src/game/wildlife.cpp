@@ -760,10 +760,36 @@ void findPerches(GameWorld& g, Group& G, float radius, int want, bool ground, bo
     if (Phys::gCollision && length2(c - gW.player.xy()) < 380.f * 380.f && (posts || roofs || trees)) {
         std::vector<int> ids;
         Phys::gCollision->collidersNear(c, radius, ids);
-        const auto covered = [&](vec3 p, int self) {
+        // (the boxes that could cover a roof edge, in a grid of the boxes' extent once per call, at most 48 by 48: a
+        // candidate tests its cell's few, not every collider in the radius, thousands by hand-built shells)
+        std::vector<int> boxes;
+        vec2 glo(1e30f), ghi(-1e30f);
+        if (roofs)
             for (int o : ids) {
                 const Phys::Collider& q = Phys::gCollision->collider(o);
-                if (o == self || q.owner < 0 || q.kind != Phys::COL_BOX || fabsf(p.z - q.c.z) > q.he.z) continue;
+                if (q.owner < 0 || q.kind != Phys::COL_BOX) continue;
+                const vec2 e(fabsf(q.ax.x) * q.he.x + fabsf(q.ax.y) * q.he.y, fabsf(q.ax.y) * q.he.x + fabsf(q.ax.x) * q.he.y);
+                glo = vmin(glo, q.c.xy() - e);
+                ghi = vmax(ghi, q.c.xy() + e);
+                boxes.push_back(o);
+            }
+        const float cell = boxes.empty() ? 1.f : Max(4.f, Max(ghi.x - glo.x, ghi.y - glo.y) / 48.f);
+        const int gx = boxes.empty() ? 0 : (int)((ghi.x - glo.x) / cell) + 1, gy = boxes.empty() ? 0 : (int)((ghi.y - glo.y) / cell) + 1;
+        std::vector<std::vector<int>> grid((size_t)gx * (size_t)gy);
+        for (int o : boxes) {
+            const Phys::Collider& q = Phys::gCollision->collider(o);
+            const vec2 e(fabsf(q.ax.x) * q.he.x + fabsf(q.ax.y) * q.he.y, fabsf(q.ax.y) * q.he.x + fabsf(q.ax.x) * q.he.y);
+            const int x0 = Clamp((int)((q.c.x - e.x - glo.x) / cell), 0, gx - 1), x1 = Clamp((int)((q.c.x + e.x - glo.x) / cell), 0, gx - 1);
+            const int y0 = Clamp((int)((q.c.y - e.y - glo.y) / cell), 0, gy - 1), y1 = Clamp((int)((q.c.y + e.y - glo.y) / cell), 0, gy - 1);
+            for (int y = y0; y <= y1; y++)
+                for (int x = x0; x <= x1; x++) grid[(size_t)y * (size_t)gx + (size_t)x].push_back(o);
+        }
+        const auto covered = [&](vec3 p, int self) {
+            const int x = (int)floorf((p.x - glo.x) / cell), y = (int)floorf((p.y - glo.y) / cell);
+            if (x < 0 || y < 0 || x >= gx || y >= gy) return false;
+            for (int o : grid[(size_t)y * (size_t)gx + (size_t)x]) {
+                const Phys::Collider& q = Phys::gCollision->collider(o);
+                if (o == self || fabsf(p.z - q.c.z) > q.he.z) continue;
                 const vec2 dd = p.xy() - q.c.xy();
                 if (fabsf(dot(dd, q.ax)) <= q.he.x && fabsf(dot(dd, perp(q.ax))) <= q.he.y) return true;
             }

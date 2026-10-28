@@ -744,6 +744,8 @@ struct BlockPad {                      // a level the terrain is graded to: a pa
     std::vector<vec2> poly;
     float z = 0.f;                     // absolute
     float blend = 0.f;                 // m beyond the polygon back to the terrain
+    u8 covered = 0;                    // 1: the parcel's ground covers it, level at z (placeOnTerrain grades the terrain
+                                       // under it lower, out of sight)
 };
 
 // What compileBlocks makes, for worldc. Heights in `blocks` are still above the ground wherever its records stand on
