@@ -105,6 +105,8 @@ Cells are generated on demand:
 - The renderer streams 256 m cells: near LOD within 420 m, far LOD within 2,300 m.
 - Each streamed cell calls `World::generateCell(cx, cy, detail, CellGeometry&)` (cellgen.cpp) on a job thread.
 - That call returns one opaque mesh, decals, prop instances, lights and collision boxes for the cell.
+- The frame uploads the finished cells (their buffers and collision), near before far and nearest first: up to 4 cells
+  and 64k triangles a frame, and a bigger cell alone (`world_render.cpp`).
 - Interiors are built on jobs when the camera comes within 480 m (`interiors_game.cpp`), because the facade cut-outs show
   them from the near ring.
 
@@ -776,10 +778,13 @@ compiled data. Nothing is invented:
   Each cell's build is logged (`Hand buildings: cell ...`). Most of it was the stoops' ground probes, so the level
   ground is indexed for them by 8 m tile (`HandBlocks::padHeight`): a cell of 26 placements builds in about 2.5-3 ms
   near and its far LOD in under 1 ms on the test machine. A cache per plan wouldn't give the same vertices, as each wall
-  is laid out in world space. Cells build on a worker, so a near build may take up to about 8 ms there (3-4 ms on a
-  native build) while the frame holds: each autoplay logs its frames (`autoplay frames`, and the slowest with what they
-  streamed in). Past that, a cell's placements can be built in parallel on the idle workers, and the stoops worked out
-  once at load (which saves a tenth of a near build).
+  is laid out in world space. Cells build on a worker, so a near build only delays when its cell appears, never the
+  frame, and a cell is asked for 420 m out: row 2's busiest cells (52 and 63 placements) build in about 9 ms there.
+  Past about 15 ms, or wherever a near cell is seen arriving late, a cell's placements can be built in parallel on the
+  idle workers, and the stoops worked out once at load (which saves a tenth of a near build). The frame pays for the
+  uploads instead, about 1.1 ms per 10k triangles there, so a frame takes at most 64k triangles of them (a bigger
+  cell alone) and two big hand cells land a frame apart. Each autoplay logs its frames (`autoplay frames`, and the
+  slowest with what they streamed in).
 
   The cell census (section 13.3) sets the near shell's budget. Today a near cell averages 39k triangles (p99 144k, at
   most 171k), and a house costs about 2,400 triangles of its cell's mesh, roads included. Cells hold few buildings:
