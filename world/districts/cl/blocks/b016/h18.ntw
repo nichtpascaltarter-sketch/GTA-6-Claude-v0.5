@@ -1,5 +1,5 @@
 ntw 1 building id=cl.b016.h18 block=cl.b016 parcel=cl.b016.p14
 # a bungalow, facing Calle Siete
-# written by tools/author/street.py (seed 6): a re-run rewrites this file, unless this line goes
+# written by tools/author/street.py (seed 6, per face): a re-run rewrites this file, unless this line goes
 place plan=lib.plan.house.bungalow_c at=1573.05,464.70 z=3.71 yaw=0.0 mirror=1
 config palette=lib.palette.bungalow.peach

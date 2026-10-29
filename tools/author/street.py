@@ -35,7 +35,8 @@
 # It prints its seed and a summary: placements per plan, and each parcel left empty with the reason.
 #
 # usage: python3 -I tools/author/street.py <world dir> <block id> [--seed N] [--ground grid.txt] [--write] [--classic]
-#        [--guard cell=triangles]   (--guard 45,42=62639: the cell's near upload as it stands, kept under UPLOAD_CAP)
+#        [--guard cell=triangles[:cap] ...]   (--guard 45,42=62639, once per cell: its near upload as it stands, kept
+#        under UPLOAD_CAP; for a cell over UPLOAD_CAP already, kept from growing past cap, its upload before the batch)
 # (the grid: build/worldc --dump-ground=grid.txt --ground-box=<block id>, a 0.25 m grid over the block's parcels and 8 m
 # around them)
 import itertools
@@ -54,7 +55,7 @@ WRITE = "--write" in OPTS
 # --classic: the draws as before the per-face generator (one generator for the block, no house plan twice in
 # neighbouring parcels, a casita's gable or twin by its parcel id's CRC); --guard 45,42=62639: a cell's near upload now
 CLASSIC = "--classic" in OPTS
-GUARD = OPTS[OPTS.index("--guard") + 1] if "--guard" in OPTS else None
+GUARDS = [OPTS[k + 1] for k, o in enumerate(OPTS[:-1]) if o == "--guard"]
 MARK = "# written by tools/author/street.py"
 # The district's plans by role (Calle Luna): the street wall's, the corners', the houses'
 STREET_WALL = ["lib.plan.shop.flats_a", "lib.plan.midrise.walkup_b"]
@@ -229,8 +230,8 @@ def extent(poly, u, n, o, t0, t1):
 # draw is kept when it meets the variety rules against the street's other faces as their files stand: (a) its first
 # house differs from its west neighbour's first; (b) its first three differ from its west neighbour's and from those of
 # the face across the street, where that one was drawn this way too; (c) no other face of the street has its whole
-# sequence; and with --guard, the cell stays under UPLOAD_CAP. After TRIES draws, the one breaking fewest is kept, and
-# the summary names what it breaks.
+# sequence; and with --guard, each guarded cell stays under UPLOAD_CAP, or where it's over UPLOAD_CAP already, under the
+# guard's cap. After TRIES draws, the one breaking fewest is kept, and the summary names what it breaks.
 LETTER = {"lib.plan.house.casita_d": "G", "lib.plan.house.casita_e": "T", "lib.plan.house.bungalow_c": "B"}
 PER_FACE = "seed %d, per face" % SEED
 
@@ -276,20 +277,20 @@ def draw_face(eid, name, yaw, lots):
     across = [f for f in others if abs(((f[1] - yaw) + 180) % 360 - 180) > 170 and f[2] and f[3] and f[2][0][0] < hi and f[2][-1][0] > lo]
     seqs = ["".join(l for x, l in f[2]) for f in others if f[2]]
     wseq = "".join(l for x, l in west[2]) if west else None
-    # (the guard: this face's houses in the cell, against the plans their parcels hold now)
-    cap = None
-    if GUARD:
-        key, base = GUARD.split("=")
-        cx_, cy_ = (int(v) for v in key.split(","))
-        incell = lambda pl: (int(math.floor((pl["centre"][0] + 10240.0) / 256.0)), int(math.floor((pl["centre"][1] + 10240.0) / 256.0))) == (cx_, cy_)
-        now = {}
+    # (the guards: this face's houses in each guarded cell, against the plans their parcels hold now)
+    caps, now = [], {}
+    if GUARDS:
         for f in os.listdir(bdir):
             if f.endswith(".ntw") and f != "block.ntw":
                 tx = open(os.path.join(bdir, f), encoding="utf-8").read()
                 mm, mp = re.search(r"parcel=(\S+)", tx), re.search(r"place plan=(\S+)", tx)
                 if mm and mp:
                     now[mm.group(1)] = mp.group(1)
-        cap = (int(base), incell, now)
+        for g in GUARDS:
+            key, val = g.split("=")
+            base, top = (val.split(":") + [val])[:2]
+            caps.append((key, int(base), int(top), tuple(int(v) for v in key.split(","))))
+    incell = lambda pl, cell: (int(math.floor((pl["centre"][0] + 10240.0) / 256.0)), int(math.floor((pl["centre"][1] + 10240.0) / 256.0))) == cell
     # (the ways of its bungalows and casitas, west to east as the lots run: of those with the fewest bungalows side by
     # side or first where the west neighbour's first is one, those holding the most bungalows)
     first = west_to_east[0]
@@ -325,21 +326,21 @@ def draw_face(eid, name, yaw, lots):
                 breaks.append("(b) its first three are those across the street (%s)" % f[0])
         if mine in seqs:
             breaks.append("(c) another face of the street has its sequence")
-        total = None
-        if cap:
-            base, incell, now = cap
+        totals = []
+        for key, base, top, cell in caps:
             total = base + sum(TRIS.get(TWIN if seq[idx] == "T" else picks[idx], 0) - TRIS.get(now.get(cands[picks[idx]][0]["parcel"], ""), 0)
-                               for idx, cands in lots if incell(cands[picks[idx]][0]))
-            if total >= UPLOAD_CAP:
-                breaks.append("the guard: cell %s at about %d triangles" % (GUARD.split("=")[0], total))
+                               for idx, cands in lots if incell(cands[picks[idx]][0], cell))
+            totals.append((key, total))
+            if total >= UPLOAD_CAP and total > top:
+                breaks.append("the guard: cell %s at about %d triangles" % (key, total))
         if best is None or len(breaks) < len(best[2]):
-            best = (seq, picks, breaks, attempt + 1, mine, total)
+            best = (seq, picks, breaks, attempt + 1, mine, totals)
         if not breaks:
             break
-    seq, picks, breaks, tries, mine, total = best
+    seq, picks, breaks, tries, mine, totals = best
     print("  face %s (%s): houses %s west to east, drawn in %d%s" % (eid, name, mine, tries, "" if not breaks else "; KEPT BREAKING: " + "; ".join(breaks)))
-    if total is not None:
-        print("  guard %s: about %d triangles" % (GUARD.split("=")[0], total))
+    for key, total in totals:
+        print("  guard %s: about %d triangles" % (key, total))
     out = []
     for idx, cands in lots:
         for pl in cands[picks[idx]]:

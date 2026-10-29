@@ -561,6 +561,10 @@ previews, and commits the text. For example:
   options chosen by a seed. It prints the seed, but the seed is not data: the output is.
 - `tools/author/dress.py`: puts street trees every 12 m along an edge, lights every 30 m and bins at corners into the
   block file, as records that agents then move or delete.
+- `tools/author/rulecheck.py`: checks the rules over the building files `street.py` wrote, apart from its own draw: the
+  palettes, no three casitas alike and no two bungalows side by side on every face, the variety rules on the faces
+  drawn per face, and against a base world the corners' places and each face's houses before and after. It exits 1 on
+  a broken rule.
 - `tools/author/units.py`: fills a midrise's unit slots from the allowed lists with household mixes.
 
 They are Python, run with `-I`, and never ship. The game doesn't know they exist. One host tool goes with them,
@@ -580,21 +584,22 @@ floors under a flat roof behind a parapet), never the third alike side by side. 
 differs from its west neighbour's first, its first three from its west neighbour's and from those across the street, and
 no two faces of a street share their whole sequence; a face that fails draws again, up to 50 times, then keeps the draw
 that breaks the fewest rules and names them. With `--guard`, a draw that would take a cell's near upload to 64,000
-triangles draws again. With `--classic`, the houses draw as before: one generator for the block, no house plan twice in
-neighbouring parcels, and a casita's gable or twin by its parcel id's CRC. A gable casita takes the casita palette of
-the colour it drew, its tile roof tinted: the gable or twin is settled after the palettes' draw, so it moves no other
-building. Each ground floor stands 0.01 m over the sidewalk in front of it (the street's profile and its kerb), and with
-`--ground` (the compiled ground on a grid: `worldc --dump-ground`) at least 0.05 m over the ground under its footprint.
-A generated parcel's outline runs 0.5 m in under its streets (below), so the front line and a corner's side wall stand
-back from the sidewalk rather than from the outline, and with `--ground` every footprint stands on the parcel's level
-ground: a corner plan where its side street's sidewalk reaches further in stands up to 2.1 m further in from it. It
-wrote b006's 21 buildings, b004's 17, b007's 10, b002's 18, b003's 17, b008's 20, b013's 15, b010's 16, b012's 14,
-b009's 21 and b011's 19 (seed 6 each), and its re-run for the twin rewrote only the 32 casitas of b002-b004 and
-b008-b013; then it wrote the Calle Siete face of b014-b016 (27 buildings) and of b017-b019 (22), and the Avenida Flores
-face of b014-b016 (31) and of b017-b019 (27), which completes row 3; its re-run for the palettes' own seed recoloured
-231 of the 274 buildings of b002-b004 and b007-b019 (b005 and b006 keep theirs); then it wrote the Avenida Flores face
-of b020-b022 (33) and of b023-b025 (26), across the avenue from row 3, then the Calle Nueve face of b020-b022 (26) and
-of b023-b025 (20), which completes row 4; then its per-face draw rewrote Calle Nueve's 34 houses (b020-b025), whose
+triangles draws again, and for a cell over that already, one that would take it past its upload before the batch. With
+`--classic`, the houses draw as before: one generator for the block, no house plan twice in neighbouring parcels, and a
+casita's gable or twin by its parcel id's CRC. A gable casita takes the casita palette of the colour it drew, its tile
+roof tinted: the gable or twin is settled after the palettes' draw, so it moves no other building. Each ground floor
+stands 0.01 m over the sidewalk in front of it (the street's profile and its kerb), and with `--ground` (the compiled
+ground on a grid: `worldc --dump-ground`) at least 0.05 m over the ground under its footprint. A generated parcel's
+outline runs 0.5 m in under its streets (below), so the front line and a corner's side wall stand back from the sidewalk
+rather than from the outline, and with `--ground` every footprint stands on the parcel's level ground: a corner plan
+where its side street's sidewalk reaches further in stands up to 2.1 m further in from it. It wrote b006's 21 buildings,
+b004's 17, b007's 10, b002's 18, b003's 17, b008's 20, b013's 15, b010's 16, b012's 14, b009's 21 and b011's 19 (seed 6
+each), and its re-run for the twin rewrote only the 32 casitas of b002-b004 and b008-b013; then it wrote the Calle Siete
+face of b014-b016 (27 buildings) and of b017-b019 (22), and the Avenida Flores face of b014-b016 (31) and of b017-b019
+(27), which completes row 3; its re-run for the palettes' own seed recoloured 231 of the 274 buildings of b002-b004 and
+b007-b019 (b005 and b006 keep theirs); then it wrote the Avenida Flores face of b020-b022 (33) and of b023-b025 (26),
+across the avenue from row 3, then the Calle Nueve face of b020-b022 (26) and of b023-b025 (20), which completes row 4;
+then its per-face draw rewrote Calle Nueve's 34 houses (b020-b025) and Calle Siete's 37 of row 3 (b014-b019), whose
 sequences now differ block to block. A re-run rewrites only the files that still carry its line.
 
 So far `tools/author/dress.py` writes the generated part of the pilot's 26 block files: it cuts each block into parcels
