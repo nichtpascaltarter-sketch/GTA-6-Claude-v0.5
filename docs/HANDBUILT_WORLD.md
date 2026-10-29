@@ -556,6 +556,10 @@ district's block of 20 houses can avoid both adjacent repeats and visible twins.
 Allowed and encouraged, because their output is the static data. An agent runs a script once, reviews the result in the
 previews, and commits the text. For example:
 
+- `tools/author/roads.py`: a district's streets, designed in it as centrelines with their names, classes, lanes,
+  widths, junction controls and bridges. It finds where they meet, splits them into nodes and edges, puts each node on
+  the baked terrain and writes the district's `roads.ntw`, keeping the ids already in it: a re-run of an unchanged
+  design, formatted, rewrites the file byte for byte.
 - `tools/author/street.py`: give it a block face, the district's plan list, and a rule such as "no plan twice within 5
   lots, no palette twice adjacent". It writes the building files for a row of lots with plans, mirrors, palettes and
   options chosen by a seed. It prints the seed, but the seed is not data: the output is.
@@ -568,8 +572,8 @@ previews, and commits the text. For example:
 - `tools/author/units.py`: fills a midrise's unit slots from the allowed lists with household mixes.
 
 They are Python, run with `-I`, and never ship. The game doesn't know they exist. One host tool goes with them,
-`tools/author/worlddump.cpp`: it prints `dress.py`'s inputs, the compiled roads (world.bin) and the terrain's grids.
-`worldc --dump-ground` prints `street.py`'s (section 6.1).
+`tools/author/worlddump.cpp`: it prints `dress.py`'s inputs, the compiled roads (world.bin) and the terrain's grids
+(which `roads.py` reads too). `worldc --dump-ground` prints `street.py`'s (section 6.1).
 
 So far `tools/author/street.py` places a block's buildings along its streets: on an avenue a street wall of the shops
 and walk-ups, a corner plan at a corner with its side-street wall towards the side street, on a street a house in the
