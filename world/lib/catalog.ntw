@@ -2,13 +2,14 @@ ntw 1 catalog
 # The pieces the game builds in code (docs/NTW_FORMAT.md 9.13), as the hand-built world's blocks use them so far: trees
 # and plants, street furniture and light fixtures. code= names the PropType (src/world/worldtypes.h) or a lamp
 # (src/world/catalogcodes.h); size=WxDxH is the piece at scale 1, its height the average of its variants (a tree's h=
-# scales it); variants= as the prop renderer builds them (src/render/props_render.cpp); body=WxDxH the solid part
-# where that isn't the whole piece, for its collider: a tree's trunk, a pole (src/sim/physics.cpp's sizes).
+# scales it), but a shrub's size its variants' largest (src/world/propmesh.cpp): its foliage's reach, across any way it
+# turns; variants= as the prop renderer builds them (src/render/props_render.cpp); body=WxDxH the solid part where
+# that isn't the whole piece, for its collider: a tree's trunk, a pole (src/sim/physics.cpp's sizes).
 piece lib.veg.palm code=PROP_PALM size=4.00x4.00x8.25 variants=4 collide=cylinder body=0.52x0.52x8.25
 piece lib.veg.royal_palm code=PROP_PALM_TALL size=5.00x5.00x13.00 variants=3 collide=cylinder body=0.52x0.52x13.00
 piece lib.veg.live_oak code=PROP_TREE_OAK size=8.00x8.00x8.50 variants=4 collide=cylinder body=0.52x0.52x8.50
 piece lib.veg.pine code=PROP_TREE_PINE size=5.00x5.00x12.00 variants=3 collide=cylinder body=0.52x0.52x12.00
-piece lib.veg.shrub code=PROP_BUSH size=1.80x1.80x1.60 variants=4 collide=none
+piece lib.veg.shrub code=PROP_BUSH size=6.40x6.40x2.90 variants=4 collide=none
 piece lib.veg.street_tree code=PROP_STREET_TREE size=4.00x4.00x6.50 variants=3 collide=cylinder body=0.52x0.52x6.50
 piece lib.prop.planter code=PROP_PLANTER size=1.20x1.20x0.90 variants=2 collide=box
 piece lib.prop.bench code=PROP_BENCH size=1.80x0.60x0.90 variants=1 collide=box

@@ -109,22 +109,17 @@ light kind=lib.light.street_cobra at=1478.50,427.55 yaw=90.0
 prop kind=lib.prop.hydrant at=1478.40,419.85
 prop kind=lib.prop.trash_bin at=1478.70,437.15
 tree kind=lib.veg.live_oak at=1489.43,410.71 h=7.06
-plant kind=lib.veg.shrub at=1490.49,446.28 scale=0.89
+plant kind=lib.veg.shrub at=1492.54,437.50 scale=0.28
 tree kind=lib.veg.live_oak at=1503.05,415.50 h=6.54
-plant kind=lib.veg.shrub at=1496.32,446.25 scale=1.04
+plant kind=lib.veg.shrub at=1496.32,446.50 scale=0.25
 tree kind=lib.veg.live_oak at=1515.65,408.35 h=8.15
-plant kind=lib.veg.shrub at=1511.48,446.55 scale=0.84
-plant kind=lib.veg.shrub at=1511.48,444.74 scale=0.84
 tree kind=lib.veg.live_oak at=1529.76,411.29 h=6.56
 tree kind=lib.veg.palm at=1526.11,415.03 h=7.97
-plant kind=lib.veg.shrub at=1533.61,446.34 scale=0.68
 tree kind=lib.veg.live_oak at=1539.40,411.07 h=7.86
-plant kind=lib.veg.shrub at=1545.37,446.26 scale=0.80
 tree kind=lib.veg.palm at=1554.56,409.87 h=8.24
 tree kind=lib.veg.live_oak at=1567.94,415.53 h=6.22
-plant kind=lib.veg.shrub at=1575.18,446.54 scale=0.84
-plant kind=lib.veg.shrub at=1575.19,444.77 scale=0.82
+plant kind=lib.veg.shrub at=1575.19,446.50 scale=0.25
+plant kind=lib.veg.shrub at=1575.19,444.10 scale=0.46
 tree kind=lib.veg.live_oak at=1580.72,417.51 h=6.28
 tree kind=lib.veg.palm at=1595.12,409.53 h=7.06
 tree kind=lib.veg.live_oak at=1597.48,416.61 h=6.84
-plant kind=lib.veg.shrub at=1592.68,446.44 scale=0.86
