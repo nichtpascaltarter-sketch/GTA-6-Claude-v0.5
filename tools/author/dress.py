@@ -1081,10 +1081,334 @@ def dress_parcel(p, rng):
             if da - 1.0 < u < db + 1.0:
                 continue
             x, y = xy(u, v0 + rng.uniform(1.2, 2.5))
-            recs.append(("plant", "lib.veg.shrub", x, y, None, {"scale": rng.uniform(0.8, 1.2)}))
+            recs.append(("plant", "lib.veg.shrub", x, y, None, {"scale": rng.uniform(0.8, 1.2), "lot": p}))
     else:
         recs.append(("parcel_ground", "paving", []))
     return recs
+
+
+# ------------------------------------------------------------------------------------- the yard shrubs, by the buildings
+# A lot's shrubs are drawn by its front (dress_parcel) without its building, which street.py places later, so the
+# buildings' files place them: a shrub a footprint covers becomes a foundation planting along the facade where CLEAR or
+# more lies between the sidewalk's back edge and the front wall, else a planting in the nearer side yard with CLEAR or
+# more clear (else the farther one), else it goes. None stands on a door's way: DOOR_CLEAR kept clear in front of every
+# entrance and along its walk to the sidewalk (a back door's by the driveway's side yard, else the nearer one), nor on
+# the driveway. A shrub's reach is the catalog's: lib.veg.shrub's size= (its foliage at its widest, any way it turns)
+# times its scale. One shrinks to fit its place, but not under MIN_SCALE: else it goes. A shrub no footprint or way
+# reaches stays where it was drawn. A re-run after any building change re-places them.
+CLEAR = 0.8         # (the least clear width that takes a planting)
+MIN_SCALE = 0.25    # (the least a shrub shrinks to fit: worldc takes no plant under 0.2)
+MARGIN = 0.05       # (m: a shrub's reach keeps this far off the walls, the ways and its lot's edge)
+DOOR_CLEAR = 1.2    # (the way kept clear in front of a door and along its walk)
+PLANS, LAYOUTS = {}, {}
+
+
+def catalog_size(piece):
+    """A piece's size= in the library's catalog (world/lib/catalog.ntw): (W, D, H) at scale 1."""
+    for raw in open(os.path.join(WORLD, "lib", "catalog.ntw"), encoding="utf-8"):
+        t = raw.split("#")[0].split()
+        if len(t) > 2 and t[0] == "piece" and t[1] == piece:
+            for kv in t[2:]:
+                if kv.startswith("size="):
+                    return tuple(float(v) for v in kv[5:].split("x"))
+    raise SystemExit("dress.py: the catalog gives %s no size=" % piece)
+
+
+SHRUB_W = max(catalog_size("lib.veg.shrub")[:2])   # (a shrub's reach across at scale 1)
+RMIN = MIN_SCALE * SHRUB_W / 2                     # (the least reach a shrub shrinks to)
+
+
+def ntw_records(path):
+    """A file's records as (type, id, {key: value}), continuation lines joined (as street.py reads them)."""
+    out = []
+    for raw in open(path, encoding="utf-8"):
+        line = raw.rstrip("\n")
+        body = line.split(" #")[0] if not line.lstrip().startswith("#") else ""
+        if not body.strip() or body.strip() == "end":
+            continue
+        if line.startswith(" ") and out and "=" in body.split()[0]:
+            out[-1][1] += " " + body.strip()
+            continue
+        out.append([None, body.strip()])
+    res = []
+    for _, text in out:
+        words = text.split()
+        kv = dict(w.split("=", 1) for w in words[1:] if "=" in w)
+        res.append((words[0], words[1] if len(words) > 1 and "=" not in words[1] else None, kv))
+    return res
+
+
+def load_library():
+    for root, _, files in os.walk(os.path.join(WORLD, "lib", "layouts")):
+        for f in sorted(files):
+            walls, doors, lid = {}, {}, None
+            for t, rid, kv in ntw_records(os.path.join(root, f)):
+                if t == "ntw" and "id" in kv:
+                    lid = kv["id"]
+                elif t == "wall":
+                    walls[rid] = ([float(v) for v in kv["a"].split(",")], [float(v) for v in kv["b"].split(",")], kv.get("ext"))
+                elif t == "door":
+                    doors[rid] = (kv["wall"], float(kv["at"]), float(kv["w"]))
+            LAYOUTS[lid] = (walls, doors)
+    for root, _, files in os.walk(os.path.join(WORLD, "lib", "plans")):
+        for f in sorted(files):
+            pid, size, floors, ents = None, None, {}, []
+            for t, rid, kv in ntw_records(os.path.join(root, f)):
+                if t == "ntw" and "id" in kv:
+                    pid = kv["id"]
+                elif t == "meta":
+                    size = [float(v) for v in kv["size"].split("x")]
+                elif t == "floor":
+                    floors[rid] = kv["layout"]
+                elif t == "entrance":
+                    ents.append(kv["door"])
+            doors = []
+            for ref in ents:   # (each entrance's door: its centre on its wall, the wall's side, its width)
+                fl, d = ref.split(".")
+                walls, ld = LAYOUTS[floors[fl]]
+                wid, at_, dw = ld[d]
+                a, b, ext = walls[wid]
+                L = math.hypot(b[0] - a[0], b[1] - a[1])
+                doors.append(((a[0] + (b[0] - a[0]) * at_ / L, a[1] + (b[1] - a[1]) * at_ / L), ext, dw))
+            PLANS[pid] = (size[0], size[1], doors)
+
+
+def buildings_of(bid):
+    """The block's buildings from its files (besides block.ntw): plan, origin, yaw, mirror."""
+    out = []
+    bdir = os.path.join(WORLD, "districts/cl/blocks", bid)
+    for f in sorted(os.listdir(bdir)):
+        if not f.endswith(".ntw") or f == "block.ntw":
+            continue
+        for t, rid, kv in ntw_records(os.path.join(bdir, f)):
+            if t == "place":
+                x, y = (float(v) for v in kv["at"].split(","))
+                out.append({"file": f, "plan": kv["plan"], "at": (x, y), "yaw": math.radians(float(kv.get("yaw", "0"))), "mirror": kv.get("mirror") == "1"})
+    return out
+
+
+def lot_span(poly, B, v):
+    """The lot's u span on the line v of building B's frame (or None)."""
+    us = []
+    q = [to_local(B, p) for p in poly]
+    for k in range(len(q)):
+        (au, av), (bu, bv) = q[k], q[(k + 1) % len(q)]
+        if (av - v) * (bv - v) <= 0 and av != bv:
+            us.append(au + (bu - au) * (v - av) / (bv - av))
+    return (min(us), max(us)) if len(us) >= 2 else None
+
+
+def seg_dist(p, a, b):
+    """The distance from point p to the segment a-b."""
+    ex, ey = b[0] - a[0], b[1] - a[1]
+    t = max(0.0, min(1.0, ((p[0] - a[0]) * ex + (p[1] - a[1]) * ey) / (ex * ex + ey * ey))) if ex or ey else 0.0
+    return math.hypot(p[0] - a[0] - ex * t, p[1] - a[1] - ey * t)
+
+
+def to_local(B, p):
+    c, s = math.cos(B["yaw"]), math.sin(B["yaw"])
+    dx, dy = p[0] - B["at"][0], p[1] - B["at"][1]
+    return (dx * c + dy * s, -dx * s + dy * c)
+
+
+def to_world(B, u, v):
+    c, s = math.cos(B["yaw"]), math.sin(B["yaw"])
+    return (B["at"][0] + u * c - v * s, B["at"][1] + u * s + v * c)
+
+
+def on_street(pt):
+    """Whether a point lies on a street or its sidewalk."""
+    for e in edges_near([pt, pt]):
+        d, s, side = edge_side_dist(e, pt[0], pt[1])
+        if 0.0 < s < e["plen"] and d < hw_on(e, side) + sw_on(e, side):
+            return True
+    return False
+
+
+def side_room(lot, B, w, ways, yard, v, rmax):
+    """Room for a shrub in building B's side yard ("left" or "right") on the line v: the widest strip there clear of the
+    lot's edge, the streets' sidewalks and what it keeps off (ways, footprints) over the shrub's own reach along v, and
+    the largest reach up to rmax (RMIN at least) that it takes with MARGIN each side, as (u, r) with u the strip's
+    middle; or None."""
+    def strip(r):
+        spans = [lot_span(lot["poly"], B, v + j * r) for j in (-1, 0, 1)]
+        if None in spans:
+            return None
+        a, b = (max(s_[0] for s_ in spans), 0.0) if yard == "left" else (w, min(s_[1] for s_ in spans))
+        # (out from under a street's sidewalk along the lot's side)
+        while b - a > CLEAR and any(on_street(to_world(B, a + 0.01, v + j * r)) for j in (-1, 0, 1)):
+            a += 0.05
+        while b - a > CLEAR and any(on_street(to_world(B, b - 0.01, v + j * r)) for j in (-1, 0, 1)):
+            b -= 0.05
+        free = [(a, b)]
+        for ua, ub, va, vb in ways:
+            if va < v + r + MARGIN and vb > v - r - MARGIN:
+                free = [g for f0, f1 in free for g in ((f0, min(f1, ua)), (max(f0, ub), f1)) if g[1] - g[0] > 0.0]
+        best = max(free, key=lambda f: f[1] - f[0], default=None)
+        return best if best and best[1] - best[0] >= max(CLEAR, 2 * (r + MARGIN)) else None
+
+    if rmax < RMIN or not strip(RMIN):
+        return None
+    lo, hi = RMIN, rmax
+    if strip(rmax):
+        lo = rmax
+    else:
+        for _ in range(8):   # (a strip only widens as the reach it must clear shrinks)
+            mid = (lo + hi) / 2
+            lo, hi = (mid, hi) if strip(mid) else (lo, mid)
+    best = strip(lo)
+    return ((best[0] + best[1]) / 2, lo)
+
+
+def yard_frame(B, lot):
+    """Building B's front strip depth (from its front wall to the sidewalk's back edge along its lot's street) and the
+    ways kept clear around it, as (u0, u1, v0, v1) in its frame (u along its unmirrored x, v into it): a door's way out
+    to the sidewalk, a back door's by the driveway's side yard where the lot has one (the paved way to the street), else
+    by the nearer one; and the driveway with a margin."""
+    w, d, doors = PLANS[B["plan"]]
+    e, side = lot["front"]["edge"], lot["front"]["side"]
+    fx, fy = to_world(B, w / 2, 0.0)
+    D = edge_side_dist(e, fx, fy)[0] - (hw_on(e, side) + sw_on(e, side))
+    drives = []
+    for kind_, poly in lot.get("paint", []):
+        q = [to_local(B, p) for p in poly]
+        drives.append((min(a for a, b in q), max(a for a, b in q), min(b for a, b in q), max(b for a, b in q)))
+    ways, h = [], DOOR_CLEAR / 2
+    for (dx, dy), ext, dw in doors:
+        u = w - dx if B["mirror"] else dx
+        ext = {"left": "right", "right": "left"}.get(ext, ext) if B["mirror"] else ext
+        if ext == "front":
+            ways.append((u - h, u + h, -D - UNDER, 0.0))
+        elif ext in ("left", "right"):
+            ways.append(((-DOOR_CLEAR, 0.0) if ext == "left" else (w, w + DOOR_CLEAR)) + (-D - UNDER, dy + h))
+        elif ext == "back":
+            left = (drives[0][0] + drives[0][1]) / 2 < w / 2 if drives else u < w / 2
+            ways.append((u - h, u + h, d, d + DOOR_CLEAR))
+            ways.append(((-DOOR_CLEAR, u + h) if left else (u - h, w + DOOR_CLEAR)) + (d, d + DOOR_CLEAR))
+            ways.append(((-DOOR_CLEAR, 0.0) if left else (w, w + DOOR_CLEAR)) + (-D - UNDER, d + DOOR_CLEAR))
+    ways += [(u0 - 0.3, u1 + 0.3, v0 - 0.3, v1 + 0.3) for u0, u1, v0, v1 in drives]
+    return D, ways
+
+
+def place_shrubs(bid, parcels, items):
+    """The block's shrubs placed by its buildings; and the count kept, moved to a front or a side yard, dropped."""
+    if not PLANS:
+        load_library()
+    blds = buildings_of(bid)
+    count = {"kept": 0, "front": 0, "side": 0, "dropped": 0}
+    shrubs, placed, frames = [], [], {}   # (placed: every shrub standing so far, (x, y, r) in the world)
+    # what every shrub keeps clear of: every footprint of the block and every building's ways, its own or not, as
+    # world quads; in a building's frame, each as its bounding box (u0, u1, v0, v1)
+    for B in blds:
+        w, d = PLANS[B["plan"]][:2]
+        lot = next((q for q in parcels if "edge" in q.get("front", {}) and inside(q["poly"], *to_world(B, w / 2, d / 2))), None)
+        if lot is not None:
+            frames[B["file"]] = yard_frame(B, lot)
+    keep_off = []
+    for B in blds:
+        w, d = PLANS[B["plan"]][:2]
+        for a, b, c, dd in [(0.0, w, 0.0, d)] + (frames[B["file"]][1] if B["file"] in frames else []):
+            keep_off.append([to_world(B, a, c), to_world(B, b, c), to_world(B, b, dd), to_world(B, a, dd)])
+    local = {}
+
+    def offs(B):
+        if B["file"] not in local:
+            local[B["file"]] = []
+            for q in keep_off:
+                pl = [to_local(B, p) for p in q]
+                local[B["file"]].append((min(p[0] for p in pl), max(p[0] for p in pl), min(p[1] for p in pl), max(p[1] for p in pl)))
+        return local[B["file"]]
+
+    def clear_of_all(x, y, r):   # (a shrub on a lot with no building: its disc against every quad, in the world)
+        for q in keep_off:
+            inside_q = all((q[(j + 1) % 4][0] - q[j][0]) * (y - q[j][1]) - (q[(j + 1) % 4][1] - q[j][1]) * (x - q[j][0]) >= 0 for j in range(4)) or \
+                all((q[(j + 1) % 4][0] - q[j][0]) * (y - q[j][1]) - (q[(j + 1) % 4][1] - q[j][1]) * (x - q[j][0]) <= 0 for j in range(4))
+            if inside_q or min(seg_dist((x, y), q[j], q[(j + 1) % 4]) for j in range(4)) < r + MARGIN:
+                return False
+        return True
+
+    # first the shrubs that stand clear where they were drawn (no footprint or way within their reach), as drawn
+    for k, it in enumerate(items):
+        kind, piece, x, y, yaw, extra = it
+        if kind != "plant" or "lot" not in extra:
+            continue
+        lot = extra["lot"]
+        mine = [B for B in blds if inside(lot["poly"], *to_world(B, PLANS[B["plan"]][0] / 2, PLANS[B["plan"]][1] / 2))]
+        r0 = SHRUB_W * extra["scale"] / 2
+        if mine:
+            B = mine[0]
+            su, sv = to_local(B, (x, y))
+            clear = not any(su + r0 + MARGIN > a and su - r0 - MARGIN < b and sv + r0 + MARGIN > c and sv - r0 - MARGIN < dd for a, b, c, dd in offs(B))
+        else:
+            B, clear = None, clear_of_all(x, y, r0)
+        shrubs.append((k, B, clear))
+        if clear:
+            placed.append((x, y, r0))
+    moved = {}
+    for k, B, clear in shrubs:
+        kind, piece, x, y, yaw, extra = items[k]
+        if clear:
+            count["kept"] += 1
+            continue
+        if B is None:   # (no building to place it by)
+            count["dropped"] += 1
+            moved[k] = None
+            continue
+        lot = extra["lot"]
+        w, d = PLANS[B["plan"]][:2]
+        D = frames[B["file"]][0]
+        ways = offs(B)
+        su, sv = to_local(B, (x, y))
+        r0 = SHRUB_W * extra["scale"] / 2
+
+        def ok(u, v, r):
+            if any(u + r + MARGIN > a and u - r - MARGIN < b and v + r + MARGIN > c and v - r - MARGIN < dd for a, b, c, dd in ways):
+                return False
+            px, py = to_world(B, u, v)
+            return all(math.hypot(px - qx, py - qy) >= r + qr + 0.1 for qx, qy, qr in placed)
+
+        spot = None
+        if D >= CLEAR and min(r0, D / 2) >= RMIN:   # a foundation planting along the facade
+            r, v = min(r0, D / 2), -D / 2
+            for j in range(int(w * 10) + 1):
+                for u in (su + j * 0.1, su - j * 0.1):
+                    if r <= u <= w - r and ok(u, v, r):
+                        spot = ("front", u, v, r)
+                        break
+                if spot:
+                    break
+        if not spot:   # a side yard, the nearer first: down its length from the front, the widest clear strip there
+            for yard in (("left", "right") if su < w / 2 else ("right", "left")):
+                v = RMIN
+                while not spot and v + RMIN <= d:
+                    got = side_room(lot, B, w, ways, yard, v, min(r0, v, d - v))
+                    if got and ok(got[0], v, got[1]):
+                        spot = (yard, got[0], v, got[1])
+                    v += 0.2
+                if spot:
+                    break
+        if not spot:
+            count["dropped"] += 1
+            moved[k] = None
+            continue
+        yard, u, v, r = spot
+        nx_, ny_ = to_world(B, u, v)
+        placed.append((nx_, ny_, r))
+        moved[k] = (round(nx_, 2), round(ny_, 2), math.floor(r * 2 / SHRUB_W * 100 + 1e-6) / 100 if r < r0 - 1e-9 else extra["scale"])
+        count["front" if yard == "front" else "side"] += 1
+    out = []
+    for k, it in enumerate(items):
+        kind, piece, x, y, yaw, extra = it
+        if kind != "plant" or "lot" not in extra:
+            out.append(it)
+            continue
+        clean = {a: b for a, b in extra.items() if a != "lot"}
+        if k in moved:
+            if moved[k] is None:
+                continue
+            x, y, clean["scale"] = moved[k]
+        out.append((kind, piece, x, y, yaw, clean))
+    return out, count
 
 
 # --------------------------------------------------------------------------------------------------------- the output
@@ -1145,6 +1469,7 @@ COLNAMES_N = ["Bougainvillea to Ceiba", "Ceiba to the Heroes", "the Heroes to Co
 
 report = []
 all_parcels, all_items, all_polys = [], [], {}
+SHRUBS = {}
 for bid in sorted(SEEDS):
     rng = random.Random("calle-luna-" + bid)
     hand = hand_part(bid)
@@ -1191,6 +1516,8 @@ for bid in sorted(SEEDS):
                 parcels.append(p)
                 items += [r for r in recs if r[0] != "parcel_ground"]
         items = dress_sidewalks(bid, polys, rng, hand_it) + items
+        items, shrubs = place_shrubs(bid, parcels, items)
+        SHRUBS[bid] = shrubs
     col = int(bid[1:]) - 2
     title = TITLES[bid] + ("" if bid in ("b001", "b026") else ", " + COLNAMES_N[col % 6])
     path = write_block(bid, title, parcels, items, hand)
@@ -1198,7 +1525,8 @@ for bid in sorted(SEEDS):
     all_items += [(bid,) + it for it in items]
     report.append("%s %s: %d region(s), %d parcels, %d trees, %d plants, %d props, %d lights" % (
         bid, title, len(polys), len(parcels), sum(1 for i in items if i[0] == "tree"), sum(1 for i in items if i[0] == "plant"),
-        sum(1 for i in items if i[0] == "prop"), sum(1 for i in items if i[0] == "light")))
+        sum(1 for i in items if i[0] == "prop"), sum(1 for i in items if i[0] == "light")) +
+        ("; shrubs kept %(kept)d, moved to the front %(front)d, to a side yard %(side)d, dropped %(dropped)d" % SHRUBS[bid] if bid in SHRUBS else ""))
 if REPORT:
     print("\n".join(report))
     for bid, p in all_parcels:
@@ -1207,6 +1535,8 @@ if REPORT:
                                             "none" if sw is None else "%.2f..%.2f" % sw))
 graded = sum(1 for _, p in all_parcels if p.get("grade") is not None)
 print("dress.py: %d of %d parcels levelled a step under their sidewalks" % (graded, len(all_parcels)))
+tot = {k: sum(c[k] for c in SHRUBS.values()) for k in ("kept", "front", "side", "dropped")}
+print("dress.py: shrubs kept %(kept)d, moved to the front %(front)d, to a side yard %(side)d, dropped %(dropped)d" % tot)
 print("dress.py: %d blocks, %d parcels, %d trees, %d plants, %d props, %d lights" % (
     len(SEEDS), len(all_parcels), sum(1 for i in all_items if i[1] == "tree"), sum(1 for i in all_items if i[1] == "plant"),
     sum(1 for i in all_items if i[1] == "prop"), sum(1 for i in all_items if i[1] == "light")))
