@@ -83,10 +83,10 @@ plant kind=lib.veg.shrub at=1630.00,442.10 scale=1.05
 plant kind=lib.veg.shrub at=1630.00,435.90 scale=0.80
 tree kind=lib.veg.street_tree at=1636.56,412.09 h=5.05
 tree kind=lib.veg.palm at=1636.46,416.26 h=6.59
-plant kind=lib.veg.shrub at=1648.26,443.70 scale=0.29
+plant kind=lib.veg.shrub at=1647.61,446.50 scale=0.25
 tree kind=lib.veg.live_oak at=1655.61,416.04 h=8.15
 tree kind=lib.veg.palm at=1654.68,409.54 h=6.67
-plant kind=lib.veg.shrub at=1651.05,446.50 scale=0.25
+plant kind=lib.veg.shrub at=1650.40,443.70 scale=0.29
 tree kind=lib.veg.street_tree at=1670.24,414.51 h=5.69
 plant kind=lib.veg.shrub at=1666.09,446.50 scale=0.25
 plant kind=lib.veg.shrub at=1666.09,444.70 scale=0.25
