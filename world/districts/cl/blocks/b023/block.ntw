@@ -77,7 +77,7 @@ tree kind=lib.veg.palm at=1623.94,620.08 h=7.42
 plant kind=lib.veg.shrub at=1627.78,650.50 scale=0.25
 tree kind=lib.veg.live_oak at=1644.23,616.51 h=7.97
 tree kind=lib.veg.street_tree at=1644.71,617.01 h=5.34
-plant kind=lib.veg.shrub at=1646.62,650.50 scale=0.25
+plant kind=lib.veg.shrub at=1647.28,647.70 scale=0.25
 tree kind=lib.veg.live_oak at=1655.35,618.64 h=7.37
 tree kind=lib.veg.palm at=1663.59,614.82 h=7.10
 plant kind=lib.veg.shrub at=1673.34,647.70 scale=0.25
