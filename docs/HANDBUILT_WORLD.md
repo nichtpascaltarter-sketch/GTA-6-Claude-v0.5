@@ -599,8 +599,9 @@ face of b014-b016 (27 buildings) and of b017-b019 (22), and the Avenida Flores f
 (27), which completes row 3; its re-run for the palettes' own seed recoloured 231 of the 274 buildings of b002-b004 and
 b007-b019 (b005 and b006 keep theirs); then it wrote the Avenida Flores face of b020-b022 (33) and of b023-b025 (26),
 across the avenue from row 3, then the Calle Nueve face of b020-b022 (26) and of b023-b025 (20), which completes row 4;
-then its per-face draw rewrote Calle Nueve's 34 houses (b020-b025) and Calle Siete's 37 of row 3 (b014-b019), whose
-sequences now differ block to block. A re-run rewrites only the files that still carry its line.
+then its per-face draw rewrote Calle Nueve's 34 houses (b020-b025) and Calle Siete's 37 of row 3 (b014-b019) and 37 of
+row 2 (b008-b013), whose sequences now differ block to block. A re-run rewrites only the files that still carry its
+line.
 
 So far `tools/author/dress.py` writes the generated part of the pilot's 26 block files: it cuts each block into parcels
 along its frontages, levels each parcel 0.2 m under the lowest sidewalk along it (its ground lies 0.03 m over that) with
