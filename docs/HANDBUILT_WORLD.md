@@ -589,10 +589,14 @@ wrote the Avenida Flores face of b020-b022 (33) and of b023-b025 (26), across th
 Nueve face of b020-b022 (26) and of b023-b025 (20), which completes row 4. A re-run rewrites only the files that still
 carry its line.
 
-So far `tools/author/dress.py` writes the generated part of the pilot's 25 block files: it cuts each block into
-parcels along its frontages, levels each parcel 0.2 m under the lowest sidewalk along it (its ground lies 0.03 m over
-that) with its outline 0.5 m in under the streets, cuts the promenade into terraces where its street climbs, and
-dresses the sidewalks, the yards and the riverfront. It reads `worlddump`'s print of the roads and the terrain's grids.
+So far `tools/author/dress.py` writes the generated part of the pilot's 26 block files: it cuts each block into parcels
+along its frontages, levels each parcel 0.2 m under the lowest sidewalk along it (its ground lies 0.03 m over that) with
+its outline 0.5 m in under the streets, cuts the promenade and the park edge into terraces where their streets climb,
+and dresses the sidewalks, the yards and the riverfront. The park edge (b026) is a lawn along Calle Nueve's north side,
+from its sidewalk to the district's bound: 11 terraces, a footpath with a link to the sidewalk opposite each side
+street, 47 coconut palms, 23 benches facing the street, 12 bins and 31 bollards with garden lamps, and its sidewalk
+dressed as a block's (the footpath is ground paint: no walk path for the AI). It reads `worlddump`'s print of the roads
+and the terrain's grids.
 
 ---
 
@@ -651,8 +655,8 @@ level ground over it as `RoadNetwork::surfaceHeight` finds it. A block's id boxe
   only at the polygons of the point's 8 m tile, indexed at load). The
   junctions' corner sidewalks get level slabs too, out of sight under them, as the ground query leaves them out inside
   the cut-backs (`worldmodel_blocks.cpp` `junctionCorners`). The generated parcels are levelled 0.2 m under the lowest
-  sidewalk along them, so a yard is a kerb's step down from the street (the promenade in terraces where its street
-  climbs);
+  sidewalk along them, so a yard is a kerb's step down from the street (the promenade and the park edge in terraces
+  where their streets climb);
 - what the AI's graphs read from the blocks (section 12), in sections beside `blocks` with the road overrides'
   conventions, one at a time: `blocks.parcels` (each parcel's id, use, the edge and side it fronts, and its grade),
   `blocks.lots` (each lot's curb cuts and rows, and the drive graph worldc derives from them: 12.2 #9), `blocks.walk`
