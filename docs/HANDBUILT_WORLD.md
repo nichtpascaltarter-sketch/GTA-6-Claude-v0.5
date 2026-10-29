@@ -592,11 +592,14 @@ carry its line.
 So far `tools/author/dress.py` writes the generated part of the pilot's 26 block files: it cuts each block into parcels
 along its frontages, levels each parcel 0.2 m under the lowest sidewalk along it (its ground lies 0.03 m over that) with
 its outline 0.5 m in under the streets, cuts the promenade and the park edge into terraces where their streets climb,
-and dresses the sidewalks, the yards and the riverfront. The park edge (b026) is a lawn along Calle Nueve's north side,
-from its sidewalk to the district's bound: 11 terraces, a footpath with a link to the sidewalk opposite each side
-street, 47 coconut palms, 23 benches facing the street, 12 bins and 31 bollards with garden lamps, and its sidewalk
-dressed as a block's (the footpath is ground paint: no walk path for the AI). It reads `worlddump`'s print of the roads
-and the terrain's grids.
+and dresses the sidewalks, the yards and the riverfront. A yard's shrubs follow its building, as the block's building
+files place it: one that its footprint covers goes into the front yard as a foundation planting where 0.8 m or more lies
+clear between the sidewalk and the front wall, else into the nearer side yard with 0.8 m clear (else the farther), else
+it goes; none stands within 1.2 m of an entrance or on its walk to the sidewalk, nor on the driveway; so a re-run after
+a building change re-places them. The park edge (b026) is a lawn along Calle Nueve's north side, from its sidewalk to
+the district's bound: 11 terraces, a footpath with a link to the sidewalk opposite each side street, 47 coconut palms,
+23 benches facing the street, 12 bins and 31 bollards with garden lamps, and its sidewalk dressed as a block's (the
+footpath is ground paint: no walk path for the AI). It reads `worlddump`'s print of the roads and the terrain's grids.
 
 ---
 
