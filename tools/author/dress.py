@@ -2,7 +2,8 @@
 # 5.3). It reads the pilot's streets as the game builds them (worlddump's print of world.bin's roads), finds the 25
 # blocks between them, cuts each into parcels along its frontages, levels each parcel a kerb's step under its sidewalks,
 # and dresses the sidewalks (street trees, street lights, hydrants, bins, benches, news boxes), the yards and the
-# riverfront. It writes one block file per block (world/districts/cl/blocks/bNNN/block.ntw), keeping each file's
+# riverfront; and the park edge north of Calle Nueve (b026). It writes one block file per block
+# (world/districts/cl/blocks/bNNN/block.ntw), keeping each file's
 # hand-written part, everything above the GENERATED marker, as it is: Domino Park (b010) is hand-made. Its output is
 # data: run it once per design change, then format the files (ntwfmt) and review the check image and in-game shots.
 # Positions are plan x,y; worldc puts every height on the graded ground or the sidewalk.
@@ -291,7 +292,7 @@ def inside(poly, x, y):
 # ------------------------------------------------------------------------------------------------------ the 25 blocks
 # b001 the riverfront between the Paseo del Rio and the water; b002-b007 Calle Luna to the river, b008-b013 Calle Siete
 # to Calle Luna, b014-b019 Avenida Flores to Calle Siete, b020-b025 Calle Nueve to Avenida Flores, each row west to
-# east. Seeds: points in each block (two where an alley splits it).
+# east; b026 the park edge north of Calle Nueve. Seeds: points in each block (two where an alley splits it).
 COLS_N = [1260, 1400, 1540, 1675, 1795, 1905]   # north of Calle Luna (Palma at 1740)
 COLS_S = [1260, 1400, 1540, 1655, 1775, 1905]   # south of it (Palma at 1700)
 SEEDS = {"b001": []}
@@ -303,6 +304,7 @@ for k, x in enumerate(COLS_N):
     SEEDS[bid] = [(x, 403)] if k in (0, 5) else [(x, 376), (x, 430)]
     SEEDS["b%03d" % (14 + k)] = [(x, 505)]
     SEEDS["b%03d" % (20 + k)] = [(x, 607)]
+SEEDS["b026"] = []
 river = street("Paseo del Rio")
 
 
@@ -399,9 +401,154 @@ def dress_riverfront(rng):
     return out
 
 
+# ------------------------------------------------------------------------------------------------------ the park edge
+# b026 (decision 1b): the strip north of Calle Nueve, from its north sidewalk to the district's bound (the raster's top),
+# between the sidewalks of the Bougainvillea and Este stubs at its ends. A lawn in level terraces, cut wherever the
+# sidewalks along a piece fall more than YARD_RISE - 0.03 (as the promenade's); a footpath along it with a link to the
+# sidewalk opposite each side street; coconut palms on its far side every 16 m, benches between them facing the street, a
+# bin by every other bench, and bollards with garden lamps on its near side every 24 m. (No walk path for the AI: the
+# footpath is ground paint.)
+PARK_SEED = (1575.0, 705.0)
+PARK_STUBS = ("Bougainvillea Boulevard", "Avenida Este")
+PATH_IN, PATH_W = 10.0, 3.0   # the footpath: its near edge this far in from the sidewalk, and its width
+PARK = {}                     # what park_edge() found: the sidewalk's back edge, the strip's ends, the cuts, the links
+
+
+def park_strip():
+    """The strip as one polygon (CCW): Calle Nueve's north sidewalk, the stubs' sidewalks and their turning circles (its
+    outline UNDER under their rings, as run_under puts it under a street's), and the district's bound. (Drawn, not
+    traced on the raster: the side streets' ends mark round caps on it that the game's junctions don't have.)"""
+    nueve = street("Calle Nueve")
+    ys_ = {p[1] for e in nueve for p in e["pts"]}
+    if len(ys_) != 1 or any(e["pts"][-1][0] <= e["pts"][0][0] for e in nueve):
+        raise SystemExit("dress.py: the park edge takes Calle Nueve as a straight street, west to east")
+    yc = ys_.pop()
+    walk = yc + max(hw_on(e, 1) + sw_on(e, 1) for e in nueve)   # (the park is left of its travel)
+    ends = []
+    for e in edges:
+        if e["name"] not in PARK_STUBS or min(p[1] for p in e["pts"]) < yc - 0.5:
+            continue   # (the stubs: north of Calle Nueve, along y)
+        x = e["pts"][0][0]
+        north = e["pts"][-1][1] > e["pts"][0][1]
+        east = PARK_SEED[0] > x   # (the park lies east of it)
+        side = (-1 if north else 1) if east else (1 if north else -1)
+        tip = nodes[e["n1"] if north else e["n0"]]   # its dead end, with the turning circle
+        ends.append((x + (1 if east else -1) * (hw_on(e, side) + sw_on(e, side)), tip["x"], tip["y"], tip["bulb"] + e["sw"] - UNDER))
+    if len(ends) != 2:
+        raise SystemExit("dress.py: the park edge needs the two stubs at its ends")
+    ends.sort()
+
+    def arc(xe, cx_, cy_, r, north):
+        """The ring's bite into the strip at x = xe, as points from south to north (or north to south)."""
+        if abs(xe - cx_) >= r:
+            return []
+        f0 = math.acos(abs(xe - cx_) / r)
+        n = max(2, int(math.degrees(2 * f0) / 8.0))
+        sgn = 1.0 if xe > cx_ else -1.0
+        pts = [(cx_ + sgn * r * math.cos(-f0 + 2 * f0 * k / n), cy_ + r * math.sin(-f0 + 2 * f0 * k / n)) for k in range(n + 1)]
+        return pts if north else pts[::-1]
+
+    (x0, wx, wy, wr), (x1, ex, ey, er) = ends
+    poly = [(x0, walk), (x1, walk)] + arc(x1, ex, ey, er, True) + [(x1, Y1), (x0, Y1)] + arc(x0, wx, wy, wr, False)
+    poly = dedupe(poly)
+    # the side streets' ends: Calle Nueve's junctions between the stubs (a link to the footpath opposite each)
+    ids = {e["n0"] for e in nueve} | {e["n1"] for e in nueve}
+    links = sorted(nodes[i]["x"] for i in ids if nodes[i]["degree"] >= 3 and x0 < nodes[i]["x"] < x1)
+    PARK.update({"walk": walk, "x0": x0, "x1": x1, "links": links})
+    return poly if area(poly) > 0 else poly[::-1]
+
+
+def park_piece(poly, xa, xb):
+    p = clip(clip(poly, -1.0, 0.0, -xa), 1.0, 0.0, xb)
+    return dedupe(p) if len(p) >= 3 else []
+
+
+def park_fall(piece):
+    """How far the sidewalks along a piece fall, as grade_of counts them (Calle Nueve's, and the stubs' under it)."""
+    zs = sidewalks_along(piece)
+    cap = max([z for z, name in zs if name == "Calle Nueve"], default=None)
+    zs = [z for z, name in zs if cap is None or z <= cap + 0.1]
+    return max(zs) - min(zs) if zs else None
+
+
+def park_edge():
+    """The park edge's terraces, west to east: the strip cut every 4 m along x as far as one level meets the sidewalks
+    along it within YARD_RISE - 0.03 (a last piece under 8 m joins the one before it where one level still does)."""
+    poly = park_strip()
+    lo_x, hi_x = min(q[0] for q in poly), max(q[0] for q in poly)
+    cuts = [lo_x]
+    while cuts[-1] < hi_x - 0.01:
+        xa = cuts[-1]
+        xb = min(xa + 4.0, hi_x)
+        while xb < hi_x - 0.01:
+            nb = min(xb + 4.0, hi_x)
+            f = park_fall(park_piece(poly, xa, nb))
+            if f is None or f > YARD_RISE - 0.03:
+                break
+            xb = nb
+        cuts.append(xb)
+    if len(cuts) > 2 and cuts[-1] - cuts[-2] < 8.0:
+        f = park_fall(park_piece(poly, cuts[-3], cuts[-1]))
+        if f is not None and f <= YARD_RISE - 0.03:
+            cuts.pop(-2)
+    PARK["cuts"] = cuts
+    return [[(round(q[0], 2), round(q[1], 2)) for q in park_piece(poly, a, b)] for a, b in zip(cuts, cuts[1:])]
+
+
+def park_parcels(polys):
+    """Each terrace a park parcel of lawn fronting Calle Nueve, with its share of the footpath and of the links."""
+    walk, cuts = PARK["walk"], PARK["cuts"]
+    pa, pb = walk + PATH_IN, walk + PATH_IN + PATH_W
+    links = PARK["links"]
+
+    def rect(a, b, c, d):
+        return [(round(a, 2), round(c, 2)), (round(b, 2), round(c, 2)), (round(b, 2), round(d, 2)), (round(a, 2), round(d, 2))]
+
+    out = []
+    for k, poly in enumerate(polys):
+        xa, xb = cuts[k], cuts[k + 1]
+        paint = [("paving", rect(xa, xb, pa, pb))]   # (the footpath across the terrace: its ends meet the stubs' sidewalks)
+        for lx in links:   # (the links run UNDER - 0.1 under Calle Nueve's sidewalk)
+            a, b = max(xa, lx - PATH_W / 2), min(xb, lx + PATH_W / 2)
+            if b - a > 0.05:
+                paint.append(("paving", rect(a, b, walk - UNDER + 0.1, pa)))
+        fr = [f for f in frontages(poly).values() if f["edge"]["name"] == "Calle Nueve"]
+        front = max(fr, key=lambda f: f["len"])
+        out.append({"poly": poly, "use": "park", "front": front, "ground": "lawn", "paint": paint, "u": (1, 0), "v": (0, 1)})
+    return out
+
+
+def dress_park(rng):
+    """The park edge's palms, benches, bins and bollard lamps."""
+    walk, x0, x1 = PARK["walk"], PARK["x0"], PARK["x1"]
+    pa, pb = walk + PATH_IN, walk + PATH_IN + PATH_W
+    out = []
+    x = x0 + 8.0
+    while x <= x1 - 4.0:   # palms every 16 m, 1.5 m behind the path
+        out.append(("tree", "lib.veg.palm", x, pb + 1.5, None, {"h": rng.uniform(6.5, 8.5)}))
+        x += 16.0
+    x, k = x0 + 16.0, 0
+    while x <= x1 - 4.0:   # benches every 32 m between the palms, 0.6 m behind the path, facing the street; a bin by
+        out.append(("prop", "lib.prop.bench", x, pb + 0.6, yaw_toward(0.0, -1.0), {}))   # every other one
+        if k % 2 == 0:
+            out.append(("prop", "lib.prop.trash_bin", x + 1.8, pb + 0.6, None, {}))
+        x += 32.0
+        k += 1
+    x = x0 + 12.0
+    while x <= x1 - 4.0:   # bollards with garden lamps every 24 m, 0.4 m before the path, beside a link, not in it
+        bx = x
+        for lx in PARK["links"]:
+            if abs(bx - lx) < PATH_W / 2 + 1.0:
+                bx = lx - PATH_W / 2 - 1.0 if bx < lx else lx + PATH_W / 2 + 1.0
+        out.append(("prop", "lib.prop.bollard", bx, pa - 0.4, None, {}))
+        out.append(("light", "lib.light.garden", bx, pa - 0.4, None, {"z": 0.95}))
+        x += 24.0
+    return out
+
+
 regions = {}
 for bid, seeds in SEEDS.items():
-    if bid == "b001":
+    if bid in ("b001", "b026"):
         continue
     regions[bid] = [flood([s]) for s in seeds]
     # (a seed in a region already flooded for this block adds nothing)
@@ -988,7 +1135,8 @@ def write_block(bid, title, parcels, items, hand):
     return path
 
 
-TITLES = {"b001": "The riverfront: the promenade between the Paseo del Rio and the water"}
+TITLES = {"b001": "The riverfront: the promenade between the Paseo del Rio and the water",
+          "b026": "The park edge: the lawn along Calle Nueve's north side, Bougainvillea to Este"}
 ROWS = [("b%03d" % (2 + k), "Calle Luna to the river") for k in range(6)] + [("b%03d" % (8 + k), "Calle Siete to Calle Luna") for k in range(6)] + \
        [("b%03d" % (14 + k), "Avenida Flores to Calle Siete") for k in range(6)] + [("b%03d" % (20 + k), "Calle Nueve to Avenida Flores") for k in range(6)]
 for bid, t in ROWS:
@@ -1003,6 +1151,8 @@ for bid in sorted(SEEDS):
     hand_it, hand_polys = hand_items(hand)
     if bid == "b001":
         polys = riverfront()
+    elif bid == "b026":
+        polys = park_edge()
     else:
         polys = [outline(r) for r in regions[bid]]
         polys = [p if area(p) > 0 else p[::-1] for p in polys]
@@ -1017,6 +1167,10 @@ for bid in sorted(SEEDS):
                 parcels.append({"poly": [(round(q[0], 2), round(q[1], 2)) for q in piece], "use": "park", "front": {"edge": river[0], "side": -1},
                                 "ground": "paving", "paint": [], "u": (1, 0), "v": (0, -1)})
         items = dress_sidewalks(bid, polys, rng, hand_it) + dress_riverfront(rng)
+    elif bid == "b026":
+        # the park edge: a lawn in terraces with the footpath's paint, its sidewalk dressed as a block's, then the park's
+        parcels = park_parcels(polys)
+        items = dress_sidewalks(bid, polys, rng, hand_it) + dress_park(rng)
     else:
         for poly in polys:
             fr = frontages(poly)
@@ -1038,7 +1192,7 @@ for bid in sorted(SEEDS):
                 items += [r for r in recs if r[0] != "parcel_ground"]
         items = dress_sidewalks(bid, polys, rng, hand_it) + items
     col = int(bid[1:]) - 2
-    title = TITLES[bid] + ("" if bid == "b001" else ", " + COLNAMES_N[col % 6])
+    title = TITLES[bid] + ("" if bid in ("b001", "b026") else ", " + COLNAMES_N[col % 6])
     path = write_block(bid, title, parcels, items, hand)
     all_parcels += [(bid, p) for p in parcels]
     all_items += [(bid,) + it for it in items]
