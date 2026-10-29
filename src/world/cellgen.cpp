@@ -2,6 +2,8 @@
 #include "buildings.h"
 #include "sites.h"
 #include "handworld.h"
+#include "blocksbin.h"
+#include "roadoverrides.h"
 #include "../render/mesh.h"
 #include "worldtypes.h"
 
@@ -15,7 +17,7 @@ struct CellGeometry {
     std::vector<CollisionBox> collision;
 };
 
-void buildRoadCell(const RoadNetwork& net, const WorldMap& map, int cx, int cy, RoadCellOutput& out);
+void buildRoadCell(const RoadNetwork& net, const RoadOverrides* ov, const WorldMap& map, int cx, int cy, RoadCellOutput& out);
 void buildBuildingMesh(const Building& b, const FacadeGPU& fac, const WorldMap& map, bool detail, vec3 org, MeshData& m,
                        std::vector<CollisionBox>* col, std::vector<PropInstance>* props, std::vector<LightInstance>* lights);
 
@@ -470,16 +472,151 @@ void buildOpenLot(const OpenLot& L, const WorldMap& map, bool detail, vec3 org, 
     }
 }
 
+// ------------------------------------------------------------------------------- the hand-built world's blocks
+
+namespace handblocks_detail {
+
+// A simple polygon's triangles (ear clipping), counter-clockwise seen from above
+void triangulate(std::vector<vec2> poly, std::vector<vec2>& tris) {
+    float area = 0.f;
+    for (size_t i = 0, j = poly.size() - 1; i < poly.size(); j = i++) area += poly[j].x * poly[i].y - poly[i].x * poly[j].y;
+    if (area < 0.f) std::reverse(poly.begin(), poly.end());
+    const auto cross2 = [](vec2 a, vec2 b, vec2 c) { return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x); };
+    int guard = (int)(poly.size() * poly.size()) + 8;
+    while (poly.size() > 3 && guard-- > 0) {
+        bool clipped = false;
+        for (size_t i = 0; i < poly.size() && !clipped; i++) {
+            const size_t ip = (i + poly.size() - 1) % poly.size(), in = (i + 1) % poly.size();
+            const vec2 a = poly[ip], b = poly[i], c = poly[in];
+            if (cross2(a, b, c) <= 1e-6f) continue;   // reflex or degenerate: not an ear
+            bool empty = true;
+            for (size_t k = 0; k < poly.size() && empty; k++) {
+                if (k == ip || k == i || k == in) continue;
+                const vec2 p = poly[k];
+                empty = !(cross2(a, b, p) >= 0.f && cross2(b, c, p) >= 0.f && cross2(c, a, p) >= 0.f);
+            }
+            if (!empty) continue;
+            tris.push_back(a);
+            tris.push_back(b);
+            tris.push_back(c);
+            poly.erase(poly.begin() + (std::ptrdiff_t)i);
+            clipped = true;
+        }
+        if (!clipped) break;   // (not simple: what is left is dropped)
+    }
+    if (poly.size() == 3) {
+        tris.push_back(poly[0]);
+        tris.push_back(poly[1]);
+        tris.push_back(poly[2]);
+    }
+}
+
+u32 groundMaterial(u8 kind) {
+    switch (kind) {
+        case GK_LAWN: return makeMat(MAT_GRASS);
+        case GK_PAVING: return makeMat(MAT_PAVERS);
+        case GK_GRAVEL: return makeMat(MAT_ROOF_GRAVEL);
+        case GK_DIRT: return makeMat(MAT_DIRT);
+        case GK_SAND: return makeMat(MAT_SAND);
+        case GK_PLANTING: return makeMat(MAT_DIRT);
+        case GK_CONCRETE: return makeMat(MAT_CONCRETE);
+        case GK_DECK: return makeMat(MAT_WOOD);
+        default: return makeMat(MAT_GRASS);
+    }
+}
+
+// One triangle of ground, split until its edges are under `maxEdge` m so that it follows the terrain (draped), or
+// level at z (flat)
+void groundTri(const WorldMap& map, const GroundPoly& g, vec2 a, vec2 b, vec2 c, float maxEdge, vec3 org, u32 color, u32 mat, MeshData& m, int depth) {
+    const float ab = length(b - a), bc = length(c - b), ca = length(a - c);
+    if (!g.flat && depth < 8 && Max(ab, Max(bc, ca)) > maxEdge) {
+        if (ab >= bc && ab >= ca) {
+            const vec2 m2 = (a + b) * 0.5f;
+            groundTri(map, g, a, m2, c, maxEdge, org, color, mat, m, depth + 1);
+            groundTri(map, g, m2, b, c, maxEdge, org, color, mat, m, depth + 1);
+        } else if (bc >= ca) {
+            const vec2 m2 = (b + c) * 0.5f;
+            groundTri(map, g, a, b, m2, maxEdge, org, color, mat, m, depth + 1);
+            groundTri(map, g, a, m2, c, maxEdge, org, color, mat, m, depth + 1);
+        } else {
+            const vec2 m2 = (c + a) * 0.5f;
+            groundTri(map, g, a, b, m2, maxEdge, org, color, mat, m, depth + 1);
+            groundTri(map, g, m2, b, c, maxEdge, org, color, mat, m, depth + 1);
+        }
+        return;
+    }
+    const vec2 p[3] = {a, b, c};
+    u32 idx[3];
+    for (int k = 0; k < 3; k++) {
+        const float z = g.flat ? g.z : map.heightAt(p[k].x, p[k].y) + g.z;
+        const vec3 n = g.flat ? vec3(0.f, 0.f, 1.f) : map.normalAt(p[k].x, p[k].y);
+        idx[k] = m.addVertex(vec3(p[k], z) - org, n, vec3(1.f, 0.f, 0.f), p[k] * 0.25f, color, mat);
+    }
+    m.tri(idx[0], idx[1], idx[2]);
+}
+
+// A level polygon's sides, where it stands 10 cm or more above the terrain (a raised pad or deck): from its top down
+// into the ground along each edge, so the step that the ground query gives it (padHeight) is seen
+void groundSides(const WorldMap& map, const GroundPoly& g, vec3 org, u32 color, MeshData& m) {
+    const size_t n = g.poly.size();
+    if (!g.flat || n < 3) return;
+    float area = 0.f;
+    for (size_t i = 0, j = n - 1; i < n; j = i++) area += g.poly[j].x * g.poly[i].y - g.poly[i].x * g.poly[j].y;
+    const u32 mat = g.kind == GK_DECK ? makeMat(MAT_WOOD) : makeMat(MAT_CONCRETE);
+    for (size_t i = 0; i < n; i++) {
+        const vec2 a = g.poly[i], b = g.poly[(i + 1) % n];
+        const vec2 d = b - a;
+        const float len = length(d);
+        if (len < 0.01f) continue;
+        const float ga = map.heightAt(a.x, a.y), gb = map.heightAt(b.x, b.y);
+        if (g.z < Min(ga, gb) + 0.1f) continue;
+        const vec2 outward = (area > 0.f ? vec2(d.y, -d.x) : vec2(-d.y, d.x)) * (1.f / len);
+        const vec3 ta(a, g.z), tb(b, g.z), ba(a, Min(ga, g.z) - 0.05f), bb(b, Min(gb, g.z) - 0.05f);
+        m.quadFacing(ba - org, bb - org, tb - org, ta - org, vec2(0.f, 0.f), vec2(len, 0.f), vec2(len, g.z - bb.z), vec2(0.f, g.z - ba.z), color, mat,
+                     vec3(outward, 0.f));
+    }
+}
+
+}  // namespace handblocks_detail
+
+// A cell's share of the hand-built world's blocks: the ground's paint and pads (every LOD; draped polygons follow the
+// terrain closely only in the near one), and the dressing and lamps (the near LOD, as today's props)
+void buildHandBlocksCell(const HandBlocks& hb, const WorldMap& map, int cx, int cy, bool detail, vec3 org, CellGeometry& out) {
+    using namespace handblocks_detail;
+    const size_t cell = (size_t)cy * kCellsPerSide + cx;
+    if (cell >= hb.groundByCell.size()) return;
+    std::vector<vec2> tris;
+    for (int gi : hb.groundByCell[cell]) {
+        const GroundPoly& g = hb.ground[(size_t)gi];
+        tris.clear();
+        triangulate(g.poly, tris);
+        const u32 mat = groundMaterial(g.kind);
+        const u32 color = g.kind == GK_PLANTING ? packRGBA8(0.55f, 0.45f, 0.38f, 1.f) : packRGBA8(1.f, 1.f, 1.f, 1.f);
+        for (size_t t = 0; t + 2 < tris.size(); t += 3) groundTri(map, g, tris[t], tris[t + 1], tris[t + 2], detail ? 4.f : 1e9f, org, color, mat, out.opaque, 0);
+        groundSides(map, g, org, packRGBA8(1.f, 1.f, 1.f, 1.f), out.opaque);
+    }
+    if (!detail) return;
+    for (int pi : hb.propsByCell[cell]) out.props.push_back(hb.props[(size_t)pi]);
+    for (int li : hb.lampsByCell[cell]) out.lights.push_back(hb.lamps[(size_t)li]);
+}
+
+}  // namespace World
+
+// the hand-built world's buildings (their shells drawn into the cells, and prepared at load)
+#include "handshells.cpp"
+
+namespace World {
+
 void generateCell(int cx, int cy, bool detail, CellGeometry& out) {
-    // the hand-built world generates nothing (docs/HANDBUILT_WORLD.md section 7.2): stage 0 has the terrain only, which
-    // the renderer draws from the height map
-    if (isHandWorld()) return;
     const WorldMap& map = *gMap;
     vec2 org2 = cellOrigin(cx, cy);
     vec3 org(org2, 0);
     RoadCellOutput roads;
     roads.detail = detail;
-    buildRoadCell(*gRoads, map, cx, cy, roads);
+    // the hand-built world (docs/HANDBUILT_WORLD.md section 7.2) has its authored roads so far, without the procedural
+    // street dressing: its block files will place the furniture, trees and street lights (decision D2)
+    roads.dressing = !isHandWorld();
+    buildRoadCell(*gRoads, gRoadOverrides, map, cx, cy, roads);   // (the overrides: the hand-built roads' lanes as built)
     out.opaque.append(roads.road);
     if (detail) out.opaque.append(roads.street);
     // deck parapets, median barriers and guardrails collide at every LOD (vehicles far from the camera stay on the decks)
@@ -488,6 +625,13 @@ void generateCell(int cx, int cy, bool detail, CellGeometry& out) {
         out.decals.append(roads.decals);
         out.props.insert(out.props.end(), roads.props.begin(), roads.props.end());
         out.lights.insert(out.lights.end(), roads.lights.begin(), roads.lights.end());
+    }
+    // and its blocks' ground and dressing, and its buildings; nothing procedural beyond its roads: no generated
+    // buildings, lots, scattered vegetation or sites
+    if (isHandWorld()) {
+        if (gHandBlocks) buildHandBlocksCell(*gHandBlocks, map, cx, cy, detail, org, out);
+        if (gHandBuildings) buildHandBuildingsCell(*gHandBuildings, map, cx, cy, detail, org, out);
+        return;
     }
     const int cps = kCellsPerSide;
     const BuildingSet& bs = *gBuildings;
@@ -520,6 +664,8 @@ void generateCell(int cx, int cy, bool detail, CellGeometry& out) {
 // for placing what drivers use, such as dead-end turning circles. The colliders are those the site cells stream with,
 // built once per cell on first use.
 bool siteColliderNear(vec3 p, float margin, float height) {
+    // the hand-built world's props (blocksbin.h "blocks.colliders"): kept clear of as the sites' structures are
+    if (gHandBlocks && gHandBlocks->colliderNear(p, margin, height)) return true;
     if (!gSites || gSites->cellElems.empty()) return false;
     static std::mutex mtx;
     static std::unordered_map<int, std::vector<CollisionBox>> cache;

@@ -1,9 +1,0 @@
-Sites: terrain bake, landforms only (0.00 s)
-World map generated in 8.47 s
-terrainbake: terrain generated in 8.47 s
-terrainbake: heights -44.93..166.85 m; 2 water levels; coast distance -7680.6..6684.9 m at 0.250 m; writing /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/s0test/rebake
-  height    2560 x 2560  i16  raw  13107200 bytes  ntg   2303190 bytes (17.6%)  hash ea53b9afef88dfc9
-  water     2560 x 2560  u8   raw   6553600 bytes  ntg     38405 bytes (0.6%)  hash b0c57636cd3fb154
-  region    2560 x 2560  u8   raw   6553600 bytes  ntg     37643 bytes (0.6%)  hash 293daf5bfb8ac1a1
-  coast      640 x 640   i16  raw    819200 bytes  ntg    276761 bytes (33.8%)  hash 856c8ef74cf14105
-terrainbake: terrain.ntw 31005 bytes; 88 outlines of islands, 7 channels; done in 9.15 s

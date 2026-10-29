@@ -1,0 +1,10 @@
+ntw 1 plan id=lib.plan.midrise.walkup_b
+# a three-storey walk-up: a flat on each floor beside the hall, the common stair at the back of it
+meta class=midrise family=walkup era=1958 floors=3 beds=3 baths=3 size=10.00x14.00 tags=calle
+footprint poly=0.00,0.00;10.00,0.00;10.00,14.00;0.00,14.00
+floor f0 layout=lib.layout.midrise.walkup_b_f0 z=0.00 h=3.06
+floor f1 layout=lib.layout.midrise.walkup_b_f1 z=3.06 h=3.06
+floor f2 layout=lib.layout.midrise.walkup_b_f2 z=6.12 h=3.06
+roof form=flat material=lib.kit.roof_gravel
+facade style=lib.facade.calle_walkup palette=lib.palette.calle.sky
+entrance main door=f0.d1 kind=main

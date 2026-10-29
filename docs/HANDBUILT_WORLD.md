@@ -104,7 +104,11 @@ Startup builds the world in this order. The timings are from a regression log: n
 Cells are generated on demand:
 - The renderer streams 256 m cells: near LOD within 420 m, far LOD within 2,300 m.
 - Each streamed cell calls `World::generateCell(cx, cy, detail, CellGeometry&)` (cellgen.cpp) on a job thread.
+- A frame's new cells go to the job queue together, under one lock and with at most one wake per worker
+  (`Jobs::submitBatch`), with up to 6 cells in flight.
 - That call returns one opaque mesh, decals, prop instances, lights and collision boxes for the cell.
+- The frame uploads the finished cells (their buffers and collision), near before far and nearest first: up to 4 cells
+  and 64k triangles a frame, and a bigger cell alone (`world_render.cpp`).
 - Interiors are built on jobs when the camera comes within 480 m (`interiors_game.cpp`), because the facade cut-outs show
   them from the near ring.
 
@@ -552,14 +556,70 @@ district's block of 20 houses can avoid both adjacent repeats and visible twins.
 Allowed and encouraged, because their output is the static data. An agent runs a script once, reviews the result in the
 previews, and commits the text. For example:
 
+- `tools/author/roads.py`: a district's streets, designed in it as centrelines with their names, classes, lanes,
+  widths, junction controls and bridges. It finds where they meet, splits them into nodes and edges, puts each node on
+  the baked terrain and writes the district's `roads.ntw`, keeping the ids already in it: a re-run of an unchanged
+  design, formatted, rewrites the file byte for byte.
 - `tools/author/street.py`: give it a block face, the district's plan list, and a rule such as "no plan twice within 5
   lots, no palette twice adjacent". It writes the building files for a row of lots with plans, mirrors, palettes and
   options chosen by a seed. It prints the seed, but the seed is not data: the output is.
 - `tools/author/dress.py`: puts street trees every 12 m along an edge, lights every 30 m and bins at corners into the
   block file, as records that agents then move or delete.
+- `tools/author/rulecheck.py`: checks the rules over the building files `street.py` wrote, apart from its own draw: the
+  palettes, no three casitas alike and no two bungalows side by side on every face, the variety rules on the faces
+  drawn per face, and against a base world the corners' places and each face's houses before and after. It exits 1 on
+  a broken rule.
 - `tools/author/units.py`: fills a midrise's unit slots from the allowed lists with household mixes.
 
-They are Python, run with `-I`, and never ship. The game doesn't know they exist.
+They are Python, run with `-I`, and never ship. The game doesn't know they exist. One host tool goes with them,
+`tools/author/worlddump.cpp`: it prints `dress.py`'s inputs, the compiled roads (world.bin) and the terrain's grids
+(which `roads.py` reads too). `worldc --dump-ground` prints `street.py`'s (section 6.1).
+
+So far `tools/author/street.py` places a block's buildings along its streets: on an avenue a street wall of the shops
+and walk-ups, a corner plan at a corner with its side-street wall towards the side street, on a street a house in the
+middle of each parcel, with 1.5 m side yards (1.0 m on a lot too narrow for any house with them), and a parcel on no
+street (a park) left to its block file; mirrors alternating, no palette twice side by side, no plan with the same
+palette twice within three, the palettes drawn from a generator of their own, seeded with the block id and the seed (the
+text "cl.b014 6"), so that blocks whose plans draw alike still differ in colour. A street's houses are drawn per face,
+by a generator of its own seeded with the block, the face's street edge and the seed (the text "cl.b020 cl.e0013 6"): of
+the ways that give each lot a house that fits it, with no two bungalows side by side, one that holds the most bungalows
+the lots allow, so the district keeps its share of them; then for each casita the gable one or its twin (the same two
+floors under a flat roof behind a parapet), never the third alike side by side. A face's first house (from the west)
+differs from its west neighbour's first, its first three from its west neighbour's and from those across the street, and
+no two faces of a street share their whole sequence; a face that fails draws again, up to 50 times, then keeps the draw
+that breaks the fewest rules and names them. With `--guard`, a draw that would take a cell's near upload to 64,000
+triangles draws again, and for a cell over that already, one that would take it past its upload before the batch. With
+`--classic`, the houses draw as before: one generator for the block, no house plan twice in neighbouring parcels, and a
+casita's gable or twin by its parcel id's CRC. A gable casita takes the casita palette of the colour it drew, its tile
+roof tinted: the gable or twin is settled after the palettes' draw, so it moves no other building. Each ground floor
+stands 0.01 m over the sidewalk in front of it (the street's profile and its kerb), and with `--ground` (the compiled
+ground on a grid: `worldc --dump-ground`) at least 0.05 m over the ground under its footprint. A generated parcel's
+outline runs 0.5 m in under its streets (below), so the front line and a corner's side wall stand back from the sidewalk
+rather than from the outline, and with `--ground` every footprint stands on the parcel's level ground: a corner plan
+where its side street's sidewalk reaches further in stands up to 2.1 m further in from it. It wrote b006's 21 buildings,
+b004's 17, b007's 10, b002's 18, b003's 17, b008's 20, b013's 15, b010's 16, b012's 14, b009's 21 and b011's 19 (seed 6
+each), and its re-run for the twin rewrote only the 32 casitas of b002-b004 and b008-b013; then it wrote the Calle Siete
+face of b014-b016 (27 buildings) and of b017-b019 (22), and the Avenida Flores face of b014-b016 (31) and of b017-b019
+(27), which completes row 3; its re-run for the palettes' own seed recoloured 231 of the 274 buildings of b002-b004 and
+b007-b019 (b005 and b006 keep theirs); then it wrote the Avenida Flores face of b020-b022 (33) and of b023-b025 (26),
+across the avenue from row 3, then the Calle Nueve face of b020-b022 (26) and of b023-b025 (20), which completes row 4;
+then its per-face draw rewrote Calle Nueve's 34 houses (b020-b025) and Calle Siete's 37 of row 3 (b014-b019) and 37 of
+row 2 (b008-b013), whose sequences now differ block to block. A re-run rewrites only the files that still carry its
+line.
+
+So far `tools/author/dress.py` writes the generated part of the pilot's 26 block files: it cuts each block into parcels
+along its frontages, levels each parcel 0.2 m under the lowest sidewalk along it (its ground lies 0.03 m over that) with
+its outline 0.5 m in under the streets, cuts the promenade and the park edge into terraces where their streets climb,
+and dresses the sidewalks, the yards and the riverfront. A yard's shrubs follow the buildings, as the block's building
+files place them. A shrub reaches as far as the catalog's lib.veg.shrub says (its size=, the foliage at its widest)
+times its scale; one that reaches a footprint goes into the front yard as a foundation planting where 0.8 m or more lies
+clear between the sidewalk and the front wall, else into the nearer side yard with 0.8 m clear (else the farther),
+shrunk to fit but not under a quarter of its size, else it goes; none reaches within 1.2 m of any building's entrance or
+onto its walk to the sidewalk, nor onto a driveway; so a re-run after a building change re-places them. The park edge
+(b026) is a lawn along Calle Nueve's north side, from its sidewalk to the district's bound: 11 terraces, a footpath with
+a link to the sidewalk opposite each side street, 47 coconut palms, 23 benches facing the street, 12 bins and 31
+bollards with garden lamps, and its sidewalk dressed as a block's (the footpath is ground paint: no walk path for the
+AI). It reads `worlddump`'s print of the roads and the terrain's grids.
 
 ---
 
@@ -589,6 +649,55 @@ They are Python, run with `-I`, and never ship. The game doesn't know they exist
    - decoding runs above 1 GB/s, so it never limits loading.
 8. Write per-file content hashes, so only changed files are re-parsed and only dirty sections rebuilt. A one-building edit
    recompiles in under 2 s.
+
+`worldc --dump-ground=<file> --ground-box=<x0,y0,x1,y1 | block id> [--ground-step=0.25]` also writes the compiled ground
+on a grid, for `tools/author/street.py --ground`: it reads back the world.bin it wrote as hand mode does (the graded
+heights, the roads with each side's widths, the blocks) and takes at each point the terrain, or the road, sidewalk or
+level ground over it as `RoadNetwork::surfaceHeight` finds it. A block's id boxes its parcels with 8 m around them.
+
+**What it compiles so far:**
+- the terrain (stage 0);
+- the roads (stage 1), through the world model (`src/world/worldmodel.h`), with the world, district, signal and transit
+  files they name. The roads go into world.bin's `roads` and `roads.ids` sections (`src/world/roadsbin.h`), which the
+  game reads in hand mode. What they author beyond the network goes into `roads.overrides`
+  (`src/world/roadoverrides.h`) for the lane graph, one list at a time in the order agreed with the AI agent (section
+  12): so far each edge's widths and speed as written, else its class's, and each node's control, stops, yields,
+  no-red-turn approaches and bulb as written. Host tools read all three with `loadRoadsFile`. Each side of an edge
+  keeps its own kerb line and sidewalk (`roadsbin.h` `applyRoadSides`), which the mesher draws and the lane graph
+  reads through `RoadEdge::halfWidthSide` and `sidewalkSide`, so the two agree; likewise a dead end's written
+  turning circle, which `RoadNetwork::bulbRadius` returns to the mesher, the grading and the lane graph alike. The
+  compiler and worldv name a node's legs and resolve its signal plan with one implementation (`worldmodel.h`
+  `nodeLegs`, `resolvePlan`), as the lane graph sees the legs. The other kinds' sections come with their consumers;
+- the terrain graded under the roads (step 5, section 3.3), with today's grading (`src/world/roadgrade.cpp`), stored
+  as a delta on the bake in world.bin's `terrain.grade`. The game adds it to the baked heights at load;
+- the blocks (stage 1's part 2), with the catalog: the parcels' ground, paint and pads, the plazas, and the dressing
+  (trees, plants, props and lights) in world.bin's `blocks` section (`src/world/blocksbin.h`), every height on the
+  graded ground. The parcels' grades are graded before the roads, and a parcel that only grades the terrain is graded
+  too. Hand mode draws each cell's share, a raised pad with its sides, and people and vehicles stand on the level
+  ground (pads, decks and levelled parcels: `HandBlocks::padHeight`, through `RoadNetwork::surfaceHeight`, which looks
+  only at the polygons of the point's 8 m tile, indexed at load). The
+  junctions' corner sidewalks get level slabs too, out of sight under them, as the ground query leaves them out inside
+  the cut-backs (`worldmodel_blocks.cpp` `junctionCorners`). The generated parcels are levelled 0.2 m under the lowest
+  sidewalk along them, so a yard is a kerb's step down from the street (the promenade and the park edge in terraces
+  where their streets climb);
+- what the AI's graphs read from the blocks (section 12), in sections beside `blocks` with the road overrides'
+  conventions, one at a time: `blocks.parcels` (each parcel's id, use, the edge and side it fronts, and its grade),
+  `blocks.lots` (each lot's curb cuts and rows, and the drive graph worldc derives from them: 12.2 #9), `blocks.walk`
+  (the paths, plazas and steps: 12.3 #1) and `blocks.spots` (the spots as written and those the props and bus stops
+  imply: 12.4 #1) and `blocks.colliders` (each prop's collider from its catalog piece: 12.3 #5), which the game reads
+  in hand mode with the blocks;
+- the buildings (stage 1's part 3), with the plans, floor layouts, facade styles and palettes they name: each plan's
+  shell (its floors, each floor's exterior walls with their doors and windows, every window with the light schedule
+  of the room behind it, its roof, its look and its main entrance) and its interior's plan (each floor's rooms, its
+  inside walls, every door's leaf with the rooms each side, and the stairs between the floors) in world.bin's
+  `library` section, and each building's placement (its plan, position, yaw and mirror, and its configuration's
+  palette, roof and look) in `buildings` (`src/world/buildingsbin.h`), which the game reads in hand mode and draws
+  into the cells (section 7.2). The interiors in the game, the plans' slots, options and features, and the
+  outbuildings come later.
+
+A places, unit, fit-out or set file stops the build until its compiler exists. Reference checks beyond what the
+compile needs (step 3) are worldv's, which CI runs on `world/`. The roads section stores floats for now; quantising it
+(step 6) is a size step for later.
 
 ### 6.2 Size estimate
 
@@ -671,6 +780,51 @@ compiled data. Nothing is invented:
   palette and appended to the cell's buffer. The vertex format stays unchanged (36 bytes). The tall landmarks stay in
   `siteFarCells`, as today.
 
+  So far (stage 1's part 3, `src/world/handshells.cpp`) each placement is drawn into the cell that holds its
+  footprint's centre, built afresh with the cell rather than cached per plan:
+  - the near LOD: the walls with their real openings and a base, the openings' reveals, each window's glass 10 cm
+    in (below), the doors' leaves (panel, glass, roll-up, garage; a building with an interior has its doorways open
+    through the wall over a threshold, and its interior hangs the leaves), sills, glazing bars by the window's kind,
+    shutters (fixed pairs, or Bahama shutters propped out), the look's trims (bands at the floor lines, a cornice,
+    quoins, hoods over the windows), and the roof: flat behind a parapet with its coping, or gable, hip or shed with
+    its overhang, fascia and soffit (over a rectangular footprint; any other is flat for now). A wall a neighbour
+    stands against (a party wall) is drawn above the neighbour's top only, and so are its trims, so neither shows in
+    the neighbour's rooms;
+  - the far LOD: the walls, the glass flush with them, the doors and the roofs, about a fifth of the triangles;
+  - collision: the walls' bounds in the plan's frame, one box, from the foundation to the roof; for a building with an
+    interior, its parts: the foundation up to the ground floor, each exterior wall floor by floor with its doorways
+    open (a lintel over each), and the roof down to the top floor's ceiling. A ground-floor door whose ground outside
+    lies lower than a threshold's step, anywhere within 0.3 m of its wall (a strip of it however narrow), gets a
+    stoop: a landing level with the floor out to the sidewalk, or 0.9 m deep with steps down (the walk steps onto a box
+    only within 0.35 m of its feet);
+  - the foundation goes down to 0.3 m under the lowest ground at the walls, so a building on a slope stands on it;
+  - the game's building queries see each placement as a building (`BuildingSet::pointInBuilding`, `buildingsNear` and
+    what is built on them: peds' spawn, flee and window-shopping checks, traffic, police, wildlife, missions, the map):
+    a record with the box of its walls, its height, floors and front, its plan's class as its style, and its street
+    door at its plan's main entrance (`Building::doorAlong`, which `game/ai.cpp` uses for the people who step out of and
+    into buildings; a building whose main entrance isn't on its front has none);
+  - each placement whose plan has rooms gets an interior (`src/world/interiorhand.cpp`, an `IK_HAND` interior in a set
+    of hand mode's own, built from the library's interiors' plans and streamed, drawn and collided as the generator's
+    are by `game/interiors_game.cpp`; its record keeps `Building::interior` at -1, so its street door stays the
+    people's): the exterior walls' inner faces with the windows' inner reveals, glass and boards, the inside walls with
+    their doorways' frames, floors and ceilings with their stairwells, the stairs (a box per tread, and a ramp of thin
+    colliders three to a tread, which the walk climbs as the warehouse mezzanine's), balustrades where a floor stops at
+    a well, the doors' leaves (hinged and pairs, which swing; an `opening` has none) and the lights (section 7.8). Its
+    colliders and leaves collide, as every interior's do, and inside it the third-person camera keeps under the
+    ceilings (`game/camera.cpp`). No furniture, people or nav yet; `--handtour <names>|all` walks the player through
+    every door and up every stair into each room.
+
+  Each cell's build is logged (`Hand buildings: cell ...`). Most of it was the stoops' ground probes, so the level
+  ground is indexed for them by 8 m tile (`HandBlocks::padHeight`): a cell of 26 placements builds in about 2.5-3 ms
+  near and its far LOD in under 1 ms on the test machine. A cache per plan wouldn't give the same vertices, as each wall
+  is laid out in world space. Cells build on a worker, so a near build only delays when its cell appears, never the
+  frame, and a cell is asked for 420 m out: row 2's busiest cells (52 and 63 placements) build in about 9 ms there.
+  Past about 15 ms, or wherever a near cell is seen arriving late, a cell's placements can be built in parallel on the
+  idle workers, and the stoops worked out once at load (which saves a tenth of a near build). The frame pays for the
+  uploads instead, about 1.1 ms per 10k triangles there, so a frame takes at most 64k triangles of them (a bigger
+  cell alone) and two big hand cells land a frame apart. Each autoplay logs its frames (`autoplay frames`, and the
+  slowest with what they streamed in).
+
   The cell census (section 13.3) sets the near shell's budget. Today a near cell averages 39k triangles (p99 144k, at
   most 171k), and a house costs about 2,400 triangles of its cell's mesh, roads included. Cells hold few buildings:
   Westbrook averages 42 per cell (at most 62), and the densest cell, in Calle Luna, holds 84. So a shell of 1,000-1,500
@@ -685,7 +839,11 @@ its glass shows an *interior-mapped* room:
 - lit by that room's schedule.
 
 The compiler bakes a small per-window record (room type, schedule, curtain), so a lit window at night is the room that is
-really there. When a building's interior becomes resident:
+really there. So far the window's glass is drawn by the facade shader as one window cell of a facade entry of the
+window's own size (`handshells.cpp` `prepareHandBuildings`), flagged a hand-built window (`roomlight.h`
+`kFacadeHandWindow`) with the schedule class of the room behind it, which the shader takes in place of its own pick;
+the windows of one room share its seed, so they show the same room and light together, and a storefront's entry is a
+storefront's (its shop interior, hours and shutters). When a building's interior becomes resident:
 - its windows switch to clear glass, through a per-building bit in a GPU buffer that the shell vertices index;
 - the real rooms then show behind them.
 
@@ -697,6 +855,12 @@ it is an extension of that.
 **Exterior:** the shell per plan and option set (walls with door gaps, roof, porches) as boxes, built on first use and
 instanced per placement into the cell's collision. That replaces today's one box per far building and the hollowed shells.
 
+So far (`src/world/handshells.cpp` and `interiorhand.cpp`): the shell's parts are in the cell's collision at every LOD
+(section 7.2); the interior's (inside walls, the upper floors' slabs, the stairs' ramps and landings, balustrades) are
+built with its mesh, per building rather than per floor, and added near the player; the doors' leaves are dynamic.
+Birds don't perch on an interior's colliders, nor on the top of a wall that the next floor's wall stands on
+(`game/wildlife.cpp`).
+
 **Interior: per floor.** Each layout's collision (walls, slabs, stair ramps, furniture) is built on first use and cached
 in layout space:
 - it is added to the physics world when the floor loads, and removed when it unloads;
@@ -704,6 +868,19 @@ in layout space:
 - a building's floors above and below the loaded ones keep only their slabs and the shell.
 
 ### 7.4 Interiors at scale: streaming
+
+So far a hand-built building's interior streams as the generator's do: the whole building within 480 m of the camera,
+built on a worker; b005's twelve hold 120 rooms in 60k triangles, with b006's 21 the 33 hold 348 rooms in 179k, and with
+b004's 17 and b007's 10 the 60 hold 699 rooms in 356k, and with b002's 18 and b003's 17 the 95 hold 1,116 rooms in 569k,
+and with b008's 20 and b013's 15 the 130 hold 1,482 rooms in 758k, and with b010's 16 and b012's 14 the 160 hold 1,809
+rooms in 927k, and with b009's 21 and b011's 19 the 200 hold 2,220 rooms in 1,139k, and with b014-b016's 27 on Calle
+Siete the 227 hold 2,448 rooms in 1,266k, and with b017-b019's 22 the 249 hold 2,640 rooms in 1,371k, and with
+b014-b016's 31 on Avenida Flores the 280 hold 3,111 rooms in 1,599k, and with b017-b019's 27 there the 307 hold 3,462
+rooms in 1,771k, and with b020-b022's 33 across the avenue the 340 hold 3,891 rooms in 1,981k, and with b023-b025's 26
+the 366 hold 4,245 rooms in 2,153k, and with b020-b022's 26 on Calle Nueve the 392 hold 4,464 rooms in 2,276k, and
+with b023-b025's 20 the 412 hold 4,635 rooms in 2,371k.
+The log gives each hand cell's build time (`Hand buildings: cell ...`) and, with each interior built, the interiors
+resident and how many of them are hand-built.
 
 **What is resident:**
 
@@ -840,8 +1017,14 @@ cleaners after, and the stairs and corridors of midrises stay on. A room with wi
 enough; a windowless room follows its schedule alone.
 
 The function is integer arithmetic over a hash, with no floating-point state. So the C++ copy (resident rooms, spill
-lights) and the facade shader's HLSL copy (windows) agree bit for bit, and a selftest compares them. A window lit at
-2 km is lit when you walk up to it, and it goes dark at the same minute.
+lights) and the facade shader's HLSL copy (windows) agree bit for bit, and a selftest compares them. A hand-built
+window's facade entry carries its room's class in the entry's flags (`kFacadeHandWindow`, the class in bits 8-11), and
+the selftest's vectors send such flags through the shader too. A window lit at 2 km is lit when you walk up to it, and
+it goes dark at the same minute. So far a hand-built interior's room (`interiorhand.cpp` `handRoomLight`) takes the
+state of its windows: its window's facade entry's class and room hash, as the shader takes them, so its lamps and
+ambient are on when its windows show it lit; a room with no window, its own seed. Each room has a fixture by its type (a
+pendant, downlight or troffer), and a building's lamps only light while all its rooms have ambient volumes (the renderer
+keeps 32, nearest first), so none lights the street.
 
 **What worldc compiles.** Per layout, shared by every placement of it:
 
@@ -1306,8 +1489,14 @@ cuts; grade separation. Beyond it (4.4 shows them in a file):
 8. **Bus and streetcar stops.** `busstop` adds the waiting area (`wait=`), its `routes` and, for streetcars, the kerb
    lane kept clear (`clear=`).
 9. **Off-street parking.** A `lot` block in the block file: entered by a curb cut, with bay `row`s and their aisles,
-   `ramp`s between levels and a level per row.
-10. **Dead ends.** `bulb=<radius>` on the node, or none, in which case long vehicles avoid it.
+   `ramp`s between levels and a level per row. worldc joins them into the lot's drive graph (`blocks.lots`,
+   `worldmodel.h` `compileBlockSections`): the aisles as links with a node at each end (a row's own behind its bays,
+   or its `aisle`; facing rows share one; angled bays get a one-way 4 m aisle), the ramps, a drive from each curb cut
+   to the nearest aisle (one way in and one way out where the lot has both), and joins until every node is on a way
+   from the entry to the way out. Each bay opens onto a link at an s along it.
+10. **Dead ends.** `bulb=<radius>` on the node, or none, in which case long vehicles avoid it. The written radius is
+    the bulb the game paves and grades, and the one the lane graph turns and walks round (`RoadNetwork::bulbRadius`);
+    without one a two-way lane, street or rural road still gets its class's (its half width plus 4.5 m).
 11. **z everywhere.** Every lane, connector and stop takes its z from the edge `profile` and `deck`. Lanes on a deck
     don't conflict with the lanes under it.
 12. **No overlapping carriageways.** Two edges may not run inside each other's half width for more than ~10 m outside
@@ -1318,7 +1507,9 @@ cuts; grade separation. Beyond it (4.4 shows them in a file):
 ### 12.3 Sidewalks, crossings, jaywalking, frontage
 
 1. **The walk graph** is derived from the sidewalks plus `path` records (7.5). Block files add `plaza` areas, where
-   people mill about off the paths, and through-block passages (`path ... kind=alley`).
+   people mill about off the paths, and through-block passages (`path ... kind=alley`). worldc writes the paths (on
+   the ground, a footbridge or underpass on its profile), the plazas and the `steps` (their ends on the level ground,
+   treads and rise) into `blocks.walk`, for the AI to join to the sidewalks.
 2. **Kerb side and building side.** Each sidewalk link keeps both, as the derived graph does today: panhandlers sit
    against the building side, shop windows face it, and people step back toward it from a car.
 3. **Crossings** add `kind=unmarked` (no paint: people cross in gaps), and footbridges and underpasses as paths with a
@@ -1327,7 +1518,9 @@ cuts; grade separation. Beyond it (4.4 shows them in a file):
 4. **Jaywalking** keeps today's rule (narrow, slow, at least 12 m from a junction) on the authored widths and classes.
    `nojaywalk` marks fences and guard rails, and a median barrier implies it.
 5. **Obstacles** (bins, lamps, planters, hydrants, newspaper boxes, signal poles, benches). Each catalog piece carries a
-   simple collider (`collide=box|cylinder`) at its real size, height included, and walkers steer round them as today.
+   simple collider (`collide=box|cylinder`) at its real size, height included (`body=` where the solid part is less
+   than the piece: a tree's trunk, a lamp's pole), and walkers steer round them as today. worldc writes each prop's
+   into `blocks.colliders`, and in hand mode `World::siteColliderNear` answers them as it does the sites' structures.
    The sidewalk's clear width is derived per stretch and per side: its width less the furniture the placed props take,
    with a break wherever that changes, so a kiosk or a terrace narrows only its own few metres.
 6. **Frontage** is derived per placement by the compiler: windows with their unit's kind from the fit-out (bakery, bar,
@@ -1340,7 +1533,10 @@ cuts; grade separation. Beyond it (4.4 shows them in a file):
    or a queue line, capacity, hours, shelter (`cover`, used in rain), who may use them (`roles`, `ages`), the prop and
    the pose. A queue's `for` names the door or counter it leads to. The kinds are listed in docs/NTW_FORMAT.md 9.5.
    Props imply the obvious ones (a bench prop is a bench spot), and the population's venues (3,955 laid out from site
-   elements today) become spots and venues per block.
+   elements today) become spots and venues per block. worldc writes both into `blocks.spots`: the written ones, then a
+   seat on every bench and bus shelter (at its seat's centre and height, facing its front, a place every 0.6 m) and a
+   wait for every bus stop (`for` its id: the shelter's bench where one stands within 15 m, else standing by the
+   kerb), marked implied; café seats join them once terraces exist. Hand mode's seats and waits come only from there.
 2. **Zones** replace `World::Region` for the AI: tagged polygons in the district file for the region (roles, density
    tables, local lines, the event mix, patrol density), gang turf, use (nightlife, beach, business, industrial,
    residential), and pedestrian and traffic density by hour and day. The audio and wildlife zones of 7.7 are the same

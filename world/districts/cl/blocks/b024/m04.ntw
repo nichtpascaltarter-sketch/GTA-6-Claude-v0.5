@@ -1,0 +1,5 @@
+ntw 1 building id=cl.b024.m04 block=cl.b024 parcel=cl.b024.p03
+# a three-storey walk-up, facing Avenida Flores
+# written by tools/author/street.py (seed 6): a re-run rewrites this file, unless this line goes
+place plan=lib.plan.midrise.walkup_b at=1783.62,568.10 z=3.35 yaw=358.3 mirror=1
+config palette=lib.palette.calle.sky

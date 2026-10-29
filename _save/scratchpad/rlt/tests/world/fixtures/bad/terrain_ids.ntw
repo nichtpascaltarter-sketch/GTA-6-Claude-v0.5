@@ -1,4 +1,0 @@
-ntw 1 terrain
-grid res=4 cell=8.00 origin=0.00,0.00
-water c0 level=none
-water c0 level=none # expect id.unique

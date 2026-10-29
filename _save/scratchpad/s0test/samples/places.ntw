@@ -1,4 +1,0 @@
-ntw 1 places
-place place.mari_apartment building=cl.b014.m01 door=f0.d1 walk=1781.20,160.40 curb=1783.00,160.40,3.41 dir=0.00,1.00
-anchor cl.pd.station kind=police_station at=1850.00,240.00 building=cl.b031.x01 door=f0.d1
-anchor cl.ev.busk1 kind=event event=busk at=1722.00,356.00 yaw=90.0

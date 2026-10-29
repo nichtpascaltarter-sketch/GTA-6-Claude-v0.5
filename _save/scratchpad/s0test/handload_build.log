@@ -1,8 +1,0 @@
-/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/s0test/handload.cpp:50: warning: "CHECK" redefined
-   50 | #define CHECK(c, ...) do { if (!(c)) { printf("FAIL: "); printf(__VA_ARGS__); printf("\n"); failures++; } } while (0)
-      | 
-In file included from ./tools/native_stubs.cpp:2,
-                 from /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/s0test/handload.cpp:4:
-./tools/../src/core/base.h:42: note: this is the location of the previous definition
-   42 | #define CHECK(cond)                                                              \
-      | 

@@ -1,19 +1,0 @@
-cq65 start Tue Oct 20 14:19:27 UTC 2026
-rlt worldmodel_test build rc=0 (0 error/warning lines) Tue Oct 20 14:21:15 UTC 2026
-rlt worldmodel_test run rc=0: worldmodel_test: all passed Tue Oct 20 14:21:15 UTC 2026
-rlt MinGW worldmodel_test rc=0 errors 0 warnings 0 Tue Oct 20 14:21:18 UTC 2026
-rb worldmodel_test build rc=0 (0 error/warning lines) Tue Oct 20 14:26:07 UTC 2026
-rb worldmodel_test run rc=1: worldmodel_test: 3 FAILURES Tue Oct 20 14:26:07 UTC 2026
-rb worldc build rc=0 (0 warnings) Tue Oct 20 14:26:33 UTC 2026
-rb worldc on world/ rc=0: worldc: 1 file(s) -> /tmp/city/rb_world.bin (2669552 bytes, 6 sections) and /tmp/city/world.rc; vs 4.1's: identical Tue Oct 20 14:26:34 UTC 2026
-rb worldc on the roads world rc=0: worldc: roads 9 nodes, 8 edges, 1 signalised; 2 districts, 1 signal plans, 1 transit lines; worldc: 9 file(s) -> /tmp/city/rbroads_world.bin (2670464 bytes, 8 sections) and /tmp/city/world.rc Tue Oct 20 14:26:35 UTC 2026
-rb worldc with a block file rc=1 (expect 1): 1 'no compiler' errors Tue Oct 20 14:26:35 UTC 2026
-rbcheck build rc=0 Tue Oct 20 14:26:49 UTC 2026
-rbcheck rc=0: world.bin 8 sections; roads 9 nodes, 8 edges, ids 9/8; compileRoads on /tmp/city/rbworld: 9 nodes, 8 edges; IDENTICAL Tue Oct 20 14:26:49 UTC 2026
-rb MinGW main.cpp rc=0 errors 0 warnings 0 Tue Oct 20 14:27:29 UTC 2026
-rb MinGW worldc rc=0 errors 0 warnings 0 Tue Oct 20 14:27:33 UTC 2026
-nt_rb build rc=0: 15853568 bytes; worldc: 1 file(s) -> build/gen/world.bin (2669552 bytes, 6 sections) and build/gen/world.rc Tue Oct 20 14:40:22 UTC 2026
-hand mode on the roads world.bin rc=0: 1 shots; 0 fatal; Hand world: terrain and 9 road nodes, 8 edges from Z:\tmp\city\rbroads_world.bin (2607 KB, 8 sections) in 2.24 s Tue Oct 20 15:04:08 UTC 2026
-hand mode on the embedded world.bin rc=0: 0 fatal; Hand world: terrain and 0 road nodes, 0 edges from the exe (2606 KB, 6 sections) in 3.45 s Tue Oct 20 15:19:09 UTC 2026
-procedural drive smoke rc=0: 0 fatal; Road network: 6260 nodes, 9547 edges; [ 628.868] autoplay t=17.5 pos 1806.7 270.4 3.5 state 2 health 200 veh 1 speed 17.5 | peds 89 vehicles 67 wanted 0 | cpu Tue Oct 20 15:33:27 UTC 2026
-cq65 done Tue Oct 20 15:33:27 UTC 2026

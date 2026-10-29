@@ -1,0 +1,26 @@
+city: plan for 3c batch 1. Not started; it waits for your go.
+
+3c in numbers: Calle Luna has 25 blocks and ~325 parcels. b005 has its 12 placements; the other blocks need ~427 placements and ~237 library items. The library has 3 plans: a shop with flats, a walk-up and a bungalow.
+
+1. Authoring script, tools/author/street.py (HANDBUILT 5.3): Python, run with -I, never shipped. Its output is the data.
+   - It reads a block's parcels (block.ntw), the district's plan list and rules:
+     - the plan fits the frontage and depth and suits the use;
+     - no plan twice within 3 lots, and no palette twice side by side;
+     - mirrors alternate, so neighbours pair on party walls;
+     - back buildings go at the parcel's rear.
+   - It writes one building file per placement, as b005's are: plan, at, z (the ground at the front), yaw (the street edge), mirror, palette.
+   - It prints its seed and a summary: placements per plan, and each skipped parcel with the reason.
+   - I review the output and hand-edit it where needed.
+2. Review per batch:
+   - day and night shots of each block face, plus one from above;
+   - the hs8 harness on every new placement: every room reached on foot from the street, and every tour leg walkable;
+   - worldv, the census unchanged, the exe, and the hand and procedural drives.
+3. Batch 1 is b006, next to b005:
+   - 7 street parcels like b005's (15-21 m by 40 m) and 8 deeper lots behind them;
+   - about 18-20 placements with the 3 plans and 2 new ones, for the corners and the deep lots;
+   - about 10 library items in all (the 2 plans, their layouts, looks and palettes);
+   - about 1.5 times 3a-2. Batch 2 would be b004 and b007.
+4. The per-plan shell cache comes later.
+   - Party walls make each placement's walls depend on its neighbours, so a cache still needs per-placement clipping.
+   - I'd log the hand cells' build time in batch 1, and build the cache when a cell passes ~10 ms or before the dense commercial blocks (b014 on).
+5. To watch: hand interiors stream within 480 m of the camera. With ~440 of them, most of Calle Luna's would be resident at once. I'd measure in batch 1, and if needed cut their radius to ~150 m (one constant).

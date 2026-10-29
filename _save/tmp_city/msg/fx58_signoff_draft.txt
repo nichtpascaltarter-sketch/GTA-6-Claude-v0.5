@@ -1,0 +1,51 @@
+city snapshot-safe: Codex's two findings on PR #58 (f26714d), fixed as a fix commit on f26714d's blobs.
+
+FILES on f26714d: /tmp/city/fx58_blobs.txt, 10 files, all written, each on f26714d's blob.
+docs/HANDBUILT_WORLD.md 27cf5b40 on 4e8aacb3 (f26714d)
+docs/NTW_FORMAT.md 291b4994 on f8192dac (f26714d)
+src/world/blocksbin.cpp 744c5eb8 on 649ce689 (f26714d)
+src/world/blocksbin.h a45c5d88 on c3562e66 (f26714d)
+src/world/cellgen.cpp bc353f6d on 5aa5a666 (f26714d)
+src/world/roads.cpp f4479069 on adbc42a7 (f26714d)
+src/world/worldmodel.h 2d3e064e on 50978ea4 (f26714d)
+src/world/worldmodel_blocks.cpp 1f7cbf2f on 41bbf746 (f26714d)
+tests/world/worldmodel_test.cpp 190d5b7c on 541eda1d (f26714d)
+tools/worldc.cpp 0bc12299 on 9d850530 (f26714d)
+
+1. A parcel that only grades the terrain (tools/worldc.cpp placeOnTerrain).
+   - The early return now also requires no grading pads (blocks.pads, where compileBlocks puts each parcel's grade=). A world without roads whose only block content is a grade-only parcel gets its terrain.grade.
+   - To test it, placeOnTerrain moved, unchanged otherwise, from worldc into the world model: worldmodel.h Hand::placeOnTerrain, with Hand::BakedTerrain, in worldmodel_blocks.cpp. worldc calls it and prints the same line, and the pilot's world.bin is byte-identical with 65's worldc.
+   - Test (worldmodel_test testGradeOnly): no roads, one parcel with grade=5.00 blend=4.00 and nothing else.
+     - terrain.grade is written: read back as the game reads it, +2.00 m under the parcel, 0 far from it.
+     - With nothing to grade, nothing is written.
+   - End to end, on a scratch world with only that parcel: 65's worldc writes no grading (the bug), and the fix's writes "terrain graded under the roads and parcels: 24 texels changed, by up to 1.41 m".
+2. Pads people and vehicles stand on (blocksbin.h/.cpp, roads.cpp, cellgen.cpp).
+   - HandBlocks::padHeight (inline in blocksbin.h, so the tools that build cells still link without blocksbin.cpp): the top of the level ground covering a point, the highest at or below maxZ. The level ground is the flat polygons: pads, decks, levelled parcels and their paint.
+   - levelByCell indexes each one by every cell its outline's box reaches (edges included, 5 cm past them), like the props' index but not by the centroid alone. A pad across a cell's edge answers on both sides.
+   - RoadNetwork::surfaceHeight consults it after the sites' pads, only when gHandBlocks is set. GameWorld::groundHeight -> CollisionWorld::ground -> surfaceHeight then stands peds and vehicles on a pad within their step, and its edge is a step like a kerb's.
+   - The procedural world has no gHandBlocks, so nothing changes there (census below).
+   - cellgen draws a raised level polygon's sides, where it stands 10 cm or more above the terrain, from its top down into the ground (wood for a deck, concrete otherwise). The step is then seen as well as felt.
+   - Tests (testBlocks):
+     - the deck's top on the deck (4.16), the levelled lawn beside it (3.53), and nothing off the parcel;
+     - under a 4 m limit, the lawn;
+     - a pad across x = 256 found from both cells;
+     - a draped polygon never answers.
+   - One thing I left alone (src/sim): CollisionWorld::ground reports SURF_ASPHALT for every surfaceHeight hit, the sites' pads included, so a deck or lawn pad counts as asphalt. GroundPoly carries its kind if the physics wants it.
+
+Your question: 2c authors no raised pads, porches, terraces or stages, and no grades: 0 in its 25 block files, and Domino Park has none either. So 2c doesn't wait for this. No pilot drive or shot crosses a pad. In game I used a scratch copy of the pilot with a 0.6 m wooden deck in Domino Park, loaded with --worldfile.
+
+Checks, on f26714d + the fix:
+- CI's worldmodel_test (with testGradeOnly and the level-ground checks), world_format_test and worldv_test, with CI's flags: all passed.
+  - The grade-only test first failed in the test itself: it read the grid section with bytes(), which takes only raw and LZ sections. It now reads it as handworld does.
+- worldv on world/: 0 errors and the 4 agreed warnings. On the model fixture: 0 and 0.
+- worldc on world/: world.bin byte-identical with 65's worldc.
+- The grade-only scratch world: 65's worldc writes no grading; the fix's grades 24 texels by up to 1.41 m.
+- MinGW: worldc, worldmodel_test and worldv with -Wall -Wextra, and main.cpp: 0 errors and 0 warnings each.
+- Census, the procedural world, 65 against the fix:
+  - rfcheck2: 0 of 55,086 record lines differ, and the height, water and splat hashes are equal.
+  - meshcensus2:
+    - What it covers: every road cell at both levels of detail (4366 cells: the road, paint and street meshes, props, lights and collision), and roadSurfaceHeight, onPavement, surfaceHeight and nearRoad at points across every edge.
+    - The result: 0 of 13,914 records differ, and the totals are equal (mesh 9cdd8721d1951732, queries 4f20f56eba3e2962).
+    - The "30 lines differ" in my status are the generator's own log lines, with elapsed times ("World map generated in 9.52 s", "Places: layout 0.002 s" and so on). With the times masked, 0 lines differ.
+- The exe built with 0 warnings. Hand mode: 2 shots, 0 fatal errors, and the hand world loads as 65's ("3 ground polygons, 24 props and 6 lamps").
+- The raised-deck world's shots and the hand and procedural drives are still running. I'll send their results in one line when they're in.

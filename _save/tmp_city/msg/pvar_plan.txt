@@ -1,0 +1,69 @@
+city: the plan for per-block plan variety. It's a plan only: nothing is written into the tree, and it waits for your go. Base af43610 (snapshot 100, tree 40776ac3). Numbers come from a dry run of today's street.py (no writes).
+
+WHY THE FACES START ALIKE
+- street.py draws every block from one generator seeded 6, and two things force most of a house face:
+  - "No house plan twice in neighbouring parcels" makes the houses alternate wherever a bungalow fits.
+  - 77 of the 131 house lots are too narrow for a bungalow, so they take a casita whatever the draw.
+- So the only free draws are the first house on a lot where both fit, and each casita's gable or twin, which comes from its parcel id's CRC.
+- The result today:
+  - b020, b021 and b022 all start corner, gable, bungalow, twin.
+  - b003 and b004 share their first three houses.
+  - All five Paseo del Rio faces alternate bungalow and casita.
+
+1. WHICH FACES CHANGE: only street.py's 23 house faces. They hold 173 files: 130 houses, and 43 corners that keep their plan and place but may take a new colour.
+- Row 1, Paseo del Rio (b002-b004, b006, b007): 30 files (22 houses).
+- Row 2, Calle Siete's north side (b008-b013): 48 files (37 houses).
+- Row 3, Calle Siete's south side (b014-b019): 49 files (37 houses).
+- Row 4, Calle Nueve (b020-b025): 46 files (34 houses).
+- The 227 shop and walk-up files don't change. Every block draws its shop face before its house face, so their draws and colours stay put.
+
+2. SEEDING
+- Each house face gets a generator of its own, seeded with the text "cl.b020 cl.e0013 6" (block, front edge, seed), as the palettes have theirs. Lot by lot along the face, it draws casita or bungalow where both fit, then gable or twin for each casita.
+- The rules kept: a corner at each end, no palette twice side by side, no plan with the same palette twice within three, and no three casitas alike side by side.
+- The rule I'd change (your call): "no house plan twice in neighbouring parcels" becomes "no two bungalows side by side". Your four rules leave it out, and it's what forces the alternation.
+- The variety rule:
+  - A face's first three houses (gable, twin or bungalow) differ from those of its west neighbour on the same side of the street.
+  - They also differ from the face across the street, once that face is written this way.
+  - No two faces of a street share their whole sequence.
+  - A face that fails draws again from its own generator, up to 50 times, so a re-run of the same tree gives the same files.
+- A --classic flag keeps today's draws, as the control.
+
+3. WHAT A REORDER KEEPS
+- Every parcel, lot, walk input and spot stays as it is:
+  - street.py writes only building files. The parcels, the one car park (b014), the dressing, the spots (from benches) and the colliders (from props) live in dress.py's block files.
+  - The AI's walk graph comes from the streets.
+- Gable and twin are the same frontage. They share the footprint (9.0 by 10 m), the place in the lot and the rooms (both layouts); only the roof and the colour family change.
+- Casita and bungalow aren't. The footprint changes (9.0 by 10 vs 11.6 by 9.4 m), and so do the place in the lot (centred), z, the rooms (the harness checks them) and the cell's triangles (400-550 a swap).
+- One thing ripples outside the building files: the yard shrubs.
+  - dress.py placed them 1.2-2.5 m into each lot before the houses existed.
+  - Today 178 of the district's 201 shrubs stand inside a footprint, 0.55-2.04 m behind its front wall, in the front rooms and through the façades.
+  - A casita-bungalow swap changes which ones. It's a defect with or without variety.
+  - I'd fix it as its own small batch, before V1 or after (your call): dress.py reads the footprints and moves a covered shrub into the nearest side yard, or drops it. About 18 block files.
+- Colours are drawn as today, in order, so a changed face is recoloured from its first changed building on, corners included.
+
+4. BATCHES: small, one side of a street each, with the tool change in the first.
+- V1: street.py and Calle Nueve (row 4): up to 46 files. This is the aerial you saw.
+- V2: Paseo del Rio (row 1): up to 30 files, the strict alternation.
+- V3: Calle Siete's south side (row 3): up to 49 files.
+- V4: Calle Siete's north side (row 2): up to 48 files, checked against V3's faces across the street.
+
+5. CHECKS, per batch
+- The control: --classic rewrites all 400 street.py files byte for byte. With variety, only the batch's house faces change, listed per file (plan, at, z, palette).
+- A script runs every rule over every face (the kept rules, no two bungalows side by side, the first-three rule, whole sequences distinct).
+- Unchanged census; worldc (buildings and manifest only) and worldv clean; CI and MinGW.
+- The harness: every room of the 412 interiors, the changed buildings among them.
+- Uploads: 45,42 has 1,361 triangles of headroom (62,639).
+  - The dry run predicts each changed cell from per-plan counts derived from R4c's and R4d's cells: gable 1,150, twin 1,006, bungalow 598, corner 744.
+  - A face draw that would take 45,42 over 64k draws again. The drives measure it.
+- A quiet frame-log pair against snapshot 100's exe (nt_b33) as the baseline in the same window, by your rule.
+- Before/after shots with the same cameras: the row 4 aerial (R4c's) and Calle Nueve from Bougainvillea (R4c's day view). V2-V4 use their own row's.
+
+6. EFFORT
+- street.py's change, its control and the dry runs of all four rows (rows 1-2 need fresh ground dumps): about 1.5 h.
+- Each batch is like R4c, about 1.5-2 h, with 20 min of builds and 25 min of games.
+- About 7 h for all four. The shrub fix adds about 1.5 h.
+
+CALLS
+1. Replace "no house plan twice in neighbouring parcels" with "no two bungalows side by side"?
+2. The shrub fix: before V1, or later?
+3. The first-three rule as above, or only "whole sequences differ"?

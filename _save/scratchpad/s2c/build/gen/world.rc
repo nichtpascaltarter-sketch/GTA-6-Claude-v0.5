@@ -1,2 +1,0 @@
-// written by tools/worldc.cpp: the hand-built world, embedded in the exe (src/world/handworld.cpp reads it)
-NT_WORLD RCDATA "world.bin"

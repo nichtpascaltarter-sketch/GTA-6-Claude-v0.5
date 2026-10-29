@@ -1,0 +1,54 @@
+WHAT (player-facing, hand world only)
+- Calle Siete's row-2 houses (b008-b013; they stand south of the street, facing north): the houses now vary block to block, and now also against the row-3 faces across the street.
+- The first houses from the west go G, T, B, G, B, T, where they went G, G, B, B, B, T.
+- Each face's houses, west to east, before and after (G gable casita, T twin with the flat roof, B bungalow; the corner shops at the ends stay as they are):
+  - b008: GGTTBTB to GGTGBTB
+  - b009: GBTTGGT to TBGGTGT
+  - b010: BGGTBTB to BGTTBTB
+  - b011: BGTBTT to GBTBTT
+  - b012: BGGTB to BTGTB
+  - b013: TTGGB to TGTGB
+- 9 casitas swap their roofs and keep their colours:
+  - 5 gables become twins: b009.h14 and h18, b010.h11, b012.h11, b013.h12.
+  - 4 twins become gables: b008.h16, b009.h16 and h17, b013.h11.
+- In b011 the bungalow moves one lot east: h13 goes from a bungalow to a gable casita (sky) and h14 from a gable casita to a bungalow (seafoam). b011 is the one row-2 face whose lots hold its 2 bungalows in more than one arrangement.
+  - Each footprint is centred on its lot (h13's origin 1647.19 to 1645.89, h14's 1661.78 to 1663.08; y and z as before).
+  - b011.h17 is recoloured, lemon to sky: the face's colours redraw from h13 on.
+  - The gap between h13 and h14 moves 1.3 m west, and its two shrubs move 0.65 m west with it (b011's block file). b011 still keeps 0, moves 11 and drops 1, as on S2.
+- Casitas and bungalows per face stay as they were: b008 5+2, b009 6+1, b010 4+3, b011 4+2, b012 3+2, b013 4+1 (row 2: 26+11). The district stays at 40 bungalows of 130.
+- No other building, road, ground or lamp changes. Procedural mode is unchanged.
+- The other 25 house files change only in the line that says how they were written.
+
+HOW
+- street.py and rulecheck.py as V3 signed them off.
+- The write, on V3's tree: b008 to b013, west to east, with --guard 45,41 and 46,41 chained from V3's uploads (74,875 and 78,685, also their caps). Then dress.py (only b011's block file changes) and ntwfmt.
+- Docs: HANDBUILT 5.3's street.py history adds "and 37 of row 2 (b008-b013)".
+
+THE FIRST-THREE RULE, as written, now with the faces across
+- (a): the first houses from the west are G, T, B, G, B, T (b008 to b013); each differs from its west neighbour's. b008 has none.
+- (b): the first threes are GGT, TBG, BGT, GBT, BTG and TGT.
+  - Each differs from its west neighbour's.
+  - Each also differs from the first three of every row-3 face across the street that its houses overlap (V3's GBT, TGT, BGG, TTG, GGT and TGB).
+  - It bit once: b010's third draw, BGGTBGB, matched b016's BGG across the street and was redrawn.
+- (c): all twelve Calle Siete sequences differ.
+- (d): no fallback. b010 kept its fifth draw, every other face its first.
+
+THE GUARD (45,41 and 46,41, both over 64,000: kept from growing past 74,875 and 78,685)
+- It bound in b010: its draws 1, 2 and 4 would have taken 46,41 to 78,829, 78,973 and 78,829, and draw 3 to 78,829 too (draw 3 also broke (b)). Draw 5 meets both.
+- The predicted cells: 45,41 74,875 to about 74,731 (5 swaps, -144); 46,41 78,685 to about 78,541 (3 changes, -144: b011's bungalow move nets 0, and b012.h11's swap is -144); 47,41 50,290 unchanged (2 swaps, net 0); 44,41 +144 (b008.h16; its near cell holds 24,918 placement triangles, far under 64,000). MEASURED_CELLS
+
+THE CHECKS YOU KEPT
+- The --classic control: V4's street.py is V3's, byte for byte, so V3's control stands: on S2's world it rewrites 379 files byte for byte, and b006's 21 differ.
+- The rule checker (tools/author/rulecheck.py), on V4's tree against V3's: 0 problems; bungalows 40 to 40 of 130.
+- The re-run: street.py (with the same guards) and dress.py, re-run on a copy of V4's tree, rewrite it byte for byte.
+- The canopy check (S2's): all 152 shrubs keep clear, 0 vertices in a footprint or on a way, b011's two moved ones too.
+
+CHECKS
+- worldc: 0 warnings, 412 buildings from 468 files. Against V3, world.bin changes in buildings, blocks (b011's two shrubs) and manifest only.
+- worldv: 0 errors and the same 4 warnings (468 files, 3,429 records).
+- CI's three world tests pass with CI's flags (-Wall -Wextra -Werror and UBSan). MinGW -Wall on main.cpp: 0 errors, 0 warnings. street.py and rulecheck.py compile (py_compile).
+- The procedural census: 0 of 13,914 lines differ from V3's.
+- The exe nt_b39: 16,502,784 B, with 0 warnings.
+- Harness: 4,632 of 4,632 rooms in the 412 interiors (2,370,048 triangles), the same line as V3's. b011's bungalow move swaps a 9-room casita and a 6-room bungalow between two lots, so the totals stay. 0 tour legs off the walk.
+- The world is canonical (ntwfmt --check). The private scan of the 76 added lines is clean.
+- Against V3's tree, the work tree differs in exactly these 39 files.

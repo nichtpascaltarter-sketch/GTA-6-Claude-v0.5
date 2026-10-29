@@ -1,7 +1,10 @@
 // worldv: the world validator (docs/HANDBUILT_WORLD.md section 9.1). It reads every .ntw file under world/ and checks:
 // - each file against its kind's schema, and that it is in canonical form;
 // - ids against their patterns and for uniqueness, and each file's path against its ids;
-// - that every reference resolves to a record of the right kind.
+// - that every reference resolves to a record of the right kind;
+// - the library items' rooms, doors and stairs, and the plans' floors;
+// - the roads, their signal plans and the transit lines on them, and the lane graph the game builds from them (a world
+//   run adds a roads summary line).
 // What's wrong is listed as file:line diagnostics with a check id (--checks lists them). Errors fail the run (exit
 // code 1); warnings are only listed.
 // Build from the repo root:  g++ -std=c++17 -O2 -I. tools/worldv.cpp -o build/worldv
@@ -11,11 +14,21 @@
 //                            build/worldv --checks                   (the check ids)
 // --incremental reuses the cache's results for every file whose content is unchanged; each world run rewrites the
 // cache. --only reports one file, the files under a directory, or the file that defines an id.
-#include "tools/native_stubs.cpp"
+#include "tools/worldv_host.cpp"
+#include "src/core/math.cpp"
 #include "src/world/ntw.cpp"
 #include "src/world/ntwschema.cpp"
+#include "src/world/roadnet.cpp"
+#include "src/world/worldmodel.cpp"
+#include "src/world/worldmodel_roads.cpp"
+#include "src/world/lz.cpp"
+#include "src/world/worldbin.cpp"
+#include "src/world/roadsbin.cpp"   // (applyRoadSides: each side's own widths, as hand mode loads the roads)
+#include "src/game/lanes.cpp"   // the game's lane graph, built as the game builds it (validate_lanes.h)
 #include "src/world/validate.cpp"
 #include "src/world/validate_layout.cpp"
+#include "src/world/validate_roads.cpp"
+#include "src/world/validate_lanes.cpp"
 #include <string>
 #include <thread>
 #include <vector>
@@ -63,6 +76,7 @@ int main(int argc, char** argv) {
         return 2;
     }
     if (!sum.cacheWritten) fprintf(stderr, "worldv: couldn't write the cache %s\n", opt.cache.c_str());
+    if (!sum.roads.empty()) printf("%s\n", sum.roads.c_str());
     printf("%s\n", Validate::formatSummary(sum).c_str());
     return sum.errors ? 1 : 0;
 }

@@ -1,0 +1,62 @@
+city snapshot-safe: 2b slice 3 of the Calle Luna pilot: the props' colliders with the catalog's body=, and the pilot's real lot, the boatyard's. That completes 2b. On 71's blobs (fd07783 + slices 1 and 2); the five files 71 doesn't touch sit on fd07783's.
+
+FILES (17, one new)
+- docs/HANDBUILT_WORLD.md 9825c6d3 on c910ac09 (71's)
+- docs/NTW_FORMAT.md 79d692c2 on 55106346 (71's)
+- src/world/blocksbin.cpp e1c16a8a on 520d8f7c (71's)
+- src/world/blocksbin.h 45c50e97 on ace60a89 (71's)
+- src/world/cellgen.cpp 21d940ac on 6b3133b9 (fd07783's)
+- src/world/handworld.cpp 7a56627e on 1469033e (71's)
+- src/world/ntwschema.cpp a260a267 on 153c05cf (71's)
+- src/world/validate.cpp 5986b52f on 4be35ac1 (fd07783's)
+- src/world/worldmodel.cpp f3eaafd9 on 1ed39147 (71's)
+- src/world/worldmodel.h 01682b86 on 52ca786b (71's)
+- src/world/worldmodel_blocks.cpp 8284f2be on 55904034 (71's)
+- src/world/worldtypes.h 0acc4505 on 63a9e6e3 (fd07783's; a comment)
+- tests/world/fixtures/bad/catalog_body.ntw 620c79e8 (new)
+- tests/world/worldmodel_test.cpp 1a1637d7 on 159416c5 (71's)
+- tools/worldc.cpp af0df122 on fbd859cf (71's)
+- world/districts/cl/blocks/b005/block.ntw 8c602d10 on d28cc2c0 (fd07783's)
+- world/lib/catalog.ntw 9834796b on 01a53436 (fd07783's)
+
+WHAT (player-facing)
+- In hand mode, walkers, turning circles and stands now keep clear of the pilot's props, as they do of the sites' structures: World::siteColliderNear answers the blocks' 1,077 colliders (301 street light poles, 401 tree trunks and 375 pieces of street furniture; shrubs have none). The physics keeps its own per-type colliders and doesn't change.
+  - The pilot's lane graph doesn't change: no prop stands within 20 m of its 5 dead-end bulbs, which is where the lane graph asks.
+- The boatyard on the Paseo del Rio (cl.b005.p05) has its lot, cl.b005.lot1, with 100 bays in blocks.lots:
+  - 60 car bays on both sides of a middle aisle (x 1655, 90 m long);
+  - 40 boat-trailer bays (4 x 10 m) on both sides of a west aisle (x 1632);
+  - the two aisles joined at their south ends.
+  - Cars come in one way from the Paseo del Rio (cl.e0040 at 45.13, its north side) and leave one way to the alley behind (cl.e0042 at 45.00, its south side), eastbound like the alley.
+  - 6 nodes and 5 links, and every node is on a way from the entry to the exit.
+  - Nothing is drawn for it: the yard is gravel, so it has no bay lines.
+
+HOW
+- Catalog: body=WxDxH is an optional piece field, the solid part the collider takes where that isn't the whole piece; without it, size= is used. The pilot catalog gives it to:
+  - its 5 trees: 0.52 m, the physics' trunk;
+  - the street light: 0.34 m, the physics' pole;
+  - the cafe umbrella: its 0.10 m pole. The physics has no umbrella collider.
+- worldv's new check piece.body: body= is WxDxH and fits inside size=. It comes with a bad fixture (catalog_body.ntw).
+- "blocks.colliders": per collider its kind (box or cylinder), prop (an index into "blocks"' props), centre, bottom and top z, half extents, and a box's width axis.
+  - A prop gets one when its piece has collide=box or cylinder: body= or else size=, times the prop's scale. A box turns with the prop. Each stands from the prop's base up (placeOnTerrain).
+  - readBlocks refuses a collider naming a prop the blocks don't have.
+- HandBlocks::colliderNear(p, margin, height) is inline and looks up by cell. siteColliderNear asks it first. The procedural world has no hand blocks, so nothing changes there.
+- The lot sits in b005's hand-written part above dress.py's marker, so a regeneration keeps it. Its rows give aisle= so the aisles run on 5 to 10 m past the bays, and the two rows on each aisle share it.
+- worldc and the game's log line count the colliders.
+- Tests:
+  - worldmodel_test testColliders: a tree's trunk scaled with the tree (12 m tall, 0.39 m radius at 1.5); a bench's box turned with it; a bollard at its size, 0.5 m up; none for a shrub; the street light's pole; all on the props' bases; the queries' margin and height windows; the round trip; damaged sections and missing props refused.
+  - worldv_test: the bad fixture, both findings found.
+
+CHECKS (fd07783 + slices 1-3)
+- CI's tests with CI's flags (-Wall -Wextra -Werror, UBSan): worldmodel_test, world_format_test and worldv_test all pass.
+- worldc (-Wall -Wextra, 0 warnings): world.bin is 71's plus blocks.lots (1,590 bytes) and blocks.colliders (24,485 bytes). The manifest changes for the two edited files, and every other section is byte-identical. readBlocks reads it all back, with 1 lot of 100 bays.
+- worldv: 0 errors and the 4 agreed warnings, now with 2,090 records, 512 ids and 1,870 references (the lot and its rows, the lot's id, its two cuts).
+- MinGW -Wall on main.cpp with the exe build's flags: 0 errors, 0 warnings. traffic_sim and worldcheck, which build cells with cellgen.cpp but without blocksbin.cpp, still compile.
+- The procedural world is untouched: meshcensus3 gives 0 of 13,913 cell and query lines different from fd07783's (mesh effcf391d20a40f2, queries 0afe996d34cd88a8).
+- The exe built with 0 warnings: /tmp/city/nt_b4s3.exe, 16,227,840 bytes (fd07783 + slices 1-3). No shots: nothing drawn changes.
+- Drives with it, 0 fatal each:
+  - hand, 30 s: logs "1 lots, 0 paths, 62 spots and 1077 colliders". The lane graph is 71's: 192 lanes, 397 connectors, 330 walk nodes and 443 walk links, no turning circle moved or obstructed. It ends at t=21.5 at 1911.9,282.8 with 82 peds and 56 vehicles, exactly slices 1's and 2's drives;
+  - procedural, 24 s first person: 6268 nodes, 9547 edges. It ends at t=17.5 at 1789.9,130.6 with 93 peds and 63 vehicles, exactly round 3's and slice 2's drives.
+
+NEXT
+- 2b is done. Next is the building-use flag for parking garages, and I'd like its brief. I can read it two ways. (a) The procedural world: its parking garages (BS_GARAGE) get a use flag the AI and the lighting can read, so they aren't taken for homes or shops. (b) The hand world: a building with use=parking whose floors are a lot's levels, with the ramps on its floors in place of kLotLevelHeight. Which do you mean, and is there a finding or a message behind it I should read?
+- Still to come from the plan's 2b: drawing the paint, i.e. bay lines on paved lots and the paths' surfaces. The pilot has neither a paved lot nor a path yet, so I'd leave it until one exists unless you want it now.

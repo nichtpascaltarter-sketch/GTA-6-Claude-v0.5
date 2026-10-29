@@ -1,1 +1,0 @@
-matgen.hlsl csGenerate cs_5_0 GEN=6

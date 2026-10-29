@@ -1,0 +1,145 @@
+city snapshot-safe: 3b-3, b005's 12 hand-built buildings are enterable. In hand mode the player walks in through their real doors, climbs their stairs and reaches every room. Base 76 (0f9236d, tree 6f90e0ad). 14 files, 13 on 76's blobs and 1 new. This includes the Codex P2 fix (stairEnd resolves +1/-1 by height) with its test.
+
+FILES (path, base, new)
+docs/HANDBUILT_WORLD.md d0097858 cde382d1
+docs/NTW_FORMAT.md 8802024a a4b2ecc7
+src/game/camera.cpp 3a41f689 a227e174
+src/game/interiors_game.cpp 9d65a000 013ea78e
+src/main.cpp 08a7d5e1 991b27dd
+src/world/buildingsbin.h 4280cf64 459a0715
+src/world/handshells.cpp 96972922 d1227501
+src/world/handworld.cpp e5c9474b 91726f8a
+src/world/handworld.h 1ffc63c5 b45a51bb
+src/world/interiorhand.cpp (new) f4847357
+src/world/interiorlayouts.cpp 43ab23ea 576be64c
+src/world/interiors.h 4d44e83b 3c67fcef
+src/world/worldmodel_buildings.cpp 9f171426 4f96113d
+tests/world/worldmodel_test.cpp 510a58fb 2096cff7
+
+WHAT (player-facing)
+- In hand mode, each of b005's 12 buildings has an interior: 6 shops with the flat over each, 2 three-storey walk-ups and 4 bungalows.
+  - 120 rooms on 22 floors, 90 doors whose leaves swing, and 10 stairs.
+  - No furniture or people yet.
+- The player walks in through the plans' real doors:
+  - the shop's glass pair door, and the flat's own street door beside it;
+  - the walk-up's street door;
+  - the bungalow's front door and its kitchen's side door.
+- Inside, the walls, floors, stairs and door leaves are solid. A leaf swings away from whoever walks up to it, as in the generator's interiors.
+- Where the ground outside is lower than the floor, a ground-floor door has a concrete stoop.
+  - The cause is the 0.3-0.5 m gutter between the sidewalk and the facades.
+  - The stoop is a landing level with the floor, or a landing with steps down.
+- The stairs climb on a ramp of thin colliders, three to a tread, as the warehouse mezzanine was meant to. The player walks up and down them, and the treads are drawn as boxes.
+  - The shops' flights are straight and wooden.
+  - The walk-ups' flights are terrazzo doglegs with landings, and their wells have balustrades.
+- The third-person camera stays under the ceilings inside (QUESTIONS 2).
+- Lights:
+  - each room has a fixture by its type (a pendant, downlight or troffer);
+  - its lamps and ambient follow its windows' light state, from the same function as the facade shader: a window lit from the street is a lit room inside, and both go dark at the same minute.
+- Party walls (m01|s02, s03|s04, s05|m06, s07|s08): above the lower building's roof the higher one's shared wall shows, and so do its trims; below that it is hidden. Before this fix, the walk-up's facade showed inside the shop.
+- Nothing changes in procedural mode, and world.bin is byte-identical to 75's.
+
+HOW
+- New src/world/interiorhand.cpp. interiors.h adds IK_HAND, prepareHandInteriors, handInteriorTour and handRoomLight.
+  - At load (handworld.cpp, after prepareHandBuildings), each placement whose plan has rooms gets an InteriorDef. They sit in a set of hand mode's own, which gInteriors points at. Each def holds:
+    - its frame: the origin at the middle of the front wall's centreline, x the plan's (mirrored where the placement is);
+    - its rooms as boxes: the polygon's bounds less half the walls round them (a stair's room reaches the floor above);
+    - its doors with leaves: hinged, or a pair for the shop's glass door. Hinge end and swing come from 3b-2's records, mirrored where the placement is. An `opening` has no leaf;
+    - daylight portals through its windows and exterior doors;
+    - the markers outside and inside its main entrance;
+    - each room's light key.
+  - It never goes through planInteriors or pickBuilding (your note), and Building::interior stays -1.
+  - The existing buildInterior builds its mesh, collision and lights on a worker. It does so through a hook in interiorlayouts.cpp's runLayout (gLayoutHand), so tools that compile interiorlayouts.cpp without interiorhand.cpp still link.
+  - layoutHand builds:
+    - the exterior walls' inner faces, with the windows' inner reveals, glass and window boards;
+    - the inside walls with their door casings (collided);
+    - floors and ceilings with the stairwells cut out, and the upper floors' slabs (collided);
+    - per stair: a drawn box per tread; the ramp, 3 colliders per tread, their tops on the line through the treads' middles (within a third of a riser of the tread); the landings; the well's edges; and 1 m balustrades where a floor stops at a well;
+    - baseboards (none across a well);
+    - a light per room by its type.
+  - handRoomLight: a room's lamps are roomLight(class, seed, windows, day, minute, night) / 222.
+    - The class and room hash come from its window's facade entry, as facade.hlsl takes them: a shop's shaderHash3(2000, 77, seed), others' shaderHash3(1000, 1, seed).
+    - A room with no window uses its own seed.
+- interiors_game.cpp:
+  - collision keys: an IK_HAND interior's colliders and leaves get positive keys (2000000 + def*256 + sub). The generator's keep their negative ones (QUESTIONS 1).
+  - IK_HAND lamps and ambient use handRoomLight, not the schedules; submitAll now takes the game day.
+  - the light budget: the renderer keeps 32 ambient volumes, nearest interior first.
+    - A hand-built interior's lamps light only when all its rooms got a volume this frame.
+    - A lamp outside every volume acts as an outdoor light, so it would light the street and the neighbours through the walls.
+  - --handtour <names>|all (with --play --autoplay handtour) walks the player along handInteriorTour:
+    - from outside the main entrance, through every door and up every stair, into each room;
+    - it logs each room reached, and each waypoint not reached within 6 s (it then puts the player there and counts it);
+    - it takes a shot per floor and on each stair. A stair's room has no middle waypoint, since that point is on its flight or over its well.
+- handshells.cpp, for a shell whose plan has rooms:
+  - Its doorways are open through the wall at the near LOD, over a stone threshold, and the interior hangs the leaves.
+  - Its collision is hollow, where it was one box: the foundation up to the ground floor, each exterior wall floor by floor with door gaps and lintels, and the roof slab.
+  - Stoops (buildStoops): the walk steps onto a box only within 0.35 m of its feet (physics.cpp capsuleOverlap), so the 0.47 m gutter blocked every door.
+  - Party walls:
+    - prepareHandBuildings finds, for each wall and outline edge, how high a neighbour hides its outer face (HandBuildings wallCover and edgeCover, runtime only, in buildingsbin.h);
+    - buildWall clips the face and its openings below that;
+    - the bands, cornice, coping and quoins skip the covered edges and corners.
+- worldmodel_buildings.cpp stairEnd (Codex P2): +1: and -1: name the nearest floor above or below by z, with worldv's 0.02 tolerance, as validate_layout.cpp's neighbour() does. Before, they followed record order (fi + k).
+- Docs: HANDBUILT_WORLD 7.2 (interiors, hollow collision, stoops, party walls), 7.3, 7.4 and 7.8 (the light state); NTW_FORMAT 9.10 (relative ends by height).
+- camera.cpp (QUESTIONS 2): inside a hand-built building (Interiors::insideHandBuilt, interiors_game.cpp), the on-foot camera's lift above the ground no longer passes up through a collider's underside. It tests that with a colliders-only raycast up.
+
+CHECKS (all on this tree)
+- CI's three tests pass with CI's flags (-Wall -Wextra -Werror, UBSan).
+  - New worldmodel_test case: a plan lists its floors f0 (z 0), f2 (z 6), f1 (z 3) on one layout with `stair from=0:hall to=+1:hall`.
+  - It compiles to the stairs f0 -> f1 and f1 -> f2 (record indices 0 -> 2 and 2 -> 1), each 17 treads of 0.18. The top floor's is left out.
+  - With the old record-order resolution, the test fails.
+- worldc: 0 warnings, 2,757,904 B, 17 sections. world.bin is byte-identical to 75's (cmp), so 3b-3 changes no data.
+- worldv: 0 errors, 4 warnings, as on 76.
+- MinGW -Wall: main.cpp 0 errors, 0 warnings; worldc.cpp (with -Wextra) 0 and 0. Host syntax of traffic_sim, worldcheck and terrainbake: 0 errors.
+- Procedural census (meshcensus4): 0 of 13,914 C/Q/F lines differ from 75.
+  - T: mesh effcf391d20a40f2, queries 0afe996d34cd88a8.
+  - F: 42,219 facades, hash 021a82448ad773d0.
+- exe: 16,435,200 B, 0 warning or error lines. The game logs "Hand interiors: 12 (120 rooms, 90 doors with leaves, 10 stairs); the ground under their floors stays 0.17 m below them or more (cl.b005.h11)", and builds each interior on a worker in 0.3-8 ms.
+- The --handtour in the game: one of each plan in each orientation, walking with no teleports.
+  - Tour 1: h09 6 of 6 rooms in 38.7 s, m01 21 of 21 in 132.9 s, s02 9 of 9 in 58.9 s. 0 waypoints out of reach, 0 fatal.
+  - Tour 2: h10 6 of 6, m06 21 of 21, s03 9 of 9, in the same times. 0 waypoints out of reach, 0 fatal.
+  - That covers each plan's mirrored and unmirrored placement. The other 6 buildings share those plans; the harness walks them.
+  - The tour's camera is pitched 17 degrees down, so it rides near the ceilings. Its shots show it stays inside on every floor and stair.
+- Shots (hand mode, 1280x720, 15:30 and 21:00; 0 fatal):
+  - the shop: its glass pair door, windows, troffer and floor tiles;
+  - the shop's stair up to the flat's door;
+  - the flat over the shop;
+  - the walk-up's landing on its terrazzo dogleg;
+  - a walk-up flat by day, and the same at night with its pendants lit;
+  - a bungalow room;
+  - the street by day, looking as before, and at night, with the shops' glass doors showing their lit rooms.
+- Harness (scratch, not committed): all 12 buildings, with the game's own collision built and the walk's rules (the ground probe with a 0.55 m step; a box blocks when its top is 0.35 m or more over the feet).
+  - 120 of 120 rooms are reached walking from outside each main entrance.
+  - Every leg of every building's tour stays within the walk.
+  - 62,244 triangles, 1,000 colliders (+179 in the shells), 96 leaves, 152 lights.
+- Hand drive: 0 fatal, and identical to 75's.
+  - Lane graph 192 / 397 / 330 / 443, dead ends 0 moved and 0 obstructed.
+  - Its three autoplay lines: t=2.5 90 peds and 61 vehicles at 1762.5,218.1; t=11.5 90 and 62 at 1819.7,243.6; t=21.5 82 and 56 at 1911.9,282.8.
+  - Apart from timings, the log's only other changes are the "Hand interiors" line and the 12 interiors built as they stream in.
+- Procedural drive: 0 fatal, 6268 nodes and 9547 edges. t=17.5 at 1789.9,130.6 with 93 peds, 63 vehicles and wanted 2, as on 75.
+- Found and fixed along the way, each checked by the tour:
+  - Interior colliders never collided (QUESTIONS 1). The first tour reached every waypoint in plan, but only 16 of 36 rooms: the player never climbed.
+  - The 0.47 m gutter blocked every door. Fixed with the stoops.
+  - Two treads of 0.18 m, 0.36 together, were more than the walk's 0.35 m step. Fixed with the ramp.
+  - The tour aimed for the middle of the top floor's stair room, which lies over its well. A tour fix only.
+  - The camera popped through the ceilings. Fixed in camera.cpp (QUESTIONS 2).
+
+QUESTIONS (yours to decide; 3b-3 doesn't depend on them)
+1. A bug in main: no generator interior collides.
+   - interiors_game.cpp's colKeyFor gives every interior a negative collision key, and CollisionWorld stores the key as Collider::owner.
+   - ground(), capsuleOverlap(), raycast() and boxContacts() skip owner < 0, which means freed. So none of the generator's interiors' colliders or door leaves has ever collided, since the interiors pipeline (5b5c080).
+   - Their walls, furniture and leaves are walk-through, and the warehouse mezzanine's stairs can't be climbed. Only the hollow shells, which are in the cell collision, hold.
+   - 3b-3 fixes this for IK_HAND only: positive keys from 2000000. The one-line fix for all interiors would change procedural play: walls, furniture, leaves and the mezzanine would become solid for the player, the NPCs and the vehicles.
+   - With it, camera.cpp's new ceiling rule (below) should apply to every interior. A separate slice by me, or the interiors/physics owner's?
+2. The camera, which 3b-3 changes in hand mode only.
+   - The on-foot camera lifts itself to the ground probe + 0.35. The probe finds collider tops up to 1.05 m over the camera.
+   - With solid slabs, a camera near a ceiling (pitch below about -7 degrees) popped through to the floor above or onto the roof.
+   - Inside a hand-built building, it no longer lifts through a collider's underside. Outside them, and in procedural mode, the code path is the old one.
+3. Locks and hours: the plans' lock= (resident, staff, key) and the shop's hours= aren't compiled or enforced, so every door opens for anyone. OK for 3b, or wanted before 3c?
+4. The light budget:
+   - the renderer keeps 32 ambient volumes, so around b005 only the nearest 1-3 buildings' lamps light (a walk-up has 21 rooms);
+   - the windows still show their light state from the street;
+   - raising kMaxInteriorVolumes is a renderer change, if wanted.
+5. Follow-ups (yours, not started):
+   - AI: peds use the doors and go inside; a per-floor nav;
+   - animation: stair locomotion (on the ramp the feet sit up to 6 cm off the treads), and the other door kinds.
+
+Next: 3b is done. 3c, the remaining placements in small batches, waits for your go.

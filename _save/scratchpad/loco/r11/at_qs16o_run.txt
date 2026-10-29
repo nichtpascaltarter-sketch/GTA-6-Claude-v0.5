@@ -1,2 +1,0 @@
-anim_test qs16o rc 0
-ALL PASSED (0 failures)

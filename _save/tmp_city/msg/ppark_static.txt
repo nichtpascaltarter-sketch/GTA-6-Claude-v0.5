@@ -1,0 +1,37 @@
+WHAT (player-facing, hand world only)
+- North of Calle Nueve, between the Bougainvillea and Este stubs, the bare ground is now a park edge: a lawn of 5.4 ha (754 m by 72 m) from the north sidewalk to the district's bound at y 740. The houses on Calle Nueve's south side look out on it.
+- The lawn is level, in 11 terraces 38-140 m long. Each is a park parcel a kerb's step under its sidewalk, as the yards are, and the steps between them are 0.11-0.12 m. The knee-high drop behind the north sidewalk (0.3-0.45 m) is gone.
+- A paved footpath 3 m wide, 10 m in from the sidewalk, runs the whole length. It links to the sidewalk opposite each of the five side streets (Ceiba, the Heroes, Coral, Palma, Sol), and its ends meet the stubs' sidewalks.
+- Along the path's far side: 47 coconut palms every 16 m, and 23 benches between them facing across the lawn to the street and the houses, with a bin by every other bench (12). Each bench is a sit spot for pedestrians (85 spots, from 62).
+- Along its near side: 31 bollards with garden lamps every 24 m, moved aside where a link meets the path.
+- Calle Nueve's north sidewalk is dressed as every block's own: 22 street lights (every 34 m, as on the south side) and 7 hydrants.
+- No AI walk path, as you said: the footpath is ground paint.
+- No building, room or road changes. Procedural mode is unchanged.
+
+THE FINAL COUNTS (worldc, R4d -> the park)
+- Palms: 47 (the district's palms 142 -> 189).
+- Colliders: 1,077 -> 1,219 (+142: every new prop collides: 47 palms, 23 benches, 12 bins, 31 bollards, 22 street light poles, 7 hydrants).
+- Lamps: 365 -> 418 (+53: 31 garden lamps, 22 street lights).
+- Also: props 1,278 -> 1,420, ground polygons 471 -> 498 (+27: 11 lawns, 11 path paints, 5 links), parcels 327 -> 338, spots 62 -> 85, blocks 25 -> 26.
+
+HOW
+- dress.py gets the park edge as a 26th region, b026, made the way it makes the promenade (b001):
+  - park_strip draws the strip from the streets: Calle Nueve's north sidewalk, the stubs' sidewalks, their turning circles (the outline 0.5 m under the ring, as run_under puts it under a street's sidewalk) and the district's bound. I didn't trace it on the raster, which marks round caps at the Heroes' and Sol's ends that the game's junctions don't have.
+  - park_edge cuts the terraces every 4 m along x, as far as one level meets the sidewalks along a piece within YARD_RISE - 0.03 m (the promenade's rule).
+  - park_parcels makes each terrace a park parcel of lawn fronting Calle Nueve, with its share of the path and the links as paint.
+  - dress_park places the palms, benches, bins and bollard lamps. dress_sidewalks dresses its sidewalk as any block's.
+- The control first: today's dress.py, re-run on fresh worlddump inputs and formatted with ntwfmt, rewrote the whole world dir byte for byte.
+- With the park: R4d's world plus the new dress.py and ntwfmt gives b001-b025's 25 block files byte for byte, and only b026 is new. That's the work tree's world exactly.
+- Docs:
+  - HANDBUILT 5.3, dress.py's paragraph: "...the pilot's 26 block files...cuts the promenade and the park edge into terraces where their streets climb... The park edge (b026) is a lawn along Calle Nueve's north side...".
+  - HANDBUILT 6.1's levelling note: "(the promenade and the park edge in terraces where their streets climb)".
+
+CHECKS
+- worldc: 0 warnings, 412 buildings from 468 files. world.bin changes in terrain.grade, blocks, blocks.parcels, blocks.spots, blocks.colliders and manifest; not in buildings or roads. The terrain grading now changes 7,466 texels (from 6,838), by up to 0.52 m: the drop filled behind the north sidewalk.
+- worldv: 0 errors and the same 4 warnings as before (468 files, 3,478 records).
+- CI's three world tests pass with CI's flags (-Wall -Wextra -Werror and UBSan). MinGW -Wall on main.cpp: 0 errors, 0 warnings. dress.py compiles (py_compile).
+- The procedural census: 0 of 13,914 lines differ from R4d's.
+- The exe nt_b33: 16,503,808 B, with 0 warnings.
+- b026's file is canonical (ntwfmt --check). The private scan is clean.
+- Against 99's tree 1c228c73, the work tree differs in exactly these 3 files.
+- Harness: 4,635 of 4,635 rooms in the 412 interiors (2,370,888 triangles), unchanged from R4d; 0 tour legs off the walk.

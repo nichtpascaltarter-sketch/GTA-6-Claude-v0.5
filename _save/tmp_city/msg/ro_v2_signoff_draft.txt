@@ -1,0 +1,28 @@
+city snapshot-safe: RoadOverrides step 2, NodeRule, with the legs and plans API that worldc and worldv share, and one format addition. On @BASE@.
+
+Blobs: @BLOBS@
+
+1. NodeRule (roadoverrides.h), for the AI agent. There is one per node that writes control=, stops=, yield=, noredturn= or bulb=, sorted by node:
+   - control as written: CTRL_AUTO, NONE, STOP, YIELD, SIGNAL;
+   - NR_STOPS_ALL: stops=all, or control=stop without a list;
+   - stops, yields and noRedTurn: RoadNetwork edges, sorted;
+   - bulb: the authored turning-circle radius. 0 means none was written, so long vehicles avoid the dead end. Today's mesher still draws its derived bulb (halfWidth + 4.5 m); the pilot's five are written as 10 m and the derived ones come to about 10.2 m.
+   - World.bin's "roads.overrides" is now v2 (the node rules after the edges). readRoadOverrides takes the network and refuses a rule that names a node or edge that isn't there.
+2. The format: a new optional node field, noredturn= (a list of edges): the approaches where turning right on red isn't allowed. Elsewhere drivers may, after stopping.
+   - Additive under NTW_FORMAT 7, so v1 stays.
+   - The schema (ntwschema.cpp) knows it, and its references are checked like yield='s.
+   - worldv: nothing to do unless you want a rule for it (an approach that isn't at the node, say).
+3. For worldv and worldc, in worldmodel.h:
+   - nodeLegs(model, index, net, node): each leg's network and model edge, in and out lanes, direction, bearing, sector and letter (approaches= first: a letter's first use and an edge's). The rules are the ones your stand-in uses: lanes.cpp's probe, n=[315,45), and a boundary goes clockwise.
+   - legTurn(model, legs, a, b): lanes.cpp's classes. A junction's connect record joining the two edges wins.
+   - resolvePlan(model, legs, plan, out): per phase, the moves {from, to, RoadTurn mask, protected} and the walks (crossed edges). What names no leg there goes to `unused`, e.g. "n_l" and "walk e" for a 4-leg plan at a T.
+   - The names don't clash with validate_roads.cpp's (yours keep their own nodeLegs; mine takes 4 arguments). worldv builds clean with both.
+4. Tests (worldmodel_test testLegsAndPlans):
+   - a cross and a T by their bearings;
+   - a skewed leg named by approaches=, with a bad letter skipped and a letter's second use skipped;
+   - the turns, including a connect overriding one;
+   - the plan at the cross (all 10 moves resolved) and at the T (5 unused);
+   - the node rules, through world.bin, and refused for a smaller network;
+   - plus the model fixture's 3 node rules in testRoadOverrides.
+
+Checks: @CHECKS@

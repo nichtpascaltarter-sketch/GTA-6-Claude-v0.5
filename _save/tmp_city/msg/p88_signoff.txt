@@ -1,0 +1,53 @@
+city snapshot-safe: 88, the per-frame upload budget by triangles. Base 457758f, snapshot 87 (tree 725c7a3e). 2 files changed on their blobs.
+
+FILES (path, base, new)
+docs/HANDBUILT_WORLD.md 1f491595 37ebac66
+src/render/world_render.cpp 6a62b6b2 999b668e
+(also in /tmp/city/p88_blobs.txt)
+
+WHAT (player-facing, in hand and procedural mode: they share the streaming)
+- A frame uploads at most 64k triangles of streamed cells. A cell that would take it past that waits for the next frame, and one bigger than 64k still goes, alone, in a frame of its own.
+- Cells now upload near before far, nearest first. One thing you should know: 87 didn't do this. It took ready cells in its hash map's order, so this order is new.
+- What that changes:
+  - Hand drive: the t=0.10 frame no longer carries 45,41 and 46,41 together. 46,41 goes alone (62.4k triangles, 6.9 ms), 47,41 with 45,40 the next frame, and 45,41 the frame after. That frame dropped from 33.2 ms to 24.0 ms.
+  - Procedural drive: the start used to upload 4 near cells per frame (227-260k triangles, 26-30 ms). Now each goes alone, in 7.9-10.6 ms.
+  - A near cell no longer waits behind far ones. In 87's hand drive, 45,40 near (11.5k triangles) sat ready for 43 frames (1.4 s) while far cells ahead of it in the map's order went first. That's the late near cell your (a) rule watches for. In 88, no cell with triangles waits more than 4 frames there.
+  - The cost: the procedural drive's near ring completes 11 frames later (frame 17, not 6), one 32-90k cell a frame. Far cells queue behind it: their mean wait at the start went from 14 frames to 25. That's invisible here, where the first frame takes 15 s.
+
+HOW
+- WorldRenderer::update collects the generated cells and sorts them: near before far, then by the camera's distance to the cell's square (the rings' measure), then by key. It uploads in that order until it has done 4 cells (as before) or the next would pass uploadTriangles = 64000. The frame's first cell always goes.
+- Docs:
+  - HANDBUILT's streaming list now has the budget.
+  - 7.2 has your new rule for (a), past ~15 ms quiet or a near cell seen arriving late, and that the frame pays for uploads (64k at most, a bigger cell alone).
+
+CHECKS
+- worldc: world.bin is byte-identical to 87's. worldv: 0 errors and the 4 warnings as before.
+- CI's three tests pass with CI's flags. MinGW -Wall on main.cpp (which includes world_render.cpp): 0 errors, 0 warnings.
+- The procedural census: 0 of 13,914 lines differ from 87's. The exe nt_b21: 16,487,424 B, with 0 warnings.
+- Harness: the same output as 87's (2,220 of 2,220 rooms, 0 tour legs off the walk).
+- Same cells, same bytes, checked with two scratch exes (never shipped): 87's code and 88's, each with a log line per upload giving the cell, the frame and a hash of its vertices, indices and collision. Both drives:
+  - Hand: 322 uploads in each, the same 322 cells with the same hashes, the same 28 evictions, the same 294 cells resident at the end.
+  - Procedural: 317 uploads in each, the same 309 cells and hashes, the same 21 evictions, the same 296 resident at the end.
+- Drives, 0 fatal, 87 against 88, and the same again with the scratch exes:
+  - Hand: t=11.5 and t=21.5 are identical. Positions 1821.2, 244.2 and 1919.8, 285.4; speeds 5.9 and 8.7; 90 and 82 peds; 63 and 51 vehicles; wanted 0.
+  - Procedural: t=9.5 and t=17.5 are identical. Positions 1786.9, 151.9 and 1789.9, 130.6; speeds 2.4 and 12.4; 90 and 93 peds; 60 and 63 vehicles; wanted 1 and 2.
+  - The first checkpoint is logged later, and this is exactly why. app.cpp logs it at the first frame from 1.5 s on with no cell pending (pendingCount() == 0), and the budget spreads the start's uploads. Peds, vehicles and wanted are the same at it.
+    - Hand: one frame later (frame 76, not 75). So it reads 1763.5, 219.1 at 8.1 m/s instead of 1763.3, 218.9 at 8.0: 0.28 m on, one frame at 8 m/s.
+    - Procedural: 12 frames later (t=3.0, frame 89, not t=2.6, frame 77). It reads 1783.7, 157.8 at 4.5 instead of 1783.9, 159.4 at 3.1: 1.6 m on in 0.4 s, at the 3.1-4.5 m/s between them.
+- Frame log, 87 against 88, back to back, quiet (all after the set 1 render):
+  - Hand: median 7.0 / 6.9 ms; p99 1,842 / 1,836 ms; max 15,516 / 15,614 ms (the first frame); 254 / 253 over 33 ms. Streaming p99 1.63 / 1.37 ms, max 15.05 / 15.48 ms. The 88 max is explained below.
+  - Procedural: median 6.3 / 6.3 ms; p99 1,627 / 1,738 ms; 153 / 159 over 33 ms. Streaming p99 2.78 / 6.66 ms, max 26.37 / 10.60 ms.
+    - The streaming p99 rises because the same uploads now spread over about 15 frames of 6-10 ms instead of 4 of 17-26 ms.
+    - The 6 more frames over 33 ms come from the first checkpoint. The autoplay renders every frame from 1.2 s until that checkpoint's shot, and the shot now waits 12 frames longer. 87's two upload frames over 33 ms (50.4 and 41.6 ms, at t=0.10 and t=0.13) are gone.
+
+The hand drive's 15.5 ms streaming max, and where the streaming time goes. I timed the update by parts with a third scratch exe:
+- That frame (t=0.27) uploaded only 7k triangles of far cells.
+- On a quiet run, a big cell's upload takes 5.4-6.4 ms in the hand drive and 5.1-7.4 ms in the procedural one (two outliers there, at 10.3 and 13.2 ms). Creating the GPU buffers is about 1 ms of that (0.7-2.2). The other ~5 ms is upload()'s CPU side: the copy into a temporary array, the lamp arms and storefront lights, adding the collision to the physics world, and freeing the geometry.
+- The spikes without uploads come from the request loop, not the uploads: 3.4-11.3 ms in frames 8-13, while the far ring is being asked for. The loop does almost no work, so that's waiting, most likely for a core or the job queue's lock, while the three workers and the software renderer's threads fill the four cores.
+- The request code is 87's, and 86's and 87's runs show the same kind of spike (6.6-8.6 ms in frames that uploaded only empty cells).
+- So the budget holds the uploads to one big cell a frame: 5-7 ms here, with the 13.2 ms outlier on a lone 87.5k procedural cell. The streaming max isn't under 10 ms in every run, though.
+- If you want it there, two small slices, each with the bytes unchanged:
+  - i. Move upload()'s CPU side to the worker that builds the cell, so the frame only creates the buffers and adds the collision. That would take part of the ~5 ms off the frame. Adding the collision stays on the frame, and I'd time its share first.
+  - ii. Submit a frame's new cells to the workers in one batch, with one wake-up. Or first measure it on a native build, since it may be this machine's Wine and software renderer.
+
+Row 3's plan follows in a separate message.

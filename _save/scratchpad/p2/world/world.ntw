@@ -1,4 +1,0 @@
-ntw 1 world
-# Palmera, the hand-built world (docs/HANDBUILT_WORLD.md). Its districts, in the order they are built.
-world palmera name="Palmera"
-district cl name="Calle Luna" label=1560.00,350.00 order=1

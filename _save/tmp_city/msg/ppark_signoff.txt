@@ -1,0 +1,100 @@
+city snapshot-safe: 3o the park edge (b026) on Calle Nueve's north side, as you GO'd it: coconut palms every 16 m, benches on the path's far side facing the street and the houses, no AI walk path. Base efa378b (tree 1c228c73, snapshot 99). 3 files: 2 changed on their blobs, 1 new.
+
+FILES (path, base, new)
+docs/HANDBUILT_WORLD.md f7b60d3b e29c4090
+tools/author/dress.py 5ff4378e b30f24f5
+world/districts/cl/blocks/b026/block.ntw new 4d97bc6b
+(also in /tmp/city/ppark_blobs.txt; pasted from it)
+
+WHAT (player-facing, hand world only)
+- North of Calle Nueve, between the Bougainvillea and Este stubs, the bare ground is now a park edge: a lawn of 5.4 ha (754 m by 72 m) from the north sidewalk to the district's bound at y 740. The houses on Calle Nueve's south side look out on it.
+- The lawn is level, in 11 terraces 38-140 m long. Each is a park parcel a kerb's step under its sidewalk, as the yards are, and the steps between them are 0.11-0.12 m. The knee-high drop behind the north sidewalk (0.3-0.45 m) is gone.
+- A paved footpath 3 m wide, 10 m in from the sidewalk, runs the whole length. It links to the sidewalk opposite each of the five side streets (Ceiba, the Heroes, Coral, Palma, Sol), and its ends meet the stubs' sidewalks.
+- Along the path's far side: 47 coconut palms every 16 m, and 23 benches between them facing across the lawn to the street and the houses, with a bin by every other bench (12). Each bench is a sit spot for pedestrians (85 spots, from 62).
+- Along its near side: 31 bollards with garden lamps every 24 m, moved aside where a link meets the path.
+- Calle Nueve's north sidewalk is dressed as every block's own: 22 street lights (every 34 m, as on the south side) and 7 hydrants.
+- No AI walk path, as you said: the footpath is ground paint.
+- No building, room or road changes. Procedural mode is unchanged.
+
+THE FINAL COUNTS (worldc, R4d -> the park)
+- Palms: 47 (the district's palms 142 -> 189).
+- Colliders: 1,077 -> 1,219 (+142: every new prop collides: 47 palms, 23 benches, 12 bins, 31 bollards, 22 street light poles, 7 hydrants).
+- Lamps: 365 -> 418 (+53: 31 garden lamps, 22 street lights).
+- Also: props 1,278 -> 1,420, ground polygons 471 -> 498 (+27: 11 lawns, 11 path paints, 5 links), parcels 327 -> 338, spots 62 -> 85, blocks 25 -> 26.
+- The game's own count at load agrees: 1,420 props, 418 lamps, 338 parcels, 85 spots and 1,219 colliders.
+
+HOW
+- dress.py gets the park edge as a 26th region, b026, made the way it makes the promenade (b001):
+  - park_strip draws the strip from the streets: Calle Nueve's north sidewalk, the stubs' sidewalks, their turning circles (the outline 0.5 m under the ring, as run_under puts it under a street's sidewalk) and the district's bound. I didn't trace it on the raster, which marks round caps at the Heroes' and Sol's ends that the game's junctions don't have.
+  - park_edge cuts the terraces every 4 m along x, as far as one level meets the sidewalks along a piece within YARD_RISE - 0.03 m (the promenade's rule).
+  - park_parcels makes each terrace a park parcel of lawn fronting Calle Nueve, with its share of the path and the links as paint.
+  - dress_park places the palms, benches, bins and bollard lamps. dress_sidewalks dresses its sidewalk as any block's.
+- The control first: today's dress.py, re-run on fresh worlddump inputs and formatted with ntwfmt, rewrote the whole world dir byte for byte.
+- With the park: R4d's world plus the new dress.py and ntwfmt gives b001-b025's 25 block files byte for byte, and only b026 is new. That's the work tree's world exactly.
+- Docs:
+  - HANDBUILT 5.3, dress.py's paragraph: "...the pilot's 26 block files...cuts the promenade and the park edge into terraces where their streets climb... The park edge (b026) is a lawn along Calle Nueve's north side...".
+  - HANDBUILT 6.1's levelling note: "(the promenade and the park edge in terraces where their streets climb)".
+
+CHECKS
+- worldc: 0 warnings, 412 buildings from 468 files. world.bin changes in terrain.grade, blocks, blocks.parcels, blocks.spots, blocks.colliders and manifest; not in buildings or roads. The terrain grading now changes 7,466 texels (from 6,838), by up to 0.52 m: the drop filled behind the north sidewalk.
+- worldv: 0 errors and the same 4 warnings as before (468 files, 3,478 records).
+- CI's three world tests pass with CI's flags (-Wall -Wextra -Werror and UBSan). MinGW -Wall on main.cpp: 0 errors, 0 warnings. dress.py compiles (py_compile).
+- The procedural census: 0 of 13,914 lines differ from R4d's.
+- The exe nt_b33: 16,503,808 B, with 0 warnings.
+- b026's file is canonical (ntwfmt --check). The private scan is clean.
+- Against 99's tree 1c228c73, the work tree differs in exactly these 3 files.
+- Harness: 4,635 of 4,635 rooms in the 412 interiors (2,370,888 triangles), unchanged from R4d; 0 tour legs off the walk.
+- Shots, 0 fatal, in /tmp/city/b33smoke/shots/ (PNG):
+  - park_porch_north_1700: at 17:00 from the sidewalk in front of b021's houses, looking north across Calle Nueve. You see a new street light on the north sidewalk, then the lawn and the footpath, a bench facing us with its bin and a bollard beside it, and the row of palms behind the path. The lawn runs back to the district's bound, with bare ground beyond.
+  - park_path_night_2100: on the footpath at 21:00, looking east along it. The palms are on the left and a bollard lamp glows on the path's near side ahead. Calle Nueve is on the right, with street lights lit on both sidewalks now and row 4's houses lit.
+  - park_aerial_1700: from over the bare ground north of the park, looking south. The lawn runs the whole length, with the palm row and the footpath along the street and the links opposite the side streets. Beyond it lie Calle Nueve, row 4's new face and the rest of the district.
+    - One cosmetic thing shows only from the air. Where terraces p06 and p07 meet, in the middle of the frame, the lawn's far edge against the bare ground jogs by about a metre. I think the terrain's 8 m grid meets the lawn's edge differently on terraces 0.12 m apart. It doesn't show from the street. A follow-up could blend that edge if you want.
+- Hand drives, 0 fatal: every checkpoint is the same as on R4d, including the first (t=2.6). Procedural drive, 0 fatal: the same as on R4d.
+- All games ran in your quiet window (00:12-00:36), each starting from load under 2.0 with no showcase running.
+
+YOUR BAR
+- dress.py: its re-run rewrites b001-b025's 25 block files byte for byte, and only b026 is new (above).
+- worldc, worldv, CI and the census are unchanged. The harness's rooms are unchanged: 4,635 of 4,635 in 412 interiors.
+- 45,42's upload stays under 64k: 62,529 on R4d, 62,639 with the park (+110). The park's other cells: 46,42 57,858 -> 57,932 (+74), and 47,42 37,774 -> 37,856 (+82).
+  - That's about three times the plan's "about 100 triangles in all".
+  - I counted only the polygons (24 in 45,42). The level ones also draw their sides where they stand 0.1 m or more over the terrain, up to 2 triangles per edge (up to 96 there).
+  - It changes no upload: each cell still goes as before.
+- The shots: above. The final counts: above (palms 47, colliders 1,219, lamps 418).
+- The game looking across the park, before (R4d's nt_b32) and after (nt_b33):
+  - Setup: one view at 960x540, from Calle Nueve's south sidewalk (1400, 653) looking east-north-east along the park, at 17:00. By the geometry, about 18 palms are in its field of view. After the streaming settles, each game times two windows of 30 frames between its saved shots.
+  - Before: 744.5 and 840.8 ms a frame. After: 719.1 and 739.7 ms a frame.
+  - So the palms' cost is below this box's noise. On this box a frame is a software render of about 0.7-0.8 s, and two windows of the same view in one game differ by 13%. The after game was even 8% faster on average.
+  - It can't show a GPU's cost. The palms add about 105k instanced triangles out to 300 m, as the plan said.
+- The drives' frame log: below.
+
+THE BOX SINCE THE RESTART: much slower, for R4d's exe as much as for the park's
+- R4d's exe (nt_b32), in the same drive as at 23:19 before the restart, now gives:
+  - Near builds up to 54.5 ms (45,41), against 9.1 ms.
+  - 46,41's upload alone in 62.24 ms, against 9.48 ms.
+  - A frame median of 7.8 ms, against 6.6 ms.
+- The park's exe matches it run for run.
+- What I measured on the box:
+  - Pure compute is normal: a hash on 1, 2 and 4 threads takes 1.6-1.8 s each, with no slowdown for running in parallel.
+  - Copying into fresh memory is slow and erratic: 1 GB took 0.68-2.4 s. Copying inside one buffer that's used over and over runs at 19 GB/s.
+  - So I think the new VM backs fresh memory slowly. The game allocates a lot of it: its meshes, its uploads and its interiors.
+- So the pairs in this window compare with each other, but not with any earlier batch. That's as you found with set 4's render: 18:11 against 16:2x.
+
+Frame log, R4d against the park, back to back (load at start 1.79 / 1.97):
+- Median: 7.8 / 7.7 ms.
+- Frames over 33 ms: 255 / 254.
+- Streaming max: 62.24 / 58.77 ms. Both are 46,41's upload alone.
+- Streaming p99: 1.59 / 2.00 ms.
+- The first frames' p99 and max are the load: p99 2,604 / 2,167 ms, max 20,448 / 19,711 ms.
+- Interiors: up to 388 resident in both drives (2,229,396 triangles); up to 239 in the shots game.
+- Memory: the hand drive used 3,037-3,155 MB on R4d and 3,055-3,167 MB with the park (+12-18 MB: the park's props, colliders and ground).
+
+THE NEAR-BUILD SPREAD
+- In this window the busiest near builds read 9.8-54.5 ms in R4d's drive and 9.6-50.7 ms in the park's.
+- The slow ones are whichever cells were building together: 45,41 took 54.5 ms in one drive and 9.6 ms in the other.
+- Both drives pass ~15 ms, but the same cells built in 9-12 ms before the restart. Under your refinement, R4d's exe (nt_b32) in this window is the baseline. The park's drive builds don't exceed it: 9.6-50.7 ms against 9.8-54.5 ms. So (a) stays parked, and as you said, no re-run now.
+- No near cell arrived late that I can see: the first checkpoint came at t=2.6 in both drives.
+
+THE NO-UPLOAD FRAME
+- The park's drive has no streaming frame over 3 ms without an upload: all five of its slowest streaming frames are uploads. So I didn't run the scratch eviction drive (nt_s94, the park with the eviction timers, is built).
+
+Next: nothing is GO'd after the park. I'll wait for your word and hold any games until "quiet". The quiet R4d pair you'll ask for later is ready to run: nt_b32 is in /tmp/city.

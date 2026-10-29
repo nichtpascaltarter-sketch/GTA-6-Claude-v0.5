@@ -1,0 +1,42 @@
+ntw 1 catalog
+# The pieces the game builds in code (docs/NTW_FORMAT.md 9.13), as the hand-built world's blocks use them so far: trees
+# and plants, street furniture and light fixtures. code= names the PropType (src/world/worldtypes.h) or a lamp
+# (src/world/catalogcodes.h); size=WxDxH is the piece at scale 1, its height the average of its variants (a tree's h=
+# scales it), but a shrub's size its variants' largest (src/world/propmesh.cpp): its foliage's reach, across any way it
+# turns; variants= as the prop renderer builds them (src/render/props_render.cpp); body=WxDxH the solid part where
+# that isn't the whole piece, for its collider: a tree's trunk, a pole (src/sim/physics.cpp's sizes).
+piece lib.veg.palm code=PROP_PALM size=4.00x4.00x8.25 variants=4 collide=cylinder body=0.52x0.52x8.25
+piece lib.veg.royal_palm code=PROP_PALM_TALL size=5.00x5.00x13.00 variants=3 collide=cylinder body=0.52x0.52x13.00
+piece lib.veg.live_oak code=PROP_TREE_OAK size=8.00x8.00x8.50 variants=4 collide=cylinder body=0.52x0.52x8.50
+piece lib.veg.pine code=PROP_TREE_PINE size=5.00x5.00x12.00 variants=3 collide=cylinder body=0.52x0.52x12.00
+piece lib.veg.shrub code=PROP_BUSH size=6.40x6.40x2.90 variants=4 collide=none
+piece lib.veg.street_tree code=PROP_STREET_TREE size=4.00x4.00x6.50 variants=3 collide=cylinder body=0.52x0.52x6.50
+piece lib.prop.planter code=PROP_PLANTER size=1.20x1.20x0.90 variants=2 collide=box
+piece lib.prop.bench code=PROP_BENCH size=1.80x0.60x0.90 variants=1 collide=box
+piece lib.prop.trash_bin code=PROP_BIN size=0.60x0.60x1.00 variants=1 collide=cylinder
+piece lib.prop.hydrant code=PROP_HYDRANT size=0.40x0.40x0.80 variants=1 collide=cylinder
+piece lib.prop.bollard code=PROP_BOLLARD size=0.30x0.30x1.00 variants=1 collide=cylinder
+piece lib.prop.bike_rack code=PROP_BIKE_RACK size=2.00x0.50x0.90 variants=1 collide=box
+piece lib.prop.news_box code=PROP_NEWS_BOX size=0.50x0.50x1.10 variants=4 collide=box
+piece lib.prop.mailbox code=PROP_MAILBOX size=0.50x0.50x1.20 variants=1 collide=box
+piece lib.prop.parking_meter code=PROP_PARKING_METER size=0.30x0.30x1.40 variants=1 collide=cylinder
+piece lib.prop.phone_booth code=PROP_PHONE_BOOTH size=1.00x1.00x2.30 variants=1 collide=box
+piece lib.prop.dumpster code=PROP_DUMPSTER size=2.00x1.20x1.40 variants=2 collide=box
+piece lib.prop.umbrella code=PROP_UMBRELLA size=2.50x2.50x2.40 variants=1 collide=cylinder body=0.10x0.10x2.40
+piece lib.light.street_cobra code=PROP_STREETLIGHT size=0.40x2.40x8.80 variants=2 collide=cylinder body=0.34x0.34x8.80
+piece lib.light.porch_warm code=LIGHT_PORCH collide=none
+piece lib.light.wall_flood code=LIGHT_WALL_FLOOD collide=none
+piece lib.light.garden code=LIGHT_GARDEN collide=none
+# The kit's materials and parts for the library's buildings (docs/NTW_FORMAT.md 9.10): a wall, trim, frame, base or roof
+# names the piece whose code= is the game's material (src/render/mesh.h MaterialId); a facade's door style a door's
+piece lib.kit.mat_stucco code=MAT_STUCCO
+piece lib.kit.mat_plaster code=MAT_PLASTER
+piece lib.kit.mat_siding code=MAT_WOOD_SIDING
+piece lib.kit.mat_brick code=MAT_BRICK
+piece lib.kit.mat_stone code=MAT_STONE
+piece lib.kit.mat_concrete code=MAT_CONCRETE
+piece lib.kit.mat_frame code=MAT_METAL_PAINTED
+piece lib.kit.roof_gravel code=MAT_ROOF_GRAVEL
+piece lib.kit.roof_shingle code=MAT_ROOF_SHINGLE
+piece lib.kit.roof_tile code=MAT_ROOF_TILE
+piece lib.kit.door_panel code=DOOR_PANEL size=0.95x0.05x2.10 collide=box

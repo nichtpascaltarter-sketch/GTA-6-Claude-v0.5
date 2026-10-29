@@ -1,4 +1,0 @@
-ntw 1 transit line=bus.1 kind=bus name="1 Ocho Express"
-route edges=cl.e0002,cl.e0001,tr.e00001,sb.e0001
-stop s1 busstop=cl.bus.01
-service headway=900.0 first=6.00 last=22.00

@@ -1,0 +1,130 @@
+city snapshot-safe: 3s S2, the shrubs at their real size, as you GO'd it. It's a delta for PR #93's second commit: against 478673d (tree 34b2afec), with BASE = 478673d's blobs. 21 files, all changed on their blobs, none new.
+
+FILES (path, base, new)
+docs/HANDBUILT_WORLD.md 5d8a76ab f8bb5cc1
+tools/author/dress.py 8e7ecb91 ccf9678d
+world/districts/cl/blocks/b008/block.ntw 9acdbddf 870ac755
+world/districts/cl/blocks/b009/block.ntw a99ec199 5c627a51
+world/districts/cl/blocks/b010/block.ntw 42cab4eb e36bf8a0
+world/districts/cl/blocks/b011/block.ntw 5e71d6ec cf67961f
+world/districts/cl/blocks/b012/block.ntw 8a80dbd5 bf4332ab
+world/districts/cl/blocks/b013/block.ntw 3377cbf2 6b5ab63d
+world/districts/cl/blocks/b014/block.ntw 716ca979 836463f9
+world/districts/cl/blocks/b015/block.ntw 621fa7b5 0191015e
+world/districts/cl/blocks/b016/block.ntw 1a592cd3 73413f54
+world/districts/cl/blocks/b017/block.ntw 8eca628a aa0620b5
+world/districts/cl/blocks/b018/block.ntw 1f6ce6e3 e309aaf4
+world/districts/cl/blocks/b019/block.ntw f11c7823 999ddeb3
+world/districts/cl/blocks/b020/block.ntw f2a53097 4091c1d5
+world/districts/cl/blocks/b021/block.ntw 440a6cd8 f2f4588d
+world/districts/cl/blocks/b022/block.ntw 43e5849d a55c5133
+world/districts/cl/blocks/b023/block.ntw 8f616708 90acd554
+world/districts/cl/blocks/b024/block.ntw d06c9ac5 a821ae00
+world/districts/cl/blocks/b025/block.ntw a4588d67 d634803b
+world/lib/catalog.ntw f3947c29 a44fa17b
+(also in /tmp/city/ps2_blobs.txt; pasted from it)
+
+WHAT (player-facing, hand world only)
+- By the bushes' real geometry, no yard shrub on rows 2-4 (b008-b025) reaches into a house, onto a door's way or onto a driveway: 0 canopy vertices. On S, 171 shrubs had foliage inside a house (up to 2.14 m in) and 101 on a way.
+- Most are now small bushes. 100 of the 148 sit at the floor scale of 0.25: up to 1.6 m across and 0.7 m tall. 37 are at 0.30-0.79, and 11 at 0.80-1.14.
+- 49 are dropped where no side yard has room (2 on S), so 148 of the 197 yard shrubs remain.
+- Nothing else changes: no building, room, road, ground or lamp. Procedural mode is unchanged.
+
+1. MEASURED: the bush as the game builds it
+- Measured in a scratch harness (buildPropPrototype, the renderer's 4 PROP_BUSH variants, scale 1). For each variant: its horizontal reach from the axis, then its height.
+  - Variant 0: 2.95 m, 2.90 m.
+  - Variant 1: 3.16 m, 2.85 m.
+  - Variant 2: 3.01 m, 2.74 m.
+  - Variant 3: 2.59 m, 2.65 m.
+  - The 3D maxima are 3.47, 3.47, 3.26 and 3.00 m, so Codex's 2.6-3.2 m is the horizontal reach.
+- So at scale 1 the bush is up to 6.3 m across and 2.9 m tall, against the catalog's 1.8 by 1.8 by 1.6.
+- Which variant each plant gets is knowable:
+  - compileBlocks hashes the plant's position (in cm) and takes (h >> 16) mod the catalog's variants= (4). The renderer builds 4 bushes, so that's the prototype.
+  - Its yaw comes from the same hash unless the file gives one.
+  - Replayed from the block files, the formula matches worldc's compiled props for 152 of 152 plants.
+  - The list, with each plant's compiled yaw and scale: /tmp/city/c3/s2_bush_variants.txt. S2's 152 are v0 37, v1 34, v2 34, v3 47.
+
+2. THE CATALOG
+- lib.veg.shrub: size=1.80x1.80x1.60 becomes 6.40x6.40x2.90. That's twice 3.162 m (6.32) and 2.898 m, each rounded up to 0.1 m.
+- The comment above the pieces now says a shrub's size is its variants' largest: its foliage's reach, across any way it turns. A tree's height stays the average, as its h= needs.
+- Nothing reads it in a way that changes the compile:
+  - compileBlocks scales a plant by its scale= alone; size.z serves only a tree's h=.
+  - The colliders take size= only for collide=box or cylinder, and the shrub is collide=none.
+  - worldv reads no piece's size.
+- Shown: S's world with only the new catalog compiles to S's world.bin except the manifest (10,880 to 10,882 B, hash fea15417e538bd7c to af48e9f43b1beef8). The other 16 sections are byte for byte the same.
+- One copy keeps the old size: tests/world/worldmodel_test.cpp has its own inline catalog with the shrub at 1.80x1.80x1.60. It tests the parser, not the world, so I left it.
+
+3. dress.py
+- SHRUB_W now comes from the catalog (6.4), so a shrub reaches 3.2 m times its scale.
+- It shrinks to fit as before, but never below scale 0.25 (a reach of 0.8 m); a shrub that would need less is dropped.
+- The rule order (front yard, nearer side yard, farther side yard, drop) and the 1.2 m ways are as they were.
+- The true size exposed three things, and I fixed them:
+  - The clear width across a side yard is now measured over the shrub's own reach along the yard, which shrinks with it. S measured it over the full-size reach; at 3 m, that window would reach well past a small shrub, into the street and next door's ways, and throw out yards it fits. The scan down the yard now starts at the least reach too.
+  - A shrub now keeps clear of every footprint and every building's ways in its block, not only its own building's. With the true size but only its own building's ways, a first dry run left 9 shrubs reaching next door's ways (b008.h16's, for one).
+  - A 0.05 m margin is kept to walls, ways and the lot's edge, and the scale is floored to 0.01 rather than rounded, so rounding never takes a canopy over its line.
+- A shrub on a lot without a building (there are none today) would keep clear the same way, or be dropped.
+- The comment on a back door's way now says what the code does: by the driveway's side yard, else the nearer one.
+
+4. THE RESULT (S to S2)
+- Shrubs kept go from 11 to 5, moved to a side yard from 184 to 143, and dropped from 2 to 49.
+- The generated shrubs go from 195 to 148 (152 with Domino Park's 4), and the props from 1,418 to 1,371.
+- The scales of the 148:
+  - 100 at the floor, 0.25.
+  - 25 at 0.30-0.39, 9 at 0.40-0.59 and 3 at 0.60-0.79.
+  - 11 at 0.80-1.14: the 5 kept, 4 that moved at full size, and 2 that shrank a little.
+- At 0.25 a bush is up to 1.6 m across and 0.7 m tall (by its vertices, a reach of 0.65-0.79 m).
+- Why so many drop now: at the floor scale a shrub needs 1.7 m of clear side yard (twice 0.8 + 0.05). Many side yards are only 1.0-1.5 m wide (street.py gives a house 1.5 m each side, or 1.0 m on a narrow lot), and some lose part of that to a door's way or a driveway.
+- Per block (kept / moved to a side yard / dropped; moved to the front: 0 in every block):
+  - b008 0/7/7, b009 0/7/5, b010 0/4/5, b011 0/11/1, b012 0/5/3, b013 0/10/2
+  - b014 0/11/3, b015 0/7/1, b016 0/3/2, b017 1/4/7, b018 0/8/3, b019 1/4/2
+  - b020 0/11/1, b021 0/14/0, b022 0/13/1, b023 0/13/2, b024 2/6/1, b025 1/5/3
+
+5. THE RE-CHECK, with the real geometry
+- My check at the true reach (a disc of 3.2 m times the scale): none of the 152 shrubs reaches into a footprint or onto a way, and no two overlap.
+- Codex's method: each shrub's own variant's vertices from buildPropPrototype, turned by its compiled yaw and scaled, against every footprint and every way in the district (wind left out: a few cm).
+  - 0 vertices inside a footprint and 0 on a way, for the 148 generated (the 5 kept among them) and for Domino Park's 4.
+- Domino Park's 4 hand-placed shrubs (b010, scale 1, at 1492,364, 1520,364, 1488,372 and 1524,372) overlap nothing, and they stay as they are.
+- The same check on S (478673d):
+  - 171 of its 195 generated shrubs had vertices inside a footprint (the deepest 2.14 m in), and 101 had vertices on a way (the deepest 1.79 m).
+  - Codex's example is among them: b014's shrub at 1229.99,467.66 (variant 1, scale 0.95, a reach of 3.00 m) had 92 vertices inside b014.h13's footprint, the deepest 2.14 m in.
+- Over the 152, the vertex reach runs 2.59-3.16 m per unit of scale, under the catalog's 3.20.
+
+6. CHECKS
+- worldc: 0 warnings, 412 buildings from 468 files. Against S, world.bin changes in blocks, blocks.spots, blocks.colliders and manifest only.
+  - Props go from 1,418 to 1,371 (the 47 more dropped).
+  - Spots (85) and colliders (1,219) keep their counts; their sections change because they index the props.
+  - The manifest also carries the catalog's new hash.
+- worldv: 0 errors and the same 4 warnings (468 files, 3,429 records: 47 fewer, the dropped plants).
+- CI's three world tests pass with CI's flags (-Wall -Wextra -Werror and UBSan). MinGW -Wall on main.cpp: 0 errors, 0 warnings. dress.py compiles (py_compile).
+- The procedural census: 0 of 13,914 lines differ from S's.
+- The exe nt_b36: 16,502,784 B, with 0 warnings.
+- Harness: 4,635 of 4,635 rooms in the 412 interiors (2,370,888 triangles), the same line as S's; 0 tour legs off the walk.
+- dress.py, re-run on a fresh copy of the work tree's world and formatted with ntwfmt, rewrites it byte for byte, with the same report.
+- The world is canonical (ntwfmt --check: 0 of 468 files not canonical). The private scan of the 267 added lines is clean (its one hit is the word "quarter").
+- Against tree 34b2afec, the work tree differs in exactly these 21 files.
+
+7. SHOTS (before: S's nt_b34; after: nt_b36. PNG in /tmp/city/b36smoke/before and /tmp/city/b36smoke/after; 0 fatal)
+- s_casita_front_1700, b020.h13 (the casita), from Calle Nueve at eye height. The before is pixel for pixel S's after shot.
+  - After, the door and the front are clear, as on S.
+  - Its east side yard (towards the bungalow) is now empty. That shrub was dropped: the casita's side yards are 1.2 m wide, under the 1.7 m a shrub needs at the floor scale.
+  - Two shrubs stand to its west, in its neighbour's side yard (scales 0.25 and 0.63).
+- s_bungalow_front_1700, b020.h14 (the bungalow). Before, two big flowering shrubs (scale 1.0) fill its east side yard up to the eaves. After, two small ones (0.25 and 0.32) sit low in the twin's shadow.
+- s2_sideyard_aerial_1700, b020's houses from 22 m over Calle Nueve. Before, flowering bushes fill the side yards. After, the side yards look empty: at 17:00 the small shrubs sit in the houses' shadow.
+- So I added s2_sideyard_aerial_1200: b021's houses from the same height at noon, the side yards in sun.
+  - Before, flowering bushes 2-3 m across fill the side yards and lean on the walls.
+  - After, small knee-high bushes: four in the gap between the two twins, and two beside the gable casita, each with room around it.
+
+8. DRIVES (nt_b36, 0 fatal, in your quiet window 04:28-04:43, each from a load under 2.0 with no showcase)
+- Hand drive: every checkpoint is as on 100 and on S.
+  - t=2.6: pos 1763.7 219.3 3.3, speed 8.3, peds 90, vehicles 62, wanted 0.
+  - t=11.5: pos 1821.2 244.2 3.2, speed 5.9, peds 90, vehicles 63, wanted 0.
+  - t=21.5: pos 1919.8 285.4 3.0, speed 8.7, peds 82, vehicles 51, wanted 0.
+- Procedural drive: every checkpoint is as on 100.
+  - t=3.0: pos 1783.7 157.8 6.5, speed 4.5, peds 88, vehicles 58, wanted 0.
+  - t=9.5: pos 1786.9 151.9 6.4, speed 2.4, peds 90, vehicles 60, wanted 1.
+  - t=17.5: pos 1789.9 130.6 6.4, speed 12.4, peds 93, vehicles 63, wanted 2.
+- Uploads are unchanged: 46,41 78,685; 45,41 74,875; 45,42 62,639; 46,42 57,932; 47,41 50,434; 45,40 11,549.
+- The noon shots pair ran 04:43-04:48.
+
+NEXT
+- V1: I'll re-base its shrub re-run and its docs on S2's tree, then sign it off against PR #93's merge. V1's one footprint change is b023.h12's (gable and twin share their doors), so I expect only b023's block file to move. Its games wait for your "quiet".

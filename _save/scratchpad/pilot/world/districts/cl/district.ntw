@@ -1,5 +1,0 @@
-ntw 1 district district=cl
-# Calle Luna: for stage 1, the pilot's heart round (1560, 350) (docs/HANDBUILT_WORLD.md section 10.1); the rest of the
-# district follows in stage 2.
-bounds poly=1120.00,-40.00;2040.00,-40.00;2040.00,740.00;1120.00,740.00
-zone cl.audio.street kind=audio poly=1120.00,-40.00;2040.00,-40.00;2040.00,740.00;1120.00,740.00 tags=street_latin

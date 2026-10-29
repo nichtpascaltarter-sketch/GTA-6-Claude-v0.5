@@ -1,0 +1,88 @@
+city snapshot-safe: 3q S, the shrub fix, as you GO'd it. dress.py now places each yard's shrubs by its building, reading the block's building files (footprint, entrances, driveway), so a re-run after any building change re-places them. Base af43610 (tree 40776ac3, snapshot 100). 20 files, all changed on their blobs, none new.
+
+FILES (path, base, new)
+docs/HANDBUILT_WORLD.md e29c4090 5d8a76ab
+tools/author/dress.py b30f24f5 8e7ecb91
+world/districts/cl/blocks/b008/block.ntw 8d97dc8d 9acdbddf
+world/districts/cl/blocks/b009/block.ntw e8e3857a a99ec199
+world/districts/cl/blocks/b010/block.ntw c90ac1cf 42cab4eb
+world/districts/cl/blocks/b011/block.ntw 798ff1d9 5e71d6ec
+world/districts/cl/blocks/b012/block.ntw b87467d7 8a80dbd5
+world/districts/cl/blocks/b013/block.ntw 877aa60e 3377cbf2
+world/districts/cl/blocks/b014/block.ntw 566fce00 716ca979
+world/districts/cl/blocks/b015/block.ntw 73fed6a2 621fa7b5
+world/districts/cl/blocks/b016/block.ntw 078b24eb 1a592cd3
+world/districts/cl/blocks/b017/block.ntw 23e884e7 8eca628a
+world/districts/cl/blocks/b018/block.ntw b6150ad7 1f6ce6e3
+world/districts/cl/blocks/b019/block.ntw 66f06915 f11c7823
+world/districts/cl/blocks/b020/block.ntw dfc1640d f2a53097
+world/districts/cl/blocks/b021/block.ntw c21208ee 440a6cd8
+world/districts/cl/blocks/b022/block.ntw 7dbdf1be 43e5849d
+world/districts/cl/blocks/b023/block.ntw 8136a019 8f616708
+world/districts/cl/blocks/b024/block.ntw 085e69b4 d06c9ac5
+world/districts/cl/blocks/b025/block.ntw c80f4a76 a4588d67
+(also in /tmp/city/ps_blobs.txt; pasted from it)
+
+ONE READING FOR YOU TO CHECK
+- Your rule 2 says "the nearest side yard, if at least 0.8 m is clear". I read it as "the nearest side yard with 0.8 m clear": where the nearer side yard is too narrow, the shrub tries the farther one before it's dropped.
+- That reading sent 42 of the 184 moved shrubs to the farther yard. Read strictly (the nearer yard or drop it), the count would be 142 moved and 44 dropped, against 184 moved and 2 dropped as signed off.
+- If you want the strict reading, it's a one-line change in dress.py, and this batch's checks run again (about 25 min of builds and 15 of games).
+
+WHAT (player-facing, hand world only)
+- Rows 2-4's house yards (b008-b025): before, 178 of the 197 yard shrubs grew inside a building, through its front rooms and its façade (both shots below show one in a front door). 8 more reached into a wall.
+- Now no shrub stands in a building or reaches into its walls. None stands within 1.2 m of an entrance or on its walk to the sidewalk, and none on a driveway.
+  - 11 stay where they were.
+  - 184 moved into a side yard.
+  - 2 were dropped. Both stood on corner shops' lots (b013.s15 and b014.s19), which leave under 0.8 m beside the building on both sides.
+- No front-yard plantings: every building with yard shrubs stands 0.6 m behind the sidewalk (street.py's setback, all 124 of them), short of the 0.8 m your rule asks for.
+- 27 of the moved shrubs are smaller than the smallest before (scale 0.52-0.79, against 0.8-1.2): each is sized to its side yard's clear width.
+- Row 1's houses have no yard shrubs. Domino Park's four hand-placed shrubs (b010, above its marker) are untouched.
+- Nothing else changes: no building, room, road, ground or lamp. Procedural mode is unchanged.
+
+PER BLOCK (shrubs kept / moved to a side yard / dropped; moved to the front: 0 in every block)
+- b008 1/13/0, b009 1/11/0, b010 0/9/0, b011 1/11/0, b012 0/8/0, b013 0/11/1
+- b014 0/13/1, b015 0/8/0, b016 0/5/0, b017 1/11/0, b018 0/11/0, b019 1/6/0
+- b020 1/11/0, b021 0/14/0, b022 1/13/0, b023 1/14/0, b024 2/7/0, b025 1/8/0
+- District: 11 kept, 184 moved, 2 dropped (197 shrubs to 195).
+- The 186 that had to go: 178 stood inside a footprint, and 8 more had their canopy in a wall.
+
+HOW
+- dress.py reads the library (each plan's size, its layouts' walls and doors, its entrances) and each block's building files (plan, at, yaw, mirror).
+- It draws each yard's shrubs as before, with the same random draws in the same order, so the rest of the dressing doesn't move.
+- Then, for each lot with a building:
+  - A shrub stays where it was drawn if the footprint doesn't cover its canopy (0.9 m times its scale) and it's off every way.
+  - The ways are 1.2 m wide. A front door's runs straight to the sidewalk, a side door's out to the front along its side, and a back door's round to the front by the driveway's side yard. The driveway counts too, with 0.3 m around it.
+  - Every other shrub moves, in your order. First the front yard, where the strip between the sidewalk's back edge and the front wall is 0.8 m or more. Else the nearer side yard, else the farther one (the reading above). In a side yard it takes the first spot, from the front back in 0.2 m steps, with 0.8 m clear of the lot's edge, the sidewalks and the ways. It keeps 0.1 m from the shrubs already placed, and it shrinks to the clear width where it must. Else it's dropped.
+- Only the plant lines of the 18 block files change.
+- The control: dress.py, re-run on a fresh copy of the work tree's world and formatted with ntwfmt, rewrites it byte for byte, with the same report.
+- Docs: HANDBUILT 5.3's paragraph on dress.py adds: "A yard's shrubs follow its building, as the block's building files place it: one that its footprint covers goes into the front yard as a foundation planting where 0.8 m or more lies clear between the sidewalk and the front wall, else into the nearer side yard with 0.8 m clear (else the farther), else it goes; none stands within 1.2 m of an entrance or on its walk to the sidewalk, nor on the driveway; so a re-run after a building change re-places them."
+
+CHECKS
+- worldc: 0 warnings, 412 buildings from 468 files. world.bin changes in blocks, blocks.spots, blocks.colliders and manifest only. Props go from 1,420 to 1,418 (the 2 dropped). Spots (85) and colliders (1,219) keep their counts; their sections change because they index the props. The game counts the same at load.
+- worldv: 0 errors and the same 4 warnings (468 files, 3,476 records: 2 fewer, the dropped plants).
+- CI's three world tests pass with CI's flags (-Wall -Wextra -Werror and UBSan). MinGW -Wall on main.cpp: 0 errors, 0 warnings. dress.py compiles (py_compile).
+- The procedural census: 0 of 13,914 lines differ from snapshot 100's.
+- The exe nt_b34: 16,503,296 B, with 0 warnings.
+- Harness: 4,635 of 4,635 rooms in the 412 interiors (2,370,888 triangles), the same line as on 100; 0 tour legs off the walk.
+- Geometry of the result: 0 shrubs with their centre in a footprint, 0 with their canopy more than 5 cm into one, and 0 overlapping pairs.
+- The world is canonical (ntwfmt --check: 0 of 468 files not canonical). The private scan of the added lines is clean.
+- Against tree 40776ac3, the work tree differs in exactly these 20 files.
+
+SHOTS (before: 100's nt_b33; after: nt_b34. At 17:00 from Calle Nueve at eye height; PNG in /tmp/city/b34smoke/before and /tmp/city/b34smoke/after; 0 fatal)
+- s_casita_front_1700, b020.h13 (a casita): before, a shrub fills its front door and pokes out of the wall beside it. After, the door is clear and you see through it to the back yard, and shrubs stand in the side yards on both sides.
+- s_bungalow_front_1700, b020.h14 (a bungalow): before, shrubs grow through its front: one fills the door, and one comes through the wall under the right-hand window. After, the front is clear, and the two shrubs stand in flower in its east side yard.
+
+DRIVES (nt_b34, 0 fatal, in your quiet window 03:14-03:28, each from a load under 2.0 with no showcase)
+- Hand drive: every checkpoint is as on 100.
+  - t=2.6: pos 1763.7 219.3 3.3, speed 8.3, peds 90, vehicles 62, wanted 0.
+  - t=11.5: pos 1821.2 244.2 3.2, speed 5.9, peds 90, vehicles 63, wanted 0.
+  - t=21.5: pos 1919.8 285.4 3.0, speed 8.7, peds 82, vehicles 51, wanted 0.
+- Procedural drive: every checkpoint is as on 100.
+  - t=3.0: pos 1783.7 157.8 6.5, speed 4.5, peds 88, vehicles 58, wanted 0.
+  - t=9.5: pos 1786.9 151.9 6.4, speed 2.4, peds 90, vehicles 60, wanted 1.
+  - t=17.5: pos 1789.9 130.6 6.4, speed 12.4, peds 93, vehicles 63, wanted 2.
+- Uploads are unchanged, as instanced props should leave them: 46,41 78,685; 45,41 74,875; 45,42 62,639; 46,42 57,932; 47,41 50,434; 45,40 11,549.
+- For information only (you asked no frame log for S): this window looks faster than 00:12-00:36. The drive's streaming max was 10.72 ms (46,41's upload), against 58.77 ms then. Its near builds took 0.1-9.7 ms, against up to 50.7 ms, and the median frame was 7.5 ms, against 7.7.
+
+NEXT
+- V1 is built on this tree, and its builds are running at nice 19. I'll sign it off against S's merge, and its games wait for your "quiet".

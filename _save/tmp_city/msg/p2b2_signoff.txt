@@ -1,0 +1,60 @@
+city snapshot-safe: 2b slice 2 of the Calle Luna pilot, the walk graph's inputs and the spots, with the implied seats and bus waits, to land with slice 1 in 71. Nothing on screen changes: world.bin gains "blocks.spots" (and "blocks.walk" once a path, plaza or flight of steps exists), and the game reads both in hand mode. On fd07783 + slice 1: 10 files sit on slice 1's blobs and catalogcodes.h on fd07783's.
+
+FILES (11)
+- docs/HANDBUILT_WORLD.md c910ac09 on e91bb34d (slice 1's)
+- docs/NTW_FORMAT.md 55106346 on a93d89cd (slice 1's)
+- src/world/blocksbin.cpp 520d8f7c on a4d65b6d (slice 1's)
+- src/world/blocksbin.h ace60a89 on dcf6574c (slice 1's)
+- src/world/catalogcodes.h 1da81463 on b5c2c18f (fd07783's)
+- src/world/handworld.cpp 1469033e on 1923dbb4 (slice 1's)
+- src/world/worldmodel.cpp 1ed39147 on 75d24d0d (slice 1's)
+- src/world/worldmodel.h 52ca786b on f17238ec (slice 1's)
+- src/world/worldmodel_blocks.cpp 55904034 on f2aba5b9 (slice 1's)
+- tests/world/worldmodel_test.cpp 159416c5 on c5ff68ea (slice 1's)
+- tools/worldc.cpp fbd859cf on 3d9cd337 (slice 1's)
+(ntwschema.cpp stays slice 1's 153c05cf.)
+
+WHAT (player-facing)
+- Nothing to see yet. In hand mode the game now has the pilot's 62 bench seats as spots, one per bench: at the seat's centre, 0.48 m up, facing the bench's front, 3 places each. It also gets any path, plaza, flight of steps, written spot and bus stop wait, for the AI's walk graph and population. Hand mode's seats and waits come only from here, as the AI asked.
+- The pilot has no paths, plazas, steps, written spots or bus stops yet, so the seats are all that shows up.
+
+HOW
+- "blocks.walk":
+  - paths: id, kind (walk, plaza, alley, trail, boardwalk, footbridge, underpass), width, polyline xyz on the ground. A footbridge or underpass takes its heights from its profile (absolute), with a point at each of the profile's s.
+  - plazas: id, z (NaN: on the ground), polygon, tags.
+  - steps: bottom and top xyz, width, treads and rise. Each end stands on the level ground: a pad or levelled parcel under it, else the ground. Treads and rise are kept as written, else derived from the height between the ends, with a rise near 0.17 m.
+- "blocks.spots": per spot its kind (NTW_FORMAT 9.5's 34 kinds, outdoors and in), flags (implied, cover), id, at xyz and facing (dx, dy, unit; 0,0 for any way), the queue's line xyz (head first), cap, hours (minutes of the day, from and to per range; a range may run past midnight), roles, ages (min-max), prop (an index into "blocks"' props, or none), pose and for (as text).
+  - Written spots: an at= or a line=, not both. A queue faces its head and holds a place every 0.75 m unless cap= says. hours= is h.mm-h.mm ranges joined by ";". prop= is the nearest prop of that piece within 2 m. Each stands on the ground, or on its prop's base.
+  - Implied, after the written ones (flagged implied):
+    - A seat on every prop that has one, from catalogcodes.h seatSpec (as propmesh.cpp builds them): a bench's seat is 1.8 m wide and 0.48 m up; a bus shelter's bench is 2.4 m wide and 0.6 m behind its front. It faces the piece's front, with a place every 0.6 m.
+    - A shelter within 15 m of a bus stop becomes that stop's wait: busstop_wait, for = the stop's id, under cover.
+    - Every other bus stop on a compiled edge gets a wait by the kerb, at its wait= or else in the middle of its sidewalk at its at=, facing the street, for 6.
+    - Café seats come once terraces exist.
+- compileBlocks now records each prop's dressing record (BlocksOut::propDress), so the seats and prop= find their pieces. Every spot height is above the ground until placeOnTerrain, like the props.
+- readBlocks reads both sections, all or nothing, and refuses a spot naming a prop the blocks don't have. worldc logs "62 spots (62 implied)" and the game's log line counts paths and spots.
+- Findings:
+  - block.shape: a path or flight without 2 points or a width;
+  - block.path: a footbridge or underpass without a profile from 0 to its length;
+  - block.spot: at= and line= both or neither, hours= or ages= in another form, or a prop= with none of that piece within 2 m.
+- Names: PathKind is WK_* and SpotKind SPOT_*, because PK_ and SK_ are taken in sites.h. The checks' first run caught that clash in worldv_test.
+- Tests (worldmodel_test testWalkAndSpots):
+  - a path on the ground, and a footbridge on its profile (4 to 9 m) with its profile's points;
+  - a plaza;
+  - a flight up onto a pad (4 treads of 0.165 m, derived), and one as written (3 of 0.15);
+  - a written spot with its hours (including one past midnight), ages and prop, and a queue;
+  - implied: the bench's seat, the shelter's wait for the stop beside it, and a stop without a shelter waiting at its wait=;
+  - every height on the graded ground;
+  - the round trip, exact; damaged sections refused; spots naming props that aren't there refused; 100 of the smallest spots read back;
+  - eight findings.
+
+CHECKS (fd07783 + slices 1 and 2)
+- CI's tests with CI's flags (-Wall -Wextra -Werror, UBSan): worldmodel_test, world_format_test and worldv_test all pass.
+- worldc (-Wall -Wextra, 0 warnings): world.bin is slice 1's byte for byte, plus blocks.spots (1,335 bytes).
+  - It holds the 62 implied seats. Checked against the benches as the game has them, every facing matches the prop's front exactly, and every seat is 0.48 m above its prop's base.
+  - The pilot's world.bin also caught a read bound that was too tight: it assumed 64 bytes a spot, but the smallest spot takes 60, so the 62 seats were refused. It is fixed, and the test of 100 of the smallest spots fails with the old bound.
+- worldv: 0 errors and the 4 agreed warnings. MinGW -Wall on main.cpp with the exe build's flags: 0 errors, 0 warnings.
+- The procedural world is untouched: meshcensus3 on fd07783 and on slices 1 and 2 gives 0 of 13,913 cell and query lines different (4,366 cells, mesh effcf391d20a40f2, queries 0afe996d34cd88a8).
+- The exe built with 0 warnings: /tmp/city/nt_b3s2.exe, 16,195,072 bytes (fd07783 + slices 1 and 2). No shots: nothing drawn changes.
+- Drives with it, 0 fatal each:
+  - hand, 30 s: logs "62 spots" and ends at t=21.5 at 1911.9,282.8 with 82 peds and 56 vehicles, exactly slice 1's drive. The lane graph is slice 1's too: 192 lanes, 397 connectors, 330 walk nodes and 443 walk links, no turning circle moved;
+  - procedural, 24 s first person: 6268 nodes, 9547 edges (round 3's). It ends at t=17.5 at 1789.9,130.6 with 93 peds and 63 vehicles, exactly round 3's drive (nt_r3).

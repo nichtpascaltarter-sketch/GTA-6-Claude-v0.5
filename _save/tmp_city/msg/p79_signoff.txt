@@ -1,0 +1,81 @@
+city snapshot-safe: 79, the polish slice. The street doors over the gutter walk in, the rooms the solid furniture closed are open again, Threads' clerk and mirror sit where they should, birds stay off the interiors' colliders, and the Tide Customs Sol Beach drive-in gets in (the roll-up's threshold was a quick fix). Base 78 (278d2a7, tree 3e75830a). 8 files, all on 78's blobs.
+
+FILES (path, base, new)
+docs/HANDBUILT_WORLD.md 08b26366 05a8a5df
+src/game/interiors_game.cpp 04312634 80671d24
+src/game/wildlife.cpp f0667274 269a9edd
+src/world/interiorindustrial.cpp 9cbb555a 52455726
+src/world/interiorlayouts.cpp 576be64c 3db9633b
+src/world/interiorresidences.cpp 0fffd0bf 1e662f70
+src/world/interiorshops.cpp e744f0b8 a88634cd
+src/world/interiorvenues.cpp 80d84e56 71658ad7
+
+WHAT (player-facing)
+- Stoops: the 10 street doors over the gutter now walk in from the sidewalk without a jump: Mari's Apartment, Mama Lucha's, Police HQ, TideStop, Bodega La Luna, Canvas Corner, Palm Motors, both Tide Customs, and the Sol Beach Condo lobby.
+  - Each door's landing is level with the floor and reaches over the gutter to the sidewalk's edge.
+  - Two more shops get the same landing, Threads and Sunrise Food Mart. Their old landing stepped down into a 2 m gutter, and they could already be walked into through that dip.
+- Tide Customs Sol Beach: TIDE_SOL. The roll-up's apron now bridges the 2 m gutter in front of it, flat with the street.
+  - The same apron goes in front of Tide Customs Calle Luna's roll-up (a 0.6 m gutter) and Palm Motors' (0.75 m).
+  - Their bollards stand on the gutter's floor. They used to hang 0.45 m in the air over it.
+- Rooms that solid furniture had closed:
+  - Mama Lucha's storeroom: both its doors were blocked, the kitchen one by the cook line and the hall one by the sacks. The cook line moves 0.7 m along its wall, and the sacks go to the corner of the back wall.
+  - Rook's Garage office: the coffee counter, not the desk (I named it wrong), stood inside the door. It moves 0.8 m along the front wall.
+  - Both condos' bathrooms (Sol Beach Condo, Downtown Penthouse): the door moves to the bedroom's corner by the living room, and that side's nightstand goes.
+    - The vanity moves to the bathroom's back corner. It would have stood just inside the moved door.
+- Threads: the floor clerk stands at the fold table's aisle side, facing it, instead of inside it.
+  - The mirror marker stands 0.9 m in front of the standing mirror, instead of in the building's solid back. The marker was written in the mirror's own frame with the shop's coordinates.
+- Birds no longer perch on an interior's walls, furniture or door leaves, which put them inside a shell or poking through its roof.
+  - In the hand world, they also no longer perch at each floor line of a hand-built shell. There the next floor's wall stands on the lower wall's top.
+- Nothing else changes in procedural mode: world.bin is byte-identical and the census is unchanged.
+
+HOW
+- interiorlayouts.cpp:
+  - New groundDrop(): how far the ground outside lies below the floor. It reads the terrain or a road or sidewalk surface, as entranceStep and rollupDoors already did.
+  - entranceStep (every storefrontEntrance) probed one point 1.2 m out. 8 of the doors had the sidewalk there and the gutter between, and the condo lobby and Tide Customs Sol Beach had the gutter there and the sidewalk beyond. It now scans 0.25-2.5 m out across the door's width.
+  - Where the ground at the door is more than 0.12 m low and a sidewalk lies within a step of the floor, the landing runs out to the sidewalk's edge, found to 5 mm, and 3 cm onto it. Otherwise it is the old 1.1 m landing and step.
+  - Every landing's collider now runs 5 cm into the building's foundation. They met edge to edge, and the harness's 10 cm walk fell through the seam at the condo lobby.
+- interiorindustrial.cpp:
+  - rollupDoors scans the car's lane out to 3 m. Where the ground lies more than 0.1 m under the street's, the apron runs 0.3 m past it, falling 3 cm so that it lies under the street's surface where they overlap.
+  - Its sides and the bollards go down to the gutter's floor.
+  - With no gutter the geometry is unchanged: Rook's, the warehouse and the car wash.
+  - Rook's coffee counter goes to ocx - os*0.6.
+- interiorresidences.cpp:
+  - The bath door goes to xb - pt/2 - 0.5, and the door-side nightstand is dropped. Its random draw stays, so nothing else in the condos changes.
+  - The vanity goes to Y1 - 0.47.
+- interiorvenues.cpp: the cook line starts 0.8 m past the storeroom door, and the sacks are a row along the back wall.
+- interiorshops.cpp: the mirror marker is in its frame (0, -0.9), and the clerk is at the first fold table's +x side facing it.
+- interiors_game.cpp: kColKeyBase, with Interiors::isColKey(key) beside colKeyFor.
+- wildlife.cpp findPerches: skips isColKey owners. physics.cpp addCell marks every box as flag 2, a building, so interior colliders took the roof-edge branch, not the post one.
+  - It also skips a roof-edge point that lies inside another box.
+  - The other scans:
+    - The raccoons' takes only flag-1 props, and the squirrels' and debug spawn 26's take only wood cylinders, so they never met one.
+    - Debug spawn 13 takes any box of a dumpster's size, and now skips them too.
+- docs: one sentence in HANDBUILT_WORLD 7.3 on perches.
+
+CHECKS
+- Builds and data:
+  - CI's three tests pass with CI's flags.
+  - worldc: 0 warnings, and world.bin is byte-identical to 78's.
+  - worldv: 0 errors and 4 warnings, as on 78.
+  - MinGW -Wall: 0 errors and 0 warnings on main.cpp and on worldc.cpp. Host syntax of the tools: 0 errors.
+  - The procedural census: 0 of 13,914 lines differ.
+  - The exe nt_b12: 16,440,320 B, with 0 warnings.
+- Host harness (scratch). It walks every generator interior with the game's capsule rules, and all colliders solid.
+  - From the street, all 10 doors now walk in, where none did on 78.
+  - Mama Lucha's reaches 4 of 4 rooms (3 on 78). Rook's reaches 3 of 3 (2 on 78). Both condos reach 6 of 6 (5 on 78).
+  - Threads' mirror marker and floor clerk are clear of colliders.
+  - Still not reached:
+    - the gun shops' staff side, by design;
+    - the warehouse office, which is a harness artefact.
+  - The ground through every changed door and roll-up is flat from the sidewalk to the floor.
+- In the game (nt_b12), with --interiortest --interiorpath, starting 2.6 m out on the sidewalk:
+  - TideStop, Police HQ and the Sol Beach Condo lobby: over the new stoop and inside. On 78 the TideStop walk stopped in the gutter.
+  - Sol Beach Condo, 31.5 m up: from the entry, through the bedroom and the corner door into the bathroom.
+  - Mama Lucha's: from the entry, past the counter, through the kitchen and past the moved cook line into the storeroom.
+  - Tide Customs, both: TIDE_RESULTS
+  - Hand drive: HAND_DRIVE. Procedural drive: PROC_DRIVE.
+- The container restarted at 22:47 during the games. They all re-ran from the first.
+
+NAMED, NOT FIXED
+- Nothing new from this slice.
+- Two findings came up while doing 3c batch 1. They will be in its sign-off.

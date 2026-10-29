@@ -1,0 +1,38 @@
+city: plan for row 2 (Calle Siete to Calle Luna, b008-b013), with your two answers checked. Not started; it waits for your go. One street.py rule beyond the two you named, and one decision: (c) alone won't keep the last batch under 5 ms.
+
+Your answers, checked first:
+- b006: none of its 21 fails today's ground check. A scratch check runs street.py's own test on the files as written: every footprint corner inside its parcel, 0.25 m in on its level ground, and the floor at least 0.05 m over the ground. All 95 buildings of b002-b007 pass.
+  - "s21 left over" means this: s21 (the corner shop on b006.p15, at the Paseo and Sol) passes where it stands.
+  - Today's rules would move it: the ground slice moved p15's outline 0.5 m in under its streets. At the new spot its back corner lands on the side street's sidewalk, so a re-run leaves p15 empty and never rewrites s21.
+  - So nothing in b006 to fix, and it stays.
+- b004.h15: in batch 4. With the rules below, a re-run on b004 rewrites h15 only (1535.58 to 1535.59). b002, b003 and b007 rewrite nothing.
+
+street.py, in batch 4 (dry runs with seed 6 and worldc --ground):
+- The 1.0 m side yards: where no house fits with 1.5 m yards, the casita takes 1.0 m ones. That fills row 2's 10 narrow lots (10.2-11.1 m): b008 p08, p09, p11; b009 p09, p13; b010 p09, p10; b012 p10; b013 p06, p09. b002-b007 have no such lots, so nothing there changes.
+- Domino Park: a parcel with no front= is skipped ("no street front"), so b010's park parcel p01 stays the block file's.
+- New, your call: four corners on Calle Siete fail the ground check (b008.p07, b009.p16, b010.p06, b013.p05).
+  - Their outlines slant away from their side streets, and the side street's sidewalk reaches up to 2.1 m into them, onto the shop's back corner. Setting the shop back from Calle Siete doesn't help (I tried up to 2.1 m): the trouble is at its side.
+  - The fix I'd make: only where a corner fails as placed, and only with --ground, set the corner plan in from its side street, 0.3 m at a time, up to 2.1 m. It moves those four corner shops 0.3-1.2 m in.
+  - Every corner that passes today passes at 0, so b002-b007 are untouched.
+  - Without it, those four lots stay lawns.
+- Row 2 then has 105 buildings: b008 20, b009 21, b010 16, b011 19, b012 14, b013 15. Only b012.p12 stays empty (7.9 m on Calle Luna), besides the park.
+
+Batches, with each batch's busiest cell and its predicted near build in the game:
+- How I predict: 84's in-game rate, 0.10-0.15 ms per 1,000 near triangles depending on the cell, times each plan's near triangles.
+- Batch 4: b008 + b013 (35) and b004.h15.
+  - Busiest: 45,41, from 26.0k to 31.6k triangles: 4.3-4.7 ms.
+  - Also: 47,41 3.9-4.3 ms, 44,41 2.7 ms.
+- Then (c), the stoops at load, as its own small slice with 84's checks (hash-identical against the snapshot before).
+  - It has to come here rather than before b011 + b012: batch 5 brings three cells to about 5 ms.
+  - What it buys is small. A host build with no stoops at all is only 8-15% faster near, and 40-50% faster far. The probes have been cheap since 84's tile index; what's left is the geometry itself.
+- Batch 5: b010 + b012 (30).
+  - 45,41 reaches 35.7k triangles, 46,41 43.7k and 47,41 36.3k.
+  - Each about 4.4-5.4 ms, or 4.0-4.9 ms with (c).
+- Batch 6: b009 + b011 (40; any order ends here).
+  - 45,41 reaches 53.9k triangles: 7.3-8.1 ms, or 6.5-7.3 ms with (c).
+  - 46,41 reaches 61.1k triangles: 6.1-7.4 ms, or 5.5-6.7 ms with (c).
+  - So by the ~5 ms rule batch 6 needs one more step. Your call:
+    a. Split a cell's hand build over the idle workers, before batch 6. Chunks of placements go through Jobs::parallelFor (its wait runs queued jobs itself, so it's safe inside a cell's job) and are appended in order: the same bytes, checked as 84 was. The cell's wall time falls with the free workers; its CPU time doesn't.
+    b. Or relax the rule for hand cells. They build on a worker, not the frame. This machine's in-game builds run 2-2.7 times its native host builds: 45,41 at 53.9k would be about 3 ms on the host.
+
+Cost: each batch about batches 2-3's, one chain of the lean checks: the harness on the new placements, a face by day, one by night, an aerial, worldv, the census and both drives. (c) and (a) are like 84: small code, the identity checks and the timings.

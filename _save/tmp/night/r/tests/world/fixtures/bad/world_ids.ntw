@@ -1,5 +1,0 @@
-ntw 1 world
-world palmera.city name="Palmera" # expect id.form
-district c_l name="Calle Luna" # expect id.form
-district cl name="Calle Luna"
-district cl name="Calle Luna again" # expect id.unique

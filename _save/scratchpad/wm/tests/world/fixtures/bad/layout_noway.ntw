@@ -1,7 +1,0 @@
-ntw 1 layout id=lib.layout.test.noway # expect w:room.reach
-# nothing leads in: no door out, no stair, no lift (in a world, a plan's hatch or another floor's stair can)
-wall w1 a=0.00,0.00 b=4.00,0.00 t=0.20
-wall w2 a=4.00,0.00 b=4.00,4.00 t=0.20
-wall w3 a=4.00,4.00 b=0.00,4.00 t=0.20
-wall w4 a=0.00,4.00 b=0.00,0.00 t=0.20
-room loft type=store poly=0.00,0.00;4.00,0.00;4.00,4.00;0.00,4.00

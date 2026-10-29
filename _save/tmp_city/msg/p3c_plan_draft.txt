@@ -1,0 +1,38 @@
+city: plan for 3c batch 1 (after "interiors solid"). Not started; it needs your go.
+
+Where 3c stands
+- Calle Luna has 25 blocks with ~325 parcels. b005 holds 12 placements; the other 24 blocks hold ~427.
+- The library has 3 plans: a shop with flats over it, a walk-up and a bungalow.
+- Uses: blocks b002-b007 are mixed, b008-b013 are mixed and residential, b014-b025 are commercial and residential, and b001 is a park.
+
+Authoring script: tools/author/street.py (HANDBUILT 5.3). It is Python, run with -I, never shipped, and its output is the data.
+- Input: a block's parcels (block.ntw), the district's plan list, and rules. The rules:
+  - the plan fits the parcel's frontage and depth and suits its use;
+  - no plan twice within 3 lots, and no palette twice side by side;
+  - mirrors alternate, so neighbours share party walls;
+  - corner parcels get corner plans once there are some.
+- Output: one building file per placement, as b005's are. Each has the plan, at, z (the ground at the front), yaw (the street edge), mirror, palette and options, and back buildings go at the parcel's rear.
+- It prints its seed and a summary per block: placements per plan, frontage used, and any parcel it skipped and why.
+- I review the result and edit the text by hand where needed. Nothing is generated at load.
+
+Review per batch
+- Day and night shots of each block face, plus one from above.
+- The hs7/hs8 harness for every placement with an interior: every room reached on foot from the street, and every tour leg walkable.
+- worldv clean, the census unchanged, the exe, and the hand and procedural drives.
+
+Batch 1
+- Block: b006, next to b005 (15 mixed parcels).
+- Size: about 18-20 placements, with the 3 plans plus 2 new ones:
+  - a corner shop with flats;
+  - a 2-floor duplex for the narrow parcels.
+- Library work: about 10 items (their layouts, 2 looks, 2 palettes).
+- That's about 1.5 times 3a-2. If the script holds up, batch 2 would be b004 and b007.
+
+The per-plan shell cache
+- Not first. Today each placement's shell is built with its cell.
+- Party walls make a placement's walls depend on its neighbours, so a naive per-plan cache would need per-placement clipping anyway.
+- I'd log the hand cells' build time in batch 1, and build the cache when a cell passes about 10 ms, or before the dense commercial blocks (b014+).
+
+One thing to decide before the later batches: hand interiors stream within 480 m of the camera.
+- With about 440 of them in Calle Luna, most of the district's interiors would be resident at once.
+- I'd measure in batch 1. If needed, I'd cut the hand interiors' stream radius to about 150 m, a constant in interiors_game.cpp.

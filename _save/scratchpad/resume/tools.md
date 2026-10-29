@@ -167,3 +167,27 @@
   (cl.n0003/n0004/n0006 T's until stage 2's west legs, cl.n0039 a real T; 4-way cl_twophase) - settled with city.
   City is fixing: samples bus.8 route -> e0011,e0007; model fixture cl.e0003 moves -> l,r; NTW_FORMAT 9.12 route
   wording. Slice 7 next: LaneGraph (lanes nowhere, signal cover/conflict, walk checks).
+- 10-26 RESUMED. Slice 6 FINISHED + SIGNED OFF (blobs /tmp/rc6/blobs.txt, tree /tmp/rc6/tree, bases 0bdeab3 == bdf3016
+  for all my files). legLetters fixed (first use of a letter/edge), +plant. UBSan + ASan pass. world/ at bdf3016 is
+  terrain only (no pilot streets in 63): 0/0. Pilot $SP/p62/world: 0 errors, 4 agreed warnings.
+  NEXT: slice 7 (LaneGraph on compileRoads' result: lanes nowhere/approach w/o move out, signal cover + conflicts,
+  walk checks?, lane-graph summary). lanes.cpp needs World::gBuildings (null-checked), gSites (null-checked),
+  World::siteColliderNear(), BuildingSet::pointInBuilding at link time -> host stubs or AI agent's API. Then the
+  key-tap latch in win32.cpp (low priority).
+- 10-26 ~16:50 SLICE 7 + KEY-TAP LATCH SIGNED OFF (blobs /tmp/rc7/blobs.txt; tree /tmp/rc7/tree = main 61cf548 +
+  slices 6+7 + latch; slice 6 accepted for snapshot 64). Slice 7: validate_lanes.{h,cpp} (road.lanes, signal.cover,
+  signal.conflict; AI-agreed semantics), tools/worldv_host.cpp (replaces native_stubs for worldv/test: 4 world stubs
+  + LOG capture), lane graph counts in the roads line, fixture n0012 turns=no_uturn. Pragma -Wextra around lanes.cpp
+  include until AI set 21 (lanes.cpp blob b6219ad1 casts TK_MERGE) lands -> then drop it in worldv.cpp+worldv_test.
+  Latch: win32.cpp e4680ba6 (inputPress/inputRelease, g_releaseNext), tests/platform/input_test.cpp (Wine: 11/11;
+  main's: 4 fail). Wine: /usr/lib/wine/wine64, WINEPREFIX=/tmp/rc7/wineprefix, xvfb-run -a.
+  WAITING: city's legLetter/resolvePlan (RoadOverrides step 2) -> replace my stand-in (same probe/sectors/turns);
+  city part 2a + worldmodel v1 -> slice 8 (placement, walk links, spots, 250 m sidewalks, crossings both kerbs).
+- 10-26 ~23:50 SLICE FOR 67 SIGNED OFF (blobs /tmp/rc9/blobs.txt on main 41c3ca0; tree /tmp/rc9/tree): worldv on
+  the city's nodeLegs/legTurn/resolvePlan (my Leg/NodeLegs/turnClass/legLetters removed; LegsAt{legs,complete} +
+  legsOfNodes + turnChar in roads_detail), lanes.cpp pragma dropped, overrides: compileRoadOverrides + applyRoadSides
+  (links lz/worldbin/roadsbin) + LaneGraph::build(net,&ov); test asserts "cross-sections as authored for 10 edges
+  (0 sides off ...)". UBSan+ASan pass; world/ (31 files) 0 errors 4 warnings; pilot counts 192/397/330/443; MinGW
+  worldv.exe builds -Werror and matches under Wine. Disk freed ~2.7 GB (upd, upd2, rc6-8, wv54, wv63); kept blob lists +
+  updater e2e harness in $SP/tools/keep. NEXT (triggers): lane graph reading ban/connect/no_uturn/moves -> drop my
+  filter (allowedPair/movesAt in validate_lanes.cpp); worldmodel v1 buildings (+ 2c blocks on main) -> slice 8.

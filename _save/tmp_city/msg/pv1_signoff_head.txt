@@ -1,0 +1,43 @@
+city snapshot-safe: 3r V1 (snapshot 102): street.py's per-face draw and Calle Nueve (row 4), as you GO'd it, on S2's tree. Base 06e3b24 (tree d81cf8a9, snapshot 101 = S + S2). 38 files, all changed on their blobs, none new.
+
+FILES (path, base, new)
+docs/HANDBUILT_WORLD.md f8bb5cc1 98f6a435
+tools/author/street.py 363c193a 7c8e8776
+world/districts/cl/blocks/b020/h13.ntw 565cdd1e c529d55b
+world/districts/cl/blocks/b020/h14.ntw 2ae793e8 8ae49277
+world/districts/cl/blocks/b020/h15.ntw 181c22b1 dd43b471
+world/districts/cl/blocks/b020/h16.ntw 9f18f7ad f46caed8
+world/districts/cl/blocks/b020/h17.ntw 2344aeb2 903aec90
+world/districts/cl/blocks/b020/h18.ntw 8227f185 6bfdffd4
+world/districts/cl/blocks/b021/h13.ntw 9f33eebf d31eb68f
+world/districts/cl/blocks/b021/h14.ntw 7fda1beb 8116d1e5
+world/districts/cl/blocks/b021/h15.ntw 5bfb2f2e 7ebd4d4d
+world/districts/cl/blocks/b021/h16.ntw 7820b8ea a9e9aff6
+world/districts/cl/blocks/b021/h17.ntw 41c7697b 16126188
+world/districts/cl/blocks/b021/h18.ntw 30e4c1ce 5c077e94
+world/districts/cl/blocks/b021/h19.ntw 7aa268f8 283a7b41
+world/districts/cl/blocks/b022/h13.ntw b12e7573 d9e42b28
+world/districts/cl/blocks/b022/h14.ntw a05286d6 cb786c94
+world/districts/cl/blocks/b022/h15.ntw 13221619 0c2bd215
+world/districts/cl/blocks/b022/h16.ntw 9bb122f9 177363ce
+world/districts/cl/blocks/b022/h17.ntw bf7966fa 0efe881d
+world/districts/cl/blocks/b022/h18.ntw c2c14631 6e0167a7
+world/districts/cl/blocks/b022/h19.ntw 24349bc3 2abf812b
+world/districts/cl/blocks/b023/block.ntw 90acd554 e9927422
+world/districts/cl/blocks/b023/h12.ntw 5a2d3643 8991f8b9
+world/districts/cl/blocks/b023/h13.ntw 3634c3e3 36376287
+world/districts/cl/blocks/b023/h14.ntw 95fdcdaf 1bfb49ca
+world/districts/cl/blocks/b023/h15.ntw 6fade7c5 04cc575c
+world/districts/cl/blocks/b023/h16.ntw 2e167bc9 8772b10d
+world/districts/cl/blocks/b023/h17.ntw 6a7fd9bd c11f719b
+world/districts/cl/blocks/b023/s18.ntw 6bd6bdb3 63a999e7
+world/districts/cl/blocks/b024/h10.ntw 61be30d6 380de26e
+world/districts/cl/blocks/b024/h11.ntw 298e035a 484b0f71
+world/districts/cl/blocks/b024/h12.ntw 1d600566 411b34e8
+world/districts/cl/blocks/b024/h13.ntw 24ffbc54 170e8593
+world/districts/cl/blocks/b025/h10.ntw 4db30a52 d4ee931f
+world/districts/cl/blocks/b025/h11.ntw 6135090b 7cb21b6d
+world/districts/cl/blocks/b025/h12.ntw a69e4f6c 1db61362
+world/districts/cl/blocks/b025/h13.ntw 4bdf91da eafc31d5
+(also in /tmp/city/pv1_blobs.txt; pasted from it)
+

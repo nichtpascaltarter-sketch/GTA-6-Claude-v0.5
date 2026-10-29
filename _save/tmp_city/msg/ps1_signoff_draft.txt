@@ -1,0 +1,44 @@
+city snapshot-safe: per-side step 1, RoadEdge::halfWidthSide and sidewalkSide, with the AI's amendments A and B in NTW_FORMAT and the overrides test. On 65's blobs (tree 3e6a3712), for 66 with step 2 and the AI's side.
+
+Blobs: /tmp/city/ps1_blobs.txt, 10 files, all written, each on 65's blob.
+
+What it does:
+1. roads.h: RoadEdge::halfWidthSide(side) and sidewalkSide(side), side -1 left and +1 right, looking fwd.
+   - They read two new trims, how much narrower each side is than halfWidth and sidewalk. The trims are 0 unless set, so in the procedural world the accessors return halfWidth and sidewalk exactly.
+2. roadoverrides.h:
+   - roadKerbLine(laneWidth, median, lanesF, lanesB, kerb, side), the one formula for a side's kerb line:
+     - two-way: laneWidth * that side's lanes + median / 2 + its kerb (proposal point 6);
+     - one-way: laneWidth * (lanesF + lanesB) / 2 + median / 2 + its kerb, centred as lanes.cpp lays them out (amendment B).
+   - EdgeExtra::parkingOn(side) (amendment A): the parking as written; where nothing is written (-1), the whole kerb strip if it is 1.8 m or more, else none. The AI can use it or keep its own copy of the rule.
+3. The compile (worldmodel_roads.cpp): halfWidth is the wider side's kerb line.
+   - For one-way edges and equal lane counts that is today's formula, to the bit: the pilot's world.bin is byte-identical with 65's worldc on the same files.
+   - A two-way edge with unequal counts gets its wider side's (a 2/1 avenue with a 1 m right shoulder: 7.20, was 5.65).
+4. roadsbin.h applyRoadSides(ov, roads) sets each edge's trims from EdgeExtra. Without overrides it changes nothing. Three callers:
+   - handworld (the game in hand mode, right after reading the overrides);
+   - loadRoadsFile (so traffic_sim's edges have their sides too);
+   - worldc (so the blocks go on each side's sidewalk once step 2's queries read the sides).
+5. Docs:
+   - NTW_FORMAT: amendment A's parking rule, and each side's layout (two-way lanes out from the shape, one-way centred, then the kerb strip, then the sidewalk). RoadNetwork's width and sidewalk are the wider side's.
+   - HANDBUILT_WORLD: the accessors.
+6. Tests (testRoadOverrides):
+   - on every edge of the model fixture: halfWidth is the wider side's kerb line, each side's kerb line and sidewalk after applyRoadSides, and the wider side exactly the network's;
+   - nothing changes without overrides, and an edge without trims returns halfWidth and sidewalk to the bit;
+   - the one-way lane cl.e0004: centred kerb lines (2.50 both sides), its sidewalk on the left only;
+   - parkingOn: as written (2.40), unwritten on a street (its 2.40 m strip), unwritten on a lane (a 1.0 m strip: none), a shoulder= alone (none);
+   - the 2/1 avenue: halfWidth 7.20 (the right side), left 3.10;
+   - loadRoadsFile applies the sides: its trims equal applyRoadSides'.
+
+FOR THE AI AGENT: your draft can move onto the accessors now.
+- In the pilot, hand mode gives the 7 Paseo del Rio edges halfWidthSide(-1) = 5.60 and halfWidthSide(+1) = 3.20 (the river side, without parking), with 4.00 m sidewalks both sides.
+- Every other edge is the same on both sides.
+- Nothing draws per side yet: step 2 is next (roadmesh, roadnet's queries, 2c's blocks regenerated against each side's footprint). It is in testing now.
+
+Checks, on 65 + 2c's 25 blocks + this:
+- CI's world_format_test, worldv_test and worldmodel_test, with CI's flags: all passed.
+- worldv (built with -Werror) on world/, with 2c's blocks: 0 errors and the 4 agreed warnings (31 files, 2090 records). On the model fixture: 0 and 0.
+- worldc on world/: "road overrides: 83 edges' widths and speeds, 52 node rules". world.bin is byte-identical with 65's worldc on the same files.
+- The scratch host loader on that world.bin:
+  - 7 edges with a narrower side (the Paseo del Rio's), and 0 edges off the network's widths;
+  - parkingOn: 70 edges park on a side. The 5 that write no kerb are Bougainvillea Boulevard, whose class kerb is 1.20 m (under 1.8 m), so none park there. The 8 alleys write a shoulder alone, so none park there either.
+- MinGW: worldc, worldmodel_test and worldv with -Wall -Wextra, and main.cpp: 0 errors and 0 warnings each.
+- No exe for this step: nothing in the game reads the sides yet, and handworld only sets them. Step 2's exe, shots and drives cover both steps.

@@ -1,0 +1,29 @@
+city: N0b's games ended at 14:37 (13:46 on, one at a time, nice 6, each from a load under 2.0 with no showcase). The machine is yours. All 0 fatal. Two findings below need one more short window before I sign off.
+
+DONE
+- Shots before (nt_b39) and after (nt_n0b): the bridge from the air and from its south approach, the seam, the garage's corner.
+- Pair A B B A (nt_b39, nt_n0b, nt_n0b, nt_b39), median frame 8.7 / 9.9 / 10.0 / 9.3 ms: means 9.0 (b39) and 9.95 (n0b). Streaming p99 1.87 / 2.60 / 2.34 / 1.55, max 12.51 / 14.19 / 14.60 / 11.37 (46,41's 78,541-triangle upload in all four). 251-255 frames over 33 ms in each. AI, vehicle and ped CPU at the checkpoints match within 0.2 ms, so the extra ~1 ms is elsewhere in the update (non-rendering frames carry the median at --renderevery 4). The hand world is now 3,572 props, 1,694 lamps, 5,966 ground polygons, 3,420 colliders and 644 lanes (base 1,371 / 418 / 1,218 / 1,219 / 192). I haven't pinned it to one system.
+- Procedural drive: every checkpoint as on 100.
+- Missiontest low_tide (hand): PASSED at stage 5 in 69 s. The garage resolved to Avenida Flamboyan (cl.e0248) at s 60.0, place (2243.2, -480.0) on its west side ("no building frontage found, using the street"). The cutscene targets (2242.5, -480.2).
+  - The route: the test spawns the car at (1844.7, 439) beside Mari's (door 1835, 439) and moves it 45 m/s along computeRoute's line, plus the 7 m/s it leaves the car with. The game's A* run offline on the compiled roads gives 1,319 m, 12 edges, through cl.e0200, the bridge (1850,258 -> 1850,80). Without the bridge it's 2,592 m by the bascule; the straight line is 1,002 m.
+  - Stage 0 -> 1 came at t=26.5, about 1,320 m at ~51 m/s from t=0.8. The bascule route would take ~50 s and the straight line ~20 s. The log has no positions, so in the next window I'd rerun it with --popdebug, which logs the player's position every 4 s. That shows the car on x 1850 on both sides of the river.
+
+FINDING 1: the hand drive's checkpoints moved (both n0b runs alike)
+- t=2.6 (1762.8,218.5) 6.1 m/s, against (1763.7,219.3) 8.3. t=11.5 (1822.3,244.7) 1.9, against (1821.2,244.2) 5.9. t=21.5 (1824.8,245.6) 0.5, against (1919.8,285.4) 8.7.
+- Cause: the car waits at the red at the Paseo del Rio / Avenida del Sol junction (cl.n0039). The game doesn't run the written plan there (HANDBUILT section 2: "signal plans" come later). The lane graph derives each signal's timing from the junction's shape and its node index (src/game/lanes.cpp, "signal plans").
+  - With the bridge, the Avenida del Sol runs straight through, so it becomes the main road and goes first. It also gets a protected left (two 2-lane approaches with left turns), and the cycle grows from 38.95 to 47.95 s.
+  - The Muelle's two circle nodes are gone, so n0039's index went 38 -> 36, which moves its hash offset (31.00 -> 5.23 s).
+  - Computed from that code: the eastbound Paseo is red from 0 to 24.0 s on N0b. On the base it is red to 8.0 s, then green 8.0-19.0 s and amber to 22.2 s, and the car crossed in that green. (The clock is taken from the drive's start; both runs' behaviour fits it.)
+  - Every pilot signal's index shifted by 1 or 2, so all their timings moved too. That is why traffic differs from t=0.
+
+FINDING 2: three turning circles given up (an N0b defect)
+- The game's lane graph prints "dead-end turning circles moved 0 / obstructed 3" on N0b (base 0 / 0). These are the outer lanes of the three new 2-lane-each-way dead ends at y -912: Bougainvillea, Sol and Flamingo.
+- The game keeps a U-turn path 4.2 m clear of prop colliders, pulling it back up to 12 m. Failing that, it marks the dead end obstructed, and routing avoids it.
+- dress.py put a hydrant (all three) and a trash bin (Bougainvillea, Flamingo) 6-8 m from the node within that reach. Their 10 m bulbs are no wider than the streets, whose kerbs are 9-10 m out, so the sidewalk props ran on to 5 m short of the node.
+- A replica of the game's test finds exactly those 3 lanes and those 5 props. No prop comes within 6 m of the pilot's turning paths (the test needs 4.2).
+
+UNLESS YOU SAY OTHERWISE
+- I'll fix 2 inside N0b: dress.py leaves out any prop within a dead end's turning paths. That drops those 5 props; nothing else moves, and the pilot's files stay as they are.
+- Then I redo the host checks and the exe at nice 19 (~1 h).
+- Then I need one more quiet window of ~45 min on the fixed exe: the after shots; the pair A B B A again; the procedural drive; the missiontest with --popdebug; and one hand drive with a shot every 2 s, to show the red light and the queue.
+- Or I can sign off as is, with 2 as a follow-up item, if you prefer.

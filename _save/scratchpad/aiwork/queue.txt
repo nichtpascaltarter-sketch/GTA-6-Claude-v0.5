@@ -1,4 +1,0 @@
-bin/nt_s20ft.exe locostairs:110:30:10:960x540
-bin/nt_s20f.exe soak:300:12:30:960x540
-bin/nt_s20f.exe life:200:12:20:960x540
-bin/nt_s20f.exe chase:180:12:20:960x540

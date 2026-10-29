@@ -1,0 +1,22 @@
+city: plan for the pilot's next stage (docs/HANDBUILT_WORLD.md 10.1, stage 1 part 3: the library and the buildings), inside Calle Luna only. Not started: it needs your OK.
+
+Part 3 is the library compiler (plans, layouts, units), ~240 library items, the 439 placements, and the interiors with the interiors and AI agents. 10.1 puts it at ~255 agent-hours, so I'd do it in slices and ask before each step that grows content.
+
+3a-1. Compile only, nothing drawn
+- What: the world model types plans (footprint, floor stack, roof, facade, entrances, options and features) and floor layouts (walls with their windows and doors, rooms, cores, slots); worldv checks them already. worldc compiles them, with the pilot's building files (placement and config), into "library" and "buildings" sections. Per plan, its shell: the stacked floors' exterior walls with their openings, heights and roof. Per placement: its plan, position, yaw, mirror and config.
+- Files: worldmodel.h/.cpp, worldmodel_buildings.cpp (new), buildingsbin.h/.cpp (new), worldc.cpp, worldmodel_test.cpp, docs.
+- Checks: CI x3, the sections' round trip and damaged sections, worldv, the procedural census unchanged. No exe needed.
+- Size: about slices 1 and 2 together.
+
+3a-2. Drawing: the first buildings standing in hand mode
+- What: hand mode draws each placed shell into its cell: walls with their openings, frames, glass, sills, belt courses and cornices from the facade style, and the roof, with the footprint as collision. Each window gets the class of the room behind it for the night lighting, through the shader's existing classes.
+- Content: 3 plans for the pilot's commonest types (a 2-floor shop with flats over, a 3-floor walk-up, a bungalow), with their layouts and a facade style and palette each, and about 12 placements on one block of Calle Luna.
+- Files: cellgen.cpp, a hand shell mesher in src/world (new), handworld.cpp, content under world/lib and the block's folder. No shader change if the facade path takes the window records as they are.
+- Checks: as 3a-1, plus the exe, day and night shots of the block, and hand and procedural drives.
+- Size: about twice 3a-1.
+
+Later, each with your go: 3b, the shells' interiors (rooms, doors, stairs; walkable, every room reachable) with the interiors agent. 3c, the remaining ~237 items and ~427 placements, made in batches by an authoring script (5.3, like dress.py) with review shots per batch.
+
+Questions:
+1. Start 3a-1 now?
+2. Which block for the first 12 placements? I'd take b005 (Calle Luna's south side, by the boatyard) unless you'd rather see another.

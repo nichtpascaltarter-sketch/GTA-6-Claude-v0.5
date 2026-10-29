@@ -1,4 +1,0 @@
-ntw 1 places
-place place.causeway_rail walk=505.00,141.00 dir=0.00,-1.00 water=505.00,130.00;520.00,130.00 note="the bridge rail"
-anchor cl.ev.busk1 kind=event event=busk at=210.00,160.00 yaw=90.0
-anchor sb.pd.bays kind=police_bays at=900.00,160.00 edge=sb.e0002 cap=4

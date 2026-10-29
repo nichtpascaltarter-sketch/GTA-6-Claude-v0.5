@@ -1,3 +1,0 @@
-worldc: terrain 2560x2560 at 8 m, 2 water levels, 93 outlines, 7 channels
-worldc: roads 9 nodes, 8 edges, 1 signalised; 2 districts, 1 signal plans, 1 transit lines
-worldc: 9 file(s) -> /tmp/city/rbroads_world.bin (2670464 bytes, 8 sections) and /tmp/city/world.rc

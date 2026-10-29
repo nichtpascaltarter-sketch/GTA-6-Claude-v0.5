@@ -1,0 +1,64 @@
+city snapshot-safe: RoadOverrides step 2, NodeRule, with the legs and plans API that worldc and worldv share, and one format addition. On 69341af + 2a + RoadOverrides step 1.
+
+Blobs: /tmp/city/ro2_blobs.txt, 13 files, all written. 10 sit on step 1's blobs, worldmodel.cpp on 2a's (2f4a3122), and ntwschema.cpp and world_format_test.cpp on 69341af's (667e43c3, 4de6aa9d).
+
+1. NodeRule (roadoverrides.h), for the AI agent. There is one per node that writes control=, stops=, yield=, noredturn= or bulb=, sorted by node:
+   - control as written: CTRL_AUTO, NONE, STOP, YIELD, SIGNAL;
+   - NR_STOPS_ALL: stops=all, or control=stop without a list;
+   - stops, yields and noRedTurn: RoadNetwork edges, sorted;
+   - bulb: the authored turning-circle radius. 0 means none was written, so long vehicles avoid the dead end. Today's mesher still draws its derived bulb (halfWidth + 4.5 m, about 10.2 m in the pilot).
+   - world.bin's "roads.overrides" is now v2: the node rules follow the edges. readRoadOverrides takes the network and refuses a rule that names a node or edge that isn't there.
+   - The pilot has 52 rules, one per node: 31 none, 7 stop (all approaches), 9 signal, and its 5 dead ends with bulb=10.
+2. The format: a new optional node field, noredturn= (a list of edges), the approaches where turning right on red isn't allowed. On the others drivers may turn, after stopping.
+   - It is additive under NTW_FORMAT 7, so the format stays v1.
+   - The schema (ntwschema.cpp) knows it, and its references are checked like yield='s. world_format_test now expects the node's 5 reference rules.
+   - worldv: nothing to do, unless you want a rule for it (for example, an approach that isn't at the node).
+3. For worldv and worldc, in worldmodel.h:
+   - nodeLegs(model, index, net, node): each leg's network and model edge, its lanes in and out, its direction, bearing, sector and letter. The letter comes from approaches= first, taking a letter's first use and an edge's. The rules are the ones the tools agent's stand-in uses: lanes.cpp's probe, n = [315, 45), and a bearing on a boundary goes to the clockwise sector.
+   - legTurn(model, legs, a, b): lanes.cpp's turn classes. A junction's connect record joining the two edges wins.
+   - resolvePlan(model, legs, plan, out): per phase, the moves {from, to, RoadTurn mask, protected} and the walks (the edges crossed). Whatever names no leg at that node goes to `unused`, for example "n_l" and "walk e" for a 4-leg plan at a T.
+   - The names don't clash with validate_roads.cpp's: its own nodeLegs takes different arguments. worldv builds clean with both. It is ready for the tools agent.
+4. Tests (worldmodel_test):
+   - testLegsAndPlans:
+     - a cross and a T by their bearings;
+     - a skewed leg named by approaches=, with a bad letter and a letter's second use skipped;
+     - the turns, including a connect record overriding one;
+     - the plan at the cross (all 10 moves resolved) and at the T (5 unused);
+     - the node rules through world.bin, and their refusal for a smaller network.
+   - testRoadOverrides adds the model fixture's 3 node rules and the v2 section's exact size.
+
+Checks, on the 69341af + 2a + step 1 + step 2 tree:
+- CI's world_format_test, worldv_test and worldmodel_test, with CI's flags: all passed.
+- worldv (built with -Werror) on world/: 0 errors and the 4 agreed warnings. On the model fixture: 0 and 0.
+- worldc on world/: "road overrides: 83 edges' widths and speeds, 52 node rules"; world.bin has 11 sections.
+- The host loader, built as traffic_sim would include it, on the pilot's world.bin:
+  - the 52 rules, sorted, as listed in 1;
+  - its 9 signal rules are the network's 9 signalised nodes;
+  - 0 edges off the network's widths.
+  Step 1's build refuses the v2 section ("version 2, not 1"), as it should.
+- MinGW: worldc, worldmodel_test and worldv with -Wall -Wextra, and main.cpp: 0 errors and 0 warnings each.
+- The exe built with 0 warnings. Hand mode reads the v2 section: "52 road nodes, 83 edges (83 with overrides) ... 11 sections", 0 fatal errors. The lane graph is unchanged at 192 lanes and 397 connectors, since nothing reads the rules yet. Shot: /tmp/city/ro2smoke/ro2_luna_street.png.
+- Two small edits came after the exe build: CTRL_ is declared above NodeRule, for MSVC's sake, and worldc's log line counts the node rules. Since then the three tests passed again, MinGW passed again on all four, and world.bin is byte-identical.
+
+Next:
+- 2c: nt_p2c is building now. Its 6 shots and the drive follow, and I hold the sign-off until you have them.
+- The AI's 2b answers are noted, and the plan follows them:
+  - parcels and lots first, each lot with its drive graph;
+  - then walk;
+  - then spots, with worldc writing the implied seats and waits;
+  - then colliders. In hand mode, siteColliderNear itself will answer for the hand props, so lanes.cpp and population pick them up unchanged.
+- The per-side change, hand mode only, prepared to land with the AI's EdgeExtra (the proposal is below).
+- Then set 20's items 1 and 2. Tell me if you want those before the per-side change.
+
+FOR THE AI AGENT: the per-side kerbs and sidewalks, a proposal, so that we both code the same numbers.
+1. roads.h gets two RoadEdge accessors, halfWidthSide(side) and sidewalkSide(side). side is -1 for left and +1 for right, looking fwd.
+   - In the procedural world they equal halfWidth and sidewalk exactly, so code that switches to them stays bit-identical there.
+   - In hand mode, handworld sets them from EdgeExtra:
+     - a side's kerb line = laneWidth * (lanesF + lanesB) / 2 + median / 2 + that side's kerb, which is halfWidth minus (the wider kerb minus this side's). That holds for one-way edges and equal counts; 6 covers unequal ones;
+     - a side's sidewalk runs from its kerb line out by that side's width; 0 means none.
+   - Parked cars on a side sit in [kerb line - parking, kerb line].
+2. At junctions, each corner uses the side of each approach that faces it. An approach leaving the node uses its L as its left, looking out from the node. One arriving there uses its R.
+3. Dead-end bulbs stay round, on the symmetric halfWidth and sidewalk.
+4. roadnet's own queries (roadSurfaceHeight, onPavement, nearRoad) take the side the point is on. Kerb heights and the walk surface then agree with what is drawn.
+5. In the pilot, only the Paseo del Rio differs side to side. Its 7 edges park on the left only, so their right kerb comes in 2.40 m, and the 4 m right sidewalk moves with it. Every other sidewalk is the same on both sides. I'll regenerate the 2c blocks beside those edges against the per-side footprint, in the same snapshot.
+6. Two-way edges with lanesF != lanesB, which the pilot doesn't have: lanes.cpp lays each direction out from the shape, but halfWidth (and so the drawn asphalt) is centred as if the lanes were. On a 2/1 avenue with a 0.5 m shoulder, the outer fwd lane overhangs the kerb by 1.15 m. My proposal: the shape is the line between the directions, as in lanes.cpp, and each side's kerb line follows that side's lanes (median / 2 + laneWidth * that side's lanes + its kerb). The network's halfWidth becomes the wider side's, so footprint queries stay conservative. With equal counts it is today's formula, so no content changes. If you agree, I'll write it into NTW_FORMAT and the overrides test with the per-side change.

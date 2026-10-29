@@ -66,13 +66,22 @@ bool overTheStreet(GameWorld& g, const PedAI& pa, vec2 pos, vec3& target) {
     const World::RoadEdge& e = g.roads->edges[L.edge];
     float along = L.length > 1e-3f ? Clamp(pa.walk.x / L.length, 0.f, 1.f) : 0.f;
     float s = pa.walk.fromA ? Lerp(L.sa, L.sb, along) : Lerp(L.sb, L.sa, along);
-    bool narrow = e.halfWidth < 7.5f && e.cls != World::RC_HIGHWAY && e.cls != World::RC_RAMP && e.cls != World::RC_BOULEVARD;
+    const AI::EdgeSection* es = L.edge < (int)g.laneGraph.sections.size() ? &g.laneGraph.sections[L.edge] : nullptr;
+    bool narrow = e.halfWidth < 7.5f && e.cls != World::RC_HIGHWAY && e.cls != World::RC_RAMP && e.cls != World::RC_BOULEVARD &&
+                  !(es && (es->flags & AI::EdgeSection::ES_MEDIAN_BARRIER));   // (nor over a median barrier)
     if (!narrow || s <= 12.f || s >= e.length - 12.f) return false;
     vec3 c3 = e.posAt(s);
     vec3 t3 = e.tangentAt(s);
     vec2 st2 = normalize(t3.xy() + vec2(1e-5f, 0.f));
     vec2 rt = AI::rightOf(st2);
-    vec2 t2 = c3.xy() - rt * L.lat;   // the mirrored sidewalk
+    // the sidewalk across the way: this one mirrored, or that side's own where the world authors the sides (none: no way)
+    float latOver = -L.lat;
+    if (es && es->authored) {
+        const int other = L.lat > 0.f ? 0 : 1;
+        if (es->walk[other] <= 0.5f) return false;
+        latOver = (L.lat > 0.f ? -1.f : 1.f) * (es->kerb[other] + es->walk[other] * 0.5f);
+    }
+    vec2 t2 = c3.xy() + rt * latOver;
     bool clear = true;
     g.traffic.hash.query(g.traffic.bodies, c3.xy() - vec2(45.f), c3.xy() + vec2(45.f), [&](int bi) {
         const AI::Body& ob = g.traffic.bodies[bi];
@@ -1851,30 +1860,32 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
                                     float outward = latE > 0.f ? 1.f : -1.f;               // building side in edge frame
                                     float lat = outward * L.halfWidth * side;
                                     vec3 a = laneGraph.walkPos(pa.walk.link, pa.walk.x, lat * 1.0f, pa.walk.fromA);
-                                    pa.anchor = a.xy();
                                     vec2 streetDir = normalize(laneGraph.walkPos(pa.walk.link, pa.walk.x, -lat, pa.walk.fromA).xy() - a.xy());
-                                    pa.anchorYaw = atan2f(-streetDir.x, streetDir.y);
-                                    pa.activity = ACT_SCENARIO;
+                                    // (a facade there to lean on, shelter under or dance outside of: none where the street has
+                                    // no buildings - a front yard, a park, the hand-built world's streets so far)
+                                    const World::BuildingSet* bs = buildings ? buildings : World::gBuildings;
+                                    const bool wall = bs && bs->pointInBuilding(a.xy() - streetDir * 0.7f, 0.5f);
                                     float q = hashToFloat(hash32(h * 5u));
                                     World::Region reg = map->regionAt(pos.x, pos.y);
                                     bool night = env->timeOfDay > 20.f || env->timeOfDay < 4.f;
-                                    if (raining) {
-                                        pa.stance = q < 0.5f ? 8 : 0;   // sheltering under the facade, waiting it out
+                                    if (!raining || wall) {
+                                        pa.anchor = a.xy();
+                                        pa.anchorYaw = atan2f(-streetDir.x, streetDir.y);
+                                        pa.activity = ACT_SCENARIO;
+                                        if (raining) {
+                                            pa.stance = q < 0.5f ? 8 : 0;   // sheltering under the facade, waiting it out
+                                        } else if (wall && night && (reg == World::REG_BEACH || reg == World::REG_CALLE_LUNA) && q < 0.35f) {
+                                            pa.stance = 9;   // dancing outside the clubs
+                                        } else if (q < 0.4f || (!wall && q >= 0.7f)) {
+                                            pa.stance = 8;   // phone call
+                                        } else if (q < 0.7f) {
+                                            pa.stance = 10;   // smoking (looping stance)
+                                        } else {
+                                            pa.stance = 11;   // leaning on the wall
+                                        }
                                         pa.clip = -1;
-                                    } else if (night && (reg == World::REG_BEACH || reg == World::REG_CALLE_LUNA) && q < 0.35f) {
-                                        pa.stance = 9;   // dancing outside the clubs
-                                        pa.clip = -1;
-                                    } else if (q < 0.4f) {
-                                        pa.stance = 8;   // phone call
-                                        pa.clip = -1;
-                                    } else if (q < 0.7f) {
-                                        pa.stance = 10;   // smoking (looping stance)
-                                        pa.clip = -1;
-                                    } else {
-                                        pa.stance = 11;   // leaning on the wall
-                                        pa.clip = -1;
+                                        pa.actTimer = 12.f + hashToFloat(hash32(h * 7u)) * 25.f;
                                     }
-                                    pa.actTimer = 12.f + hashToFloat(hash32(h * 7u)) * 25.f;
                                 }
                             } else if (r < 0.35f && pa.role != PR_DRUNK && !raining && pa.leader < 0) {
                                 // window shopping in the shopping streets: a stop at a store window on the building side, a
@@ -3510,6 +3521,7 @@ void GameWorld::aiCivilianBrain(int id, float dt) {
         turnRate = ai_turn::ease(p.yaw, wantYaw, length(p.vel.xy()), p.aiming, turnRate, desired, pa.sidestepT <= 0.f);
     // face & move
     if (turning) turnTo(p, wantYaw, turnRate, dt);
+    ai_pace::stairs(*this, id, desired);   // (on a flight: a tread a step)
     movePed(p, desired, dt, false);
     pa.lastPos = pos;
 }

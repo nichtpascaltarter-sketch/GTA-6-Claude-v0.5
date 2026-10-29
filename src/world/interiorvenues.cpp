@@ -469,11 +469,12 @@ void layoutDiner(IB& b) {
         At at(b, vec3(X1, Y0 + 2.2f, 0.f), kHalfPi);
         wallClock(b, vec3(0.f, 0.f, 2.3f), r.next());
     }
-    // ---- kitchen: cook line on the back partition, prep table behind the pass, reach-in, dish station, shelving
+    // ---- kitchen: cook line on the back partition (clear of the storeroom's door), prep table behind the pass,
+    // reach-in, dish station, shelving
     {
         float kx0 = X0, kx1 = xh - pt * 0.5f, ky0 = yP + pt * 0.5f, ky1 = yK - pt * 0.5f;
-        float lineL = Min(3.6f, kx1 - kx0 - 2.2f);
-        float lineX = kx0 + 1.4f + lineL * 0.5f;
+        float lineL = Min(3.6f, kx1 - kx0 - 2.9f);
+        float lineX = ksX + 0.8f + lineL * 0.5f;
         cookLine(b, vec3(lineX, ky1, 0.f), kPi, lineL, kitchen, r.next());
         prepTable(b, vec3(pc, ky0 + 1.05f, 0.f), 0.f, Min(2.0f, pw + 0.2f), 0.7f, r.next());
         reachIn(b, vec3(kx1, ky0 + 1.9f, 0.f), kHalfPi);
@@ -499,13 +500,13 @@ void layoutDiner(IB& b) {
         downlight(b, vec3(0.f, 1.5f, H), hall, 200.f);
         downlight(b, vec3(0.f, 3.5f, H), hall, 200.f);
     }
-    // ---- storage: shelving, sacks, mop sink
+    // ---- storage: shelving, sacks along the back wall in the corner past the hallway's door, mop sink
     {
         float sx0 = X0, sx1 = xh - pt * 0.5f, sy0 = yK + pt * 0.5f, sy1 = Y1;
         wireShelf(b, vec3((sx0 + sx1) * 0.5f, sy1, 0.f), kPi, Min(3.0f, sx1 - sx0 - 2.4f), r.next());
         InPart ip(b, IP_FURNITURE);
-        for (int k = 0; k < 4; k++) rbox(b, vec3(sx1 - 0.5f, sy0 + 0.6f + k * 0.5f, 0.15f), vec3(0.3f, 0.2f, 0.15f), 0.06f, C(0.85f, 0.8f, 0.68f), M(MAT_FABRIC), true);
-        collide(b, vec3(sx1 - 0.5f, sy0 + 1.35f, 0.3f), vec3(0.32f, 0.95f, 0.3f));
+        for (int k = 0; k < 4; k++) rbox(b, vec3(sx1 - 0.6f - k * 0.5f, sy1 - 0.45f, 0.15f), vec3(0.2f, 0.3f, 0.15f), 0.06f, C(0.85f, 0.8f, 0.68f), M(MAT_FABRIC), true);
+        collide(b, vec3(sx1 - 1.35f, sy1 - 0.45f, 0.3f), vec3(0.95f, 0.32f, 0.3f));
         domeLight(b, vec3((sx0 + sx1) * 0.5f, (sy0 + sy1) * 0.5f, H), store, 110.f, vec3(1.f, 0.95f, 0.85f));
     }
     roomDressing(b, dine, true, d.seed ^ 0x81u);

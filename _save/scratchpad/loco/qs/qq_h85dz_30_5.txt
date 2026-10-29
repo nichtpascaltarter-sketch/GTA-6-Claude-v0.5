@@ -1,8 +1,0 @@
-QS run 19 dn t10.267 foot 0 u 0.00 h   7.4 b   0.3 t  17.0 g 0.34 0.34 0.17 fz 0.340 gIn 0.340 yh 10.771 yt 10.998 yFrom 10.757 yTo 11.432 lift 0.054 pz 1.360 | n 1 dz 0.000 o pl1 hold0 st-1.00
-QS run 19 dn t10.300 foot 0 u 0.14 h  13.2 b   4.0 t  20.6 g 0.34 0.34 0.17 fz 0.352 gIn 0.000 yh 10.801 yt 11.024 yFrom 10.757 yTo 11.126 lift 0.054 pz 1.360 | n 0 dz -0.012 o pl1 hold0 st-1.00
-QS run 19 dn t10.333 foot 0 u 0.29 h  17.1 b  23.1 t  22.5 g 0.34 0.17 0.17 fz 0.352 gIn 0.170 yh 10.868 yt 11.087 yFrom 10.757 yTo 11.138 lift 0.054 pz 1.360 | n 1 dz 0.000 o pl1 hold0 st-1.00
-QS run 19 dn t10.367 foot 0 u 0.43 h  19.4 b  24.3 t  23.5 g 0.51 0.34 0.34 fz 0.522 gIn 0.340 yh 10.956 yt 11.171 yFrom 10.757 yTo 11.147 lift 0.054 pz 1.190 | n 1 dz -0.170 o pl1 hold0 st-1.00
-QS run 19 dn t10.400 foot 0 u 0.57 h  36.9 b  24.4 t  40.5 g 0.34 0.34 0.17 fz 0.522 gIn 0.340 yh 11.046 yt 11.261 yFrom 10.757 yTo 11.151 lift 0.054 pz 1.190 | n 1 dz 0.000 o pl1 hold0 st-1.00
-QS run 19 dn t10.433 foot 0 u 0.71 h  39.2 b  43.9 t  42.7 g 0.34 0.17 0.17 fz 0.522 gIn 0.340 yh 11.136 yt 11.352 yFrom 10.757 yTo 11.170 lift 0.054 pz 1.190 | n 1 dz 0.000 o pl1 hold0 st-1.00
-QS run 19 dn t10.467 foot 0 u 0.86 h  40.6 b  45.9 t  44.2 g 0.34 0.17 0.17 fz 0.522 gIn 0.170 yh 11.190 yt 11.407 yFrom 10.757 yTo 11.170 lift 0.054 pz 1.190 | n 1 dz 0.000 o pl1 hold0 st-1.00
-QS run 19 dn t10.500 foot 0 u 1.00 h  14.6 b  21.1 t  18.8 g 0.34 0.17 0.17 fz 0.291 gIn 0.170 yh 11.204 yt 11.423 yFrom 10.757 yTo 11.170 lift 0.054 pz 1.190 | n 1 dz 0.000 o pl1 hold0 st-1.00

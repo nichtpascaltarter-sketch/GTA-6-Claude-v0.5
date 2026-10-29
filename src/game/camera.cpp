@@ -4,6 +4,10 @@
 
 namespace Game {
 
+namespace Interiors {
+bool isInside();   // interiors_game.cpp: the player is inside an interior
+}
+
 namespace cam_detail {
 
 vec3 dirFromAngles(float yaw, float pitch) { return vec3(-sinf(yaw) * cosf(pitch), cosf(yaw) * cosf(pitch), sinf(pitch)); }
@@ -305,9 +309,14 @@ void GameWorld::updateCameraRig(float dt) {
     if (maxD < r.curDist) r.curDist = maxD;  // snap in
     else r.curDist = Lerp(r.curDist, maxD, Saturate(rdt * 2.5f));
     dvec3 camPos = piv - fwd * r.curDist;
-    // keep above ground / water
+    // keep above ground / water. Inside an interior the probe also finds the floor above, or the roof, its top within
+    // reach over a camera near the ceiling: not up through a collider's underside
     float gz = groundHeight((float)camPos.x, (float)camPos.y, (float)camPos.z + 0.5f);
-    if (camPos.z < gz + 0.35) camPos.z = gz + 0.35;
+    if (camPos.z < gz + 0.35) {
+        Phys::RayHit up;
+        if (!Interiors::isInside() || !Phys::gCollision->raycast(camPos.toVec3(), vec3(0.f, 0.f, 1.f), (float)(gz + 0.35 - camPos.z), up, false))
+            camPos.z = gz + 0.35;
+    }
     r.cam.pos = camPos;
     r.cam.yaw = camYaw;
     r.cam.pitch = camPitch;

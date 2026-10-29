@@ -1,9 +1,0 @@
-worldc: terrain 2560x2560 at 8 m, 2 water levels, 93 outlines, 7 channels
-worldc: wrote build/gen/world.bin (2670624 bytes, 5 sections) and build/gen/world.rc
-In file included from src/main.cpp:73:
-src/game/app.cpp: In member function 'void Game::App::applyAutoplay(Game::Controls&, float)':
-src/game/app.cpp:5303: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
- 5303 |                 if (pl->vehicle >= 0) game.removePedFromVehicle(game.player, false);
-      | 
-src/game/app.cpp:5303: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
--rwxr-xr-x 1 root root 15630848 Oct 20 00:02 /tmp/city/nt_s0b.exe

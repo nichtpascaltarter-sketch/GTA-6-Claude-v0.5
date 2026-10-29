@@ -1,7 +1,0 @@
-# orch48 jobs, in priority order (first ready runs; edit freely)
-st19nh
-st20nh
-st21p
-st20spi
-st21spi
-st21pl

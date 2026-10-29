@@ -11,10 +11,14 @@ cbuffer ShadowCB : register(b3) {
     float4 gCascadeDepth;    // light-space depth range (m) per cascade
 };
 
+// Filter taps: a golden-angle (Vogel) spiral, r = sqrt((i + 0.5) / 12), spread evenly over the whole disc including
+// near its centre. (The classic 12-tap Poisson set used before has no tap within half the radius - it is meant to go
+// with a separate centre tap - so the kernel was an annulus: a sunlit gap between leaves smaller than the penumbra
+// came out as a ring of light with a dark middle instead of a soft spot.) The blocker search uses every other tap.
 static const float2 kPoisson[12] = {
-    float2(-0.326, -0.406), float2(-0.840, -0.074), float2(-0.696, 0.457), float2(-0.203, 0.621),
-    float2(0.962, -0.195), float2(0.473, -0.480), float2(0.519, 0.767), float2(0.185, -0.893),
-    float2(0.507, 0.064), float2(0.896, 0.412), float2(-0.322, -0.933), float2(-0.792, -0.598)};
+    float2(0.204, 0.000), float2(-0.261, 0.239), float2(0.040, -0.455), float2(0.329, 0.429),
+    float2(-0.603, -0.107), float2(0.571, -0.363), float2(-0.191, 0.711), float2(-0.364, -0.702),
+    float2(0.791, 0.289), float2(-0.822, 0.339), float2(0.396, -0.847), float2(0.293, 0.934)};
 
 float sampleSunShadowGeo(float3 relPos, float3 N, float viewDepth, uint2 pix);
 float sampleCascade(int c, float3 relPos, float3 N, float noiseAngle) {

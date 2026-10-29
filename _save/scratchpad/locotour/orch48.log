@@ -1,6 +1,0 @@
-start 11:38:54
-run st20nh 11:39:25 memfree 11490
-run st20nh exit 0 (renderevery 30)
-done st20nh 11:44:11
-run st21p 11:44:11 memfree 11307
-run st21p exit 0 (renderevery 30)

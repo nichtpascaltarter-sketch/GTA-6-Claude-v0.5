@@ -1,6 +1,0 @@
-ntw 1 layout id=lib.layout.house.bungalow_b02_attic
-wall w1 a=0.00,0.00 b=11.60,0.00 t=0.20
-wall w2 a=11.60,0.00 b=11.60,9.40 t=0.20
-wall w3 a=11.60,9.40 b=0.00,9.40 t=0.20
-wall w4 a=0.00,9.40 b=0.00,0.00 t=0.20
-room loft type=store poly=0.00,0.00;11.60,0.00;11.60,9.40;0.00,9.40 cap=2

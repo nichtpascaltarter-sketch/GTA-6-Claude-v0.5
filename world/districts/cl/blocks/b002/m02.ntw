@@ -1,0 +1,5 @@
+ntw 1 building id=cl.b002.m02 block=cl.b002 parcel=cl.b002.p01
+# a three-storey walk-up, facing Calle Luna
+# written by tools/author/street.py (seed 6): a re-run rewrites this file, unless this line goes
+place plan=lib.plan.midrise.walkup_b at=1222.95,339.20 z=4.16 yaw=180.0
+config palette=lib.palette.calle.coral

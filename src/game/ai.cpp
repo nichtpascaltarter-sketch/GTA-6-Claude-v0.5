@@ -2,6 +2,8 @@
 // police dispatch, ambient events, pedestrian brains and traffic drivers, and exposes the signal phases to gameplay and
 // rendering. The engine-independent cores live in lanes.cpp / traffic_core.cpp / pednav.cpp (ai_core.h).
 #include "gameworld.h"
+#include "../world/handworld.h"
+#include "../world/roadoverrides.h"
 #include <functional>
 
 namespace Game {
@@ -271,6 +273,48 @@ float behind(const GameWorld& g, int id, vec2 dir, float spd) {
     return Max(cap, 0.f);
 }
 
+// The stair pace: a walk takes a flight of stairs one tread a step - about 0.5 m/s up and 0.55 m/s down, the animation
+// agent's numbers for its slow walk on treads. At the 1.2-1.4 m/s of the flat, the feet came down across the treads'
+// noses (its locostairs test on the Calle Luna SkyLine station's street stair). A jog or a run (2.4 m/s and more asked,
+// as ai_turn tells a walk from a run) keeps its pace: the animator lands those on treads too. On a flight: the ground
+// along the way asked for, looked at every 0.3 m from 0.3 m back to 0.9 m on, steps by a tread's height (10-40 cm) at
+// least twice and all the same way - a kerb is one step, a ramp's slope is less than a tread a step, and at a street
+// corner the ground goes down and up again or drops more than a tread (the life test: a first version held walkers at
+// downtown corners). Looked at five times a second, held for half a second after the last time (no flicker on a landing).
+void stairs(GameWorld& g, int id, vec2& desired) {
+    if (id < 0 || id >= (int)g.peds.size()) return;
+    const Ped& p = g.peds[id];
+    const float l = length(desired);
+    if (l < 0.05f || l >= 2.4f || p.state != PS_ONFOOT) return;
+    PedAI& pa = g.pedAI(id);
+    const float now = (float)g.time;
+    if (now >= pa.stairLook || pa.stairLook > now + 1.f) {
+        pa.stairLook = now + 0.2f;
+        const vec2 d = desired / l;
+        const vec3 pp = p.pos.toVec3();
+        // the ground 0.3 m back, under the ped, and 0.3 / 0.6 / 0.9 m on - each from the one before it (the query takes
+        // the surface at most a big step above the height given: a tread up, or the tread below)
+        float h[5];
+        h[1] = g.groundHeight(pp.x, pp.y, pp.z + 0.1f);
+        h[0] = g.groundHeight(pp.x - d.x * 0.3f, pp.y - d.y * 0.3f, h[1]);
+        for (int k = 2; k < 5; k++) h[k] = g.groundHeight(pp.x + d.x * (0.3f * (k - 1)), pp.y + d.y * (0.3f * (k - 1)), h[k - 1]);
+        int ups = 0, downs = 0, other = 0;
+        for (int k = 0; k < 4; k++) {
+            const float dh = h[k + 1] - h[k];
+            if (fabsf(dh) >= 0.1f && fabsf(dh) < 0.4f) (dh > 0.f ? ups : downs)++;
+            else if (fabsf(dh) >= 0.4f) other++;
+        }
+        if (other == 0 && ((ups >= 2 && downs == 0) || (downs >= 2 && ups == 0))) {
+            pa.stairT = now + 0.5f;
+            pa.stairUp = ups > 0;
+        }
+    }
+    if (now < pa.stairT) {
+        const float cap = pa.stairUp ? 0.5f : 0.55f;
+        if (l > cap) desired = desired * (cap / l);
+    }
+}
+
 }  // namespace ai_pace
 
 vec2 aiWalkRound(GameWorld& g, int id, vec2 goal, float want, float dt) {
@@ -322,9 +366,11 @@ vec2 aiWalkRound(GameWorld& g, int id, vec2 goal, float want, float dt) {
     return pa.detourT > 0.f ? pa.detour : goal;
 }
 
-// A street door of a building near p: the middle of the street facade at ground level, on the side p is on, with a
-// clear straight walk to p. Used by peds stepping out of and walking into buildings (population.cpp, pedai.cpp).
-// Industrial blocks, garages, sheds and buildings hosting an enterable interior (interiors_game.cpp) are skipped.
+// A street door of a building near p: its door on the street facade at ground level (the facade's middle, or a
+// hand-built building's main entrance: Building::doorAlong), on the side p is on, with a clear straight walk to p. Used
+// by peds stepping out of and walking into buildings (population.cpp, pedai.cpp). Industrial blocks, garages, sheds,
+// buildings hosting an enterable interior (interiors_game.cpp) and hand-built ones without a street door on their front
+// (Building::noStreetDoor) are skipped.
 bool aiBuildingDoorNear(const GameWorld& g, vec2 p, float r, u32 seed, vec3& out) {
     const World::BuildingSet* bs = g.buildings ? g.buildings : World::gBuildings;
     if (!bs || bs->buildings.empty()) return false;
@@ -336,10 +382,10 @@ bool aiBuildingDoorNear(const GameWorld& g, vec2 p, float r, u32 seed, vec3& out
     float bestZ = 0.f;
     for (int i : nb) {
         const World::Building& b = bs->buildings[i];
-        if (b.interior >= 0) continue;
+        if (b.interior >= 0 || b.noStreetDoor) continue;
         u8 st = b.style;
         if (st == World::BS_WAREHOUSE || st == World::BS_FACTORY || st == World::BS_BARN || st == World::BS_GARAGE || st == World::BS_SHACK) continue;
-        vec2 door = b.c + b.front * (b.hy + 0.45f);
+        vec2 door = b.c + b.ax * b.doorAlong + b.front * (b.hy + 0.45f);
         vec2 rp = p - door;
         float d = length(rp);
         if (d > r || d < 2.f || dot(rp, b.front) < 1.f) continue;   // on the street side, not right on top of it
@@ -376,10 +422,10 @@ bool aiBuildingDoorAway(const GameWorld& g, vec2 p, vec2 threat, float r, vec3& 
     float atZ = 0.f;
     for (int i : nb) {
         const World::Building& b = bs->buildings[i];
-        if (b.interior >= 0) continue;
+        if (b.interior >= 0 || b.noStreetDoor) continue;
         u8 st = b.style;
         if (st == World::BS_WAREHOUSE || st == World::BS_FACTORY || st == World::BS_BARN || st == World::BS_GARAGE || st == World::BS_SHACK) continue;
-        vec2 door = b.c + b.front * (b.hy + 0.45f);
+        vec2 door = b.c + b.ax * b.doorAlong + b.front * (b.hy + 0.45f);
         vec2 run = door - p;
         float d = length(run);
         if (d > r || d < 1.5f || dot(p - door, b.front) < 0.5f) continue;   // (from the street side)
@@ -401,7 +447,9 @@ bool aiBuildingDoorAway(const GameWorld& g, vec2 p, vec2 threat, float r, vec3& 
 // ------------------------------------------------------------------------------------------------------------------
 void GameWorld::initAI() {
     if (ai.ready || !roads) return;
-    laneGraph.build(*roads);
+    // (the hand-built world's roads with what they author beyond the network - kerbs and sidewalks per side, their own
+    //  lane widths and limits; the procedural world has none)
+    laneGraph.build(*roads, World::isHandWorld() ? World::gRoadOverrides : nullptr);
     traffic.init(&laneGraph);
     pedNav.init(&laneGraph, &traffic);
     ai.ready = true;
@@ -1569,6 +1617,7 @@ void GameWorld::updateBrain(int id, float dt) {
                 float turnR = ai_turn::ease(p.yaw, atan2f(-desired.x, desired.y), length(p.vel.xy()), p.aiming, 8.f, desired);
                 faceTowards(p, face, turnR, dt);
             }
+            ai_pace::stairs(*this, id, desired);   // (on a flight: a tread a step)
             movePed(p, desired, dt, false);
             break;
         }
@@ -1589,6 +1638,7 @@ void GameWorld::updateBrain(int id, float dt) {
                 float turnR = ai_turn::ease(p.yaw, atan2f(-desired.x, desired.y), length(p.vel.xy()), p.aiming, 8.f, desired);
                 faceTowards(p, face, turnR, dt);
             }
+            ai_pace::stairs(*this, id, desired);   // (on a flight: a tread a step)
             movePed(p, desired, dt, false);
             break;
         }

@@ -1,3 +1,0 @@
-src/world/roomlight.h a6fcf2b828cf5105b5de409dc001da1c7815c975 new
-tests/world/worldmodel_test.cpp cec03b2b15e9f620a122bd08a3010d97030242e4 on 81f620d7
-docs/HANDBUILT_WORLD.md c4f763a75805e4c8f31aebee0a6680ee45c2a763 on be73a5fb

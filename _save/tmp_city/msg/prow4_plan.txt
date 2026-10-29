@@ -1,0 +1,81 @@
+city: the palette-seed dry run, and the plan for row 4 (Calle Nueve to Avenida Flores, b020-b025). Dry runs only, nothing written into the tree. Row 4 waits for your go after the palette-seed batch. Two new design calls for the user are in it, plus the casitas', which is still open.
+
+THE PALETTE-SEED DRY RUN (as you asked: b002-b004 and b007-b019; b005 and b006 left as they are)
+- The rule: the palettes draw from a generator of their own, seeded with the block id and the seed (the text "cl.b017 6").
+  - The palette draw is street.py's last use of the generator, so nothing else can move.
+  - Python hashes a text seed with SHA-512. I first tried the id's CRC-32, but its first colours bunched (8 lemon and 7 rose of 24 blocks). The text seed spreads them 3-5 of each.
+- The control first: today's street.py, re-run over those 16 blocks with fresh ground dumps, rewrites all 274 of its files byte for byte. So the only differences below come from the rule.
+- With the rule:
+  - 231 files are recoloured, and 43 keep their colour by chance.
+  - In every one of the 231, the only line that changes is "config palette=".
+  - No plan, position (at, z, yaw), mirror or casita twin choice moves, and every building keeps its palette family (182 calle, 25 casita, 24 bungalow). The 25 gable casitas take their new colour's roof tint.
+  - The repeats go:
+    - The longest common start between two faces of one street falls from 10 to 2. Today's 10 is b014 and b016 on Avenida Flores.
+    - The longest common colour run anywhere falls from 10 to 5. The 5 is by chance, at different places on the two faces.
+- Per block: b002 14, b003 14, b004 17, b007 7, b008 17, b009 18, b010 12, b011 14, b012 14, b013 12, b014 17, b015 16, b016 19, b017 16, b018 11, b019 13.
+- Cost: one small batch. It touches the 231 files plus street.py and its doc paragraph.
+  - The checks are worldc, worldv, CI, the census, the harness (unchanged rooms), and shots of a few faces before and after.
+  - The cell geometry doesn't change, only colours, so the frame log should match.
+
+ROW 4 WITH TODAY'S STREET.PY (seed 6, worldc --ground dumps, no new plans): 105 buildings, every parcel built.
+- Each block has two faces, and all of row 4 lands in cell row 42 (every centre is between y 512 and 768). It fills that row the way row 2 filled row 41.
+- Avenida Flores' north side is commercial, on paved parcels: 59 buildings.
+  - They are 26 shops with a flat over them, 21 three-storey walk-ups, and 12 corner shops.
+  - The user's "A" covers this side too. The row 3 plan said row 4's south face is on Avenida Flores, so it mirrors the south side.
+  - The longest run of one plan is 6 shops with flats, in b021. Calle Luna has runs up to 7.
+- Calle Nueve's south side is residential, on lawns: 46 buildings.
+  - They are 26 casitas (12 gable, 14 flat-roof twins) and 8 bungalows, with a corner shop at each end of each block (12).
+  - The twin rule holds: no run of one plan is longer than 2.
+- On seed 6 the colours would repeat again: b022's and b025's Avenida faces share their first 8. With the palette seed, row 4's longest common start between two faces is 2.
+
+DESIGN CALLS (for the user)
+1. What do Calle Nueve's houses look out on? (new)
+   - In hand mode there is nothing north of Calle Nueve, only bare terrain to the district's bounds at y 740. The only roads there are the 50 m stubs of Bougainvillea and Este. Calle Nueve is the district's north edge.
+   - a. Leave it bare until the district to the north is built. No work, but every view from Calle Nueve looks out on empty ground.
+   - b. Dress the strip as a park edge with dress.py: lawn, palms, a footpath and benches along the north sidewalk. About one small batch after row 4. I'd pick this.
+   - c. A row 5 of blocks up to y 740. That needs roads and parcels first, then about 4 batches like these, and it goes beyond the pilot.
+2. Calle Nueve's houses (this goes with the casitas question).
+   - a. The same mix as Calle Siete: casita_d, its flat-roof twin and the bungalow. No new work, and it's the default.
+   - b. A third house plan for this street, such as a two-storey townhouse or a courtyard house. About 2 batches (the plan, its layouts and facade, the harness).
+   - I'd pick a. With the twin and the palette seed the street doesn't repeat, and a new plan is better spent where the district has none of a kind.
+3. Avenida Flores' north side: no new call. It follows the user's "A". If they want to revisit "A" after seeing R3c's and R3d's shots, this is the moment, before R4a.
+
+BATCHES, by face, one at a time with your go. Today's plans throughout.
+- How I predict:
+  - Triangles: per-plan averages, which came within 2-5% on R3c's and R3d's cells.
+  - Near build: R3c's and R3d's in-game rate, 0.12-0.14 ms per 1,000 triangles, rising with the cell's size.
+  - Upload: the buildings plus the cell's other 2.5-4k triangles. A cell over 64k goes alone in its frame.
+- R4a: Avenida Flores' north side of b020-b022, 33 buildings (11 walk-ups, 16 shops with flats, 6 corners).
+  - 45,42: 20 to 39 placements, 25.2k to 45.5k triangles. Near build about 6 ms; upload about 48k.
+  - 44,42: 6 to 13 placements (8.9k to 15.5k). 46,42: 21 to 28 placements (19.9k to 26.4k).
+- R4b: Avenida Flores' north side of b023-b025, 26 buildings (10 walk-ups, 10 shops with flats, 6 corners).
+  - 46,42: 28 to 42 placements, 26.4k to 41.2k triangles. Near build about 5.5 ms; upload about 44k.
+  - 47,42: 11 to 23 placements (13.3k to 27.1k).
+- R4c: Calle Nueve's south side of b020-b022, 26 buildings (15 casitas, 5 bungalows, 6 corners).
+  - 45,42: 39 to 55 placements, 45.5k to 60.3k triangles. This becomes row 42's busiest cell. Near build about 8 ms; upload about 63-64k, alone in its frame.
+  - 44,42: 13 to 18 placements (19.6k). 46,42: 42 to 47 placements (45.9k).
+- R4d: Calle Nueve's south side of b023-b025, 20 buildings (11 casitas, 3 bungalows, 6 corners).
+  - 46,42: 47 to 58 placements, 45.9k to 55.7k triangles. Near build about 7.5 ms; upload about 59k, alone.
+  - 47,42: 23 to 32 placements (27.1k to 35.2k).
+- Order:
+  - The palette-seed batch first, as you proposed.
+  - Then R4a and R4b, which have no open call.
+  - Then R4c and R4d once the Calle Nueve calls are answered, or on their defaults: the bare edge (1a) and Calle Siete's mix (2a).
+  - A park edge (1b), if the user picks it, comes after R4d.
+
+WHAT THE BUSY CELLS MEAN FOR THE ENGINE
+- After row 4, 45,42 (about 60k) and 46,42 (about 56k) join row 41's 45,41 (70.6k) and 46,41 (75.0k).
+- Near builds: no new cell is bigger than 46,41.
+  - But the busiest builds already read 9-13 ms from run to run. 45,41 took 13.1 ms in 92's quiet drive, and 46,41 took 12.8 ms in R3d's shots. The spread comes from what each build shares the four cores with.
+  - Row 4 adds two ~60k cells to the same start, so the top of that spread could reach ~15 ms. If a quiet one passes it, (a) comes, by your rule.
+- Uploads: the biggest stays 46,41's ~79k, alone (7-10 ms). A drive past Avenida Flores now loads four or five big cells, each alone in its frame, instead of three. The streaming p99 will rise, but the uploads' own max shouldn't.
+- (i) and (ii): row 4 filling cell row 42 is the trigger you set.
+  - (i), the uploads: by these numbers no lone upload passes ~10 ms.
+  - (ii), the request loop: its spikes are growing in Wine. There was a 23.7 ms one in R3d's quiet drive and a 12.9 ms one in 92's, both in the first half second and in frames that uploaded almost nothing.
+  - If you count those as the trigger, (ii) could come before row 4 or with it. Otherwise I'd take a frame log with both rows near at R4c, when 45,42 reaches ~60k, and decide then.
+- Interiors: row 4 adds 105 buildings (to 412) and about 1,250 rooms. R3c's and R3d's commercial buildings averaged 13-15 rooms each, and R3b's houses ~9. Most of row 4 lies within 480 m of the drive's route, so I expect its resident maximum to rise from 295 to roughly 380. Memory is measured per batch.
+
+COST
+- R4a-R4d: about 4 batches like row 3's, each with the lean checks (harness, a day face, a night face, an aerial, worldv, the census, both drives and the frame log).
+- Before them, the palette-seed batch.
+- If the user picks them: about 1 batch for the park edge, or about 2 for a third house plan.

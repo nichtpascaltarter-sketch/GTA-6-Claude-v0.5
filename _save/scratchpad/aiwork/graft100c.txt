@@ -1,6 +1,0 @@
-a8bf23c5015adfef5e001efc2e8401d73b809188 src/game/traffic.cpp
-8efeb4a4a8453333b7954e80233efd6a740e2997 src/game/traffic_core.cpp
-0f8e00bb05600e278571b7db66b773d5d0dcf109 src/game/ai.cpp
-98de395da7ae05736af544bd32bf2e0c6f53b3f5 src/game/pedai.cpp
-68a4207337afc76352a7afe06e570b18f2c870f1 src/game/police.cpp
-eb0df142870ce350f8aae6243d377079d8eece25 src/game/app.cpp

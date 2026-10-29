@@ -1,3 +1,0 @@
-bin/nt_ai103.exe hwysoak:300:12:30:960x540
-bin/nt_ai103.exe life:200:12:20:960x540
-bin/nt_ai103.exe chase:180:12:20:960x540

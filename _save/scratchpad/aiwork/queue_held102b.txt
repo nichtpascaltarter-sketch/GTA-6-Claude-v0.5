@@ -1,6 +1,0 @@
-bin/nt_ai102b.exe turntest:150:12:60:960x540
-bin/nt_ai102b.exe knock:150:12:60:960x540
-bin/nt_ai102b.exe crossing:90:12:60:960x540
-bin/nt_ai102b.exe crowded:90:12:60
-bin/nt_ai102b.exe copreturn:110:12:60:960x540
-bin/nt_ai102b.exe walkby:150:12:60

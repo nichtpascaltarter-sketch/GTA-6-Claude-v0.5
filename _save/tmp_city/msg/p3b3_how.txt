@@ -1,0 +1,40 @@
+- New src/world/interiorhand.cpp. interiors.h adds IK_HAND, prepareHandInteriors, handInteriorTour and handRoomLight.
+  - At load (handworld.cpp, after prepareHandBuildings), each placement whose plan has rooms gets an InteriorDef. They sit in a set of hand mode's own, which gInteriors points at. Each def holds:
+    - its frame: the origin at the middle of the front wall's centreline, x the plan's (mirrored where the placement is);
+    - its rooms as boxes: the polygon's bounds less half the walls round them (a stair's room reaches the floor above);
+    - its doors with leaves: hinged, or a pair for the shop's glass door. Hinge end and swing come from 3b-2's records, mirrored where the placement is. An `opening` has no leaf;
+    - daylight portals through its windows and exterior doors;
+    - the markers outside and inside its main entrance;
+    - each room's light key.
+  - It never goes through planInteriors or pickBuilding (your note), and Building::interior stays -1.
+  - The existing buildInterior builds its mesh, collision and lights on a worker. It does so through a hook in interiorlayouts.cpp's runLayout (gLayoutHand), so tools that compile interiorlayouts.cpp without interiorhand.cpp still link.
+  - layoutHand builds:
+    - the exterior walls' inner faces, with the windows' inner reveals, glass and sills;
+    - the inside walls with their door casings (collided);
+    - floors and ceilings with the stairwells cut out, and the upper floors' slabs (collided);
+    - per stair: a drawn box per tread; the ramp, 3 colliders per tread, their tops on the line through the treads' middles (within a third of a riser of the tread); the landings; the well's edges; and 1 m balustrades where a floor stops at a well;
+    - baseboards (none across a well);
+    - a light per room by its type.
+  - handRoomLight: a room's lamps are roomLight(class, seed, windows, day, minute, night) / 222.
+    - The class and room hash come from its window's facade entry, as facade.hlsl takes them: a shop's shaderHash3(2000, 77, seed), others' shaderHash3(1000, 1, seed).
+    - A room with no window uses its own seed.
+- interiors_game.cpp:
+  - collision keys: an IK_HAND interior's colliders and leaves get positive keys (2000000 + def*256 + sub). The generator's keep their negative ones (QUESTIONS 1).
+  - IK_HAND lamps and ambient use handRoomLight, not the schedules; submitAll now takes the game day.
+  - the light budget: the renderer keeps 32 ambient volumes, nearest interior first.
+    - A hand-built interior's lamps light only when all its rooms got a volume this frame.
+    - A lamp outside every volume acts as an outdoor light, so it would light the street and the neighbours through the walls.
+  - --handtour <names>|all (with --play --autoplay handtour) walks the player along handInteriorTour:
+    - from outside the main entrance, through every door and up every stair, into each room;
+    - it logs each room reached, and each waypoint not reached within 6 s (it then puts the player there and counts it);
+    - it takes a shot per floor and on each stair. A stair's room has no middle waypoint, since that point is on its flight or over its well.
+- handshells.cpp, for a shell whose plan has rooms:
+  - Its doorways are open through the wall at the near LOD, over a stone threshold, and the interior hangs the leaves.
+  - Its collision is hollow, where it was one box: the foundation up to the ground floor, each exterior wall floor by floor with door gaps and lintels, and the roof slab.
+  - Stoops (buildStoops): the walk steps onto a box only within 0.35 m of its feet (physics.cpp capsuleOverlap), so the 0.47 m gutter blocked every door.
+  - Party walls:
+    - prepareHandBuildings finds, for each wall and outline edge, how high a neighbour hides its outer face (HandBuildings wallCover and edgeCover, runtime only, in buildingsbin.h);
+    - buildWall clips the face and its openings below that;
+    - the bands, cornice, coping and quoins skip the covered edges and corners.
+- worldmodel_buildings.cpp stairEnd (Codex P2): +1: and -1: name the nearest floor above or below by z, with worldv's 0.02 tolerance, as validate_layout.cpp's neighbour() does. Before, they followed record order (fi + k).
+- Docs: HANDBUILT_WORLD 7.2 (interiors, hollow collision, stoops, party walls), 7.3, 7.4 and 7.8 (the light state); NTW_FORMAT 9.10 (relative ends by height).

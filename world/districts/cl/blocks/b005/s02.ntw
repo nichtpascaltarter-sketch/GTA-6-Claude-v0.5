@@ -1,0 +1,4 @@
+ntw 1 building id=cl.b005.s02 block=cl.b005 parcel=cl.b005.p01
+# a shop with a flat over it, against the walk-up, facing Calle Luna
+place plan=lib.plan.shop.flats_a at=1637.00,339.30 z=3.66 yaw=180.0
+config palette=lib.palette.calle.coral

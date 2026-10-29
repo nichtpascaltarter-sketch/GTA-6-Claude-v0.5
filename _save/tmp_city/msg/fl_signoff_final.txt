@@ -1,0 +1,121 @@
+city snapshot-safe: the two FOR LATER items together, round 3 on Bayshore round 1. (1) 9th Avenue's 25 m piece in Bayshore Boulevard is Bayshore's now (no 3->2->3 lane drop at node 287), and so are four more pieces like it. (2) Almeria Boulevard's 138 m beside Levee Road goes, with the 8 m of Coral Drive that took it into Levee Road's all-way stop, and so does its 140 m twin further south. One file, on 886dc47 (snapshot 68).
+
+FILES (1, written)
+- src/world/roads.cpp 05b5ddb5 on 72679617 (886dc47's: Bayshore round 1)
+
+WHAT (player-facing)
+- Lane drops inside a bigger road. Where a smaller road had been laid along a stretch of a bigger one, the generator kept the smaller one's class there. Now the stretch is the bigger road's: its class, name, lanes and widths. There are 5 in the city:
+  - Bayshore Boulevard (3/3):
+    - 9th Avenue's 25.1 m at node 287, (3900,3425)-(3901.5,3450), 2/2 between its 3/3 (the FOR LATER item);
+    - 10th Avenue's 6.5 m at (3800,1944)-(3802,1950), 1/1;
+    - 11th Avenue's 25.2 m at (3698,-550)-(3700,-525), 1/1.
+  - Old Cutler Road (2/2):
+    - Del Mar Boulevard's 4.9 m at (2620,-4025)-(2620,-4030), 1/1;
+    - Bayshore Way's 30.3 m at (2945,-2837)-(2946,-2868), 1/1.
+  - The junctions at their ends now have the bigger road on two legs. So four of them get lights instead of stop signs, like the road's other junctions: (3698,-550), (2620,-4030), (2620,-4025) and (2945,-2837).
+  - Two bus stops were named after the vanished pieces; they take the next cross street:
+    - "Bayshore Blvd & 10th Ave" becomes "Bayshore Blvd & N 18th St" (3804,1894);
+    - "Bayshore Blvd & 11th Ave" becomes "Bayshore Blvd & S 4th St" (3694,-482).
+  - Left as it is: 8th Avenue's 5.7 m off Bayshore at (3999,3950)-(4000,3956). The two roads' polylines share it, but in the network Bayshore turns west at its south end and only 8th Avenue goes on from its north end, so it stays 8th Avenue.
+- Almeria Boulevard beside Levee Road. The overlap pass had left two stretches of it running beside Levee Road, 7.9-9.4 m apart centre to centre: kerbs within about a metre of each other, and Almeria's sidewalk on Levee's shoulder. Both go:
+  - the 138 m from Levee at (-2953,2670) up to (-2960,2802), with Coral Drive's 7.8 m that took it into Levee Road's all-way stop at (-2952,2802) (the FOR LATER item);
+  - the same thing further south: 140 m between two joins on Levee at (-2954,2177) and (-2954,2307).
+  - Levee Road carries their traffic. The junction at (-2952,2802) has 3 legs now (Levee north and south, Coral Drive east). It had an all-way stop as a 4-way; now it has no signs, like the network's other T junctions of small roads.
+
+HOW (roads.cpp)
+- The lane drops:
+  - planarize's link deduplication: where two roads' polylines share a link, the first still keeps it, so junctions, edges and slots are as before. It now also notes a road with more lanes (by class) on the same link: both at grade, the same flags, neither one-way.
+  - An edge whose every link has such a road is recorded. Once the network stands (after the beach and stub passes), it takes that road's class and name if an edge of that road is at both its ends. Per-edge attributes then give it the lanes and widths.
+- Almeria's stretches: a new tidy-up in the overlap pass, after the joins and the doubled-up drops.
+  - A piece the cuts leave goes if it runs beside the bigger road the whole way (within their half widths and 5 m) between two points on it. The two points are two joins, or a join and one of its junctions, or a join and a junction that a road under 20 m joins to it; that short road goes too.
+  - The joins' nodes stay on Levee Road (three nodes of degree 2). So the pass's pieces, and with them every slot, are as they were. The three slots that went take filler splits, like the pass's others.
+
+CENSUS (rfcheck2: 886dc47 against 886dc47 + round 3; 87 of 55,081 record lines differ, all from the two changes)
+- E, 11 lines:
+  - the 5 re-classed stretches;
+  - slots 1868 (the southern stretch), 1872 (the northern) and 1875 (Coral Drive's link) hold filler splits, as the pass fills every slot that went. They are Biscaya Street 19.9 m short of (-2836,2409), Levee Road 19.9 m short of (-2952,2802) and Coral Drive 19.9 m short of (-2717,2800). The three edges they were split from (1877, 176, 1885) end there.
+- V:
+  - the 4 junctions that get lights;
+  - 1388 (-2952,2802): 4 legs -> 3, no signs;
+  - 1387, the northern stretch's end: unused;
+  - Levee's three join nodes 6227-6229: 3 legs -> 2;
+  - the 3 filler nodes join the pass's new nodes, so the 23 pass-made nodes after them renumber, by 2 or 3 (same places).
+- N: nodes 6265 -> 6268, signalised 1677 -> 1681, buildings 39038 -> 39036.
+- H: the terrain heights hash only (the grading follows the changed roads). Water and splat are unchanged.
+- S + T: the two bus stop names.
+- B: 37 removed, 35 added, all beside the two stretches and the three filler splits. I attributed them with rfcheck3 (rfcheck2 plus each building's street face):
+  - the southern stretch's 5 houses go. Levee Road's pieces beside it gain 6 and lose 2, on the ground the stretch and its join took;
+  - Levee 176, beside the northern stretch: 3 -> 4 houses. Its run now ends at its filler split; the northern stretch had no houses;
+  - Biscaya Street 1877: 16 -> 15. Its lot run ends 11 m sooner at the filler split, and its two sides share one random sequence;
+  - Coral Drive 1879, which starts at Biscaya's south end: its 4 houses re-roll. Its lots are laid after Biscaya's, from their shared corner, and must clear them;
+  - garages behind them: 7 -> 6.
+  - No tower and no other district.
+- Road meshes (meshcensus3, both levels of detail): 19 of 4,366 cell lines differ, in 10 cells, all at the changes:
+  - the cells of the five re-classed pieces;
+  - the four cells along Levee Road with the two stretches and the three filler splits;
+  - and one cell at LOD 1 only: two more tall palms in Bayshore's median on 186 at (3709,-490) and (3706,-504). The median now runs on through its node into 11th Avenue's former piece, which is Bayshore.
+  - Road vertices 11,379,140 -> 11,377,580.
+- Road queries (the same tool: surface heights across every edge every 6 m): 34 of 9,547 edge lines differ.
+  - the five re-classed pieces, and the roads at their junctions, whose sampled band reaches into them;
+  - around Levee Road: the pieces beside or meeting the two stretches, the three slots with filler splits, the edges they were split from, and the roads at the split points.
+- traffic_sim --overlaps: 0 overlapping edge pairs on both. --deadends: the same 1,255 dead ends at the same places.
+- lanecheck (my scratch tool for lanes over a winning road's lanes): 24 -> 25 stretches. It counts a road running on through a node of its own, which the overlap pass leaves alone. The extra one is Bayshore's 182 (11th Avenue's piece) on Bayshore 186 at their shared node; 282's line was 9th Avenue on Bayshore and is now Bayshore on Bayshore.
+
+SIMULATIONS
+- Setup: traffic_sim, 140 cars and 120 pedestrians, 6 simulated minutes, districts of 450 m. "Deadlocks" = waits over 60 s. "Near" = within 60 m of the changed spots.
+- traffic_sim was built from 0e4bf3a + my 68 (round 1) and from that + this file (round 3). 68 changed no world-generator or AI file, so they stand for 886dc47's.
+- Each line gives deadlocks / collisions, district (near), round 1 -> round 3.
+- Almeria's stretches:
+  - Levee, (-2950,2980), seeds 1-6: 446 / 43 (99 / 22) -> 360 / 20 (0 / 0).
+    - Near is the stretch's corner off its join, its middle, and Coral Drive's link into the all-way stop.
+    - Round 1's district numbers equal those in its sign-off, which ran on 65's AI.
+  - Levee south, (-2950,2300), seeds 1-6: 203 / 63 (130 / 33) -> 89 / 7 (0 / 0). Near is the southern stretch's two joins and its middle.
+- 9th Avenue's piece:
+  - Bayshore and 9th, (3880,3110), seeds 1-6: 64 / 6 (0 / 1) -> 29 / 3 (0 / 0).
+  - Midtown, (3600,3200), seeds 1-6: 36 / 2 (0 / 0) -> 17 / 0 (1 / 0).
+  - The piece itself held nobody up in these runs, before or after. The district totals move with Bayshore's flow; most of the waits are at 275 and 6224 further south, as in round 1.
+- The other four pieces:
+  - 11th Avenue's, (3699,-537), seeds 1-3: 82 / 8 (2 / 0) -> 68 / 2 (0 / 0).
+  - Bayshore Way's, (2945,-2852), seeds 1-3: 32 / 11 (0 / 0) -> 19 / 4 (0 / 0).
+  - The two shortest, 6.5 m and 4.9 m, each at a junction that was already a hotspot. With seeds 1-6, waits near them fall and collisions near them rise:
+    - 10th Avenue's, (3801,1947), at Bayshore's junction with Palmetto Boulevard: 212 / 28 (69 / 15) -> 213 / 37 (37 / 22). The near collisions are at Palmetto's stop line (3 -> 9) and at 10th Avenue's bend at (3800,2001) (4 -> 8); inside the junction it is 11 -> 12.
+    - Del Mar's, (2620,-4027), between Old Cutler's two junctions 4.9 m apart (a 3-way and a 5-way, both waiting hubs on round 1): 356 / 24 (195 / 7) -> 350 / 32 (156 / 12). Both junctions now have lights instead of stop signs. The near collisions are on Del Mar north of the 5-way (6 -> 8) and, new, 3 on Del Mar south of the 3-way.
+
+CHECKS (886dc47 + the file, against 886dc47)
+- CI's tests with CI's flags (-Wall -Wextra -Werror, UBSan): world_format_test, worldv_test and worldmodel_test (d630dd0c) all passed. roads.cpp is in none of them.
+- worldv on world/: 0 errors and the 4 agreed warnings. worldc: world.bin byte-identical; the hand world doesn't use the generator.
+- MinGW, main.cpp with the exe build's -Wall flags and 68's shaders embedded: 0 errors, 0 warnings.
+- rfcheck2: 886dc47's census is exactly round 1's (0 lines against 0e4bf3a + my 68), and with the file it is the census above.
+- The exes built with 0 warnings: /tmp/city/nt_r68.exe (886dc47, 16,109,056 bytes) and /tmp/city/nt_r3.exe (886dc47 + the file, 16,112,640 bytes).
+- Shots, 1280x720, before (nt_r68) | after (nt_r3), pairs in /tmp/city/flsmoke/pairs/:
+  - fl_lev_top: Levee Road from above, from the northern stretch's join up to Coral Drive. Before: two carriageways side by side, the 65-degree join at the bottom, the link into the all-way stop at the top. After: one road and a T;
+  - fl_lev_street2 and fl_lev_aerial: the same from the street and from the air, looking north to Coral Drive. Before: Almeria's carriageway and sidewalk beside Levee's, into the all-way stop. After: Levee alone, a T. Where the stretch was, Levee's west side now shows the same pale roadside ground its east side has;
+  - fl_lev2_top: the southern stretch, the same;
+  - fl_bay_top and fl_bay_street: Bayshore at 9th Avenue's piece. Before: the median and the third lanes stop 25 m short of N 34th Street's junction. After: they run on to it;
+  - fl_e135_top: 10th Avenue's piece at Palmetto Boulevard, the same.
+  - 0 fatal in every run. Networks: 6,265 nodes and 9,547 edges before; 6,268 and 9,547 after.
+- Drives, 0 fatal each:
+  - hand, 30 s autoplay drive: exactly 886dc47's, t=21.5 s at (1911.9,282.8) with 77 peds and 53 vehicles (the hand world doesn't use the generator);
+  - procedural, 24 s first person: t=17.5 s at (1789.9,130.6) with 93 peds and 63 vehicles; 886dc47's ends at (1806.7,257.2) with 87 and 67. Each ran twice with the same result.
+    - The start differs with the network: the player starts in another car and another place, as with round 1. On the way the autopilot brushes a pedestrian ("Whoa!") and gets a wanted level of 2 (health 190). The drive is 1.4 km from the nearest change.
+
+THE AI'S FINDING: 9243 AT (3901,3085)
+- This round doesn't clear it. 9243 is 9th Avenue's join into Bayshore at 6224, from round 1, 340 m south of node 287; this round doesn't touch it.
+- The cause is the join's corner:
+  - The overlap pass lays a join as one straight link from the cut end to Bayshore at about 65 degrees. So 9th Avenue (2/2) turns 50 degrees on a single vertex at (3900,3094), 3.4 m before 6224's stop line.
+  - The lanes have no curve there. traffic_sim --lane: lanes 24668 and 24670, the two inner lanes 3.3 m apart, each turn 50 degrees within 2 m.
+  - Cars can't turn that sharply and overrun the corner by about 0.9 m (the LATDEV lines in the AI's traces). Southbound, coming off 6224 and turning right, that puts them 0.9 m left of their lane, into the northbound queue waiting at 6224's light: car 66 on 24670 into car 90 stopped on 24668.
+- It isn't alone. A scan of every edge's driven stretch finds 20 bends of 40 degrees or more in the network; 9 of them are the pass's joins (main's and round 1's, 45-60 degrees).
+- What would clear it, either:
+  - (a) roads.cpp: the overlap pass lays each join as a curve (a fillet of about 15-20 m radius at the cut end) instead of a corner. That fixes the lanes and the road mesh at those 9 joins. It moves those edges' polylines, so the lots along them are laid again: a census like round 1's. I can do it as the next round.
+  - (b) lanes.cpp (the AI's file): round any lane corner sharper than about 30 degrees with an arc a car can drive. No world change, and it covers all 20 bends.
+- The waits at 275-281: in my 12 Bayshore runs (bay9 + Midtown, seeds 1-6), round 3 halves them: 275 44 -> 23, 278 15 -> 7, 6224 11 -> 5, 281 5 -> 1.
+  - What's left is mostly at 275 (Bayshore at Saltmarsh Boulevard). Of its 23: 18 are cars on red, at the stop line or queued behind one; 3 wait behind a pedestrian on its crosswalk; 2 are on green. That looks like 275's signal timing more than the road layout.
+
+FOR LATER (found, not touched)
+- Old Cutler Road's two junctions 4.9 m apart at (2620,-4025) and (2620,-4030), a 5-way and a 3-way, are a waiting hub before and after. Merging junctions that close would be the fix there.
+- Levee Road runs 43 m as "Almeria Boulevard" (lane class, sidewalks, 4.0 m instead of 4.3 m half width) at (-2951,2407)-(-2954,2450): the same kind of shared stretch, but with the same lanes, so no lane drop and this round leaves it.
+- lanecheck counts a road running on through a node of its own (above); the overlap pass's own test leaves those out.
+
+ASK
+- The two shortest pieces (10th Avenue's 6.5 m, Del Mar's 4.9 m) trade waits for collisions near them (above). I'd take all five: they are the same mislabel, and the hotspots were there before. If you'd rather not, a 10 m minimum length keeps them as they were, at no cost to the other three.

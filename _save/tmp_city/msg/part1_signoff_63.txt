@@ -1,0 +1,49 @@
+city snapshot-safe: part 1 of the Calle Luna pilot, on 63's tree (bdf3016, tree 77c89be9, the same tree as main 61cf548). The pilot's streets are drawn, on the graded terrain, and you can play them in hand mode.
+
+Blobs: /tmp/city/p1_63_blobs.txt, 21 files. Every base is 63's blob.
+- New since the 62-based version: src/game/app.cpp is 1a889880 on 63's a4c4aee9.
+- The other 20 blobs are unchanged from the 62-based version (/tmp/city/p1_blobs.txt). Each still sits on 63's blob for its file.
+
+Shared-file touches:
+- src/game/app.cpp, on a4c4aee9 (the first-start setup page). My change merged cleanly; it touches neither openMainMenu() nor loadSettings(). It does three things:
+  - game.init runs when the hand world has roads.
+  - At startup, hand mode never opens the main menu or the setup page: --play or --autoplay starts a new game, otherwise you get the free camera.
+  - New, the guard you asked for: in a hand-mode game, the pause menu's "Quit to menu" goes to the free camera instead of the main menu. It resumes as Resume does, then switches as F9 does, so F9 plays on. The item's label still says "Quit to menu", because menus.cpp is UI. The procedural world is unchanged.
+- src/game/savegame.cpp, on main 61cf548's b1593762: saveGame and loadGame return false in hand mode. This is unchanged.
+  - The hunk is the include plus one line at the top of each of those two functions.
+  - It stays out of readSlotInfo, where the front-end agent is working, and nothing is reformatted.
+
+What part 1 does:
+1a. The pilot's streets (world/): world.ntw, districts/cl/district.ntw and roads.ntw, and lib/signals/cl_twophase.ntw.
+  - 52 nodes, 83 edges, 8.9 km of street.
+  - 9 signals, 7 all-way stops, and every other junction written as priority by class.
+  - One bridge, one-way alleys, and five turning circles.
+1b. The terrain is graded under the roads.
+  - worldmap.cpp's grid queries and grading primitives move to terrainops.cpp, and roads.cpp's grading pass moves to roadgrade.cpp (gradeTerrainForRoads). Both moves are mechanical.
+  - New: the grading leaves authored decks alone.
+  - worldc stores the grading as a delta in "terrain.grade", 3 KB for the pilot. The game adds it at load, before the splat.
+  - A compile fix: an edge's polyline now gets a point at every profile break. The pilot's bridge had come out flat without it. There is a test for this.
+1c. Hand mode draws the road cells. There is no procedural dressing and nothing else procedural, and the game runs on these streets (app.cpp and savegame.cpp, above).
+- Docs: HANDBUILT_WORLD 6.1 and NTW_FORMAT section 1.
+- Tests: worldmodel_test adds testProfilePoints and testGrade.
+
+Checks:
+- p63 differs from the 62-based tree only in 63's own files (app/menus/updater/hud/PC_WORKER), and none of those is in the world builds. Its world and core sources are byte-identical. So these results from the 62-based tree carry over:
+  - CI's world_format_test, worldv_test and worldmodel_test: all passed;
+  - worldv on world/: 0 errors, 0 warnings;
+  - worldc: roads 52/83/9, grade 5356 texels; rbcheck IDENTICAL;
+  - MinGW worldc: 0/0;
+  - the procedural census: 0 of 55,086 lines differ, with equal height, water and splat hashes.
+- Rerun on p63:
+  - CI's update_logic_test (63's updater): 243 checks passed. bit_scan_test's sources haven't changed since 62.
+  - MinGW on main.cpp: 0 errors, 0 warnings.
+  - The exe built with 0 warnings. Its worldc output: roads 52/83/9, grade 5356 texels.
+  - Hand mode, 3 shots (aerial, Calle Luna, the bridge): 0 fatal errors; lane graph 192 lanes, 397 connectors, 330 walk nodes, 443 walk links.
+  - Hand mode, a --play drive: rc 0, 0 fatal errors, 88 peds and 54 vehicles at t=31.5. Those are the same numbers as on the 62-based tree.
+  - The procedural drive: rc 0, 0 fatal errors, 6260 nodes and 9547 edges, 89 peds and 67 vehicles.
+  - No automated test drives the pause menu, so the Quit-to-menu guard is checked by MinGW and the build only.
+
+Next:
+- worldv's fixture fixes, signed off separately, right after this.
+- Part 2a. Its checks are green up to the exe; the games are running.
+- RoadOverrides step 1 (EdgeExtra) with the host loader, as you asked. It sits on 2a and is in its checks.

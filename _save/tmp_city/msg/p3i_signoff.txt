@@ -1,0 +1,293 @@
+city snapshot-safe: 3i the palette seed. street.py's palettes now draw from a generator of their own, seeded with the block id and the seed ("cl.b014 6"), and its re-run over b002-b004 and b007-b019 recolours 231 of the 274 buildings it wrote there. That is exactly the dry run: only "config palette=" lines change. Base 5f810c3 (tree 53f1f680, snapshot 93). 233 files, all changed on their blobs, none new: street.py, HANDBUILT and the 231 building files.
+
+FILES (path, base, new)
+docs/HANDBUILT_WORLD.md d9effe62 562e718e
+tools/author/street.py 6665d114 363c193a
+world/districts/cl/blocks/b002/h14.ntw e08a469a 9a181f00
+world/districts/cl/blocks/b002/h15.ntw cfeab9f1 41a6ae7a
+world/districts/cl/blocks/b002/h16.ntw 774110a6 90c296ae
+world/districts/cl/blocks/b002/h17.ntw 97ce28ab 9f911bab
+world/districts/cl/blocks/b002/m02.ntw 97dc269c 4de55de3
+world/districts/cl/blocks/b002/m03.ntw a33d9a95 4e04c744
+world/districts/cl/blocks/b002/m07.ntw ffb44f80 04ecbad0
+world/districts/cl/blocks/b002/m10.ntw c500b07a 88c755ea
+world/districts/cl/blocks/b002/s01.ntw ce7730a7 bdd42bf7
+world/districts/cl/blocks/b002/s04.ntw 1d44d01d 5cd7f815
+world/districts/cl/blocks/b002/s05.ntw 2fdcd9ea 4ef21271
+world/districts/cl/blocks/b002/s06.ntw fcafae8d bc0b8238
+world/districts/cl/blocks/b002/s09.ntw dbedda00 0f238cee
+world/districts/cl/blocks/b002/s12.ntw 7e7ba589 d96693cf
+world/districts/cl/blocks/b003/h12.ntw fbad97ae 79d6f982
+world/districts/cl/blocks/b003/h13.ntw 6fb96b77 b29d224a
+world/districts/cl/blocks/b003/h16.ntw 7b73e8a0 5e84cf99
+world/districts/cl/blocks/b003/m04.ntw d2bd68f1 866aab22
+world/districts/cl/blocks/b003/m05.ntw 55980553 5a562e20
+world/districts/cl/blocks/b003/m08.ntw 4ed83688 8da4ab96
+world/districts/cl/blocks/b003/m09.ntw cbdafc4c 7b3e4ce4
+world/districts/cl/blocks/b003/s01.ntw 41a497e9 c2153f0c
+world/districts/cl/blocks/b003/s02.ntw fd0d84aa dd38d899
+world/districts/cl/blocks/b003/s03.ntw 9fb8dd79 15fdac13
+world/districts/cl/blocks/b003/s07.ntw e54ae399 475aafc5
+world/districts/cl/blocks/b003/s10.ntw 18324a08 43fc47d8
+world/districts/cl/blocks/b003/s11.ntw 7176dd2a 7d83db06
+world/districts/cl/blocks/b003/s17.ntw 7b81b5d5 e5089ec6
+world/districts/cl/blocks/b004/h13.ntw b8cc6fe4 86850408
+world/districts/cl/blocks/b004/h14.ntw b5af9793 ecacf69b
+world/districts/cl/blocks/b004/h15.ntw be85ebae a4ec961d
+world/districts/cl/blocks/b004/h16.ntw cef42679 fd214155
+world/districts/cl/blocks/b004/h17.ntw 38572441 5fe9f8b3
+world/districts/cl/blocks/b004/m03.ntw 5be43a4e 76a927af
+world/districts/cl/blocks/b004/m04.ntw ee4532b9 ed47ba2a
+world/districts/cl/blocks/b004/m05.ntw e3097031 0e93a6e7
+world/districts/cl/blocks/b004/m06.ntw 176d0eba 7a6fd4dc
+world/districts/cl/blocks/b004/m07.ntw 3224a5c5 1e140178
+world/districts/cl/blocks/b004/m10.ntw 1d03ba72 5f2ee53b
+world/districts/cl/blocks/b004/s01.ntw dc86d3e9 431f9286
+world/districts/cl/blocks/b004/s02.ntw 46bccd5d 1923d270
+world/districts/cl/blocks/b004/s08.ntw 2fe8b326 52037b48
+world/districts/cl/blocks/b004/s09.ntw 825cc3f2 ce9e58a5
+world/districts/cl/blocks/b004/s11.ntw 1d92d59d d2279f46
+world/districts/cl/blocks/b004/s12.ntw 04a44e93 a0d4d8dc
+world/districts/cl/blocks/b007/h10.ntw 49b18a8d 19d4e9e0
+world/districts/cl/blocks/b007/m02.ntw 2a2c9139 68417a35
+world/districts/cl/blocks/b007/m05.ntw 5aafa05f 3d334d7c
+world/districts/cl/blocks/b007/m06.ntw 9c354177 085c82f2
+world/districts/cl/blocks/b007/m07.ntw 449f6490 540ea0d4
+world/districts/cl/blocks/b007/s01.ntw 9f93e504 95d9df30
+world/districts/cl/blocks/b007/s09.ntw 74e23f71 3362756a
+world/districts/cl/blocks/b008/h13.ntw bc1a5f1a 793835fa
+world/districts/cl/blocks/b008/h14.ntw bc2e22f1 250f2b00
+world/districts/cl/blocks/b008/h15.ntw 40abd293 3f1d85f0
+world/districts/cl/blocks/b008/h16.ntw 4826ba55 cf87df6d
+world/districts/cl/blocks/b008/h17.ntw 465fa16f 933ceae1
+world/districts/cl/blocks/b008/h18.ntw 9cbab851 2bf634bd
+world/districts/cl/blocks/b008/h19.ntw 840e6092 06872441
+world/districts/cl/blocks/b008/m07.ntw 3a233198 4741d365
+world/districts/cl/blocks/b008/m08.ntw 90255f67 51a498bc
+world/districts/cl/blocks/b008/m10.ntw 21fc9811 a1c26278
+world/districts/cl/blocks/b008/s01.ntw 523150b7 c76e4826
+world/districts/cl/blocks/b008/s02.ntw 62ebb8f1 4ee49e09
+world/districts/cl/blocks/b008/s04.ntw 0e93c065 8a691ad9
+world/districts/cl/blocks/b008/s05.ntw 77a21764 33a237ee
+world/districts/cl/blocks/b008/s09.ntw 22770acc eb19af7d
+world/districts/cl/blocks/b008/s11.ntw 64756a8e 0be51832
+world/districts/cl/blocks/b008/s12.ntw 2241ba04 90115691
+world/districts/cl/blocks/b009/h14.ntw 8d1d07d4 07235235
+world/districts/cl/blocks/b009/h15.ntw 284fb4b7 6b025f69
+world/districts/cl/blocks/b009/h16.ntw 87e47a0a 469ce029
+world/districts/cl/blocks/b009/h17.ntw f15e8cb3 1d814c30
+world/districts/cl/blocks/b009/h18.ntw 477421e9 b861a182
+world/districts/cl/blocks/b009/h19.ntw 8f8be384 ca4d0551
+world/districts/cl/blocks/b009/h20.ntw e00fa34a 60909263
+world/districts/cl/blocks/b009/m03.ntw 3e8f0b32 7c17f21d
+world/districts/cl/blocks/b009/m04.ntw e715cabf 28c4192e
+world/districts/cl/blocks/b009/s02.ntw 8cb2dbc3 8b782fb4
+world/districts/cl/blocks/b009/s05.ntw 1b8f36f5 e397176d
+world/districts/cl/blocks/b009/s06.ntw 7e9b6f88 161a33e0
+world/districts/cl/blocks/b009/s07.ntw b213ef88 5eee2d40
+world/districts/cl/blocks/b009/s08.ntw 55e320a0 3231bf1e
+world/districts/cl/blocks/b009/s09.ntw 54647b1f aa891cf5
+world/districts/cl/blocks/b009/s10.ntw 2bc58b71 0d31005f
+world/districts/cl/blocks/b009/s11.ntw dd213081 f9230523
+world/districts/cl/blocks/b009/s13.ntw 6a4696e4 53fdc4c0
+world/districts/cl/blocks/b010/h09.ntw a604c037 4e6778a5
+world/districts/cl/blocks/b010/h12.ntw 44c485bf 937d3c70
+world/districts/cl/blocks/b010/h14.ntw 2ef2287a 452df96d
+world/districts/cl/blocks/b010/h15.ntw 01bd1769 7a21c8f2
+world/districts/cl/blocks/b010/m03.ntw ba11dd2c 670bea98
+world/districts/cl/blocks/b010/m06.ntw 8739cc15 71312739
+world/districts/cl/blocks/b010/s02.ntw 125cf267 5c7af468
+world/districts/cl/blocks/b010/s04.ntw a935b529 9d7b9d08
+world/districts/cl/blocks/b010/s05.ntw c991200f bd05ce32
+world/districts/cl/blocks/b010/s07.ntw 363bc4cf 9fba02fb
+world/districts/cl/blocks/b010/s08.ntw ac9ecb40 0d71ea2e
+world/districts/cl/blocks/b010/s16.ntw 29611ea9 99393c4b
+world/districts/cl/blocks/b011/h13.ntw 93b5e4d8 6081d1c2
+world/districts/cl/blocks/b011/h14.ntw d1ee0f64 2cae1d54
+world/districts/cl/blocks/b011/h15.ntw 07e40e24 0382d371
+world/districts/cl/blocks/b011/h18.ntw a9ce0674 87464731
+world/districts/cl/blocks/b011/m02.ntw ffff7392 6ef771ed
+world/districts/cl/blocks/b011/m10.ntw 33dc80ca 7a1a3520
+world/districts/cl/blocks/b011/s01.ntw 1b2b5016 a148345e
+world/districts/cl/blocks/b011/s04.ntw ebca0589 e21e421f
+world/districts/cl/blocks/b011/s05.ntw d36f746e b1c7f22a
+world/districts/cl/blocks/b011/s07.ntw 2285e349 5cbeba8a
+world/districts/cl/blocks/b011/s09.ntw c67545e2 cc83c24c
+world/districts/cl/blocks/b011/s11.ntw 2eb82b07 075dfbb8
+world/districts/cl/blocks/b011/s12.ntw 51ff15ac b13855df
+world/districts/cl/blocks/b011/s19.ntw 331aa736 79bab37a
+world/districts/cl/blocks/b012/h10.ntw 58ef8b02 e371580c
+world/districts/cl/blocks/b012/h11.ntw d11854ab 3eb103d0
+world/districts/cl/blocks/b012/h12.ntw 21f85fb2 1f86e4d9
+world/districts/cl/blocks/b012/h13.ntw 74524925 5460e6e7
+world/districts/cl/blocks/b012/h14.ntw f3aeb4fb 35cc3d55
+world/districts/cl/blocks/b012/m03.ntw 2ac1018e 6d03afe2
+world/districts/cl/blocks/b012/m04.ntw 41f93fd4 c80b66cb
+world/districts/cl/blocks/b012/m05.ntw 825a40b3 32bb9e91
+world/districts/cl/blocks/b012/m06.ntw eb1c91b3 859f8d79
+world/districts/cl/blocks/b012/s01.ntw 57954692 f0987500
+world/districts/cl/blocks/b012/s02.ntw 43ed5ba4 d4bb6c57
+world/districts/cl/blocks/b012/s07.ntw f7f6277b 9ab5abb4
+world/districts/cl/blocks/b012/s08.ntw d69a8899 e9f848e0
+world/districts/cl/blocks/b012/s09.ntw b9b56e3c 7afb6df0
+world/districts/cl/blocks/b013/h10.ntw 8d895f95 415f1f68
+world/districts/cl/blocks/b013/h11.ntw e71d4e1b 60b2786b
+world/districts/cl/blocks/b013/h13.ntw 6215b995 3ef0ac1c
+world/districts/cl/blocks/b013/h14.ntw 9a37c784 4c386f49
+world/districts/cl/blocks/b013/m07.ntw 8fe8ab0f 9a979109
+world/districts/cl/blocks/b013/s01.ntw 69dc1f25 b75fd623
+world/districts/cl/blocks/b013/s03.ntw f5431847 cbf1e076
+world/districts/cl/blocks/b013/s04.ntw 886528ae d2c01e8a
+world/districts/cl/blocks/b013/s05.ntw da75dd43 7a594a60
+world/districts/cl/blocks/b013/s06.ntw 7e2d4791 8f766c0c
+world/districts/cl/blocks/b013/s08.ntw dad338dd 3d3b3df9
+world/districts/cl/blocks/b013/s09.ntw 91c3ffd8 8e7cf339
+world/districts/cl/blocks/b014/h12.ntw 64e59b62 220740c9
+world/districts/cl/blocks/b014/h13.ntw 0da396e8 3404bfa5
+world/districts/cl/blocks/b014/h14.ntw 1201e31f b15ab0f6
+world/districts/cl/blocks/b014/h15.ntw 40332511 938d3876
+world/districts/cl/blocks/b014/h16.ntw 50d2e28d 7fe5bb41
+world/districts/cl/blocks/b014/h18.ntw 11b3e8f2 66e8270b
+world/districts/cl/blocks/b014/m02.ntw ceb77abb 76b85d7b
+world/districts/cl/blocks/b014/m03.ntw d0ea5b87 d8a13756
+world/districts/cl/blocks/b014/m04.ntw 619d704a 1c1831ba
+world/districts/cl/blocks/b014/m05.ntw c8328857 0d6b8430
+world/districts/cl/blocks/b014/m09.ntw 9a4cd511 8448e233
+world/districts/cl/blocks/b014/s01.ntw 08592483 ed04ff74
+world/districts/cl/blocks/b014/s06.ntw 79fc15f6 5050b446
+world/districts/cl/blocks/b014/s07.ntw de2f8239 38106002
+world/districts/cl/blocks/b014/s08.ntw 33fe0ab2 9c8aee7b
+world/districts/cl/blocks/b014/s10.ntw 99ba1d6d e57af79c
+world/districts/cl/blocks/b014/s19.ntw 810f4d47 edc9c09a
+world/districts/cl/blocks/b015/h15.ntw 13af1e3b 8a90dbee
+world/districts/cl/blocks/b015/h16.ntw 98d076f6 9518c887
+world/districts/cl/blocks/b015/h17.ntw 8dd42768 b705df21
+world/districts/cl/blocks/b015/h18.ntw 837ace61 20bfc4e7
+world/districts/cl/blocks/b015/h19.ntw 8497e2ce 38dfde67
+world/districts/cl/blocks/b015/m02.ntw d93ae804 23167d66
+world/districts/cl/blocks/b015/m05.ntw 93e46f27 effbab19
+world/districts/cl/blocks/b015/m07.ntw 6e881f50 c306a9d0
+world/districts/cl/blocks/b015/m09.ntw 84eb09da 89cb97e1
+world/districts/cl/blocks/b015/s01.ntw 74de7388 0ca2c2ef
+world/districts/cl/blocks/b015/s03.ntw 8a059cf8 09be821e
+world/districts/cl/blocks/b015/s04.ntw 4c372627 b9962ea2
+world/districts/cl/blocks/b015/s06.ntw 8b1ea0be 6ba92673
+world/districts/cl/blocks/b015/s10.ntw 5edce770 c10dd45c
+world/districts/cl/blocks/b015/s11.ntw 43abd41d 7aaafb12
+world/districts/cl/blocks/b015/s20.ntw 8df801f6 99ecfd6c
+world/districts/cl/blocks/b016/h12.ntw 8fb228b9 adf5fa38
+world/districts/cl/blocks/b016/h13.ntw 548b3584 be361ab1
+world/districts/cl/blocks/b016/h14.ntw 021c216b fe236675
+world/districts/cl/blocks/b016/h15.ntw 1e072411 4f8e2e6e
+world/districts/cl/blocks/b016/h16.ntw 61f997b5 efad4224
+world/districts/cl/blocks/b016/h17.ntw 9701f7ef 00c03e33
+world/districts/cl/blocks/b016/h18.ntw f32f2f13 df5753d7
+world/districts/cl/blocks/b016/m02.ntw e2f4758b 2b2239d2
+world/districts/cl/blocks/b016/m03.ntw 350e8845 981d8831
+world/districts/cl/blocks/b016/m04.ntw eb20fc79 bd8d72a8
+world/districts/cl/blocks/b016/m05.ntw 88ee0024 f9031c67
+world/districts/cl/blocks/b016/m08.ntw fbe65262 114bf6bf
+world/districts/cl/blocks/b016/m09.ntw 5580c50a fd827a6a
+world/districts/cl/blocks/b016/s01.ntw 01f40931 ed15e1a8
+world/districts/cl/blocks/b016/s06.ntw 236e7d15 87ca8543
+world/districts/cl/blocks/b016/s07.ntw fe4bf2c8 6c28ab15
+world/districts/cl/blocks/b016/s10.ntw c379bec0 d928d46e
+world/districts/cl/blocks/b016/s11.ntw 16de43a5 86b3ed30
+world/districts/cl/blocks/b016/s19.ntw 7ddf8768 198eaadc
+world/districts/cl/blocks/b017/h13.ntw 8961723b f3620a02
+world/districts/cl/blocks/b017/h14.ntw 631d47d8 291c6eb1
+world/districts/cl/blocks/b017/h16.ntw 81ea8193 21301e29
+world/districts/cl/blocks/b017/h18.ntw 04bea8da eb2b577e
+world/districts/cl/blocks/b017/h19.ntw a9defe3f f88ae1ba
+world/districts/cl/blocks/b017/m04.ntw 9beec5a3 99cc0b4a
+world/districts/cl/blocks/b017/m05.ntw d9024667 6ba239a0
+world/districts/cl/blocks/b017/m10.ntw 84ce9586 2c799943
+world/districts/cl/blocks/b017/s01.ntw 6414bf51 46c07723
+world/districts/cl/blocks/b017/s02.ntw 567912a7 2729d474
+world/districts/cl/blocks/b017/s06.ntw e6cb95ee 603d9c1f
+world/districts/cl/blocks/b017/s07.ntw 6db7799f eb6f8223
+world/districts/cl/blocks/b017/s08.ntw aeea1854 54aaa16a
+world/districts/cl/blocks/b017/s09.ntw 3c9794d3 e9526d55
+world/districts/cl/blocks/b017/s12.ntw 9edaacd4 d8c7a317
+world/districts/cl/blocks/b017/s20.ntw 3e8a49b2 63732f4a
+world/districts/cl/blocks/b018/h12.ntw 9887777c 40740049
+world/districts/cl/blocks/b018/h13.ntw a0085000 a59e0f4e
+world/districts/cl/blocks/b018/h15.ntw f185861c 80a86b90
+world/districts/cl/blocks/b018/s01.ntw f04d1963 eb403808
+world/districts/cl/blocks/b018/s02.ntw a84d3e69 e121453e
+world/districts/cl/blocks/b018/s04.ntw 3657caeb ed679782
+world/districts/cl/blocks/b018/s05.ntw bed7726c 01c13905
+world/districts/cl/blocks/b018/s06.ntw 243e4ed8 afa860a5
+world/districts/cl/blocks/b018/s08.ntw 049b0351 3c453182
+world/districts/cl/blocks/b018/s09.ntw 984013bd dfe73c2e
+world/districts/cl/blocks/b018/s16.ntw a1fb0417 853142ce
+world/districts/cl/blocks/b019/h09.ntw c5a3d784 bd32abcb
+world/districts/cl/blocks/b019/h10.ntw a43b3f73 2aed66cf
+world/districts/cl/blocks/b019/h11.ntw 773a22f5 5ff4ab85
+world/districts/cl/blocks/b019/h12.ntw 266bfd65 a0fbf6a1
+world/districts/cl/blocks/b019/m02.ntw e344274e b421d280
+world/districts/cl/blocks/b019/m03.ntw 087cb1ee 3c164ba8
+world/districts/cl/blocks/b019/m04.ntw 68d85a41 4fc062ff
+world/districts/cl/blocks/b019/m05.ntw 6455f361 595cf7f8
+world/districts/cl/blocks/b019/m06.ntw 51f23a3a d33b07c3
+world/districts/cl/blocks/b019/s01.ntw 9eb4adf7 5047bf23
+world/districts/cl/blocks/b019/s07.ntw dd378ffe c2a3a99a
+world/districts/cl/blocks/b019/s08.ntw 06e07f62 3ddc33b5
+world/districts/cl/blocks/b019/s13.ntw 08498175 09af6184
+(also in /tmp/city/p3i_blobs.txt)
+
+WHAT (player-facing, hand world only)
+- 231 of the 274 street.py buildings in rows 1-3 (b002-b004 and b007-b019) change colour. The other 43 drew their old colour again. b005 and b006 keep theirs, as you said.
+- No building moves or changes plan, mirror or casita twin choice, and every one keeps its palette family.
+- The gable casitas: 25 of the 32 in those blocks get a new colour, and with it their new colour's roof tint (each of the six has its own). The other 7 drew the same colour and keep their tint: b003 h15, b010 h10 and h11, b013 h12, b015 h13, b018 h11 and h14.
+- By plan, recoloured: walk-ups 55 of 61, shops with flats 54 of 63, corners 48 of 60, twins 25 of 30, gable casitas 25 of 32, bungalows 24 of 28.
+- The colour runs no longer repeat from block to block:
+  - The longest common start between two faces of one street falls from 10 (b014 and b016 on Avenida Flores) to 2.
+  - The longest common run anywhere falls from 10 to 5, which is by chance.
+- Procedural mode is unchanged.
+
+HOW
+- street.py: a rules bullet in its header, and before the palette loop `prng = random.Random("%s %d" % (BLOCK, SEED))`, which the loop draws from.
+  - The palette draw was the generator's last use, so nothing else moves.
+  - Python hashes a text seed with SHA-512. A CRC-32 seed bunched the first colours.
+- I re-ran it with --write over the 16 blocks, with the --ground dumps taken from 93's world.
+  - Its output is byte-identical to the dry run's.
+  - Before the change, the control run reproduced all 274 files byte for byte.
+- Docs: HANDBUILT 5.3 states the rule, and records that the re-run recoloured 231 of the 274 (b005 and b006 keep theirs).
+
+CHECKS
+- worldc: 0 warnings, 307 buildings from 362 files. world.bin changes only in buildings and manifest.
+- worldv: 0 errors and the same 4 warnings as before (362 files, 3,068 records).
+- CI's three tests pass with CI's flags. MinGW -Wall on main.cpp: 0 errors, 0 warnings (no C++ is touched).
+- The procedural census: 0 of 13,914 lines differ from 93's.
+- The exe nt_b27: 16,492,032 B, with 0 warnings.
+- The 16 blocks' 290 files are canonical (ntwfmt --check). The private scan is clean.
+- Harness: 3,462 of 3,462 rooms in the 307 interiors (1,771,150 triangles). With the timings stripped, it is line for line the same as 93's.
+- Every cell has the same triangles as on 93, for example 75,018 in 46,41.
+- Shots before (93) and after, of the same three faces, 0 fatal, in /tmp/city/b27smoke/ (PNG).
+  - Each *_before_after.png has 93 on the left and the palette seed on the right. The single shots are in before/ and after/.
+  - pal_b014_avenida_1700: from Bougainvillea, looking east along Avenida Flores at b014's face. The corner s01 goes from coral to mint, and the walk-up m02 from mint to coral.
+  - pal_b016_avenida_1700: from Paseo de los Heroes, looking east at b016's face. The corner s01 goes from coral to rose, and m02 from mint to lemon.
+  - pal_b017_calle_siete_1530: Calle Siete from Palma, looking west, with b017's face on the right and row 2's b011 on the left.
+    - The corner s20 goes from sky to coral.
+    - The gable casita h19 goes from sand to sky, with sky's roof tint.
+    - Across the street, b011's corner s19 goes from rose to lemon.
+- Hand drives, 0 fatal: every checkpoint is the same as on 93. Procedural drive, 0 fatal: the same as on 93.
+
+Frame log, 93 against the palette seed, back to back. Both started from load under 2.0 (1.71 / 1.50) with no showcase running.
+- Median: 6.9 / 6.8 ms.
+- Frames over 33 ms: 252 / 252.
+- Streaming max: 10.08 / 10.69 ms.
+  - 93's is 46,41's upload alone.
+  - The palette run's is a request-loop spike, in a frame that uploaded only 8.3k far triangles. Its 46,41 alone took 9.41 ms.
+- Streaming p99: 1.43 / 1.72 ms.
+- The first frames' p99 and max are the load: p99 1,837 / 1,804 ms, max 15,416 / 15,461 ms.
+- Interiors: up to 295 resident in both (1,694,722 triangles).
+- Memory: the hand drive used 3,027-3,102 MB on 93 and 3,013-3,093 MB with the palette seed.
+
+ONE FOR YOU: a near build passed ~15 ms
+- 46,41 took 16.0 ms in the palette run's drive, which started from load 1.50 with no showcase.
+- The same cell took 9.7 ms in 93's drive just before, and 14.5 and 10.0 ms in the before and after shots games.
+- Its content hasn't changed since R3b (81 placements, 75,018 triangles), so this is the 9-16 ms spread of the busiest builds, not a step.
+- Your rule says a quiet near build past ~15 ms brings (a). Do you want (a) now, after (ii), or only once a build passes ~15 ms twice?
+- (ii)'s measurement is running now: three quiet drives with the scratch exe. Its report comes next.

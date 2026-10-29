@@ -1,7 +1,0 @@
-100644 e82f4cd39ab17279efae2d2f9541561087aaee8a	src/shaders/facade.hlsli
-100644 c01184aa2b8d9a245e642d6b3b598caf67b41899	src/render/world_render.cpp
-100644 bd09ea7d7fc06538ba7bdab21010e3fe8b3cecaa	src/shaders/lights.hlsli
-100644 a5b5cfbbc1f446745c62e55a7e9e8d9452598332	src/shaders/props.hlsl
-100644 19ebed08b4345bcb81facfd51ba4494127484cc4	src/shaders/particles.hlsl
-100644 96cd192f6620df3bb70361e4ab730405c9be1975	src/render/particles.cpp
-100644 e9dd440d4d9af120509e586debd1410b19b0f609	PROGRESS.md

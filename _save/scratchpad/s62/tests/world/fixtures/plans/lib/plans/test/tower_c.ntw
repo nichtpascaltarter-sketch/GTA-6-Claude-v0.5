@@ -1,9 +1,0 @@
-ntw 1 plan id=lib.plan.test.tower_c
-# the typical floor on the top floor too: its stair's +1 end has no floor there
-meta class=tower family=test floors=3 size=8.00x8.00
-footprint poly=0.00,0.00;8.00,0.00;8.00,8.00;0.00,8.00
-floor f0 layout=lib.layout.test.tower_c_typ z=0.00 h=3.00
-floor f1 layout=lib.layout.test.tower_c_typ z=3.00 h=3.00
-floor f2 layout=lib.layout.test.tower_c_typ z=6.00 h=3.00
-roof form=flat
-entrance main door=f0.d1 kind=main

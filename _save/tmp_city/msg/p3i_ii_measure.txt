@@ -1,0 +1,50 @@
+city: (ii) measured. This is where the request loop's spike time goes. Nothing is built; this is a proposal for your go.
+
+THE SETUP
+- A scratch exe (never shipped): the palette tree with a timing patch in src/core/jobs.cpp and src/render/world_render.cpp.
+  - It logs every streaming update over 3 ms, split into its parts.
+  - Inside the request loop it splits: creating and inserting new cells, the submits, and the rest.
+  - Each submit splits into: waiting for the job queue's lock, the push under the lock, and notify_one.
+- Three hand drives, each started quiet (load 1.10, 1.84 and 1.79, with no showcase running). The checkpoints are the same as the real exe's.
+  - Drive a stayed quiet (median 6.9 ms).
+  - Another agent's compile ran during b and c (medians 8.1 and 9.4 ms).
+  - All three show the same pattern.
+
+WHERE THE TIME GOES
+- In 9 frames the request loop itself took over 3 ms (3.0-8.0 ms each). Those frames' 41.2 ms of loop time split like this:
+  - 17.2 ms (42%): waiting for the job queue's lock. It is one global mutex in jobs.cpp, shared with the workers.
+  - 19.4 ms (47%): in notify_one, waking a worker.
+  - 3.9 ms (9%): pushing under the lock and releasing it.
+  - 0.3 ms: creating and inserting the new cells. 0.2 ms: looking up the cells already there.
+  - Building and sorting the request list: 0.02-0.06 ms a frame.
+  - Drive a on its own: 13.9 ms over 3 frames, 46% lock, 39% notify and 13% push.
+- Why so many submits:
+  - Those frames submitted 6 to 205 new cells each, 440 in all, although at most 6 may be in flight.
+  - They are the empty far cells round the hand district. Each one's job finishes in microseconds, so the in-flight count drops back while the loop is still running, and the loop keeps admitting cells.
+  - Each submit then ping-pongs with the worker it woke: the worker takes the lock to pop the job just as the next submit wants it.
+  - Under Wine each contended lock and each wake goes through the kernel. That costs 94 µs a submit on average, and 158 µs in drive a.
+- Preemption comes on top, mostly in the loaded runs:
+  - A single notify took 4.63 ms (drive b, 236 s in, one submit).
+  - A single lock wait took 3.53 ms (drive c).
+  - Once in drive c the request list took 3.29 ms. It is normally 0.02 ms of arithmetic, so the main thread was off the CPU.
+- The uploads are separate and unchanged: 46,41 alone took 9.2-10.0 ms, 45,41 alone 6.2-6.9 ms, and four cells of 62k together 5.4-8.1 ms.
+- So R3d's 23.7 ms was most likely one of these bursts with a preemption in it.
+
+PROPOSAL FOR (ii), not started
+- A new Jobs::submitBatch(jobs, prio) pushes a frame's new cells under one lock, then wakes min(N, workers) workers with one notify_one each.
+  - The request loop collects its new cells in its usual order and submits them once, at the end.
+  - That takes one lock and at most 3 wakes a frame, instead of up to 205 of each. It removes the 89% (lock plus notify) and most of the push.
+- The cap stays as it is, 6 in flight. What changes is that a batch can't see jobs finish mid-loop, so a frame admits at most 6 minus the in-flight count.
+  - In procedural mode, and for every hand cell with content, admission is already cap-bound, because those jobs take milliseconds. So nothing changes there.
+  - Only the empty far cells change: they trickle in 6 a frame instead of hundreds. That is about 400 cells, so roughly 70 frames instead of about 10. They draw nothing, so nothing on screen changes.
+  - The autoplay's first checkpoint waits for nothing to be pending, so it may come later, as it did with 88.
+- How I'd prove it:
+  - 88's cell log (each upload's bytes hashed, each eviction): the same cells and bytes resident over the drive.
+  - The frames the far ring takes to fill.
+  - The frame log in quiet back-to-back pairs.
+  - The hand and procedural drives' checkpoints.
+- Size: jobs.h/.cpp and world_render.cpp, about 40 lines.
+- It won't fix preemption on a busy box (the 4.63 ms single notify), or the uploads. The uploads are (i).
+- I'd steer away from skipping the jobs of cells known to be empty. It needs an exact emptiness test, and it's narrower.
+
+Next on your word: (ii) as proposed, or R4a.

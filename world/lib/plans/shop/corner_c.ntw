@@ -1,0 +1,13 @@
+ntw 1 plan id=lib.plan.shop.corner_c
+# a corner shop with a flat over it: its shop windows and a second door on the side street as well as the front, the
+# flat's own street door and stair at the far side, and the flat's windows on both streets. Placed on a corner with
+# its right wall (or, mirrored, its left) on the side street
+meta class=shop family=flats era=1952 floors=2 beds=1 baths=1 size=8.40x14.00 tags=calle,storefront,corner
+footprint poly=0.00,0.00;8.40,0.00;8.40,14.00;0.00,14.00
+floor f0 layout=lib.layout.shop.corner_c_f0 z=0.00 h=3.60
+floor f1 layout=lib.layout.shop.corner_c_f1 z=3.60 h=3.06
+roof form=flat material=lib.kit.roof_gravel
+facade style=lib.facade.calle_stucco palette=lib.palette.calle.lemon
+entrance main door=f0.d1 kind=main
+entrance side door=f0.d4 kind=service
+entrance flat door=f0.d2 kind=service

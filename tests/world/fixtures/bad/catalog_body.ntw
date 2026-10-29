@@ -1,0 +1,4 @@
+ntw 1 catalog
+piece lib.prop.post code=PROP_BOLLARD size=0.30x0.30x1.00 collide=cylinder body=0.20x0.20x1.00
+piece lib.veg.wide_trunk code=PROP_PALM size=4.00x4.00x8.00 collide=cylinder body=4.50x0.52x8.00 # expect piece.body
+piece lib.veg.flat_trunk code=PROP_PALM size=4.00x4.00x8.00 collide=cylinder body=0.52x0.52 # expect piece.body

@@ -1,0 +1,49 @@
+city snapshot-safe: per-side steps 1 and 2, rebased on aff17b9 (the Codex fix), as one sign-off. Step 2 carries 2c's b001 regenerated against each side's own footprint. For 66, with the AI's set 22.
+
+BLOBS (all written; bases are aff17b9's unless noted)
+- Step 1, 10 files: /tmp/city/ps1r_blobs.txt.
+  - Re-merged onto the fix: docs/HANDBUILT_WORLD.md, docs/NTW_FORMAT.md, tests/world/worldmodel_test.cpp, tools/worldc.cpp.
+  - The other 6 are unchanged from step 1 as you accepted it.
+- Step 2, 5 files: /tmp/city/ps2r_blobs.txt.
+  - src/world/cellgen.cpp 6b3133b9 on bc353f6d: re-merged onto the fix's groundSides.
+  - src/world/roadmesh.cpp 0c6aef3c on 135e02ed.
+  - src/world/roadnet.cpp fb25270e on bc2ade0a.
+  - tests/world/worldmodel_test.cpp bde87a90 on step 1's 4ab08c87.
+  - world/districts/cl/blocks/b001/block.ntw 2f82094e on 2c's 042460af.
+- The rebase changed none of either step's own lines. Each file's diff against the fix's blob is line for line the diff it had against 65's.
+
+WHAT STEP 2 DOES
+Hand mode only. In the procedural world every side is the network's, so nothing changes there, to the bit.
+1. roadmesh.cpp:
+   - The asphalt runs from the left kerb line to the right one. Each side's kerb, sidewalk, skirt, railing, guardrail and deck barrier use that side's own widths. A deck's underside is per side; its piers stay as wide as the wider side.
+   - At junctions, each corner joins one approach's left side to the next approach's right side, looking out from the node. A leaving approach's left is its L; an arriving one's left is its R.
+   - Crosswalks run kerb to kerb. Stop lines run to the right-hand kerb. Signal and stop-sign poles stand on the right-hand sidewalk, and span-wire corner poles on each corner's own sidewalks.
+   - The lane lines, the median strip and the span-wire heads use the lane width and median as built: the overrides' values, else the class's. The pilot authors neither, so its lines don't move.
+   - Dead-end bulbs stay round, on the symmetric widths.
+   - buildRoadCell takes the overrides; cellgen passes gRoadOverrides. With none, it uses the class's widths as today.
+2. roadnet.cpp: roadSurfaceHeight, onPavement and nearRoad take the side a point is on. The kerb's 0.15 m step and the walk surface are then where they are drawn.
+3. b001 regenerated:
+   - dress.py now reads each side's widths, so the blocks meet each side's own sidewalk. Only the Paseo del Rio differs (kerb trims 2.40/0.00, sides 5.60/3.20), so only b001 changes.
+   - Its riverfront parcels went from 9 to 7: the strips are now whole where the old footprint split them.
+   - One fix in dress.py (kept in my scratch): the riverfront width is sampled from 0.6 m out. A pixel's centre can be 0.35 m nearer the road than the sampled point, which had broken the strip in 3 places.
+   - dress.py totals: 25 blocks, 324 parcels, 394 trees, 197 plants, 364 props, 359 lights.
+4. Tests (worldmodel_test), on the 2/1 avenue: the surface on each side (road, sidewalk at +0.15, nothing beyond), the pavement, and the road's reach per side.
+
+CHECKS
+- Step 1 (cq90):
+  - CI-flag tests pass: worldmodel_test, world_format_test, worldv_test.
+  - world.bin is identical to the fix's worldc output on the same files.
+  - MinGW 0 errors / 0 warnings on worldc.cpp, worldmodel_test.cpp, worldv.cpp and main.cpp.
+- Step 2 (cq91):
+  - The same three tests pass.
+  - worldv: 0 errors, 4 warnings, 2085 records.
+  - worldc: 469 ground polygons, 1278 props, 365 lamps; 83 edges' overrides, 52 node rules.
+  - MinGW: 0/0 on the same 4 files.
+  - Procedural census (meshcensus2: every road cell at both LODs, plus the road queries per edge) against the fix: 0 of 13,914 lines differ. The 26 other differing lines are timing logs.
+  - nt_ps2r built with 0 warnings.
+  - Paseo shots: 6, 0 fatal; lane graph 192 lanes / 397 connectors.
+  - Hand drive: 0 fatal. t=21.5 at 1852.4,257.9 with 88 peds / 63 vehicles, the same as the pre-rebase per-side drive. The fix's drive ends at 1853.3,258.2; the difference is the Paseo's per-side carriageway.
+  - Procedural drive: 0 fatal, network 6260 nodes / 9547 edges. t=17.5 at 1806.7,268.0 with 87 peds / 66 vehicles: identical to the fix's.
+- Before/after views (left 2c symmetric, right per side): /tmp/city/ps2rsmoke/cmp_paseo_above.png and cmp_paseo_corner.png. The full shots are /tmp/city/ps2rsmoke/ps2r_*.png (6); the five with a before shot match /tmp/city/pssmoke/p2c_*.png.
+
+Next: Bayshore 272/9243. The change and its census are done; traffic sims, the exe and shots are running. Then the I-38 gore median, then the Run Benchmark guard.

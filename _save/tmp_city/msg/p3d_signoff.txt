@@ -1,0 +1,110 @@
+city snapshot-safe: 3d, the casita twin, with the casita roof palettes riding along and street.py's rule for it. Base 415cb89, snapshot 88 (tree b884cd9c). 37 files: 34 changed on their blobs, 3 new.
+
+FILES (path, base, new)
+docs/HANDBUILT_WORLD.md 37ebac66 3ca3f472
+tools/author/street.py 1e0f2c37 6665d114
+world/districts/cl/blocks/b002/h14.ntw 057f3390 e08a469a
+world/districts/cl/blocks/b002/h16.ntw d6e8113d 774110a6
+world/districts/cl/blocks/b003/h13.ntw 0f301d55 6fb96b77
+world/districts/cl/blocks/b003/h15.ntw c8115b95 b0d2a5b7
+world/districts/cl/blocks/b004/h14.ntw b1e85e19 b5af9793
+world/districts/cl/blocks/b004/h16.ntw 54a08509 cef42679
+world/districts/cl/blocks/b008/h13.ntw 740b8d2f bc1a5f1a
+world/districts/cl/blocks/b008/h14.ntw 1713d027 bc2e22f1
+world/districts/cl/blocks/b008/h15.ntw 0dc0f34e 40abd293
+world/districts/cl/blocks/b008/h16.ntw 3aef516c 4826ba55
+world/districts/cl/blocks/b008/h18.ntw 5fb1b24f 9cbab851
+world/districts/cl/blocks/b009/h14.ntw 2b96595d 8d1d07d4
+world/districts/cl/blocks/b009/h16.ntw 98d91df0 87e47a0a
+world/districts/cl/blocks/b009/h17.ntw 7a17e1b6 f15e8cb3
+world/districts/cl/blocks/b009/h18.ntw a23b3718 477421e9
+world/districts/cl/blocks/b009/h19.ntw f97e888a 8f8be384
+world/districts/cl/blocks/b009/h20.ntw e5220f6b e00fa34a
+world/districts/cl/blocks/b010/h10.ntw c3ce917e 8d2cbe3f
+world/districts/cl/blocks/b010/h11.ntw a3db7e8d 2f5cbb55
+world/districts/cl/blocks/b010/h12.ntw dfa73bb1 44c485bf
+world/districts/cl/blocks/b010/h14.ntw e1250207 2ef2287a
+world/districts/cl/blocks/b011/h14.ntw bb9a0dfa d1ee0f64
+world/districts/cl/blocks/b011/h15.ntw 538d9d66 07e40e24
+world/districts/cl/blocks/b011/h17.ntw d554f1d3 74ab9b53
+world/districts/cl/blocks/b011/h18.ntw e1262f9c a9ce0674
+world/districts/cl/blocks/b012/h11.ntw 039ea728 d11854ab
+world/districts/cl/blocks/b012/h12.ntw 8091c888 21f85fb2
+world/districts/cl/blocks/b012/h13.ntw 8a270340 74524925
+world/districts/cl/blocks/b013/h10.ntw 990bc07d 8d895f95
+world/districts/cl/blocks/b013/h11.ntw d19242e0 e71d4e1b
+world/districts/cl/blocks/b013/h12.ntw d15b3359 2d4b049e
+world/districts/cl/blocks/b013/h13.ntw 0d310815 6215b995
+world/lib/facades/calle_deco.ntw new da56d105
+world/lib/palettes/casita.ntw new 28b86e04
+world/lib/plans/house/casita_e.ntw new b363a36c
+(also in /tmp/city/p3d_blobs.txt)
+
+WHAT (player-facing, hand world only)
+- A second narrow house, casita_e: casita_d's two floors and nine rooms under a flat roof behind a parapet, the 1930s Miami way.
+  - Stucco on a stucco plinth, a band at the floor line, an eyebrow over each window, a cornice along the parapet, and no shutters.
+  - Its parapet tops out about 1.3 m under the gable casita's ridge.
+- Calle Siete's runs are broken up. 15 of the 32 re-run casitas became twins, and nowhere do three alike stand side by side; the longest is two. The runs now:
+  - b008 h13-h16: gable, gable, twin, twin.
+  - b009 h16-h20: twin, twin, gable, gable, twin.
+  - b010 h10-h12: gable, gable, twin.
+  - b012 h11-h13: gable, gable, twin.
+  - b013 h10-h13: twin, twin, gable, gable.
+- Each gable casita's tile roof takes one of six tints by wall colour: the terracotta as it is, darker, or darker still, each also in a redder version. Each wall colour has its own roof, so the gable pairs in the runs differ.
+- The rewritten files, block by block (twin or gable, and the wall colour, which is unchanged). A twin's file changes its plan and description lines; a gable's changes its palette line, calle.X to casita.X. Positions, z, yaw and mirror are as before.
+  - b002: h14 twin (mint), h16 gable (sand).
+  - b003: h13 gable (sand), h15 gable (rose).
+  - b004: h14 gable (rose), h16 gable (coral).
+  - b008: h13 gable (sand), h14 gable (rose), h15 twin (coral), h16 twin (mint), h18 twin (sky).
+  - b009: h14 gable (rose), h16 twin (mint), h17 twin (lemon), h18 gable (coral), h19 gable (rose), h20 twin (sky).
+  - b010: h10 gable (lemon), h11 gable (mint), h12 twin (sand), h14 twin (sky).
+  - b011: h14 gable (mint), h15 twin (sand), h17 twin (lemon), h18 twin (coral).
+  - b012: h11 gable (lemon), h12 gable (mint), h13 twin (sand).
+  - b013: h10 twin (lemon), h11 twin (rose), h12 gable (mint), h13 gable (sand).
+- b005 (built by hand) and b006 (left as batch 1 wrote it) aren't re-run.
+  - b006's three casitas (h15, h17, h19, none side by side) keep plain roofs.
+  - Tinting them would be a one-line palette edit each, by hand. Your call.
+- Interiors: the twin reuses casita_d's floors. So the 200 interiors, their 2,220 rooms and 1,138,596 triangles are unchanged, and the harness output is the same as 88's.
+
+HOW
+- The library gets three files, and no code changes:
+  - lib.plan.house.casita_e: casita_d's two layouts, roof form=flat, gravel.
+  - lib.facade.calle_deco: its look.
+  - lib.palette.casita: Calle Luna's six colours, each with a roof= tint.
+- street.py, after the seeded draws (which stay as they were):
+  - A casita becomes the twin by its parcel id's CRC, unless that would make three alike side by side on one face. Then it takes the other.
+  - A gable casita's palette becomes the casita family's palette of the same colour.
+  - Neither touches the random stream, so nothing else moves. I re-ran street.py on every block it wrote except b006 (b002-b004, b007, b008-b013) into a scratch copy first: exactly the 32 casitas changed, and b007 not at all.
+- Docs: HANDBUILT 5.3 now has the twin, the roof tints and the re-run.
+
+CHECKS
+- worldc: 0 warnings; 5 looks, 6 shells (63 rooms); 200 buildings from 255 files. world.bin changes in library, buildings and manifest.
+- worldv: 0 errors and the 4 warnings as before (255 files, 2,854 records).
+- CI's three tests pass with CI's flags. MinGW -Wall on main.cpp: 0 errors, 0 warnings (no code changed).
+- The procedural census: 0 of 13,914 lines differ from 88's.
+- The exe nt_b22: 16,487,424 B, with 0 warnings.
+- The 35 .ntw files are canonical (ntwfmt --check).
+- Harness: 2,220 of 2,220 rooms in the 200 interiors, 0 tour legs off the walk; 0 lines differ from 88's output.
+- Shots, 0 fatal, in /tmp/city/b22smoke/shots3/ (PNG):
+  - twin_b009_calle_siete_1530: Calle Siete by day along b009's houses. The twin h20 stands beside the gables h19 and h18, then come the twins h17 and h16.
+  - twin_b013_calle_siete_2030: b013's houses by night, windows lit. The gables h13 and h12 come first, then the twins h11 and h10.
+  - twin_aerial_1530: batch 6's aerial over b009. Its run of five is now flat, gable, gable, flat, flat.
+  - twin_aerial_b013_1530: a lower aerial over b013. Its two gables' different tiles sit beside the twins' flat roofs.
+- Hand drive, 0 fatal: the same checkpoints as on 88.
+  - t=2.5: 1763.5, 219.1 at 8.1. t=11.5: 1821.2, 244.2 at 5.9. t=21.5: 1919.8, 285.4 at 8.7.
+  - 90, 90 and 82 peds; 62, 63 and 51 vehicles; wanted 0.
+- Procedural drive, 0 fatal: t=3.0, 9.5 and 17.5 the same as on 88.
+- Frame log, 88 against the twin, back to back, each from load under 2.0:
+  - Frames: median 6.7 / 6.8 ms; p99 1,763 / 1,820 ms; max 15,374 / 15,172 ms (the first frame); 254 / 253 over 33 ms.
+  - Streaming: p99 1.42 / 1.83 ms, max 20.94 / 11.23 ms. Both maxima are the request loop's spikes at the start, in frames that uploaded only empty far cells. That's the kind in 88's report, not uploads.
+  - The busiest cell, 46,41: near build 9.2 to 8.0 ms. Its upload (t=0.10, alone) went from 62,441 to 61,721 triangles, 8.1 to 7.2 ms.
+  - 45,41: near build 8.3 to 7.9 ms, upload 6.2 to 5.9 ms.
+  - Host bench: the twin has 1,006 near triangles to the gable casita's 1,152; its far LOD is 26 heavier, 250 to 224. So the near cells get a little lighter: 45,41 goes from 56,176 to 55,600 triangles, and 46,41 from 58,774 to 58,054.
+- Memory: the hand drive used 2,982-3,035 MB on 88 and 3,022-3,048 MB on the twin. Across the three back-to-back pairs I ran, the twin's run read 4-40 MB higher, about 10 MB once streamed in (t=11.5 and 21.5). 88's own runs spread by 12-21 MB.
+
+Notes
+- The first chain's two street shots were taken too low, and the corner shops blocked them; the shots above replace them.
+- I also strengthened the roof tints twice, because the first set barely showed from the air. All the numbers above are from the final files.
+  - The exception: CI, MinGW and the census ran in the first chain. After it only the casita palette's tints changed, and none of the three reads them.
+- Streaming slices (i) and (ii) are noted in city.md as parked, not started.
+- R3a is next on your go. I'll report it against the row 3 plan's predictions.

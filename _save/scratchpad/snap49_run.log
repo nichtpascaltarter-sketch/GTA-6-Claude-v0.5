@@ -1,8 +1,0 @@
-Embedded 40 shader files.
-150 shaders, 0 failed
-[ 308.282] autoplay t=9.5 pos 1806.7 201.1 4.6 state 2 health 200 veh 1 speed 11.1 | peds 88 vehicles 63 wanted 0 | cpu ms player 0.23 ai 0.75 veh 1.09 peds 1.2
-[ 429.738] autoplay t=17.5 pos 1806.7 270.6 3.5 state 2 health 200 veh 1 speed 17.6 | peds 85 vehicles 65 wanted 0 | cpu ms player 0.05 ai 0.82 veh 0.65 peds 0.
-[ 339.586] autoplay t=13.5 pos 1791.3 160.9 6.5 state 0 health 188 veh -1 speed 0.0 | peds 97 vehicles 64 wanted 1 | cpu ms player 0.11 ai 0.67 veh 0.76 peds 1.
-7166a69 Standing on stairs: each foot stays on its tread, so stopping on a flight no longer sinks feet into the steps
-branch 'claude/neon-tide' set up to track 'origin/claude/neon-tide'.
-COMMITTED 825fe5551770caabc8d112ad24e62a69fbfa55e7

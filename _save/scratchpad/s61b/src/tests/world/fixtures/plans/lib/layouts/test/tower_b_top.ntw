@@ -1,9 +1,0 @@
-ntw 1 layout id=lib.layout.test.tower_b_top
-wall w1 a=0.00,0.00 b=8.00,0.00 t=0.25 ext=front
-wall w2 a=8.00,0.00 b=8.00,8.00 t=0.25 ext=right
-wall w3 a=8.00,8.00 b=0.00,8.00 t=0.25 ext=back
-wall w4 a=0.00,8.00 b=0.00,0.00 t=0.25 ext=left
-wall w5 a=0.00,3.00 b=8.00,3.00 t=0.12
-room hall type=hall poly=0.00,0.00;8.00,0.00;8.00,3.00;0.00,3.00
-room stair type=stair poly=0.00,3.00;8.00,3.00;8.00,8.00;0.00,8.00
-door d1 wall=w5 at=6.00 w=0.90 h=2.10 kind=hinged leads=hall:stair

@@ -1,0 +1,19 @@
+city snapshot-safe: per-side step 2, the mesher and the road queries drawing and reading each side's own kerb line and sidewalk, with 2c's blocks regenerated against them. On step 1's blobs and 65's, with 2c's for the blocks; for 66 with the AI's side.
+
+Blobs: /tmp/city/ps2_blobs.txt, @NBLOBS@ files, all written. @BASES@
+
+What it does (hand mode only: in the procedural world every side is the network's, so nothing changes there, to the bit):
+1. roadmesh.cpp:
+   - each edge's asphalt from its left kerb line to its right one, and each side's kerb, sidewalk, skirt, railing, guardrail and deck barrier at that side's own widths;
+   - a deck's underside per side (its piers stay as wide as the wider side);
+   - at junctions, each corner joins the left side of one approach to the right side of the next, looking out from the node: a leaving approach's left is its L, an arriving one's is its R;
+   - crosswalks run kerb to kerb, stop lines to the right-hand kerb, and signal and stop sign poles stand on the right-hand sidewalk;
+   - span-wire corner poles stand at each corner's own sidewalks;
+   - the lane lines, the median strip and the span-wire heads use the lanes' width and the median as built (the overrides', else the class's), in step with the AI's lanes. The pilot authors neither, so its lines don't move.
+   - Dead-end bulbs stay round, on the symmetric widths.
+   - buildRoadCell takes the overrides (cellgen passes gRoadOverrides); with none it uses the class's widths, as today.
+2. roadnet.cpp: roadSurfaceHeight, onPavement and nearRoad take the side a point is on. The kerb's 0.15 m step and the walk surface are then where they are drawn.
+3. 2c regenerated: dress.py reads each side's widths (from the roads as the game applies them), so the blocks meet each side's own sidewalk. @BLOCKS@
+4. Tests (worldmodel_test): on the 2/1 avenue, the surface on each side (road, sidewalk +0.15, nothing beyond), the pavement and the road's reach per side.
+
+Checks: @CHECKS@

@@ -1,7 +1,0 @@
-start 03:48:20
-build st19a 03:51:20
-build st19a rc 1
-      | 
-x86_64-w64-mingw32-g++: fatal error: Terminated signal terminated program cc1plus
-compilation terminated.
-no exe for st19a

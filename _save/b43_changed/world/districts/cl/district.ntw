@@ -1,0 +1,8 @@
+ntw 1 district district=cl
+# Calle Luna (docs/HANDBUILT_WORLD.md section 10.1): the pilot's heart round (1560, 350), stage 1, and the south bank,
+# stage 2's first part: from the Rio Sol's middle south to y -930, Avenida Poniente's west sidewalk to the I-38
+# viaduct's corridor (kept clear, 18 m short of its centreline). The rest of the district follows in stage 2.
+bounds poly=990.00,-930.00;2605.60,-930.00;2497.00,-112.00;2468.40,100.00;2450.00,120.00;2400.00,140.00;2350.00,160.00;2300.00,180.00;2250.00,196.00;2200.00,220.00;2150.00,244.00;2100.00,260.00;2050.00,244.00;2040.00,240.00;2040.00,740.00;1120.00,740.00;1120.00,160.00;1050.00,172.00;990.00,180.00
+zone cl.audio.street kind=audio
+  poly=990.00,-930.00;2605.60,-930.00;2497.00,-112.00;2468.40,100.00;2450.00,120.00;2400.00,140.00;2350.00,160.00;2300.00,180.00;2250.00,196.00;2200.00,220.00;2150.00,244.00;2100.00,260.00;2050.00,244.00;2040.00,240.00;2040.00,740.00;1120.00,740.00;1120.00,160.00;1050.00,172.00;990.00,180.00
+  tags=street_latin

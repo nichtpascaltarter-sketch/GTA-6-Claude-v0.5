@@ -1,0 +1,69 @@
+city snapshot-safe: written bulbs (the AI's set 23 proposal). In hand mode RoadNetwork::bulbRadius returns a dead end's turning circle as the roads file writes it. On 41c3ca0 (66).
+
+FILES (7, all on 66's blobs, all written)
+- src/world/roads.h c675ce5c on 6fd098b4
+- src/world/roadnet.cpp 4328ee2e on fb25270e
+- src/world/roadsbin.h cb572f87 on 3f716121
+- src/world/roadsbin.cpp 2a39c0d7 on 50502494
+- tests/world/worldmodel_test.cpp 1f6ab292 on bde87a90
+- docs/NTW_FORMAT.md fbcc39a0 on 2afabdf4
+- docs/HANDBUILT_WORLD.md 79af32c4 on 689a9baa
+
+WHAT (player-facing, hand mode only)
+- A dead end with `bulb=` written now has that size everywhere, through RoadNetwork::bulbRadius:
+  - the circle the game paves, and worldc grades;
+  - the road surface and the sidewalk ring round it, which the ground queries read;
+  - the lane graph's walk ring round it.
+  - The AI's set 23 already sizes the U-turns from the same written number, so cars and the drawn circle now agree.
+- Before, the drawn bulb was always the class's: half width + 4.5 m, which is 10.1 m on the pilot's streets. The pilot's 5 dead ends write 10.0 m, so they shrink by 0.1 m. That is the only visible change.
+- The procedural world has no written bulbs, so nothing there changes, to the bit (census below).
+
+HOW
+- roads.h: RoadNode::bulb, 0 when none is written.
+- roadnet.cpp:
+  - bulbRadius returns n.bulb for a dead end that has one (degree 1 only: a bulb written on any other node is ignored); otherwise the class's rule as before.
+  - buildHash reaches a written bulb's rim: the edge's lookup box grows to the bulb plus its sidewalk + 2 m when that is wider than today's +4.5 m. Without a written bulb it is bit-identical.
+- roadsbin.h/.cpp: applyRoadSides, which the game, worldc and loadRoadsFile already call as they read the roads, sets each node's bulb from the overrides' node rules. When it sets any, it rebuilds the lookup hash, if one is built.
+- Docs: NTW_FORMAT's `node bulb` row, and HANDBUILT_WORLD 6.1 (what worldc compiles) and 12.2 item 10 (dead ends), say what the number now drives.
+- Test (worldmodel_test), on the test's own fixture network:
+  - the class's bulb without overrides;
+  - the written 8 m, and an 18 m one;
+  - a 12 m bulb written on a 4-way node is ignored;
+  - the surface 9 m out: the class's bulb is road there, the 8 m one has its sidewalk ring there (+0.15 m);
+  - 20 m out, only the 18 m bulb's ring reaches.
+
+dress.py and the blocks (your TODO)
+- dress.py is my authoring script for 2c's blocks, not in the repo. It now reads each dead end's bulb from rbdump's new column, falling back to the class's (half width + 4.5 m) without it.
+- Regenerating all 25 blocks with it changed none of them. No parcel comes near a bulb: the nearest is 16.0 m from cl.n0052's centre, 2.0 m past its 14.0 m sidewalk ring, and the other four have none within 58 m.
+
+CHECKS (on 66's tree with the 7 files)
+- CI's tests with CI's flags (-Wall -Wextra -Werror, UBSan): worldmodel_test, world_format_test, worldv_test all passed.
+- worldv on world/: 0 errors and the 4 agreed signal-plan warnings.
+- worldc on world/:
+  - world.bin differs from 66's in one section only, terrain.grade. 5,319 texels graded becomes 5,318: the rims of the 0.1 m smaller bulbs.
+  - roads, roads.ids, roads.overrides, blocks and the terrain sections are byte-identical.
+  - rbdump: the 5 dead ends (cl.n0001, n0008, n0038, n0051, n0052) each 10.00 m; every other roads line unchanged.
+- MinGW:
+  - worldc.cpp, worldmodel_test.cpp and worldv.cpp with -Wall -Wextra: 0 errors, 0 warnings each.
+  - main.cpp with the exe build's own -Wall flags: 0 errors, 0 warnings.
+- Census, the procedural world, 66 against the change:
+  - rfcheck2: 0 of 55,086 record lines differ; the terrain hashes are equal.
+  - meshcensus2: 0 of 13,914 records differ (every road cell at both levels of detail, and the road surface queries).
+- The exe built with 0 warnings: /tmp/city/nt_bulb.exe, 16,095,744 bytes. It is 66's whole tree plus the 7 files.
+- Shots at cl.n0001 (Calle del Muelle's dead end), a top view and one from the street, 1280x720:
+  - Before is the exe of my last 66-to-be tree, whose roads code is 66's (/tmp/city/nt_ps2r.exe); after is nt_bulb.
+  - Both runs: 0 fatal errors, and the hand world loads as 66's: 52 road nodes, 83 edges, 469 ground polygons, 1278 props, 365 lamps.
+  - The 0.1 m is too small to see at either distance.
+  - Files: /tmp/city/bulbsmoke/pair_top.png and pair_street.png (before | after), and the BMPs in /tmp/city/bulbsmoke/{ps2r,bulb}/.
+- Hand drive with nt_bulb (30 s): rc 0, 0 fatal errors. At t=21.5 s: (1911.9,282.8), 77 peds, 53 vehicles.
+  - That differs from the pre-66 exes' 1852.4,257.9 with 88 and 63. Most likely that is 66's game code, which this exe has and they lack (the AI's sets 21-22). The baseline below will tell.
+  - A 66 baseline drive (the bench guard's exe with its test hook off, which is 66's hand mode) is queued after my other games. I'll send one line comparing it.
+
+SEEN IN THE SHOTS, NOT PART OF THIS (older, every dead end, the procedural ones too)
+- The mesher draws a dead-end street to its node's centre, sidewalks, kerbs and centre line included, and then draws the bulb's asphalt disc and a full sidewalk ring on top. So:
+  - the ring, with its 0.15 m kerb face, is drawn across the street's mouth, where cars drive into the bulb;
+  - the street's two sidewalks run on inside the turning circle as raised strips, almost to the node.
+- A dead end's radius is 0, so its cut-back is 0 (roadnet.cpp finishJunctions: only nodes of degree 3 or more get one).
+- The lane graph already stops the walk at the ring (lanes.cpp). The fix would be in roadmesh.cpp: end the street's sidewalks, kerbs and lines at the ring, and leave the ring open across the carriageway.
+- That changes every dead end's cell in the procedural world, so it needs its own census. Say if you want it, and when.
+- The crop is /tmp/city/bulbsmoke/crop_after_top.png.

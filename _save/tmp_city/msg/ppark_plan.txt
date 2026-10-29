@@ -1,0 +1,43 @@
+city: the plan for the park edge (1b) on Calle Nueve's north side. It's a plan only: nothing is written into the tree, and it waits for your go.
+
+TODAY
+- North of Calle Nueve, between the Bougainvillea and Este stubs, there's only bare terrain up to the district's bound at y 740.
+- From the north sidewalk the ground drops 0.3-0.45 m: the roads' grading cut, which the blocks' level parcels hide on the south side.
+- That sidewalk has no dressing. The south one has 20 street lights and 6 hydrants.
+
+WHAT DRESS.PY LAYS DOWN
+- A 26th block, b026 "the park edge", made the way dress.py makes the riverfront promenade (b001).
+- Ground:
+  - A lawn over the whole strip, from the north sidewalk to the district's bound: about 754 m by 72 m, or 5.4 ha.
+  - It's level, in 11 terraces 24-140 m long. Each is a park parcel a kerb's step under its sidewalk, as the yards are.
+  - The street falls 1.2 m along the strip, so a terrace ends wherever the sidewalk falls 0.12 m, as on the promenade. The steps between terraces are under 0.12 m.
+  - The levelling removes the drop at the sidewalk. From about 20 m back, the terrain already lies within 0.15 m of the lawn's level, so the terraces barely move it.
+  - A paved footpath 3 m wide, 10 m in from the sidewalk, along the whole strip (one paint per terrace). It links to the sidewalk opposite each of the five side streets and at both stubs.
+- Dressing (my numbers come from the promenade's spacing):
+  - Coconut palms along the path's far side, every 16 m: about 47.
+  - Benches every 32 m on the far side of the path, facing across the lawn to the street and the houses: about 23. Each is a sit spot for pedestrians, as today's 62 benches are.
+  - A bin by every other bench: about 12.
+  - Bollards with garden lamps along the path, every 24 m: about 31.
+  - The north sidewalk dressed as every block's own: street lights every 34 m (about 22) and a hydrant per stretch (about 6).
+
+TRIANGLES AND CELLS
+- All of it lies in cell row 42, the row R4c and R4d fill: 44,42 holds 81 m of the strip, 45,42 256 m, 46,42 256 m and 47,42 160 m.
+- The ground goes into the cells' meshes, at every level of detail:
+  - It's about 100 triangles in all, 10-40 per cell, because level polygons aren't subdivided.
+  - 45,42's upload goes from 62.5k to about 62.55k, still under the 64k budget.
+- The dressing is instanced (the props renderer, near cells only), so it adds nothing to the uploads or the near builds:
+  - The palms: 2.0-2.5k triangles each, drawn out to 300 m and into the shadows, so about 105k for the 47.
+  - Everything else: about 5k (benches 48 each, bollards 40, bins 30, street lights 88).
+  - For scale, the district's 142 palms, 114 royal palms and 105 live oaks come to about 660k triangles today.
+- About 140 more colliders (from 1,077) and 53 more lamps (from 365).
+- The drives pass 380 m or more south of the strip, beyond the palms' 300 m, so their frame log should barely move. A shots game that looks over the park would show the palms' cost: I'd log its frames before and after.
+
+BATCHES: one, about the size of the palette-seed batch.
+- dress.py gets the new region and its dressing. The control: its re-run must rewrite b001-b025's 25 block files byte for byte, with only b026's file new.
+- The doc: dress.py's paragraph and the block list.
+- The checks: worldc, worldv, CI, the census (procedural unchanged), the harness (no rooms change), the shots (a day view north from a Calle Nueve porch, the path at night, an aerial), and the drives' frame log.
+
+CALLS
+- The palms. My pick is coconut palms every 16 m (about 105k triangles), the promenade's look. Cheaper: every 24 m (about 70k), or the avenues' royal palms every 20 m (about 65k).
+- The benches. My pick is facing the street and the houses; they could face the path instead.
+- Not in it: an AI walk path along the footpath. The district has none yet; the footpath is ground paint.

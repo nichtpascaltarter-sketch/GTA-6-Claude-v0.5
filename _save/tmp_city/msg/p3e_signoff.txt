@@ -1,0 +1,91 @@
+city snapshot-safe: 3e R3a, the Calle Siete face of b014-b016: 27 buildings on the north side of Calle Siete, under batch 4's rules with the twin. Avenida Flores is untouched. Base ccd7617, snapshot 89 (tree a98d8651). 28 files: 1 changed on its blobs, 27 new.
+
+FILES (path, base, new)
+docs/HANDBUILT_WORLD.md 3ca3f472 01e94b6e
+world/districts/cl/blocks/b014/h12.ntw new 64e59b62
+world/districts/cl/blocks/b014/h13.ntw new 0da396e8
+world/districts/cl/blocks/b014/h14.ntw new 1201e31f
+world/districts/cl/blocks/b014/h15.ntw new 40332511
+world/districts/cl/blocks/b014/h16.ntw new 50d2e28d
+world/districts/cl/blocks/b014/h17.ntw new f41f5182
+world/districts/cl/blocks/b014/h18.ntw new 11b3e8f2
+world/districts/cl/blocks/b014/s11.ntw new 2541d51a
+world/districts/cl/blocks/b014/s19.ntw new 810f4d47
+world/districts/cl/blocks/b015/h13.ntw new 81816aae
+world/districts/cl/blocks/b015/h14.ntw new 9cbc5311
+world/districts/cl/blocks/b015/h15.ntw new 13af1e3b
+world/districts/cl/blocks/b015/h16.ntw new 98d076f6
+world/districts/cl/blocks/b015/h17.ntw new 8dd42768
+world/districts/cl/blocks/b015/h18.ntw new 837ace61
+world/districts/cl/blocks/b015/h19.ntw new 8497e2ce
+world/districts/cl/blocks/b015/s12.ntw new f1ba74c4
+world/districts/cl/blocks/b015/s20.ntw new 8df801f6
+world/districts/cl/blocks/b016/h12.ntw new 8fb228b9
+world/districts/cl/blocks/b016/h13.ntw new 548b3584
+world/districts/cl/blocks/b016/h14.ntw new 021c216b
+world/districts/cl/blocks/b016/h15.ntw new 1e072411
+world/districts/cl/blocks/b016/h16.ntw new 61f997b5
+world/districts/cl/blocks/b016/h17.ntw new 9701f7ef
+world/districts/cl/blocks/b016/h18.ntw new f32f2f13
+world/districts/cl/blocks/b016/s11.ntw new 16de43a5
+world/districts/cl/blocks/b016/s19.ntw new 7ddf8768
+(also in /tmp/city/p3e_blobs.txt)
+
+WHAT (player-facing, hand world only)
+- Calle Siete now has houses on both sides from Bougainvillea to Coral. Each block's face has a corner shop at each end, with houses between.
+  - b014 (Bougainvillea to Ceiba): s11 and s19 corners. Between them, the gable casita h12 (rose), the bungalows h13 and h15, the twins h14 (mint), h16 (sand) and h17 (lemon), and the gable casita h18 (coral).
+  - b015 (Ceiba to the Heroes): s12 and s20 corners. Between them, gable h13 (rose), twins h14 (sand) and h15 (coral), gable h16 (mint), twin h17 (rose), the bungalow h18 and gable h19 (coral).
+  - b016 (the Heroes to Coral): s11, set in 0.6 m from the Heroes, and s19 corners. Between them, the bungalow h12, gable h13 (rose), twins h14 (sand) and h15 (coral), gable h16 (mint), twin h17 (rose) and the bungalow h18.
+- h14 and h16 on b016 have 1.0 m yards (lots of 10.9 and 10.4 m).
+- No three alike side by side anywhere; the longest is two.
+- All 27 can be walked into from the sidewalk and through every room. There are no new plans.
+- Their Avenida Flores face (31 buildings, Calle Luna's plans per the user's answer) waits for R3c. Its parcels stay as they are.
+- Procedural mode is unchanged: the census is identical, and world.bin changes only in buildings and manifest.
+
+HOW
+- tools/author/street.py as merged in 89 (seed 6, with the twin rule), --ground from worldc --dump-ground of each block at 0.25 m.
+- It wrote all three blocks into a scratch copy. I took only its 27 files facing Calle Siete, with no hand edits. The block files are unchanged.
+  - The Avenida face's ids (s01-s10 and so on) are left free. R3c's run will write those files without touching these.
+- First I re-ran the row 3 dry runs with the twin: only the casita lines differ from the plan's, and every parcel is still built.
+- Docs: HANDBUILT 5.3 (b014-b016's Calle Siete face) and 7.4 (the 227 hold 2,448 rooms in 1,266k).
+
+CHECKS
+- worldc: 0 warnings, 227 buildings from 282 files. world.bin changes only in buildings and manifest.
+- worldv: 0 errors and the 4 warnings as before (282 files, 2,908 records).
+- CI's three tests pass with CI's flags. MinGW -Wall on main.cpp: 0 errors, 0 warnings.
+- The procedural census: 0 of 13,914 lines differ from 89's.
+- The exe nt_b23: 16,488,448 B, with 0 warnings.
+- The 27 new files are canonical (ntwfmt --check).
+- Harness: 2,448 of 2,448 rooms in the 227 interiors, 0 tour legs off the walk.
+- Shots, 0 fatal, in /tmp/city/b23smoke/shots/ (PNG):
+  - r3a_b015_calle_siete_1530: Calle Siete by day from the Heroes. b015's new face is on the right (gable h19, the bungalow, twin h17, gable h16...), and row 2's b009 is across from it.
+  - r3a_b016_calle_siete_2030: b016's face by night from Coral, windows lit.
+  - r3a_aerial_1530: from over Avenida Flores looking south. Row 3's new backs and roofs, then Calle Siete, then row 2's fronts.
+- Hand drive, 0 fatal. t=11.5 and t=21.5 are the same as on 89 (1821.2, 244.2 at 5.9; 1919.8, 285.4 at 8.7; 90 and 82 peds; 63 and 51 vehicles).
+  - The first checkpoint is one frame later (t=2.6: 1763.7, 219.3 at 8.3, against t=2.5: 1763.5, 219.1 at 8.1). Now both 45,41 and 46,41 pass 64k and go alone, so the start's streaming ends a frame later. That checkpoint waits for it, as in 88.
+- Procedural drive, 0 fatal: t=3.0, 9.5 and 17.5 are the same as on 89.
+
+MEASURED AGAINST THE UPDATED PREDICTIONS (each from load under 2.0; near build ms in the drive / the shots game)
+
+| Cell | Placements | Triangles: predicted / measured | Near build: predicted / measured | Upload: predicted / measured |
+|---|---|---|---|---|
+| 44,41 | 21 to 27, as predicted | 24,913 / 24,918 | 3-3.5 ms / shots only, see below | about 29k / not streamed near in the drive |
+| 45,41 | 52 to 68, as predicted | 70,527 / 70,552 | 10.6-12 ms / 9.5 and 11.7 ms | about 74.9k alone, 7-8.5 ms / 74,875 alone, 6.8 ms |
+| 46,41 | 63 to 68, as predicted | 62,552 / 62,558 | 9-10 ms / 9.6 and 10.1 ms | about 66.2k, now alone, 7-7.5 ms / 66,225 alone, 7.5 ms |
+
+- The triangle predictions differ by under 30, from the plans' averages.
+- 44,41 isn't in the drive's near ring. The shots game read its build at 7.8 ms, but it builds every cell there at once at load, and its 21-placement build read 2.5-10 ms there before.
+- The host bench is steadier: 44,41 went from 1.32 to 1.45 ms, which is about 3-3.8 ms in the game. 45,41 went from 3.66 to 4.49 ms, and 46,41 stayed at 3.7 ms.
+- The busiest near build is 9.5-11.7 ms, under the ~15 ms line, so (a) stays parked.
+- Frame log, 89 against R3a, back to back:
+  - Median: 6.8 / 6.8 ms.
+  - Frames over 33 ms: 253 / 252.
+  - Streaming max: 8.18 / 7.49 ms. 89's is 45,41 (59.9k) with three empty cells; R3a's is 46,41 alone.
+  - The first frames' p99 and max are the load: p99 1,815 / 1,799 ms, max 15,532 / 15,889 ms.
+- Interiors: up to 221 resident in R3a's drive (1,238,318 triangles), 200 on 89.
+- Memory: the hand drive used 3,020-3,069 MB on 89 and 3,023-3,055 MB on R3a.
+
+Note
+- Both street shots show a thin bright wavy line along Calle Siete's road near the south kerb.
+- 89 shows the same from the same camera (/tmp/city/b23smoke/shots89/), with row 3's side still empty. So it's the road surface, not R3a. I'm flagging it in case it's worth a look.
+- R3b (b017-b019's Calle Siete face, 22 buildings) is next on your go. The updated prediction for 46,41 is 81 placements, about 75k triangles, a near build of about 11-13 ms and an upload of about 79k alone.

@@ -26,6 +26,17 @@ to one is a change to both, in the same commit.
   `1` is the version of the format and of the kind (section 7). `<kind>` is one of the kinds of section 9.
 - Files are kept in canonical form (section 6). `tools/ntwfmt` writes it, `ntwfmt --check` reports files that aren't in
   it, and the validator refuses them.
+- `tools/worldc` compiles the kinds as their compilers arrive. So far that is the terrain; the roads with the world,
+  district, signal and transit files they name: the roads go into world.bin's roads sections (src/world/roadsbin.h),
+  with what the lane graph reads beyond the network so far (each edge's `lanewidth`, `median`, `shoulder`, `parking`,
+  `sidewalk`, `speed` and `tunnel`, else its class's; each node's `control`, `stops`, `yield`, `noredturn` and `bulb`:
+  src/world/roadoverrides.h), and the terrain is graded under them; the blocks with the catalog: their parcels,
+  plazas and dressing go into the blocks section (src/world/blocksbin.h), and the parcels' grades into the grading
+  (section 9.5); and the buildings with the plans, layouts, facade styles and palettes they name: the plans' shells
+  go into the library section and the buildings' placements into the buildings section (src/world/buildingsbin.h;
+  section 9.10).
+  A places, unit, fit-out or set file stops the build ("no compiler for ... files yet") until its compiler exists.
+  The validator checks every kind already.
 
 ## 2. Lines and records
 
@@ -284,10 +295,11 @@ Zones are tagged polygons, and one zone set serves the AI, the population, audio
 ### 9.4 `roads` and `signal`
 
 **Kind `roads`**: world/districts/<d>/roads.ntw, and world/trunk/roads.ntw for the trunk. The roads compile to today's
-`RoadNetwork` (src/world/roads.h), and `LaneGraph::build` runs on it unchanged. What the lane graph derives today stays
-derived: the lanes and their connectors, priority from the road class, stop lines and the junction box, signal plans and
-heads, crosswalks, kerbside parking and bus-stop waiting areas. A record overrides a derivation where it is written, and
-adds what nothing can derive. docs/HANDBUILT_WORLD.md section 12 gives the AI agent's requirement behind each record.
+`RoadNetwork` (src/world/roads.h), which worldc writes into world.bin and the game reads in hand mode, and
+`LaneGraph::build` runs on it unchanged. What the lane graph derives today stays derived: the lanes and their
+connectors, priority from the road class, stop lines and the junction box, signal plans and heads, crosswalks, kerbside
+parking and bus-stop waiting areas. A record overrides a derivation where it is written, and adds what nothing can
+derive. docs/HANDBUILT_WORLD.md section 12 gives the AI agent's requirement behind each record.
 
 Header: `district` id (a district's streets) or `scope=trunk`.
 
@@ -299,7 +311,7 @@ Header: `district` id (a district's streets) or `scope=trunk`.
 
 | Record | Id | Block | Fields |
 |---|---|---|---|
-| `node` | req | no | `at` point 2 req, `z` number 2 req, `control` word `none`/`stop`/`yield`/`signal` (none: priority by road class; stop: every approach stops, or those in `stops`; yield: the approaches in `yield` give way), `plan` reference or `auto` (signals: a `signal` plan; `auto`, the default, derives one as today), `offset` number 1 (s into the plan's cycle), `approaches` compound `n:<edge>,e:<edge>,...` (which leg each compass letter of the plan names, where the bearings leave doubt), `stops` `all` or a list of edges, `yield` list of edges, `bulb` number 2 (a dead end's turning-circle radius; without one, long vehicles avoid the dead end) |
+| `node` | req | no | `at` point 2 req, `z` number 2 req, `control` word `none`/`stop`/`yield`/`signal` (none: priority by road class; stop: every approach stops, or those in `stops`; yield: the approaches in `yield` give way), `plan` reference or `auto` (signals: a `signal` plan; `auto`, the default, derives one as today), `offset` number 1 (s into the plan's cycle), `approaches` compound `n:<edge>,e:<edge>,...` (which leg each compass letter of the plan names, where the bearings leave doubt), `stops` `all` or a list of edges, `yield` list of edges, `bulb` number 2 (a dead end's turning-circle radius: the circle the game paves and grades and the lane graph turns in; without one, long vehicles avoid the dead end, and a two-way lane, street or rural road gets its class's, its half width plus 4.5 m), `noredturn` list of edges (signals: the approaches where turning right on red isn't allowed; on the others drivers may, after stopping) |
 | `edge` | req | yes: the records below it, `lanes` to `sign` | `from` reference req, `to` reference req, `class` word `highway`/`boulevard`/`avenue`/`street`/`lane`/`rural`/`dirt`/`ramp` req, `name` text, `lanes` compound `F/B` req (lanes `fwd` and `bwd`: `3/0` is one-way), `lanewidth` number 2, `median` compound `W` or `W:barrier` (2; a barrier stops U-turns, crossing on foot and jaywalking), `shoulder` compound `left:W`, `right:W` or `both:W` (2), `parking` compound `none` or as `shoulder`, `sidewalk` compound (as `parking`), `speed` number 1 (m/s), `flags` list of `bridge`, `elevated`, `unpaved`, `tunnel`, `shape` points 2 req (the centreline, from the `from` node to the `to` node), `profile` compound `s:z;s:z...` (2): the height by distance |
 | `lanes` | none | no | `from`, `to` number 2 or `end`, `dir` word `fwd`/`bwd` req, `count` integer req, `add` word `left`/`right`, `drop` word `left`/`right`, `taper` number 2: one direction's lane count over a stretch. `add` and `drop` say which side gains or loses the lane, over the taper: turn pockets, merges, acceleration and deceleration lanes |
 | `lane` | none | no | `dir` word req, `index` integer, `left` or `right` req, `use` word `bus`/`streetcar`/`bike`/`general` req, `from`, `to`: a lane kept for one use over a stretch |
@@ -329,16 +341,21 @@ What the roads compiler (src/world/worldmodel.h) reads, and requires:
   place. `from` and `to` are two different nodes: a loop needs a node along it.
 - A `profile` rises in `s` from 0 to the shape's length in plan, within 0.5 m, and starts and ends at its nodes' `z`,
   within 5 cm. Without one, the edge runs straight from its `from` node's `z` to its `to` node's.
-- `shoulder`, `parking` and `sidewalk` describe both sides: the side a compound doesn't name has none (`parking=left:2.40`
-  leaves the right without parking). Unwritten, they take the class's widths, as `lanewidth`, `median` and `speed` do.
-  The class has one kerb width for shoulder and parking together, which either field replaces; on one side the two add
-  up.
+- `shoulder`, `parking` and `sidewalk` describe both sides: the side a compound doesn't name has none
+  (`parking=left:2.40` leaves the right without parking). Unwritten, they take the class's widths, as `lanewidth`,
+  `median` and `speed` do. The class has one kerb width for shoulder and parking together, which either field
+  replaces; on one side the two add up. Where neither is written, cars park along the whole kerb strip if it is 1.8 m
+  or more, as today; where either is, only along `parking`.
+- Each side of an edge has its own kerb line and sidewalk. A two-way edge's lanes run out from its `shape` each way
+  (`lanes=2/1`: two lanes right of it looking from `from` to `to`, one left), with the `median` between; a one-way
+  edge's lanes are centred on its `shape`. Beyond each side's lanes lies its kerb strip, then its sidewalk.
 - `lanes` is at most 8 each way. A `deck` puts the edge on a structure, as `flags=bridge` does.
 - A node's `control` replaces the derived one. Today's lane graph knows priority by road class, stop signs on every
   approach and signals: `yield`, and `stop` on only some approaches, run as priority by road class until it reads the
   `yield` and `stops` lists.
-- Today's `RoadNetwork` has one width for both sides of a road, so the wider side counts there until the lane graph
-  reads both. An edge's dressing seed comes from its id, so adding an edge changes no other edge's.
+- `RoadNetwork`'s width and sidewalk are an edge's wider side's; each side's own reach the mesher and the lane graph
+  through `RoadEdge::halfWidthSide` and `sidewalkSide` (src/world/roads.h). An edge's dressing seed comes from its id,
+  so adding an edge changes no other edge's.
 
 **Kind `signal`**: lib/signals/<name>.ntw, header `id` id req. A plan's phases run in order, each for its `green`, then
 its `amber`, then its `allred`.
@@ -363,7 +380,7 @@ Header: `id` id req, `district` id req.
 | `parcel` | req | yes: `paint`, `fence`, `pad` | `poly` points 2 req, `use` word `residential`/`commercial`/`mixed`/`industrial`/`civic`/`park`/`parking`/`vacant` req, `grade` number 2 (pad height), `blend` number 2 (m), `ground` word (its default ground: `lawn`, `paving`, `gravel`, `dirt`, `sand`, `planting`), `front` compound `<edge>:<side>` |
 | `paint` | none | no | `kind` word (as `ground`) req, `poly` points 2 req |
 | `fence` | none | no | `kind` reference req, `line` points 2 req, `gate` compound `<at>:<width>` (2): a gate at that distance along the line |
-| `pad` | none | no | `poly` points 2 req, `z` number 2 req, `kind` word `paving`/`concrete`/`deck` req: a level slab in the parcel |
+| `pad` | none | no | `poly` points 2 req, `z` number 2 req, `kind` word `paving`/`concrete`/`deck` req: a level slab in the parcel, which people and vehicles stand on; raised, its sides are a step at its edge |
 | `plaza` | optional | no | `poly` points 2 req, `ground` word, `tags` list: an open paved area where people mill about; the walk graph crosses it on its paths |
 | `path` | req | no | `line` points 2 req, `w` number 2 req, `kind` word `walk`/`plaza`/`alley`/`trail`/`boardwalk`/`footbridge`/`underpass` req, `profile` compound `s:z;...` (2): the height along it, for footbridges and underpasses |
 | `steps` | none | no | `line` points 2 req (from the bottom), `w` number 2 req, `treads` integer, `rise` number 2: outdoor steps (plazas, porches), climbed a tread at a time |
@@ -373,8 +390,40 @@ Header: `id` id req, `district` id req.
 | `light` | none | no | `kind` reference req, `at` point 2 req (or `at` with z), `yaw` number 1, `sched` word `dusk`/`evening`/`night`/`always`/`never` |
 | `spot` | optional | no | `kind` word req (below), `at` point 2, `yaw` number 1, `line` points 2 (a queue, its head first), `cap` integer, `hours` compound, `cover` integer 0/1 (sheltered, used in rain), `roles` list, `ages` compound `min-max`, `prop` reference, `pose` name (the clip), `for` compound (what a queue leads to: a door `cl.b014.s07:f0.d1`, a counter, a stop): a scenario point |
 | `lot` | req | yes: `row`, `ramp` | `entry` compound `<edge>:<at>:<side>` req (2; the curb cut it is entered by), `exit` compound (as `entry`; the entry without it), `levels` integer (1): a car park |
-| `row` | none | no | `line` points 2 req, `bays` integer req, `w` number 2, `len` number 2, `yaw` number 1, `level` integer (0): a row of bays along the line, with its aisle |
+| `row` | none | no | `line` points 2 req (its bays' centreline, first bay to last), `bays` integer req, `w` number 2 (2.50), `len` number 2 (5.00), `yaw` number 1 (the way a car parked nose-in faces; square to the line, to its left, without it), `level` integer (0), `aisle` points 2 (the aisle its bays open onto, where the derived one won't do: a loop round an island): a row of bays along the line, with its aisle |
 | `ramp` | none | no | `from` integer req, `to` integer req (levels), `line` points 2 req |
+
+What the blocks compiler (src/world/worldmodel.h compileBlocks) reads so far, and requires:
+- A parcel's `ground` covers its polygon, and its `paint` lies over that. A parcel with `grade` is level at it, and
+  the terrain blends back over `blend` metres outside it; its pads are level slabs `z` above the grade. Where its
+  `ground` covers it, the terrain goes 0.3 m under the grade, out of sight, so that the terrain's 8 m grid can't rise
+  through it beside a parcel levelled a little higher. Without `grade` the ground follows the graded terrain, and a
+  pad stands `z` above the terrain under its centre. A `plaza` is paved unless its `ground` says otherwise. Polygons
+  need 3 points or more.
+- Trees, plants and props are the catalog pieces their `kind` names, built by the piece's `code`. A tree's `h`
+  scales its piece by the piece's `size` height, and a plant's `scale` scales it; trees and plants without `yaw`
+  turn, and vary among the piece's `variants`, by their position, so that a row of them never repeats. A `light`
+  is its fixture's piece and lamp (a street light's lamp hangs 2.2 m forward, 8.6 m up), or a lamp alone where its
+  piece is one: on at dusk, or by its `sched`.
+- Every z is above the graded ground (a levelled parcel's grade, on one), or above the sidewalk or road where one
+  runs under the record.
+- A parcel's `use`, `front` and `grade` go to the AI's graphs as they are (frontage, curb cuts). A lot compiles to its
+  drive graph (worldmodel.h compileBlockSections): a row's bays spread evenly along its line, facing its `yaw` (square
+  to the line, to its left, without one); behind them an aisle, 6 m wide (4 m and one way where they are more than 15
+  degrees off square), unless `aisle` gives it; rows that face each other across one aisle share it. The `entry` and
+  `exit` drive in and out from behind the sidewalk to the nearest aisle on level 0, a `ramp` joins its levels (3 m
+  apart), and every part of the lot joins the rest. A lot needs a row, a row a bay, and its rows and ramps levels the
+  lot has; `at` is metres along the edge in plan, as everywhere.
+- Paths, plazas and steps go to the walk graph: a path on the ground (a footbridge or underpass at its `profile`'s
+  heights, which it needs, from 0 to its length); a flight of `steps` from the level ground at its bottom to that at
+  its top, with its `treads` and `rise` as written, else a rise near 0.17 m.
+- Spots go to the population as written: an `at` or a `line` (a queue, its head first), not both; `hours` as
+  `h.mm-h.mm` ranges joined by `;` (a range may run past midnight); `ages` as `min-max`; `cap` 1 without it (a queue's
+  a place every 0.75 m); `prop` the nearest prop of that piece, within 2 m. A bench and a bus shelter imply their
+  seats (a place every 0.6 m), and every bus stop its wait (the shelter's bench where one stands within 15 m).
+- Every prop whose piece has a `collide` box or cylinder gets that collider, at the piece's `body` or else its `size`,
+  times the prop's scale, from its base up: what walkers steer round and turning circles keep clear of.
+- Fences are read and checked, and compile later.
 
 **Spot kinds.** Outdoors: `bench`, `wall_sit`, `steps_sit`, `lean`, `smoke`, `phone`, `busstop_wait`, `queue`, `window`,
 `atm`, `vending`, `cafe_seat`, `bar_stool`, `busk`, `vendor`, `guard`, `door_staff`, `watch_view`, `fish`, `exercise`,
@@ -450,6 +499,9 @@ How the validator reads a layout's geometry:
 - **Where doors lead.** `leads` names rooms, slots or `out`. A slot's entry door names the slot (`leads=hall:s1`). In
   a layout, `out` is only through an exterior wall (`ext=`); in a unit or fit-out, `out` is anywhere outside its
   `slot_size` rectangle (the slot's entry and the layout's corridor are there).
+- **Door leaves.** `swing=in` opens into the building through an exterior wall, and into the room `leads` names second
+  between rooms; `out` the other way. `hinge` is the side of the opening its hinges are on, seen from where the door is
+  pushed open (the side it swings away from). Without them a door is `in` and `left`. A mirrored plan swaps the sides.
 - **Stair runs.** `run` is the flight's centreline from its foot:
   - `straight` and `escalator`: 2 points;
   - `dogleg`: 4, with the middle two at the landing's mid-depth, so each flight is its segment less half the landing;
@@ -492,6 +544,46 @@ Kind `palette` (lib/palettes/<family>.ntw): header `family` id req. A palette is
 |---|---|---|
 | `palette` | req | `wall` colour req, `trim` colour req, `door` colour req, `accent` colour, `roof` colour |
 
+What the buildings compiler (src/world/worldmodel.h compileBuildings) reads so far, and requires:
+- A plan's `meta` class and size, its footprint (3 points or more), its floors (one or more: each one's layout, `z`
+  and `h`), its roof (`form`, `pitch`, `overhang`, and `material`: without one, gravel on a flat roof and shingles on
+  a pitched one), its facade's `style` and `palette`, and its main entrance (its `entrance` of kind `main`, else its
+  first). It compiles to a shell: the floors, each floor's exterior walls (its layout's walls with `ext`) with their
+  doors and windows, the roof, the look, and which of its doors is the main entrance (the street door the game's
+  people use).
+- A window takes the light schedule of its `room`, and a door that of the room it opens into from outside
+  (`leads=out:<room>`: a glass door is lit as its shop or hall is): the room's `sched` where that names one of
+  src/world/roomlight.h's classes (`always`, `never`, `home_living`, `home_kitchen`, `home_bed`, `home_bath`, `shop`,
+  `office`, `restaurant`, `nightlife`, `garage`, `dusk`, `porch`), else its type's: `living`, `dining` and `hall` a
+  home's living rooms, `kitchen`, `bed` and `bath` a home's, `shop`, `office`, `restaurant` and `garage` theirs, `bar`
+  nightlife's, `stair`, `corridor` and `lobby` always, and the rest (`store`, `plant`, `utility`) never.
+- A facade style's `wall` (its `material`; its `color` the palette's wall slot without one), its trims (`none` is
+  left out; without them a trim's `material` is the wall's, its `color` the trim slot and its `h` 0.2 m), its
+  `window` (kind `dhung`, a painted metal frame and the trim slot without them; its `shutters`), its `door`'s
+  `color` (the door slot) and its `base` (`h`; its `material` the wall's).
+- A material (a wall's, a trim's, a frame's, a base's, a roof's) is a catalog piece whose `code` names one of the
+  game's materials: `MAT_STUCCO`, `MAT_BRICK`, `MAT_WOOD_SIDING`, `MAT_ROOF_TILE` and the rest of src/render/mesh.h's
+  `MaterialId`.
+- A palette's colours as written; a slot it doesn't write is left to the look's defaults.
+- A building's `place` (its plan, `at` the plan's origin, `z` its ground floor's height, `yaw`, `mirror`), and its
+  `config`: a `palette`, `roof` (a material) and `facade` in place of the plan's, and for each option the plan
+  declares that it writes, one of the option's choices.
+- Findings: `building.kind` (a material whose `code` the game lacks), `building.shape` (a plan without a floor or a
+  footprint of 3 points), `building.option` (a `config` field that is no option of the plan, or a choice the option
+  lacks).
+- Its interior's plan, from the same layouts:
+  - each floor's rooms, in its layout's order: the type, the light schedule (as its windows'), `lux` and the polygon;
+  - the inside walls (those without `ext`) with their doors;
+  - every door's leaf (9.8's door leaves: where its hinges are and the side it opens to) and the rooms each side of
+    its wall, found from the room polygons (`out`: none);
+  - the stairs: each floor's layout's, with their ends resolved on the plan's floors (a relative end on the next floor
+    up or down by height, as the validator finds it, whatever order the plan lists its floors in; a layout several
+    floors share gives each its own). Their `treads` and `rise` are derived as the validator derives them, and
+    `landing` defaults to `w`. A stair whose ends name no floor or room, or don't climb, is left to worldv.
+- Lifts, slots, furnishing, spots and lights compile with the interiors later, and a plan's options' features, its
+  other entrances, and a building's slots, overrides, occupancy and outbuildings after; they are read and checked
+  already.
+
 ### 9.11 `places`: world/places/places.ntw
 
 | Record | Id | Fields |
@@ -510,7 +602,7 @@ Header: `line` id req, `kind` word `skyline`/`bus`/`ferry`/`streetcar` req, `nam
 
 | Record | Id | Fields |
 |---|---|---|
-| `route` | none | `edges` list (bus, streetcar: road edges in order), `pts` points 2 (SkyLine and ferries: the path), `profile` compound `s:z;...` (2) |
+| `route` | none | `edges` list (bus, streetcar: the road edges of the line's whole run, in travel order; a line that runs both ways lists the way back too. Each stop is on the right-hand kerb of a pass along its edge), `pts` points 2 (SkyLine and ferries: the path), `profile` compound `s:z;...` (2) |
 | `station` | req | `at` point 2 req, `z` number 2, `name` text req, `side` word |
 | `stop` | req | `busstop` reference req: a bus stop of a road edge |
 | `pier` | req | `at` point 2 req, `yaw` number 1 req, `name` text req |
@@ -525,7 +617,7 @@ trees and plants, lights, fences) and the parameters they take. References to `l
 
 | Record | Id | Fields |
 |---|---|---|
-| `piece` | req | `code` req (the C++ enum or function that builds it, as written in the code: `FURN_SOFA`), `size` compound `WxDxH` (2), `variants` integer, `params` list, `collide` word `box`/`cylinder`/`none` (a collider of the piece's real size, height included, so the AI tells low cover from high) |
+| `piece` | req | `code` req (the C++ enum or function that builds it, as written in the code: `FURN_SOFA`), `size` compound `WxDxH` (2), `variants` integer, `params` list, `collide` word `box`/`cylinder`/`none` (a collider of the piece's real size, height included, so the AI tells low cover from high), `body` compound `WxDxH` (2; the solid part the collider takes where that isn't the whole piece: a tree's trunk, a pole, inside its `size`) |
 
 ---
 

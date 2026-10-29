@@ -1679,3 +1679,276 @@ Re-check commands:
   SP/locotour/st23/bin/loco_st23b.exe, job st23sw queued (compare with st22osw). Then send c15 on top of c16.
 - NEXT after that: option 2 (in-game floats running/sprinting down: e.g. st22sw trace 9, a quick step after the turn
   then landings 29-49 cm high at 30 Hz), then option 1 (stop float).
+
+## 32. 10-26 15:2x RESUMED (lead: usage reset). HEAD bdf3016 (PR #56), anim bases still d30f47a5 / bd6d781f.
+- orch49 relaunched 15:20 (old log orch49_round4_killed.txt): st22osw first, then st22opl, st22onj, st20nj3, st22op,
+  st20p3, st23sw (st20pl3 already done 10-20). Plan: fill qs/signoff_c16_draft.txt and send; then c17b re-offer with
+  st23sw; then option 2, option 1.
+- 15:37 st22osw DONE (c16o in game) vs st20sw: run up sk3 4.4 -> 2.1, lifted 12.1 -> 3.4, scuffs 40 -> 2 (steps 44 -> 55);
+  run down sk3 8.0 -> 6.4, deep 16 -> 10, lowest -29 -> -17, slide max 8.6 -> 0.9; sprint up sk3 12.3 -> 2.4, deep 25 ->
+  5, scuffs 24 -> 16; sprint down identical; outer-wall traces 11 -> 9 (heel on the landing, toe tip 0-7 cm past the
+  face). Filled into qs/signoff_c16_draft.txt. Other runs wait for memory (others' builds; gate 3300).
+- OPTION 2 lead (harness, ctree18 = c16o + env experiments, lm_c18x; o2.sh / o2cmp.py): the running-down "young"
+  floats = touchdown with no tread fit takes Max(near probe's ground, landing probe's) and the near probe lags up the
+  flight -> lands 5-30 cm high, settles over frames. X_TDGA=2 (going down, rootVz < -0.3: the landing probe's ground,
+  at most 0.2 below the near one): switchback down 4.1 30 Hz lifted 10.2 -> 6.6%, floats 115 -> 75, max 122 -> 77 mm;
+  6.9: 18.4 -> 15.2; straight 4.1: 2.2 -> 1.1; cost sk3 6.9 5.4 -> 7.1. (X_LATEA: late swing target -> no effect.)
+
+## 33. 10-26 16:1x-16:5x c16 SIGNED OFF; lead: c16o ACCEPTED for snapshot 64 (main 61cf548, bases unchanged)
+- Sent qs/signoff_c16_draft.txt as is (snapshot-safe). Lead: accepted for 64; run the addendum runs (st22opl, st22onj /
+  st20nj3, st22op / st20p3) as memory allows - their numbers go into 64's message if in time; ANY WORSE -> tell the lead
+  FIRST. Then c17b (st23sw queued after them in jobs49). orch49 running (st22opl started 16:16, game up ~16:27).
+- OPTION 2 (running / sprinting down floats), harness findings (lm_c18y = ctree18 + X_FLAT / X_FIRST env; LM_TRACEALL=1
+  new in locometer.cpp: the traced run's frames off the stairs too; scripts o2site.py (floats by site / age), o2sink.py
+  (sinks: heel at the nose 'edge' vs in the step), trtab.py (trace table)):
+  * The landing / floor floats (the biggest share): a swing's ground scan that finds no step (all landing, or the floor
+    at the foot) set stairLand -9, so the touchdown took Max(near probe, landing probe) - both lag a run's swing coming
+    down the flight (near probe: every other update, 0.66 ease at 30 Hz) -> 5-34 cm high, settling over frames.
+    X_FLAT=1 (stairLand = the scan's ground there): sb 4.1 30 lifted 10.2 -> 4.5 %, young floats 67 -> 4; 6.9 30 18.4 ->
+    15.1; kit straight 6.9 30 7.6 -> 2.5; full suites 1/24 and 4/16 worse/better, s5 0/6 0/11; BUT spiral.up 30 Hz sk3
+    0.17 -> 0.43 (a touchdown 20 cm into the top landing: the flat fit not atFit -> the else branch skipped the Max).
+  * -> c18 = c16o + patches/flatfit2.py: a separate field flatLand[2] (character.h, additive) set by such a scan; used
+    only at the gait touchdown when stairLand < -8 and atFit; else the old Max. Tread fits / none rule unchanged. Files
+    loco/c18/, harness tree qs/ctree19 (lm_c18), game tree locotour/st24 (loco_st24.exe), bld50.sh builds both; job
+    st24sw appended to jobs49.
+  * First step onto a flight going down from a standing start at a sprint: the swing is past 0.6 when its landing probe
+    first sees the drop (the gait's duty shrinks as it speeds up) -> no scan, no fit. X_FIRST=0.9 (first scan up to 0.9)
+    fixes those floats (B young 30 -> 2) but adds sinks at a sprint (sk3 5.4 -> 8.9): the late fit's spot is overrun
+    (accelerating) and the planted foot's near probe at mid reads the lower tread -> heel 17 cm in the step: the in-game
+    'deep h -16.9 b 0 t 0' pattern (heel within cm of the nose). Parked for now.
+
+## 34. 10-26 17:0x-18:0x c16 ADDENDUM SENT (3 parts); c16o IS IN HEAD 5804e7d (snapshot 64); c18c = option 2 part 1 ready
+- Addendum: st22opl vs st20pl3 nothing worse (switchback run/sprint better); st22onj == st20nj3 exactly; st22op vs st20p3
+  (c14 rerun == 10-20 run exactly): up a little better, down sunk3 2.7 -> 2.6 but lifted 2.7 -> 2.9 (+16 of 7860; told).
+- HEAD now 5804e7d: animator 47845aa1 (c16o), character.h d2d5127d. attree64 = git archive HEAD (qs/at64.sh).
+- c18 variants (patches/flatfit2.py, flatLand field): c18 = flat ground used at the gait touchdown when atFit -> spiral.up
+  30 Hz 20 cm sink (a flat scan along the last tread, the foot landed on the top landing); c18b = also rootVz < -0.3 ->
+  loses the run's landing gains; c18c = flatLand < liftGround - 0.04 (a step DOWN onto it) = FINAL: o2b young floats
+  354 -> 154, big 193 -> 89, sinks unchanged; full suites 0/9, 0/4 worse/better; s5 0/2, 0/1; interior / kit same or
+  better; walls same; up identical; anim_test ALL PASSED on HEAD 5804e7d (sl/at_qs18c.log).
+  Blobs written: c18 (on HEAD) animator a106b46371965e934b5b4854193c34f3b8594631, character.h 9e3388ffe21ad688ced96e9d475133146fba4003;
+  c19 (= c17b + the same, if c17b lands first) 6d21bed964c15d17dcc9fc93e2c49dbac86cca14 / df304dc63f8103a80444dbf888362b7e903c04ba;
+  patches qs/flat_{animator_47845aa1,character_d2d5127d,animator_bf6fa558,character_d7a78f56}.patch (verified).
+  Draft qs/signoff_c18_draft.txt ([[GAME]] [[AT]] [[SW]] to fill). Game: st24 tree rebuilt with c18c 18:00 (old exe kept
+  as loco_st24_v1.exe = the first c18); job st24sw queued after st23sw. c19 harness: qs/ctree20 -> lm_c19 (queued build).
+- Parked experiments (ctree18, lm_c18w): X_FIRST=0.9 (late first scan; more heel-in-step sinks at a sprint), X_HEELP=0.25
+  (planted probe nearer the heel going down; trades sinks for floats). Next for option 2: the first step down from a
+  standstill (B) and the toe-off over a nose (C) - idea: keep the swing scan's samples and re-fit at touchdown from them.
+
+## 35. 10-26 18:1x c15 / c17b PARKED (lead agreed); c18 -> snapshot 65 on 5804e7d
+- st23sw (c17b in game) vs st22osw: at the turn the same (9 outer-wall toe-tip traces, same numbers), BUT sprinting UP
+  a new top-step sink in laps 1-3 (traces 1/5/8, segs 2/6/10): the foot lands on the last tread (j=8, 2.89) at the
+  height of the tread below (2.70), heel -19, then ball/toe -28.8 / -17 cm (the block's '+254' ball = measured from
+  inside the tread box). Up sprint sk3 2.4 -> 6.8 %, deep 5 -> 14, lowest -12.1 -> -28.8 cm. Suspected: c15's short-tread
+  (WB2) fit at the last tread before the platform at a sprint picks a landing the foot doesn't reach -> !atFit ->
+  lagging probe. Harness (game route, 30 / 60 Hz) does not show it (its sprint up is the same with / without c15).
+  PARKED by the lead ("park c15/c17b with a note"); c19 (= c17b + flat, blobs written, lm_c19) parked with it.
+- Lead: c16o fully verified (addenda in 64's record; PR #57 waits on other agents' fixes). c18's sign-off -> snapshot 65,
+  based on 5804e7d.
+
+## 36. 10-26 18:3x c18 (c18c) SIGNED OFF -> snapshot 65 (HEAD 2c0222e, anim files as 5804e7d)
+- In game st24sw vs st22osw: sprint down lifted 26.9 -> 12.5 %, run down 15.6 -> 11.5 %, everything else identical
+  (same 32 traces). Sent qs/signoff_c18_draft.txt (snapshot-safe). Addendum runs queued in jobs49 (orch49 restarted
+  18:23, old log orch49_round5.txt): st24pl (vs st22opl), st24nj (vs st22onj), st24p (vs st22op).
+- Remaining in-game down cases (option 2 part 2): (a) straddle then drop: a foot landing across a nose, heel a few cm
+  onto the upper tread (fit overrun, or no fit at the first step from a standstill), put on the upper tread, then the
+  planted foot's near probe at mid reads the lower tread -> heel 17 cm in the step (in game trace 19: run, flight 1,
+  heel 7 cm before the nose; sprint first step trace 22). (b) run: quick step at the turn then a 3-frame swing landing
+  29 cm high (trace 20). (c) toe-off over a nose. Idea: keep the swing scan's samples per foot and pick the touchdown
+  height from where the heel / ball actually are (stay on the upper tread when the heel is >= ~6 cm onto it, probe under
+  the heel then; else the lower one).
+- 18:3x Lead: c18 ACCEPTED for snapshot 65. Send its addendum runs as they finish (as for c16). Then option 2's next
+  parts, EACH SIGNED OFF SEPARATELY: (1) the nose landings (straddle then drop), (2) the short swing after a quick step
+  at the turn, (3) the toe-off over a nose. Base = c18 (animator a106b463 / character.h 9e3388ff).
+
+## 37. 10-26 19:0x-20:3x c18 ADDENDUM SENT (pl better, nj / p identical); c20 = option 2 part 2 (nose landings + roll-off)
+- Experiments in qs/ctree21 (+g debug: TDR / WGSCAN prints), lm_c20x / lm_c20xg, env switches: X_TDR (touchdown pick
+  from the swing scan's samples kept per foot), X_TDRN (nose min, 0.03), X_TDRC (curvature limit /m, 0.5), X_TDRT (abs
+  turn limit, 99 = off), X_TDRK (nose offset in samples, 0.65), X_TDRL (liftGround check), X_TDRH (pick on the early
+  touchdown too), X_NOSEP (roll over the nose: wBall capped at noseD / L, the pin lets the forefoot dip),
+  X_NOSEDIP (dip cap, 0.05), X_FIRST / X_FIRSTD / X_FIRSTC (late first scan; down only; curvature).
+  Findings: pick alone trades sinks for toe-off floats -> needs the roll (X_NOSEP) whose forefoot must be let below
+  the tread plane (pin low = min(heel, pivot)); K 0.8 -> more toe-off floats, 0.5 -> sole dips; 0.65 middle. Edges > 1
+  (tight spiral) -> 40 cm sinks: one-edge rule. Abs turn limit cost sprint gains -> curvature limit. The early (held)
+  touchdown path needs the pick too (walkers' route sinks). The dip cap 5 cm fixes stairs17.stops.down's 14 cm slide.
+  X_FIRST (late first scan): big sprint gain in the game route (first step from a standstill) but walkers' route 4.1
+  down sk3 1.8 -> 3.8 -> LEFT OUT of c20 (separate part later).
+- c20 = c18 + patches/nosepick.py (fields landG / landScanFrom / landScanDir / landScanHave / heelProbe / noseAt in
+  character.h, additive). Files loco/c20/, harness qs/ctree22 -> lm_c20 (== lm_c20x with the d5 env: verified same).
+  Harness vs c18c: o2b sinks 478 -> 325, toe-off floats 264 -> 194; walls / players / interior / kit same or better;
+  full suites 5/15, 6/16 worse/better: the worse = lowest sole 3-12 mm (the roll's nose estimate, 5 cm samples) and
+  spiral_tight.down 60 Hz float frames 51 -> 64 (sinks there 21.3 -> 21.0 %).
+- Game: st25 tree (= st24 + c20 files), bld52.sh (build + anim_test qs20, waiting for memory 20:3x), job st25sw queued
+  (orch49 restarted 20:18, old log orch49_round6.txt).
+- Left for later parts: the first step down from a standstill (X_FIRST, with its walkers' route sinks fixed), the short
+  swing after a quick step at the turn (no scan covers it; the foot lands 11 cm off the last scan's line).
+
+## 38. 10-26 21:4x-22:3x c20 IN GAME + DIAGNOSIS; c20b / c20c (not sent yet)
+- In game c18 st24sw -> c20 st25sw (8 laps): sprint down sk3 14.9 -> 4.3% (the laps 4-8 mid-flight sinks gone), lifted
+  12.5 -> 17.3%; run down identical (its drop: trace 19 of log_st25dsw4); up identical. c21 st26sw == c20.
+- The in-game "lifted" is 3 points only (heel, ball, toe): a foot rolling over a nose touches it between heel and ball
+  but counts as lifted. The harness uses soleClear (9 points per part). -> locotour/fix_v3n.py (v3n: the same line
+  measure added to the in-game summary lines, "sole line: ..."; lpcmp2.py reads it). Needs c18 and c20x rebuilt with it.
+- Sprint-down deep frames left in game = the first step down after the turn-around at the top (laps 1-3): heel 1 cm
+  before the nose (a=0.55, nose 0.56) -> mode 0 by design (edge). Also the pick refused there (the swing began going
+  up: gh > liftGround + 0.04) - no matter, mode 0 anyway.
+- Run-down drop (laps 4-8, flight 1, 2nd step after the landing turn): touchdown on the fit's tread (heel 7 cm before
+  the nose), pick NOT applied (hp0), probe at the foot's middle (1.5 cm past the nose) reads the tread below -> drops
+  (kg then held). Why the pick refused: unknown -> st27d diag (c20b + v3m + v3o: Animator::dbgPick[2][12] why/u/v/cos/
+  edges/dn..., patches/pickdbg_game.py), job st27dsw4.
+- c20b (patches/heelat.py): mode-1 foot probed AT the heel (was lerp 0.2 toward the ball: at the nose for d 3-4 cm).
+  Harness o2b sinks 325 -> 287, toe-off floats 194 -> 200; full / interior / kit / players ~same.
+- c20c (patches/noseref.py, on c20b; fields noseLo/noseHi/noseTest): a mode-1 planted foot's probe goes every other
+  update to the middle of where the nose may be (bisection to 1.2 cm); the roll pivots there. o2b toe-off floats
+  200 -> 164, lifted lower in most sets, sinks 287 -> 289. fullpic c20c running.
+- Short swing after a quick step (part 3): trace 21 of log_st25dsw4 - a quick step from the landing carries the foot
+  1 m down the flight (st 0 -> 0.88 over 6 frames, over the landing's height), then a 3-frame gait swing with
+  groundAhead stale at the landing's height -> planted 29 cm up.
+- Harness debug tree qs/ctree24g (lm_c20bg): PICK / PICKTD / PLF prints (patches/pickdbg.py after dbgify.py).
+
+## 39. 10-26 22:4x-23:2x c20c CHOSEN for part 2 (not sent yet); lead: main = 41c3ca0 (snapshot 66), anim bases unchanged
+- In-game diag st27dsw4 (pick why per touchdown): the run-down drop = why 3 (|v| 10.4 cm > 8: the swing's scan ran 10 cm
+  across where the foot came down at the turn exit; its dn 18.5 cm vs the real 7). The reversal step: why 0, mode 0
+  (one tread by the samples; the heel really 1 cm before the nose) - an edge, by design.
+- X_NS search (qs/ctree26, patches/nosesearch.py: a foot with no pick finds the nose with its own probes; + groundRaw
+  kept across tests): sb sinks 289 -> 271 but stairs17.blocked/stops.down float max 2 -> 17 cm and kit straight down
+  0.5 m/s floats 75 -> 381 -> DROPPED (known limit in the sign-off).
+- c20c = c20 + heelat.py + noseref.py. Clean files loco/c20c/, blobs written: animator fbf469f6f0abd09018dc68de74c81970ea415cae,
+  character.h 5bdefd0e4cd8ccdd1ddf5d633922243ae043bc18; patches qs/nose2_animator_a106b463.patch (+105/-3),
+  qs/nose2_character_9e3388ff.patch (+7), verified. anim_test sl/at_qs20c.log ALL PASSED, same as c18's.
+- Harness c18c -> c20c: o2b sinks 478 -> 289, toe-off floats 264 -> 164, sb heel-in-step 199 -> 118; full suites
+  5/19, 6/16, 2/9, 0/12 (worse = lowest sole -3..-8 mm, spiral_tight.down 60 Hz floats 51 -> 64).
+- In game: st24nsw (c18 + v3n) done: 3-point numbers = st24sw exactly; sole line lifted run down 8.2%, sprint down
+  8.7%. st28 (c20c + v3n) built 23:21, job st28sw running (orch49 restarted 23:12).
+
+## 40. 10-26 23:4x c20c SIGNED OFF (option 2 part 2: nose landings + toe-off over a nose) on HEAD 41c3ca0
+- Sent: qs/signoff_c20c_draft.txt (blobs fbf469f6 / 5bdefd0e on a106b463 / 9e3388ff). In game c18 st24nsw -> c20c st28sw:
+  sprint down sk3 14.9 -> 4.3%, sole-line lifted 8.7 -> 1.0% (3-point 12.5 -> 17.3%), run down sole-line lifted
+  8.2 -> 3.8% (3-point identical); up identical; traces 32 -> 27.
+- Addenda queued in jobs49.txt (orch49 restarted 23:37): st28pl vs st24npl, st28nj vs st24nnj (all v3n), st28p vs
+  st24p (locostairs: no sole line there). Send as they finish; flag anything worse first.
+- Next (option 2 part 3): the short swing after a quick step at the turn (trace 21 of log_st25dsw4; a quick step from
+  the landing travels 1 m down the flight, then a 3-frame swing with groundAhead stale at the landing's height), then
+  maybe the turn-exit nose landing (pick why 3) and the first step from a standstill (c21 late scan, X_FIRST).
+- 23:5x lead: c20c ACCEPTED for snapshot 67 (fbf469f6 / 5bdefd0e checked on 41c3ca0). Send the addendum (pl, nj, p)
+  when in; if worse, say so and whether it changes the sign-off. Then part 3: the first step down from a standstill
+  at the top at a sprint + the short swing after a quick step at the turn, same evidence. Keep the blobs unless the
+  addendum finds a problem.
+
+## 41. 10-26 23:4x-10-27 00:0x part 3 work (on c20c) + addendum in progress
+- c22a = c20c + patches/latescan2.py (c21's late first scan ported; tree qs/ctree27, lm_c22a, clean files loco/c22a/):
+  o2b first steps only (t < 2.2 s) better: lifted 15->9, 35->22, 81->46, 81->70; sunk 21->11, 33->9, 24->19, 66->24;
+  totals young 149->106, big 69->34, sunk 289->208; full suites / interior / kit / players / walls: same or better.
+- In game the test's down segments follow its up segments (stairs still "seen"), so the first step down from the top
+  is scanned already -> fix_v3p.py: LOCO_FRESHTOP=1 sets the player's animator stairSeen = 99 at each down segment's
+  start (as if from the street). Trees st28f (c20c + v3n + v3p), st29 (c22a + v3n + v3p); bld57.sh; jobs st28fsw /
+  st29sw (LOCO_SWONLY=1 LOCO_PLAYERLAPS=8 LOCO_FRESHTOP=1).
+- Quick step at the turn (trace 21): c22b (patches/qsrelease.py: let go late in the stance in every case) = wide side
+  effects (walls 0 -> 15 frames, spirals' slides) -> dropped; c22c (qsrelease2.py: only in the "both feet off,
+  correction > 0.4 m -> quick step" branch, stance late) building/testing (lm_c22cx, fullpic c22c).
+- Addendum: st28pl vs st24pl (3-point): straight down sprint sk3 2.9 -> 3.9%, deep 1 -> 3 = the heel < 3 cm rule
+  (lands on the tread below at once: 3 frames heel-in-riser instead of 1 after a drop) - the sign-off's known limit;
+  switchback down sprint sk3 9.6 -> 5.8%; the rest identical. st24npl (line) next, then nj, p.
+
+## 42. 10-27 00:0x-00:3x part 3 candidates (base c20c fbf469f6 / 5bdefd0e = snapshot 67)
+- c22c (release in the both-off branch) DROPPED: player speeds straight 4.1 down slide max 14.9 -> 32.1 cm.
+- c22d = c22a + patches/edgeshift2.py (clean; harness tree qs/ctree30 has an X_EDGE switch): the pick's mode 0 (heel
+  < 3 cm onto the tread above, or a nose just behind the heel's sample) moves the plant on along the scan past the
+  first sample of the tread below (+0.5 cm, max 6 cm), plantSlack. o2b c20c -> c22d: sunk 289 -> 35 (edge 147 -> 4),
+  young 149 -> 106, big 69 -> 34; full suites worse = small slides on stairs17 down (blocked step max 0.26 -> 2.6 cm
+  at 0.5 m/s 60 Hz); interior / kit same; players / walls down sinks lower. anim_test sl/at_qs22d.log ALL PASSED.
+- c22e = c22d + patches/qsga.py: a quick step's touchdown sets groundAhead to the foot's height (the 3-frame swing
+  after it had the landing's height). Harness ~same as c22d (spiral.up slide total 14.7 -> 18.0 cm, 30 Hz).
+- Clean files loco/c22a, c22d, c22e. Game: st30 (c22e + v3n + v3p) build queued (bld58 via wait58.sh), jobs
+  st30sw / st30fsw after the addenda and st28fsw (c20c fresh-top baseline). st29 build cancelled (not needed).
+- Addendum pl (c18 st24npl -> c20c st28pl, sole line): straight down sprint sk3 2.9 -> 3.9%, deep 1 -> 3 (the heel
+  < 3 cm known limit; lifted 4.9 -> 2.0%); switchback down sprint sk3 9.6 -> 5.8%, lifted 19.2 -> 7.7%; run down
+  lifted 1.7 -> 0.0 (straight), 4.0 -> 0.0 (switchback); up identical. nj / p running.
+
+## 43. 10-27 00:45 CONTAINER RESTART (every process died; disk kept)
+- Lost: st28nj (mid-run), and st24nnj / st28p / st28fsw / st30sw / st30fsw not started. Done before it: st28pl,
+  st24npl (the pl addendum is complete). attree64 was left with c22e's files by a killed at64.sh -> restored from
+  attree64_*.orig (5804e7d's 47845aa1 / d2d5127d). New qs/atcopy.sh runs anim_test on a copy (attree64 untouched).
+- 00:51 orch49 restarted (old log orch49_round11_killed0045.txt); waits for the lead's flag (snapshot 67 smoke).
+  anim_test c22e queued (qs/atcopy.sh qs22e). Builds st28f / st30 survived (exes on disk).
+- 01:3x ADDENDUM SENT for c20c: pl (straight sprint down sk3 2.9 -> 3.9%, deep 1 -> 3 = heel < 3 cm limit; rest
+  better / same), nj (3-point identical; sole-line down lifted 0.9 -> 0.3%), p (down sk3 2.6 -> 2.5%, lifted 2.9 ->
+  3.0% 3-point only). Doesn't change the sign-off. anim_test c22e (sl/at_qs22e.log) ALL PASSED, same as c20c.
+  Part 3 blobs written: animator f6d27b0464d3d37f60e2ef2027d6d4cc120f70fb, character.h
+  1cb9ff7ec5cfc57a7eb39fefee182b0023245fbb (on c20c fbf469f6 / 5bdefd0e); patches qs/step3_animator_fbf469f6.patch
+  (+28/-8), qs/step3_character_5bdefd0e.patch (+1), verified. In game: st28fsw running (01:31), then st30sw, st30fsw.
+- 01:45 st28fsw (c20c, LOCO_FRESHTOP=1) == st28sw exactly: with the test's 1.6 m run-up on the platform the first
+  step down is scanned in time anyway (the landing probe sees the drop: |ga - fz| > 0.04 starts the scan, and its
+  steps reset stairSeen). -> fix_v3q.py: LOCO_FRESHTOP=2 also starts the down segments 0.35 m before the top nose.
+  Trees st28g (c20c) / st30g (c22e) (v3l+v3n+v3p+v3q), bld59.sh; jobs st28gsw / st30gsw. st30fsw job dropped.
+- 02:0x in game c20c st28sw -> c22e st30sw (normal): sprint down sk3 4.3 -> 0.0%, deep 9 -> 0 (the edge rule: the
+  first step down's heel-edge gone); run down IDENTICAL (the quick-step +28.7 cm landing and the turn-exit drop
+  remain): qsga does nothing in game (the 3-frame swing's own fz lags 2 treads, not groundAhead) -> part 3 = c22d
+  (qsga DROPPED). c22d blobs written: animator 87eb70ef7c7265c7597400875ef17c2bbf4e139c, character.h 1cb9ff7e;
+  patches qs/step3_*.patch (+27/-8, +1) remade for c22d, verified. st30g rebuilt as c22d (bld60), jobs st30gsw
+  (FRESHTOP=2) and st30gnsw (normal). Draft qs/signoff_c22d_draft.txt.
+- 02:29 near-edge start (FRESHTOP=2): c20c st28gsw == c22d st30gsw in all four cases (in game the first steps down
+  from 0.35 m before the nose are scanned in time too; the late scan's gain is the harness's only). c20c near-edge:
+  run down sk3 0.0%, sprint down sk3 4.2% / line lifted 4.2% / deep 6 (heel at a=1.93 near the flight's foot, pick
+  refused). st30gnsw (c22d normal) running.
+
+## 44. 10-27 02:5x PART 3 FIRST HALF SIGNED OFF (c22d) on HEAD c104038 (= snapshot 67: anim files c20c)
+- Sent qs/signoff_c22d_draft.txt: blobs 87eb70ef / 1cb9ff7e on fbf469f6 / 5bdefd0e (patches qs/step3_*.patch).
+  In game normal: sprint down sk3 4.3 -> 0.0%, deep 9 -> 0 (edge rule); near-edge start (FRESHTOP=2): identical;
+  the late scan's gain is harness-only (first steps sunk 21/33/24/66 -> 0/0/8/16).
+- Second half (the short swing after a quick step at the turn) NOT fixed: c22c release (slides 32 cm) and c22e qsga
+  (no in-game effect) both dropped. Next: a diagnostic build (v3m+v3o style) at that swing (trace: run down, foot 0,
+  laps 4-8, the quick step from the landing at a=2.6 -> 1.6, then a 3-frame swing landing +28.7 cm at a=0.80).
+- orch49 finished 02:42 (all jobs done). No builds running.
+- 03:0x lead: part 3 first half ACCEPTED for snapshot 68 (87eb70ef / 1cb9ff7e on c104038). Second half: diagnostic
+  build first; if it doesn't converge in a couple of tries, sign off what was learned and park it.
+- Correction: qsga (c22e) DID change the in-game swing after the quick step - its start no longer jumps 56 cm up
+  (f-3 heel +56.0 -> +5.0) - but its touchdown is still +28.7 cm (fz lag), and planted-frame stats don't see swings.
+- 02:5x lead FYI: main = 0e4bf3a (PR #60 = snapshot 67), tree = c104038's; part 3 blobs stay valid. st31d (diag) built 02:55, job st31dsw4.
+- 03:0x DIAG st31dsw4 (log after the run: log_st31dsw4.txt), the short swing (trace 18, seg 13): quick step ends at
+  gait sw 0.65 (planted 1 frame, fz = ga with qsga); f-3 lifted, sw 0.74, no scan (not lateDown yet, > 0.6); f-2
+  sw 0.83: ga dropped -> late first scan asked (bits 5); f-1 taken in (bits 56: steps, late), lsh1; f-0 touchdown:
+  pick why 5 - the heel 5.7 cm BEHIND the scan's start (u -0.057): the foot came down ~22 cm short of where the late
+  prediction had it (scanFrom = predicted mid - 0.25). Samples under it flat at the right tread (0.51).
+  -> try: late scans start further back (X_LBACK, harness first).
+- 03:3x c22g (= c22e + patches/qslate.py: qsSwing flag set at a quick step's end inside the gait's swing; that
+  swing's late scan aimed 12 cm short) - harness identical to c22e; in game diag st32dsw4: the +28.7 cm landing
+  (trace 18 of st31dsw4) GONE; run down lifted 10.6 -> 9.6% (line 1.5 -> 0.5%), rest identical. -> evidence run
+  st33 (c22g + v3n/v3p/v3q, 8 laps) vs st30gnsw (c22d).
+- second half candidate = c22g on c22d: blobs written animator fddadd41bc18dfcdcd864432449e4ac0d62a5896, character.h
+  75b2c03b7d196291d43b2ceaa6a0077536107f25 (on 87eb70ef / 1cb9ff7e = snapshot 68); patches qs/step3b_animator_87eb70ef
+  .patch (+8/-2), qs/step3b_character_1cb9ff7e.patch (+1). Harness c22d -> c22g: full suites 1 worse (spiral.up slide
+  total 14.7 -> 18.0 cm/person, 30 Hz); interior spiral down floats 397 -> 393, tight spiral 1713 -> 1719; walls down
+  same or better (one lifted +0.1); rest identical. Evidence run st33sw (8 laps) queued; anim_test qs22g queued.
+
+## 45. 10-27 04:0x PART 3 SECOND HALF SIGNED OFF (c22g) on HEAD 8b06ac7 (= snapshot 68: anim files c22d)
+- Sent qs/signoff_c22g_draft.txt: blobs fddadd41bc18dfcdcd864432449e4ac0d62a5896 / 75b2c03b7d196291d43b2ceaa6a0077536107f25
+  on 87eb70ef / 1cb9ff7e (patches qs/step3b_*.patch). In game c22d st30gnsw -> c22g st33sw: run down lifted 11.5 ->
+  9.0% (line 3.8 -> 1.3%), traces 24 -> 19; the rest identical. anim_test sl/at_qs22g.log ALL PASSED (= c22d's).
+- Clean files loco/c22g/. Option 2 done (parts 1-3); left in it: the turn-exit nose landing (pick why 3).
+- Next in the plan: option 1 (the stop float) unless the lead says otherwise.
+
+## 46. 10-27 04:1x PARKED by the lead (stairs series closed; usage tight). Nothing of mine running.
+- Lead: c22g ACCEPTED for snapshot 69 (animator fddadd41, character.h 75b2c03b; on 8b06ac7). Next time: the hand-built
+  interiors' stairs and doors.
+- DONE (option 2, all in snapshots): part 1 c18 (flat landing, snap 65), part 2 c20c (nose landings + toe-off roll +
+  heel probe at the heel + the nose found by bisecting probes; snap 67, addendum sent: pl/nj/p fine), part 3 first
+  half c22d (late first scan for the touchdown pick + the edge rule; snap 68), second half c22g (a quick step's
+  touchdown resets groundAhead; its catch-up swing's late scan aimed 12 cm short; snap 69).
+  Blob chain: a106b463/9e3388ff (c18) -> fbf469f6/5bdefd0e (c20c) -> 87eb70ef/1cb9ff7e (c22d) -> fddadd41/75b2c03b (c22g).
+- OPEN KNOWN LIMITS (for later):
+  1. Running down, the second step onto a flight after the landing's turn: the pick refuses (why 3: the swing's scan
+     10 cm across where the foot came down, turned 18 degrees -> its nose estimate wrong); the foot lands on the right
+     tread then drops onto the one below (heel 17 cm into the step, 2 frames, 5 of 8 laps; the run-down "10 deep").
+     Tried: a probe-based nose search for unpicked touchdowns (patches/nosesearch.py, X_NS) -> 17 cm floats at stops.
+     Idea not tried: use two scans to get the riser direction, or relax |v| when the scan dir is close to the flight's.
+  2. The 12 cm late-scan offset is fitted to one in-game case (catch-up 22 cm short).
+  3. The full suite's spiral walker going up (30 Hz): slide total 14.7 -> 18.0 cm/person (the quick step's ground).
+  4. Older: tight spiral down floats 51 -> 64 (60 Hz), the roll's 3-8 mm sole dips, the near-edge-start test's step
+     near the foot of flight 2 (pick refused), the toe tip past the outer wall at the turn (c16), option 1 the stop
+     float (stairs17.stops.up, pre-existing) never started.
+- STATE ON DISK: clean anim files loco/c18, c20, c20c, c21, c22a, c22d, c22e, c22g; harness trees qs/ctree22..33 (lm_c20..lm_c22g
+  in sl/); game trees locotour/st24n st28* st30* st31d st32d st33 (test blocks v3l + fix_v3n/p/q/m/o/r.py); logs
+  locotour/log_st*.txt; scripts lpcmp2.py, trcls.py, qs/atcopy.sh (anim_test on a copy), o2bcmp/o2sink/evsum2/
+  kitcmp2/plsum/sbwcmp. attree64 holds 5804e7d's anim files (restored after the 00:45 restart). orch49.sh / jobs49.txt
+  for game runs (all jobs done).

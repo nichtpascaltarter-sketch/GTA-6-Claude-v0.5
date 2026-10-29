@@ -1,4 +1,0 @@
-ntw 1 signal id=lib.signal.4way_2phase
-plan cycle=60.0
-phase p1 green=25.0 yellow=3.5 allred=1.5 moves=n_t,s_t,n_r,s_r
-phase p2 green=25.0 yellow=3.5 allred=1.5 moves=e_t,w_t,e_r,w_r

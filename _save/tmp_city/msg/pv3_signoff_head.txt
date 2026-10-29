@@ -1,0 +1,45 @@
+city snapshot-safe: 3t V3: Calle Siete's row 3 (b014-b019) drawn per face, and tools/author/rulecheck.py, as you GO'd it, on V1's tree. Base 5fac917 (tree f07179f2, snapshot 102). 40 files: 39 changed on their blobs, 1 new (rulecheck.py).
+
+FILES (path, base, new)
+docs/HANDBUILT_WORLD.md 98f6a435 40c968c4
+tools/author/street.py 7c8e8776 3b6de6e0
+world/districts/cl/blocks/b014/h12.ntw 220740c9 9c62a897
+world/districts/cl/blocks/b014/h13.ntw 3404bfa5 244f0c14
+world/districts/cl/blocks/b014/h14.ntw b15ab0f6 25043612
+world/districts/cl/blocks/b014/h15.ntw 938d3876 e3879496
+world/districts/cl/blocks/b014/h16.ntw 7fe5bb41 8fae59ac
+world/districts/cl/blocks/b014/h17.ntw f41f5182 e8dfc6cd
+world/districts/cl/blocks/b014/h18.ntw 66e8270b a9d66d5d
+world/districts/cl/blocks/b015/h13.ntw 81816aae 24476826
+world/districts/cl/blocks/b015/h14.ntw 9cbc5311 f3595a12
+world/districts/cl/blocks/b015/h15.ntw 8a90dbee f6d78163
+world/districts/cl/blocks/b015/h16.ntw 9518c887 d9837c85
+world/districts/cl/blocks/b015/h17.ntw b705df21 c38d5494
+world/districts/cl/blocks/b015/h18.ntw 20bfc4e7 2677bbce
+world/districts/cl/blocks/b015/h19.ntw 38dfde67 2df8da26
+world/districts/cl/blocks/b016/h12.ntw adf5fa38 91dafe69
+world/districts/cl/blocks/b016/h13.ntw be361ab1 647ddc62
+world/districts/cl/blocks/b016/h14.ntw fe236675 f266417d
+world/districts/cl/blocks/b016/h15.ntw 4f8e2e6e 8d011206
+world/districts/cl/blocks/b016/h16.ntw efad4224 8ef72c4b
+world/districts/cl/blocks/b016/h17.ntw 00c03e33 1132674f
+world/districts/cl/blocks/b016/h18.ntw df5753d7 eb7fd55c
+world/districts/cl/blocks/b017/h13.ntw f3620a02 11c3d9a3
+world/districts/cl/blocks/b017/h14.ntw 291c6eb1 594b2a29
+world/districts/cl/blocks/b017/h15.ntw d544f764 81ca55df
+world/districts/cl/blocks/b017/h16.ntw 21301e29 49cd6d35
+world/districts/cl/blocks/b017/h17.ntw 4644382b 69debe1d
+world/districts/cl/blocks/b017/h18.ntw eb2b577e 334ae1c1
+world/districts/cl/blocks/b017/h19.ntw f88ae1ba 35e55419
+world/districts/cl/blocks/b018/h11.ntw 6abf7c1b 6ecabf32
+world/districts/cl/blocks/b018/h12.ntw 40740049 c488df3d
+world/districts/cl/blocks/b018/h13.ntw a59e0f4e f0ea0909
+world/districts/cl/blocks/b018/h14.ntw d0185d3e 6c276a19
+world/districts/cl/blocks/b018/h15.ntw 80a86b90 ad7a2b8d
+world/districts/cl/blocks/b019/h09.ntw bd32abcb ff45e3be
+world/districts/cl/blocks/b019/h10.ntw 2aed66cf 2e99b921
+world/districts/cl/blocks/b019/h11.ntw 5ff4ab85 f3bd5c18
+world/districts/cl/blocks/b019/h12.ntw a0fbf6a1 a7c27689
+tools/author/rulecheck.py new 4716e362
+(also in /tmp/city/pv3_blobs.txt; pasted from it)
+

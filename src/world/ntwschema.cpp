@@ -107,7 +107,8 @@ std::vector<KindDef> build() {
         k.header = {F("district", VT_ID), F("scope", VT_WORD, -1, "trunk")};
         k.records.push_back(Rec("node", 2, false,
                                 {R("at", VT_POINT, 2), R("z", VT_NUM, 2), F("control", VT_WORD, -1, "none|stop|yield|signal"), F("plan", VT_ANY),
-                                 F("offset", VT_NUM, 1), F("approaches", VT_ANY), F("stops", VT_ANY), F("yield", VT_LIST), F("bulb", VT_ANY, 2)}));
+                                 F("offset", VT_NUM, 1), F("approaches", VT_ANY), F("stops", VT_ANY), F("yield", VT_LIST), F("bulb", VT_ANY, 2),
+                                 F("noredturn", VT_LIST)}));
         k.records.push_back(Rec("edge", 2, true,
                                 {R("from", VT_REF), R("to", VT_REF), R("class", VT_WORD, -1, "highway|boulevard|avenue|street|lane|rural|dirt|ramp"),
                                  F("name", VT_TEXT), R("lanes", VT_ANY), F("lanewidth", VT_NUM, 2), F("median", VT_ANY, 2), F("shoulder", VT_ANY, 2),
@@ -189,7 +190,9 @@ std::vector<KindDef> build() {
         k.records.push_back(Rec("spot", 1, false, spotFields(outdoorSpots, false)));
         k.records.push_back(Rec("lot", 2, true, {R("entry", VT_ANY, 2), F("exit", VT_ANY, 2), F("levels", VT_INT)}, {"row", "ramp"}));
         k.records.push_back(Rec("row", 0, false,
-                                {R("line", VT_POINTS, 2), R("bays", VT_INT), F("w", VT_NUM, 2), F("len", VT_NUM, 2), F("yaw", VT_NUM, 1), F("level", VT_INT)}, {}, false));
+                                {R("line", VT_POINTS, 2), R("bays", VT_INT), F("w", VT_NUM, 2), F("len", VT_NUM, 2), F("yaw", VT_NUM, 1), F("level", VT_INT),
+                                 F("aisle", VT_POINTS, 2)},
+                                {}, false));
         k.records.push_back(Rec("ramp", 0, false, {R("from", VT_INT), R("to", VT_INT), R("line", VT_POINTS, 2)}, {}, false));
         kinds.push_back(k);
     }
@@ -331,7 +334,8 @@ std::vector<KindDef> build() {
         k.kind = "catalog";
         k.version = 1;
         k.records.push_back(Rec("piece", 2, false,
-                                {R("code", VT_ANY), F("size", VT_ANY, 2), F("variants", VT_INT), F("params", VT_LIST), F("collide", VT_WORD, -1, "box|cylinder|none")}));
+                                {R("code", VT_ANY), F("size", VT_ANY, 2), F("variants", VT_INT), F("params", VT_LIST), F("collide", VT_WORD, -1, "box|cylinder|none"),
+                                 F("body", VT_ANY, 2)}));
         kinds.push_back(k);
     }
     return kinds;
@@ -519,6 +523,7 @@ const std::vector<RefDef>& schemaRefs() {
             {"roads", "node", "approaches", "*:<edge>,..."},
             {"roads", "node", "stops", "all|<edge>,..."},
             {"roads", "node", "yield", "<edge>,..."},
+            {"roads", "node", "noredturn", "<edge>,..."},
             {"roads", "edge", "from", "<node>"},
             {"roads", "edge", "to", "<node>"},
             {"roads", "busstop", "shelter", "<prop>"},

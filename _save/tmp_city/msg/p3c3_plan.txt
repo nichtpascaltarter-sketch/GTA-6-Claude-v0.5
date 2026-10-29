@@ -1,0 +1,42 @@
+city: plan for 3c batch 3, blocks b002 and b003. It needs no new plans. Not started; it waits for your go.
+
+1. Blocks: b002 and b003, Calle Luna to the river from Bougainvillea to the Heroes.
+   - With them, Calle Luna's river side is built from end to end (b002 to b007).
+   - A bigger step could add b008 and b009 across Calle Luna, 36 more. But I'd keep it to two blocks:
+     - cell 45,41 would then hold about 44 placements, near the ~10 ms at which I'd build the shell cache first;
+     - and 5 of their lots would stay yards (see "Ahead").
+
+2. Placements and plans: 35, all with the library's 5 plans. These are dry runs with seed 6, with --ground on 82's ground:
+   - b002, 18 buildings:
+     - Calle Luna: a street wall of 11 with a corner shop at each end.
+     - The Paseo del Rio: 7, corner shops at both ends with 5 bungalows and casitas between them.
+   - b003, 17 buildings: 10 on Calle Luna and 7 on the Paseo, laid out the same way.
+   - Every parcel gets a building; no parcel stays a yard.
+   - The rules are batch 2's: street.py with the 0.5 m UNDER rule and --ground at 0.25 m, on the parcels as the ground slice levelled them.
+
+3. New beyond street.py and dress.py: nothing in the game, the data or its format. One tool question, your call:
+   - street.py --ground reads a dump of the compiled ground, which my scratch dumper makes. HANDBUILT 5.3 mentions the dump, but nothing in the tree writes it.
+   - The dumper links about 40 of the world's source files, and there is no unity file for them. As a tree tool that nothing builds, its include list would rot, so I'd keep it scratch.
+   - If you'd rather have it in the tree, I'd add it as tools/author/grounddump.cpp.
+
+4. Cost relative to batch 2: about 1.3 times the data, the same checks.
+   - Data: 35 building files against batch 2's 27. No new library items, as in batch 2.
+   - Checks: one chain of the same lean set:
+     - the harness on all 35, about 1,100 rooms in all;
+     - 3 shots: a face by day, one by night, an aerial;
+     - worldv, the census and both drives.
+     - Batch 2 needed a second chain only for the b004.p11 fix.
+   - Cells: b002 falls in cells 44 and 45, and b003 in 45.
+     - Afterwards, cell 45,41 holds 19 placements and 45,40 holds 12.
+     - 46,41 stays the busiest, at 26 placements (5.2 ms). No shell cache is needed yet.
+   - Interiors: up to 95 resident at once, about 560k triangles against 356k. From the row's middle, the whole river side is within the 480 m radius.
+     - Batch 2's 27 buildings raised the hand drive's memory by about 50-70 MB, so expect about 70-90 MB more.
+     - I'll log it again. The radius stays unless the numbers say otherwise.
+
+Ahead (for your planning, not part of batch 3):
+- 21 house lots in rows 2-4 have 10.2-11.2 m of frontage, and no house fits them. The casita is 9.0 m wide and, with 1.5 m side yards, needs 11.2 m. Two ways to fill them:
+  - a narrow house plan, which would be the first new plan, with its own short plan;
+  - or 1.0 m side yards on those lots, where the casita would fit most of them.
+- Domino Park (b010): street.py stops on its park parcel, which has no front. The fix is a one-line skip.
+- b011 and b012 fall in cell 46,41, which would grow to 55-60 placements and 10 ms or more. The shell cache (or a cell build split over frames) comes before them, as batch 1's plan said.
+- Rows 3-4 (Avenida Flores and Calle Nueve) are zoned commercial, and the dry runs fill them with the same shops with flats and walk-ups. Whether Avenida Flores gets its own commercial plans is a design choice for then.

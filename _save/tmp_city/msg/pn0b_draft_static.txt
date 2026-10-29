@@ -1,0 +1,40 @@
+WHAT (player-facing, hand world only)
+- In hand mode the world now goes on south of the Rio Sol: Calle Luna Sur's streets, from the river to y -930 and from Avenida Poniente to the I-38 viaduct's corridor (1.48 km2). There are no buildings there yet: lots, sidewalks and street furniture only.
+- A second bridge: Avenida del Sol (2/2) crosses the river from the Paseo del Rio to Calle del Muelle, 178 m on 40 m ramps with a deck at 5.50 m, about 4.5 m over the water, like the bascule bridge.
+- The south bank's streets: 19 new ones, and three of the pilot's running on (33.35 km of street in the district now, against the pilot's 8.93):
+  - Calle del Muelle runs on along the river both ways, from Avenida Poniente to Flamingo Boulevard.
+  - The through routes run north-south: Bougainvillea Boulevard (on south from the bascule bridge), Avenida del Sol (over the new bridge) and Flamingo Boulevard. Each runs on past Calle Veintiuno to a turning circle at the district's bound, for the districts south.
+  - Between them, every 120-140 m, the residential avenidas Mangle, Caoba, Almendro, Tamarindo, Guayacan, Jacaranda and Flamboyan; Avenida Poniente on the west edge.
+  - Calle del Viaducto runs beside the I-38 viaduct, 32 m west of its centreline. The viaduct's corridor stays outside the district's bound.
+  - Every 105-120 m, the calles Ribera (east of Sol), Once, Trece, Quince, Diecisiete, Diecinueve and Veintiuno; Avenida del Mercado is the shopping street; Avenida de la Estacion runs along the SkyLine's line.
+  - 7 new signals (where the through routes cross Mercado and Estacion, and Sol at Calle del Muelle) and 14 all-way stops (Trece and Diecisiete with the avenidas).
+- 93 new blocks (b028-b120) with 1,418 lots: 1,079 residential, 338 mixed (on the shopping and through streets), and the cemetery's block as one civic lot for its walls and tombs to come. All are levelled a step under their sidewalks but 2: a corner lot whose sidewalks climb 0.16 m, and the cemetery's, whose climb 0.5 m.
+- Their sidewalks are dressed as the pilot's: 1,169 street lights, 333 palms and royal palms on the avenues and boulevards, 327 hydrants, bins, benches, news boxes, and parking meters on Avenida del Mercado. The yards wait for their buildings.
+- b027 is the south bank's promenade, along Calle del Muelle's water side, as the Paseo del Rio's: 15 paved strips, palms, benches facing the water, bollards with garden lamps.
+- The SkyLine's corridor stays clear: a strip beside Avenida de la Estacion's north sidewalk, and its corner round to Avenida Poniente.
+- The pilot is as it was, but where the new streets join it:
+  - Calle del Muelle's two turning circles are now through streets (2 edges and 2 nodes gone, no other road record changed).
+  - Its promenade (b001) makes room for the new bridge: one strip ends 5 m sooner (x 1844 to 1839), 4 items there go (a bollard with its lamp, a palm, a bin), a bollard with its lamp stands 2 m west, and 8 palms take other heights.
+  - Its other 25 block files and its 412 building files are unchanged, byte for byte.
+- Procedural mode is unchanged.
+
+HOW
+- tools/author/roads.py (N0a's) holds the south bank's design:
+  - Calle del Muelle's points run on both ways.
+  - 23 street records: the two Diecinueve pieces either side of the cemetery, and Avenida del Sol's bridge and its run south.
+  - Bridges are a table now (BRIDGES), the bascule bridge's settings unchanged.
+  - The 7 signals and 14 stops.
+  - The road file's header names the tool.
+  - Your guard: two nodes within a metre of one old node, or two edges between one old edge's nodes, stop the script with sys.exit, naming the node or edge.
+  - The re-run kept every id the pilot had. 111 nodes and 199 edges are new (n0053-n0163, e0084-e0282); the 4 records gone are listed above.
+- district.ntw: the bounds and the audio zone grow to a 19-point polygon. It is the pilot's box, plus the south bank to y -930, west to Avenida Poniente's west sidewalk and east to 18 m short of the I-38's centreline, with its seams along the river's middle.
+- tools/author/dress.py:
+  - Its raster grows to cover the south bank, on the pilot's own lattice (0.5 m cells on whole and half metres), so the pilot's blocks trace as before.
+  - Outside the district's bound is taken. So is the SkyLine's corridor: the strip from Avenida de la Estacion's north sidewalk to 7 m past its deck's centre line (y -628.6, the generator's), and its south-west corner, a 180 m quarter circle. So is the river's low bank on the south side (ground under 2 m by the river), so no lot runs down to the water.
+  - The south bank's blocks are found as the free regions south of Calle del Muelle. Slivers along the bound (under 1,000 m2, or under 10 m across) are dropped. They are numbered row by row from the river and west to east (b028-b120), and titled by the streets round them.
+  - The three through routes' turning circles run on to the bound, so they part the strip south of Calle Veintiuno.
+  - The promenade code takes a street and a side, so Calle del Muelle's water side gets its own promenade (b027); the Paseo del Rio's is as before.
+  - The cemetery's block is one civic parcel. The south bank's lots get their ground and driveways, and no yards until their buildings (dress_parcel's yards=False).
+  - Avenida del Mercado is a shopping street; Estacion and Flamingo are mixed; their street trees.
+- docs/HANDBUILT_WORLD.md: 5.3's roads.py bullet (the guard; the south bank's streets) and its dress.py paragraph (the south bank's blocks, the corridors, the cemetery, the promenade); 10.1's stage 2 sentence.
+- The run: roads.py, then ntwfmt; worldc, then worlddump roads; dress.py, then ntwfmt.

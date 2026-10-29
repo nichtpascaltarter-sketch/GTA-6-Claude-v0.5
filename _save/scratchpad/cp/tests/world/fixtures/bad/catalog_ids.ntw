@@ -1,5 +1,0 @@
-ntw 1 catalog
-piece lib.kit.sofa_3seat code=FURN_SOFA
-piece lib.kit.a.b code=X # expect id.form
-piece lib.tool.hammer code=X # expect id.form
-piece lib.kit.sofa_3seat code=FURN_SOFA_2 # expect id.unique

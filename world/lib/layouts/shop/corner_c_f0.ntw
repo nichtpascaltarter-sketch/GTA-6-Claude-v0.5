@@ -1,0 +1,23 @@
+ntw 1 layout id=lib.layout.shop.corner_c_f0
+# the corner shop's floor: the shop on both streets with its store behind, a door on each street, and the flat's own
+# door and stair at the far side
+wall w1 a=0.00,0.00 b=8.40,0.00 t=0.25 ext=front
+wall w2 a=8.40,0.00 b=8.40,14.00 t=0.25 ext=right
+wall w3 a=8.40,14.00 b=0.00,14.00 t=0.25 ext=back
+wall w4 a=0.00,14.00 b=0.00,0.00 t=0.25 ext=left
+wall w5 a=1.40,0.00 b=1.40,9.00 t=0.12
+wall w6 a=0.00,9.00 b=8.40,9.00 t=0.12
+room shop type=shop poly=1.40,0.00;8.40,0.00;8.40,9.00;1.40,9.00 cap=16 lux=500
+room store type=store poly=0.00,9.00;8.40,9.00;8.40,14.00;0.00,14.00 cap=2
+room entry type=stair poly=0.00,0.00;1.40,0.00;1.40,9.00;0.00,9.00 cap=2
+door d1 wall=w1 at=4.90 w=1.60 h=2.40 kind=pair leads=out:shop hours=8.00-20.00
+door d2 wall=w1 at=0.70 w=0.90 h=2.10 kind=hinged hinge=left swing=in leads=out:entry lock=resident
+door d3 wall=w6 at=2.90 w=0.90 h=2.10 kind=hinged hinge=right swing=in leads=shop:store lock=staff
+door d4 wall=w2 at=6.20 w=0.90 h=2.20 kind=hinged hinge=left swing=in leads=out:shop hours=8.00-20.00
+window n1 wall=w1 at=2.85 w=2.00 h=2.40 sill=0.40 kind=storefront room=shop
+window n2 wall=w1 at=6.95 w=1.90 h=2.40 sill=0.40 kind=storefront room=shop
+window n3 wall=w2 at=2.40 w=2.80 h=2.40 sill=0.40 kind=storefront room=shop
+window n4 wall=w2 at=8.00 w=0.90 h=1.40 sill=1.00 kind=fixed room=shop
+window n5 wall=w2 at=11.50 w=0.60 h=0.60 sill=1.80 kind=fixed room=store
+window n6 wall=w3 at=4.20 w=0.60 h=0.60 sill=1.80 kind=fixed room=store
+stair st1 from=f0.entry to=f1.landing run=0.70,1.50;0.70,7.10 w=1.00 kind=straight treads=20 rise=0.18

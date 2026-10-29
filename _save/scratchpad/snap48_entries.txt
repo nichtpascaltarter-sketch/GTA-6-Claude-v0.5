@@ -1,8 +1,0 @@
-100644 c6274fbf4eff2be1f0ca96f728e1e2073068f5f4	src/anim/animator.cpp
-100644 dd935b1a745ef7c89c8381ae5ce6540ff63a4d3e	src/anim/face.cpp
-100644 248cbf6a85676bd7060a66cfd4c8fd4ed00c9a83	tests/anim/anim_test.cpp
-100644 0f8e00bb05600e278571b7db66b773d5d0dcf109	src/game/ai.cpp
-100644 98de395da7ae05736af544bd32bf2e0c6f53b3f5	src/game/pedai.cpp
-100644 1eb24c98b0af8cad38197684484cad6735ff9f82	src/game/police.cpp
-100644 a8bf23c5015adfef5e001efc2e8401d73b809188	src/game/traffic.cpp
-100644 8efeb4a4a8453333b7954e80233efd6a740e2997	src/game/traffic_core.cpp

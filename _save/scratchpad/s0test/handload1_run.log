@@ -1,9 +1,0 @@
-Hand world: terrain from build/gen/world.bin (2606 KB, 6 sections) in 1.29 s
-loaded in 1.29 s
-Sites: terrain bake, landforms only (0.00 s)
-World map generated in 9.88 s
-heights max diff 0.0050 m; water differs on 0 texels; region on 0; coast distance max diff 0.125 m; splat differs on 20463 / 132430 texels (2.021%)
-outlines max diff 0.0050 m, islands 0.0050 m (88), channels 0.0002 m (7)
-heightAt(1780,160) = -4.50 m, water yes, region Calle Luna, coast distance 1996.6 m
-damaged world.bin refused: world.bin hash mismatch (damaged or truncated)
-handload: ALL OK

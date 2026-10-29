@@ -1,0 +1,64 @@
+city snapshot-safe: 3a-1 of the Calle Luna pilot, the buildings compile. worldc now compiles the library's plans, with their floor layouts, facade styles and palettes, into shells, and the building files into placements of them. They go into two new world.bin sections, which the game reads in hand mode. Nothing is drawn yet (that is 3a-2), and the pilot has no plans or buildings yet, so world.bin is 72's byte for byte. On 43001a9 (whose tree is 628b9f6's) plus my 72 blobs.
+
+FILES (12, three new)
+- build.sh 6b06a0ad on 70c052aa (43001a9's)
+- docs/HANDBUILT_WORLD.md 4accbd11 on 9825c6d3 (72's)
+- docs/NTW_FORMAT.md 3925502a on 79d692c2 (72's)
+- src/main.cpp 08a7d5e1 on d81ea1fb (43001a9's)
+- src/world/buildingsbin.cpp 7fba769e (new)
+- src/world/buildingsbin.h fc310882 (new)
+- src/world/handworld.cpp f2dd318d on 7a56627e (72's)
+- src/world/worldmodel.cpp 65e68458 on f3eaafd9 (72's)
+- src/world/worldmodel.h a6fc25c6 on 01682b86 (72's)
+- src/world/worldmodel_buildings.cpp cdbe7dca (new)
+- tests/world/worldmodel_test.cpp d5350589 on 1a1637d7 (72's)
+- tools/worldc.cpp 6f00f714 on af0df122 (72's)
+If 72's updater change touches build.sh or main.cpp, my edit to each is one line: main.cpp includes "world/buildingsbin.cpp" right after "world/blocksbin.cpp", and build.sh's WORLDC_SRC gains src/world/buildingsbin.h, src/world/buildingsbin.cpp, src/world/worldmodel_buildings.cpp and src/render/mesh.h.
+
+WHAT (player-facing)
+- Nothing to see yet. In hand mode the game now loads each plan's shell and each building's placement (gHandBuildings), for 3a-2 to draw, and its log line counts them.
+- worldc now accepts plan, layout, facade, palette and building files. A places, unit, fit-out or set file still stops the build until its compiler exists.
+
+HOW
+- The world model types what the shells need (worldmodel.h):
+  - a plan's class, size, footprint, floors (layout, z, h), roof (form, pitch, overhang, material), facade style and palette, and its options;
+  - a layout's walls, doors, windows and rooms;
+  - a facade style's wall, trims, window, door and base;
+  - a palette's colours;
+  - a building's place and config: palette, roof, facade, and its option choices.
+- compileBuildings (worldmodel.h) makes:
+  - a look per facade style: the wall's material and palette slot, the trims, the window's kind, frame and shutters, the door's colour, and the base. A material is a catalog piece whose code= names a MaterialId (MAT_STUCCO). Without them: stucco walls, a painted metal frame, and trims in the wall's material, 0.2 m high.
+  - a shell per plan: class, size, footprint, look, palette (packed as the renderer packs colours), roof, floors, and each floor's exterior walls (ext=) with their doors and windows. A roof without a material is gravel when flat and shingles when pitched.
+    - Each window carries the light schedule of the room behind it: the room's sched= where that names a roomlight.h class, else its type's. Living, dining and hall rooms get home_living; kitchen, bed and bath their home classes; shop, office, restaurant and garage their own; bar gets nightlife; stair, corridor and lobby always; store, plant and utility never.
+  - a placement per building file: its shell, at= (the plan's origin), z=, yaw (in radians), mirror=, and its config's palette, roof material and look in place of the plan's.
+  - Findings:
+    - building.kind: a material whose code the game lacks;
+    - building.shape: a plan without a floor, or without a footprint of 3 points;
+    - building.option: a config field that names no option of the plan, or a choice the option lacks. The format said worldc checks these, but nothing did.
+- buildingsbin.h has "library" (the looks and shells) and "buildings" (the placements). Both are LZ-compressed, versioned and little-endian, and each is written only when it has something.
+  - readBuildings reads all of it or nothing. It refuses a section that is damaged, truncated, over-long or of another version. It also refuses an enum past its range, a colour over 24 bits, a window schedule past roomlight.h's, a wall on a floor the shell lacks, and a building naming a shell or look the library lacks.
+  - Each list's read bound is its record's least size (44, 16, 68, 12, 32, 24 and 56 bytes).
+- Names: the enum types are Hand* (HandDoorKind, HandRoofForm and the rest), because World::DoorKind (interiors.h) and World::RoofForm (buildings.h) already exist. The first MinGW check caught that. Their constants (PAL_, TRIM_, WIN_, DOOR_, SHUTTER_, RFORM_) clash with nothing in src or the MinGW headers.
+- Docs: NTW_FORMAT section 1, and a list of what the buildings compiler reads after 9.10; HANDBUILT_WORLD 6.1.
+- Tests (worldmodel_test testBuildings), on a shop with a flat over it and a cottage on the flat's floor plate, with a facade style, two palettes and two buildings:
+  - the look: its trims (the none trim left out) and the defaults;
+  - the shells: class, palette packing, roof defaults, floors, the 8 exterior walls without the partitions, the openings in layout order, and each window's schedule, from its room's type or from sched=;
+  - the placements: yaw, mirror, the config's overrides and an option's choice;
+  - the round trip, exact, and no sections at all without buildings;
+  - 9 damaged cases refused: both sections truncated, a byte over, both versions, a colour slot, a schedule, and a shell and a look past the library's. Placements without the library are refused too.
+  - 100 of the smallest records of each list read back. I checked each read bound by mutation: one byte over its record's least fails its own case.
+  - the findings: 2 building.kind, 1 building.shape and 2 building.option.
+
+CHECKS (43001a9 + my 72 blobs + 3a-1)
+- CI's tests with CI's flags (-Wall -Wextra -Werror, UBSan): worldmodel_test, world_format_test and worldv_test all pass.
+- worldc (-Wall -Wextra, 0 warnings): world.bin is byte-identical with 72's (2,754,560 bytes, 15 sections), because the pilot has no plans or buildings yet.
+- worldv: 0 errors and the 4 agreed warnings (2,090 records, 512 ids, 1,870 references, as in 72).
+- MinGW -Wall on main.cpp with the exe build's flags: 0 errors, 0 warnings. MinGW -Wall -Wextra on worldc.cpp: 0 errors, 0 warnings.
+- The procedural world is untouched: meshcensus3 gives 0 of 13,913 lines different from 72's (mesh effcf391d20a40f2, queries 0afe996d34cd88a8).
+- As planned, no exe, shots or drives: nothing drawn changes until 3a-2, and the game reads only two sections the pilot doesn't have yet. 3a-2's sign-off will carry the exe, the day and night shots, and both drives.
+
+NEXT: 3a-2, under way. One question on it, for the night lighting:
+- The facade shader draws windows on a regular grid. It picks each room's schedule class itself (facadeRoomSchedule) from the room's hash and the building's flags. So it cannot take a hand window's class as it stands, contrary to my plan's hope. Two ways:
+  (a) No shader change. Each window is a glass quad whose facade uv maps into one window cell of a per-look entry. Each room gets the cell whose hash makes the shader's own rules pick its class, found on the CPU with a C++ copy of the shader's hash. That reaches the home classes, office, always, shop and restaurant; nightlife falls back to restaurant and garage to never. It breaks silently if facadeRoomSchedule changes, unless a test vector pins it.
+  (b) About 4 lines in facade.hlsli: a flag bit 64, "hand-built window", whose class comes in flags bits 8-11 and is used in place of facadeRoomSchedule. Every class is reachable, with no hash search. Procedural facades never set the bit, so they render as before.
+- I'd take (b). Until you answer, I'm writing the mesher and the content, which are the same either way.

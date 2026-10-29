@@ -1,0 +1,129 @@
+city snapshot-safe: RoadOverrides step 1, EdgeExtra, with the host loader for traffic_sim. It is based on 2a: its blobs sit on 2a's and on 69341af's, so it lands with 2a or after it.
+
+Blobs: /tmp/city/ro1_blobs.txt, 12 files, all written. roadoverrides.h is new; roadsbin.cpp, roadsbin.h and worldmodel_roads.cpp sit on 69341af's; the other 8 on 2a's.
+
+FOR THE AI AGENT (please forward it whole):
+1. World::RoadOverrides is in src/world/roadoverrides.h. It holds one list for now: edges, one EdgeExtra per RoadNetwork edge, by edge index.
+   - Every value is the one to use: as written in roads.ntw, else the class's (roadInfo). You never fall back yourself.
+   - The fields:
+     - speed (m/s);
+     - laneWidth;
+     - median (0 is a painted line);
+     - kerbL/kerbR: the paved width beyond the outer lane on each side, seen looking fwd. That is shoulder= plus parking= where either is written, else the class's shoulder.
+     - parkingL/parkingR: how much of the kerb strip is parking, along the kerb. 0 means none; -1 means not written, so today's rule applies.
+     - sidewalkL/sidewalkR;
+     - flags: EX_MEDIAN_BARRIER and EX_TUNNEL.
+   - They match the network: halfWidth = laneWidth * (lanesF + lanesB) / 2 + median / 2 + max(kerbL, kerbR), and sidewalk = max(sidewalkL, sidewalkR). A test checks this on every edge.
+2. In the game:
+   - World::gRoadOverrides is set in hand mode, read from world.bin's "roads.overrides". It is nullptr in the procedural world, and inline, so it links without roadsbin.cpp.
+   - Nothing reads it yet. LaneGraph::build(rn, ov) and ai.cpp passing gRoadOverrides are yours.
+3. The host loader:
+   - The call: World::loadRoadsFile(path, roads, ov, &err, &nodeIds, &edgeIds).
+   - It reads "roads" (hashed, ready for queries), "roads.overrides" and "roads.ids". It returns false with a reason, leaving everything empty, when the file is missing or damaged.
+   - For traffic_sim, include ../src/world/lz.cpp, worldbin.cpp and roadsbin.cpp (roads.cpp you have already).
+   - The pilot's world.bin is build/gen/world.bin after build.sh, or `build/worldc --world=world --out=<file>`.
+   - It loads roads only. For ground heights off the roads, map.generate() is the terrain the bake came from. The grading moves it by up to 0.45 m, only under the roads, whose z you take from the edges. If you want the graded terrain too, I can add a host terrain call.
+   - Tested: a written file read back whole, a missing file, a file that isn't a world.bin, and on the pilot (83 edges, all in step with the network's widths).
+4. What is off in hand mode today:
+   - The pilot authors no lanewidth or median, so your lanes and the painted lines agree: both use the class's widths.
+   - What differs from the class is the kerb side. 70 edges author parking (2.40 m, both sides or the left only), 8 alleys a 0.50 m shoulder, and the sidewalks are 2.5-4.5 m per side. EdgeExtra carries those per side.
+   - When lanes.cpp takes laneWidth and median from EdgeExtra, roadmesh.cpp must paint with them in the same snapshot, or the lines move off the lanes. That part is mine. Tell me when yours is ready and I'll do it, read in hand mode only.
+5. The next lists follow the conventions you asked for, and the header says so:
+   - each list sorted by edge, then dir or side, then from;
+   - distances in the RoadEdge's own s;
+   - lane indices counted at that end, after the stretch's pockets and drops;
+   - plan moves and walks resolved in worldc to {arrival edge, turn mask, protected} and {crossed edge};
+   - hours as minute-of-day pairs; numeric sign values in SI units.
+   NodeRule is next (stops, yields, bulb, and your right-on-red ban list), then the rest in your order. Also queued:
+   - roundabouts as one-way ring edges with kind=roundabout on the ring nodes;
+   - StopLine's optional lane;
+   - a mid-block signal crossing's optional plan;
+   - BusStop's bay flag and length;
+   - CurbCut's target.
+6. Your lots question (12.2 #9): lots come in part 2b, as their own section ("blocks.lots") beside the blocks.
+   - Per lot:
+     - its id;
+     - its entry and exit as curb cuts {edge, s, side};
+     - its rows: the bay line in world xyz, bay count, width, length, yaw, level, and the aisle;
+     - its ramps between levels;
+     - its levels.
+   - The parcels get a runtime list in the same slice: id, polygon, use, front edge and side.
+   - A CurbCut's `to` then resolves to {lot or parcel, index}.
+
+Checks:
+- On the 69341af-based tree:
+  - CI's worldmodel_test, with CI's flags: all passed, including testRoadOverrides.
+  - worldc on world/: "road overrides: 83 edges' widths and speeds"; world.bin has 11 sections.
+  - The host loader, built as traffic_sim would include it (lz.cpp, worldbin.cpp, roadsbin.cpp with roadnet.cpp), on the pilot's world.bin:
+    - 52 nodes and 83 edges with their ids;
+    - overrides for 83 edges: 70 with parking, 8 with their own speed (the alleys' 6 m/s);
+    - 0 edges off the network's widths, and the spatial hash answers.
+  - MinGW on main.cpp: 0/0.
+- On 64's tree:
+  - CI's five GCC test steps and worldv on world/: all passed, worldv with 0 errors and the 4 agreed warnings.
+  - MinGW on worldc and worldmodel_test: 0/0.
+  - The exe built with 0 warnings.
+  - Hand mode reads the section: "83 edges (83 with overrides)", 11 sections, lane graph 192 lanes and 397 connectors (unchanged, since nothing reads the overrides yet).
+  - Its hand drive and procedural drive match 2a's numbers exactly: 76/59 and 6260/9547 with 89/67.
+- testRoadOverrides covers:
+  - every edge of the model fixture against the network's widths;
+  - parking on both sides, one sidewalk and none, medians with their barriers;
+  - a lane width, a shoulder on one side and a tunnel;
+  - the section's exact round trip;
+  - a world.bin without the section;
+  - refusals: another network, damaged, truncated, over-long, another version;
+  - loadRoadsFile on a written file, on one that isn't a world.bin, and on a missing one.
+
+
+PART 2B: THE SECTION LAYOUTS, FOR THE AI AGENT (as you planned to forward them)
+A proposal for review: nothing uses it yet. It follows the RoadOverrides conventions:
+- indices are the RoadNetwork's, or the blocks' own;
+- distances along an edge are the RoadEdge's own s;
+- positions are world xyz, with z already on the graded ground;
+- every list is sorted (by block file, then file order);
+- what worldc can resolve, it resolves.
+
+Four sections beside "blocks" (a fifth if you want catalog colliders), each read like roadsbin: never half a list, damaged sections refused.
+
+1. "blocks.parcels": per parcel
+   - its id;
+   - polygon (xy);
+   - use (residential, commercial, mixed, industrial, civic, park, parking, vacant);
+   - front {edge, side} or none;
+   - grade z, or NaN where it follows the terrain.
+   Frontage, curb cuts and later the buildings name a parcel by this index.
+
+2. "blocks.lots": the 12.2 #9 answer. Per lot:
+   - its id;
+   - entry and exit, each {edge, s, side}. The exit is -1 where the entry serves both;
+   - levels;
+   - rows: the bay line (xyz from its first bay to its last), bay count, width, length, yaw and level, and the aisle polyline (the line offset by half the bay length plus half an aisle, worldc's choice until rows author it);
+   - ramps: {from level, to level, line xyz}.
+   A CurbCut's `to` resolves to {LOT or PARCEL, index}.
+
+3. "blocks.walk": the walk graph's authored inputs (12.3 #1). You join them to the sidewalk graph as you do today.
+   - paths: kind (walk, plaza, alley, trail, boardwalk, footbridge, underpass), width, and the polyline xyz. A footbridge or underpass's z comes from its profile; any other path's z is the ground's, or a sidewalk's where it meets one.
+   - plazas: polygon xy, z draped or level, and tags as words.
+   - steps: bottom and top xyz, width, treads and rise.
+
+4. "blocks.spots" (12.4 #1). Per spot:
+   - kind (an index into NTW_FORMAT 9.5's list; I'll add the enum in a header);
+   - at xyz plus yaw, or a queue line xyz with its head first;
+   - cap;
+   - hours as minute-of-day pairs (empty means always);
+   - cover;
+   - roles and ages (words and a min-max);
+   - the prop it uses, as an index into "blocks"' props, or -1;
+   - pose (a clip name);
+   - `for` as text until doors exist (cl.b014.s07:f0.d1).
+   I'll also write the implied spots, so you don't derive them twice: a bench spot per bench prop (cap from its piece's size), bus-stop waits from bus-stop shelters, and café seats when terraces exist. Each carries an IMPLIED flag.
+
+5. Obstacles (12.3 #5). The blocks' props already carry type, yaw and scale. So your per-PropType sizes apply to them as to today's props, and I add no section.
+   If you want the catalog's own colliders instead (collide= box or cylinder, at size= times scale), say so and I'll add "blocks.colliders": a box or cylinder per prop, in world space.
+
+Order on my side, once you agree: parcels and lots first (curb cuts need them), then walk, then spots, each a sign-off with tests and a round trip. The pilot's ~25 block files (2c) then fill them.
+
+Questions for you:
+1. Is a lot's aisle as worldc derives it enough, or should rows author it?
+2. Do you want implied spots written by worldc (my proposal) or derived on your side?
+3. Do you want catalog colliders, or are your per-type sizes enough?

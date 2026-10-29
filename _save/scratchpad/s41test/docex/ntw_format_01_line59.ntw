@@ -1,5 +1,0 @@
-ntw 1 building id=cl.b014.h03 block=cl.b014 parcel=cl.b014.p03
-place plan=lib.plan.house.bungalow_b02 at=1701.10,361.30 z=3.45 yaw=90.0 mirror=1
-config palette=lib.palette.bungalow.coral roof=lib.kit.roof_tile_terracotta porch=screened
-# the family redid the kitchen
-override room=f0.kitchen variant=c

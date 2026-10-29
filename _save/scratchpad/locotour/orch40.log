@@ -1,6 +1,0 @@
-start 07:27:56
-orch34 over 08:00:27
-run st20sp 08:00:27 memfree 6715
-run st20sp exit 0 (renderevery 30)
-done st20sp 08:02:42
-run st19pl 08:02:42 memfree 6620

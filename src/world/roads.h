@@ -43,6 +43,8 @@ struct RoadNode {
     u8 control = 0;    // 0 none, 1 stop signs, 2 traffic lights
     bool highway = false;
     float radius = 0;  // intersection clearing radius
+    float bulb = 0;    // a dead end's turning circle as the hand-built roads write it (RoadOverrides::NodeRule::bulb, set with
+                       // each side's widths by roadsbin.h applyRoadSides); 0: none written, the class's (bulbRadius)
 };
 
 struct RoadEdge {
@@ -50,8 +52,13 @@ struct RoadEdge {
     RoadClass cls = RC_STREET;
     u8 flags = 0;
     u8 lanesF = 1, lanesB = 1;  // lanes in direction n0->n1 / n1->n0
-    float halfWidth = 4.f;      // paved half width (incl. shoulders/parking)
-    float sidewalk = 0.f;
+    float halfWidth = 4.f;      // paved half width (incl. shoulders/parking): the wider side's
+    float sidewalk = 0.f;       // the wider side's
+    // How much narrower each side is than halfWidth and sidewalk, [0] the left and [1] the right looking fwd (n0 to n1):
+    // the hand-built roads' own widths, set from their overrides (roadsbin.h applyRoadSides). 0 in the procedural world,
+    // whose edges are symmetric. Read them through halfWidthSide and sidewalkSide.
+    float kerbTrim[2] = {0.f, 0.f};
+    float walkTrim[2] = {0.f, 0.f};
     std::vector<vec3> pts;      // centerline polyline (with z), pts.front() at n0, pts.back() at n1
     std::vector<float> dist;    // cumulative distance
     float length = 0;
@@ -61,6 +68,11 @@ struct RoadEdge {
     // Evaluate position / tangent at distance s along the edge
     vec3 posAt(float s) const;
     vec3 tangentAt(float s) const;
+    // One side's kerb line (its paved half width: the shape to the kerb) and its sidewalk width, side -1 the left and
+    // +1 the right looking fwd. The mesher draws them, and the lane graph's walks, crosswalks, bus stops and parking
+    // read them, so the two agree by construction. Exactly halfWidth and sidewalk in the procedural world.
+    float halfWidthSide(int side) const { return halfWidth - kerbTrim[side > 0 ? 1 : 0]; }
+    float sidewalkSide(int side) const { return sidewalk - walkTrim[side > 0 ? 1 : 0]; }
 };
 
 // Where a street that ran out onto a beach now ends (generate() pulls such dead ends back off the sand): the node the way on
@@ -90,6 +102,7 @@ struct RoadNetwork {
     int nearestEdge(vec2 p, float maxDist, float* outS = nullptr, float* outDist = nullptr, float* outSide = nullptr) const;
     // Road surface height if p lies on a paved road/intersection/bridge deck; returns false otherwise.
     bool surfaceHeight(vec2 p, float* z, float maxZ = 1e9f) const;
+    bool roadSurfaceHeight(vec2 p, float* z, float maxZ = 1e9f) const;   // (the same, without the sites' pads: roadnet.cpp)
     // True if p is within `margin` meters of any road surface or sidewalk (dead-end bulbs included).
     bool nearRoad(vec2 p, float margin) const;
     // True if p lies on the paved width (+ margin) of a road whose surface there is within 2.5 m of z (street furniture filter);
@@ -98,13 +111,19 @@ struct RoadNetwork {
     // Junction surface height at p inside node n's disc: height of the nearest incident road centreline
     float junctionZ(const RoadNode& n, vec2 p) const;
     // Radius of the paved turning bulb at a dead end (two-way lanes, streets and rural roads that end: roadmesh paves the
-    // circle, with the road's sidewalk around it), 0 at any other node
+    // circle, with the road's sidewalk around it), 0 at any other node. Where the hand-built roads write one
+    // (RoadNode::bulb), that one: the mesher, the grading and the lane graph's U-turn and walk ring all use it
     float bulbRadius(const RoadNode& n) const;
     void edgesInRect(vec2 mn, vec2 mx, std::vector<int>& out) const;
     float totalLength(RoadClass c) const;
 
     void buildHash();
 };
+
+// The terrain graded under a network's roads (roadgrade.cpp): generate() runs it on today's world, and the world
+// compiler on the hand-built world's baked terrain (docs/HANDBUILT_WORLD.md section 3.3). `decks`, per edge, lists the
+// stretches on structures (plan metres from its n0, as x..y), where the ground isn't graded.
+void gradeTerrainForRoads(const RoadNetwork& net, WorldMap& map, const std::vector<std::vector<vec2>>* decks = nullptr);
 
 extern RoadNetwork* gRoads;
 

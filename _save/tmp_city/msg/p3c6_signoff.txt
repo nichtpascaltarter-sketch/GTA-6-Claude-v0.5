@@ -1,0 +1,137 @@
+city snapshot-safe: 3c batch 6: b009 and b011, 40 buildings on Calle Luna and Calle Siete under batch 4's rules. Row 2 is done. Base 2ea8c54, snapshot 86 (tree 75d3122b). 41 files: 1 changed on its blobs, 40 new. By your rule this batch stops here: both of its cells pass ~8 ms quiet, so (a) is proposed below.
+
+FILES (path, base, new)
+docs/HANDBUILT_WORLD.md 53a111c0 1f491595
+world/districts/cl/blocks/b009/h14.ntw new 2b96595d
+world/districts/cl/blocks/b009/h15.ntw new 284fb4b7
+world/districts/cl/blocks/b009/h16.ntw new 98d91df0
+world/districts/cl/blocks/b009/h17.ntw new 7a17e1b6
+world/districts/cl/blocks/b009/h18.ntw new a23b3718
+world/districts/cl/blocks/b009/h19.ntw new f97e888a
+world/districts/cl/blocks/b009/h20.ntw new e5220f6b
+world/districts/cl/blocks/b009/m03.ntw new 3e8f0b32
+world/districts/cl/blocks/b009/m04.ntw new e715cabf
+world/districts/cl/blocks/b009/s01.ntw new bb343398
+world/districts/cl/blocks/b009/s02.ntw new 8cb2dbc3
+world/districts/cl/blocks/b009/s05.ntw new 1b8f36f5
+world/districts/cl/blocks/b009/s06.ntw new 7e9b6f88
+world/districts/cl/blocks/b009/s07.ntw new b213ef88
+world/districts/cl/blocks/b009/s08.ntw new 55e320a0
+world/districts/cl/blocks/b009/s09.ntw new 54647b1f
+world/districts/cl/blocks/b009/s10.ntw new 2bc58b71
+world/districts/cl/blocks/b009/s11.ntw new dd213081
+world/districts/cl/blocks/b009/s12.ntw new 3aa44148
+world/districts/cl/blocks/b009/s13.ntw new 6a4696e4
+world/districts/cl/blocks/b009/s21.ntw new b83ac7d4
+world/districts/cl/blocks/b011/h13.ntw new 93b5e4d8
+world/districts/cl/blocks/b011/h14.ntw new bb9a0dfa
+world/districts/cl/blocks/b011/h15.ntw new 538d9d66
+world/districts/cl/blocks/b011/h16.ntw new 5c2de3d0
+world/districts/cl/blocks/b011/h17.ntw new d554f1d3
+world/districts/cl/blocks/b011/h18.ntw new e1262f9c
+world/districts/cl/blocks/b011/m02.ntw new ffff7392
+world/districts/cl/blocks/b011/m03.ntw new 3ba4a580
+world/districts/cl/blocks/b011/m10.ntw new 33dc80ca
+world/districts/cl/blocks/b011/s01.ntw new 1b2b5016
+world/districts/cl/blocks/b011/s04.ntw new ebca0589
+world/districts/cl/blocks/b011/s05.ntw new d36f746e
+world/districts/cl/blocks/b011/s06.ntw new f97c8c6c
+world/districts/cl/blocks/b011/s07.ntw new 2285e349
+world/districts/cl/blocks/b011/s08.ntw new fad01466
+world/districts/cl/blocks/b011/s09.ntw new c67545e2
+world/districts/cl/blocks/b011/s11.ntw new 2eb82b07
+world/districts/cl/blocks/b011/s12.ntw new 51ff15ac
+world/districts/cl/blocks/b011/s19.ntw new 331aa736
+(also in /tmp/city/p3c6_blobs.txt)
+
+WHAT (player-facing, hand world only)
+- b009 (Ceiba to the Heroes), 21 buildings:
+  - Calle Luna: 12, with corner shops at both ends, 8 shops with flats and 2 walk-ups.
+  - Calle Siete: corner shops at both ends (s21 at the Heroes set in 0.3 m from it), with a bungalow and 6 casitas between them. h14 stands alone, then h16-h20 make five side by side.
+  - Two of the casitas have 1.0 m yards: h14 on p09 (10.3 m) and h18 on p13 (11.1 m). Without that rule both lots would stay lawns.
+- b011 (Coral to Palma), 19 buildings:
+  - Calle Luna: 11, with corner shops at both ends, 6 shops with flats and 3 walk-ups.
+  - Calle Siete: corner shops at both ends, with 2 bungalows and 4 casitas between them in two pairs. No narrow lots or set-ins.
+- Every parcel of both blocks is built.
+- Row 2 now has 105 buildings, as planned. Only b012.p12 and Domino Park stay lawns.
+- All 40 can be walked into from the sidewalk and through every room. There are no new plans.
+- Procedural mode is unchanged: the census is identical, and world.bin changes only in hand sections (buildings, manifest).
+
+HOW
+- tools/author/street.py, unchanged from 86, seed 6, --ground from worldc --dump-ground of each block at 0.25 m.
+- Its output is the 40 files as written, with no hand edits. The two block files are unchanged.
+- Docs: HANDBUILT 5.3 (b009's 21, b011's 19) and 7.4 (the 200 hold 2,220 rooms in 1,139k).
+
+CHECKS
+- worldc: 0 warnings, 200 buildings from 252 files. world.bin changes only in buildings and manifest.
+- worldv: 0 errors and the 4 warnings as before (252 files, 2,833 records).
+- CI's three tests pass with CI's flags.
+- MinGW -Wall on main.cpp: 0 errors, 0 warnings.
+- The procedural census: 0 of 13,914 lines differ from 86's.
+- The exe nt_b20: 16,483,328 B, with 0 warnings.
+- The 40 new files are canonical (ntwfmt --check: 42 files with the two block files, 0 not canonical).
+- Harness: 2,220 of 2,220 rooms in the 200 interiors, 0 tour legs off the walk.
+- Shots, 0 fatal, in /tmp/city/b20smoke/shots/ (PNG):
+  - b009's Calle Luna face by day from the Heroes;
+  - b011's face by night from Palma, its shops lit;
+  - an aerial over b009 from the north: the five casitas h16-h20 side by side under one tile roof colour.
+- Hand drive, 0 fatal, run twice on batch 6: at t=21.5 it is at 1919.8, 285.4 with 82 peds and 51 vehicles, as on 86.
+- Procedural drive, 0 fatal: at t=17.5 it is at 1789.9, 130.6 with 93 peds, 63 vehicles and wanted 2, as on 86.
+
+THE NUMBERS (quiet machine)
+- The first chain's games ran into the set 0 render. So I ran the shots and both drives again after it, each starting at load under 2.0.
+- Each hand cell's near build, ms. Batch 6: shots / drive. Before (86): drive.
+  - 45,41, 52 placements (31 before): 8.9 / 8.6. Before: 4.9.
+  - 46,41, 63 placements (44 before): 9.5 / 8.9. Before: 4.9.
+  - 47,41, 39 placements, unchanged: 5.6 / 5.5. Before: 4.9.
+  - 44,41, 21 placements, unchanged: 2.5-4.6 in the shots.
+  - 45,40: 1.3-1.9. 46,40: 0.6-0.9. 44,40 and 47,40: 0.1-0.5.
+  - Far builds: 1.8 ms or less in the drives. One read 4.0 in the shots (47,41, at load; 1.5 in the first chain).
+  - Both batch 6 cells pass ~8 ms. My plan said 7.3-8.1 and 6.1-7.4 ms. In these runs the cost per triangle grew with the cell: 0.12-0.13 ms per 1k triangles on 86's cells, 0.15-0.16 on these.
+- Frame log, hand drive, 86 against batch 6, back to back. 900 frames each.
+  - Frames: median 6.7 and 6.8 ms; p99 1,856 and 1,854 ms; max 15,498 and 15,813 ms (the first frame both times).
+  - Frames over 33 ms: 253 and 254. After the first frame, the slowest both times are rendered frames (1.9-2.0 s each here), streaming 1.2 ms or less.
+  - Streaming: median 0.05 and 0.05 ms; p99 1.87 and 1.61 ms; max 10.66 and 14.69 ms.
+  - The max is the same frame both times, t=0.10, and it is the hand cells.
+    - On 86 it uploaded 45,41 and 46,41 near (41.6k and 45.0k triangles, roads and ground included) with 46,40 and 47,40, 95.6k in all, in 10.7 ms.
+    - On batch 6 it uploaded the same four cells, now 60.5k and 62.4k with the two small ones, 131.9k in 14.7 ms.
+    - That frame took 25.8 ms on 86 and 34.6 ms on batch 6. It is the one more over 33 ms.
+  - In the first chain (load 3+) the two big cells landed a frame apart, and the max was 11.9 ms (empty far cells).
+- Interiors: 200 resident at most (1,138,596 triangles).
+- Memory: the hand drive used 2,954-2,984 MB on 86 and 2,962-3,004 MB on batch 6.
+
+NEXT, YOUR CALL
+1. (a) the parallel cell build, by your rule: a quiet near build passes ~8 ms.
+   - buildHandBuildingsCell builds its placements in chunks through Jobs::parallelFor. Each chunk fills its own mesh and collision list, and they're appended in placement order with their indices offset, so the cell comes out as the same bytes.
+   - parallelFor queues the chunks at high priority, and its wait runs queued jobs itself, so it's safe inside a cell's job. The frame never waits on the queue (it only polls its jobs).
+   - A placement only reads the HandBuildings, the map and the level index, which three workers already read at once today, one cell each.
+   - What it buys: there are 3 workers here. With the other two idle, a 9 ms cell should drop to about 3-5 ms. The CPU time doesn't change, and at load, when every worker has a cell, it gains little.
+   - Checks as 84's: every hand cell's near and far mesh and collision identical by hash to batch 6 (200/200 placements, 16/16 cell builds), the census, CI, MinGW, the near ms before and after on a quiet machine, the frame log, and both drives' positions and vehicles unchanged.
+   - Cost: one small slice, like 84.
+2. The upload budget by triangles: your ~16 ms line didn't trip (14.7), so I haven't proposed it as a slice. But it's close, and (a) doesn't touch uploads.
+   - Cell row 41 runs to y 512, so row 3's Calle Siete face (b014-b019) lands in these same cells.
+   - At today's 1.1 ms per 10k triangles, two big cells in one frame pass 16 ms at about 68k each. They're at 60.5k and 62.4k now.
+   - So row 3's first batch would trip it whenever the two land in one frame. I'd do it right after (a), each as its own slice, with the check you named.
+
+CASITA RUNS, ROW 2 IN FULL (3 or more side by side on one street, nothing between)
+- 5 runs, holding 19 of row 2's 26 casitas, all on Calle Siete:
+  - b009 h16-h20: 5 (the aerial shows them).
+  - b008 h13-h16: 4.
+  - b013 h10-h13: 4.
+  - b010 h10-h12: 3.
+  - b012 h11-h13: 3.
+- b011 has two pairs. Row 1 has no run.
+- Their walls already differ (six palettes, mirrored every other house). What repeats is the shape: the same 9 m gable front with the same windows, and the same tile roof.
+
+THE FOLLOW-UP: I'd pick the second narrow plan
+- Why: the casita's ridge runs front to back. From the street you see its gable end, in the wall colour, and little of the roof. Roof palettes would show mostly from above. A second plan changes the outline you see from the sidewalk.
+- About 1 batch, the cheap way: a twin of casita_d on its two floor layouts, so its rooms are already proven, with another roof and its own facade (windows, shutters, trims).
+  - The roof could be a hip, or flat behind a parapet. The flat one is the code path the shops already use; no plan uses hip yet.
+  - street.py picks one of the two per parcel, never three alike side by side. The pick comes from a per-parcel draw that leaves the seeded order alone, so a re-run rewrites only casita files, at most row 1's 6 and row 2's 26. b005 and b006 stay as they are.
+  - Checks: the harness, a street shot and an aerial of the runs, and every other file unchanged.
+- With floors of its own (a new house inside too), 1.5-2 batches.
+- Roof palettes alone: half a batch, and no game code.
+  - The palette record already takes a roof colour, and a placement can already name its roof material.
+  - They'd need a casita palette family and the same per-parcel pick in street.py, and they'd rewrite only the casitas' palette lines.
+  - They can ride along with the plan for little extra.
+- It's a design call, so it may be one for the user.

@@ -1,5 +1,0 @@
-0c0566b29cf8570ae2c71ca62325be0e55566288 src/game/ai.cpp
-e3f9263e70fd8fd2226e0b9984025df86841fc5e src/game/ai_game.h
-f4ee4d49b24aa9fff7a48ea366eba67e57e85e85 src/game/app.cpp
-f46b56bbd42c5add546260e0013c5e4e4116c60a src/game/events.cpp
-b4dff69a7a22d528ebc745d3cf4712ddc734261e src/game/pedai.cpp

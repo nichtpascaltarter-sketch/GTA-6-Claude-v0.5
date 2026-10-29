@@ -1,0 +1,11 @@
+ntw 1 plan id=lib.plan.house.casita_e
+# the casita's twin: the same two floors (casita_d's layouts) under a flat roof behind a parapet, the 1930s Miami way:
+# stucco with an eyebrow over each window and a cornice along the parapet
+meta class=house family=casita era=1938 floors=2 beds=2 baths=1 size=9.00x10.00 tags=calle
+footprint poly=0.00,0.00;9.00,0.00;9.00,10.00;0.00,10.00
+floor f0 layout=lib.layout.house.casita_d_f0 z=0.00 h=3.06
+floor f1 layout=lib.layout.house.casita_d_f1 z=3.06 h=2.80
+roof form=flat material=lib.kit.roof_gravel
+facade style=lib.facade.calle_deco palette=lib.palette.calle.mint
+entrance main door=f0.d1 kind=main
+entrance garden door=f0.d5 kind=service

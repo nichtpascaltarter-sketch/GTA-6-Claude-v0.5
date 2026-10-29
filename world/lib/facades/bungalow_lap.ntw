@@ -1,0 +1,8 @@
+ntw 1 facade id=lib.facade.bungalow_lap
+# the bungalows: lap siding, a little hood over each window, double-hung windows between fixed shutters, a concrete
+# foundation
+wall material=lib.kit.mat_siding color=wall
+trim kind=eyebrow material=lib.kit.mat_siding color=trim h=0.10
+window kind=dhung frame=lib.kit.mat_frame color=trim shutters=fixed
+door style=lib.kit.door_panel color=door
+base h=0.40 material=lib.kit.mat_concrete

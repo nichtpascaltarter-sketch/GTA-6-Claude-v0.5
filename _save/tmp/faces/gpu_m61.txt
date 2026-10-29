@@ -1,4 +1,0 @@
-g27_0p5m   n=3  gbuffer  783.25  shadows  459.49  lighting  329.89  total 2590.41 ms
-g27_1m     n=3  gbuffer  703.16  shadows  384.04  lighting  286.64  total 2312.98 ms
-g6_0p5m    n=3  gbuffer  714.87  shadows  414.88  lighting  320.32  total 2380.94 ms
-g6_1m      n=3  gbuffer  862.38  shadows  459.47  lighting  343.40  total 2706.23 ms

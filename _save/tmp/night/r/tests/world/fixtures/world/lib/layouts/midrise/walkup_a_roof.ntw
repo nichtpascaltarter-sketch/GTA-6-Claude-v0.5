@@ -1,6 +1,0 @@
-ntw 1 layout id=lib.layout.midrise.walkup_a_roof
-wall w1 a=0.00,0.00 b=6.00,0.00 t=0.20 ext=front
-wall w2 a=6.00,0.00 b=6.00,10.00 t=0.20 ext=right
-wall w3 a=6.00,10.00 b=0.00,10.00 t=0.20 ext=back
-wall w4 a=0.00,10.00 b=0.00,0.00 t=0.20 ext=left
-room plant type=plant poly=0.00,0.00;6.00,0.00;6.00,10.00;0.00,10.00 cap=2 outdoor=1

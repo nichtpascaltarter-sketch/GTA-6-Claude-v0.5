@@ -1,0 +1,5 @@
+ntw 1 building id=cl.b014.h12 block=cl.b014 parcel=cl.b014.p08
+# a two-storey casita, facing Calle Siete
+# written by tools/author/street.py (seed 6, per face): a re-run rewrites this file, unless this line goes
+place plan=lib.plan.house.casita_d at=1218.52,464.70 z=4.12 yaw=0.0 mirror=1
+config palette=lib.palette.casita.lemon

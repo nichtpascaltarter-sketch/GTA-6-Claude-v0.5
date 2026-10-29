@@ -1,0 +1,56 @@
+city snapshot-safe: 2b slice 1 of the Calle Luna pilot, the parcels and the lots with their drive graphs, for the AI's graphs. Nothing on screen changes: world.bin gains a "blocks.parcels" section (and "blocks.lots" once a lot exists), and the game reads both in hand mode. On fd07783; these files are the same blobs on 5fa7cc8 and fd07783.
+
+FILES (11)
+- docs/HANDBUILT_WORLD.md e91bb34d on 79af32c4
+- docs/NTW_FORMAT.md a93d89cd on fbcc39a0
+- src/world/blocksbin.cpp a4d65b6d on 744c5eb8
+- src/world/blocksbin.h dcf6574c on a45c5d88
+- src/world/handworld.cpp 1923dbb4 on 94f5d28f
+- src/world/ntwschema.cpp 153c05cf on bf7efe6f
+- src/world/worldmodel.cpp 75d24d0d on b9b0c488
+- src/world/worldmodel.h f17238ec on 2d3e064e
+- src/world/worldmodel_blocks.cpp f2aba5b9 on 1f7cbf2f
+- tests/world/worldmodel_test.cpp c5ff68ea on c695bcb4
+- tools/worldc.cpp 3d9cd337 on 10a9b2a2
+
+WHAT (player-facing)
+- Nothing to see or play yet. The game now has the pilot's parcels, and any lot's drive graph, in hand mode (gHandBlocks->parcels, ->lots), for the AI's frontage, curb cuts and parking.
+- The pilot: 325 parcels (144 residential, 70 commercial, 102 mixed, 1 industrial, 8 park). 324 front an edge (front=), none is levelled, and there are no lots yet.
+
+HOW
+- The sections follow the road overrides' conventions: RoadNetwork edge indices, a distance along an edge in the RoadEdge's own s, sides looking fwd (0 left, 1 right), world xyz with z on the graded ground, lists in block-file order. Each is read like roadsbin: all of it or nothing, and a damaged section is refused. The format is in blocksbin.h's header.
+- "blocks.parcels": per parcel its id, use, the edge and side it fronts (or none) and its grade (NaN where it follows the terrain). Curb cuts and buildings will name a parcel by its index.
+- "blocks.lots": per lot its id, levels, entry and exit cuts ({edge, s, side}; no exit where the entry serves both) and rows (bay line, bay count, width, length, facing, level, the aisle link), then its drive graph: nodes (xyz, level, kind: aisle, entry, exit, ramp), links (a and b, width, one-way a to b, kind: aisle, drive, ramp, polyline xyz) and bays (centre xyz, facing, row, the link it opens onto, and s, plan metres along that link).
+- worldc builds the graph (worldmodel.h compileBlockSections):
+  - Bays are spread evenly along each row's line and face its yaw= (without one, square to the line, to its left).
+  - The aisle is behind the bays, half their depth square to the line plus half its width away: 6 m, or 4 m and one way where the bays are more than 15 degrees off square, running the way that turns a car into them by less than 90 degrees. A row's aisle= overrides it, e.g. a loop round an island.
+  - Rows that face each other share one aisle down the middle: straight aisles within 1.5 m, parallel, overlapping by a metre and running the same way, or polylines whose points are all within 1.5 m.
+  - Aisles become links with a node at each end; ends within 1 m share one node, and a closed loop gets two links. A ramp is a link from its foot to its top, a level each, 3 m apart (kLotLevelHeight). An aisle or ramp end within 1 m of an aisle's side joins it there.
+  - The entry and exit cuts stand behind their side's sidewalk and drive to the nearest point of an aisle on level 0, splitting it there: one way in and one way out where the lot has both.
+  - Any part the entry can't reach joins it by its nearest pair of nodes on one level. Then, along the one-way links, a node that can't reach the way out joins the nearest node on its level that can, and one the entry doesn't reach joins the nearest it does (an angled row's far end, say). So every node lies on a way from the entry to the way out.
+  - Each bay opens onto its row's aisle where that passes nearest its centre.
+  - Heights: each point stands on the graded ground plus its level's lift (placeOnTerrain), the same as props.
+- Findings: block.lot (levels under 1, no rows, a row of no bays, a row or ramp on a level the lot lacks, a cut past its edge's ends, nothing on level 0 for the entry, a level no ramp reaches) and block.shape (lines too short). A lot with a finding is left out.
+- The model now types a lot's entry=, exit=, rows and ramps. The schema gives a row aisle= (points), and NTW_FORMAT 9.5 says what the compiler reads.
+- readBlocks(bin, out, error, roadEdges) refuses an edge past the network's count. handworld passes it and logs the counts: "325 parcels and 0 lots".
+- Tests (worldmodel_test testBlockSections):
+  - the parcels' uses, fronts and grades;
+  - three lots: two rows facing across one aisle; a 30 degree angled row with its one-way 4 m aisle, its far end joined; the cuts' nodes 8.6 m out and their one-way drives splitting the shared aisle; a ramp to a second level; an island's loop split by the drive in;
+  - every bay's link and s, and the heights on a levelled parcel (4.20), on the terrain and 3 m up;
+  - the round trip through world.bin, exact; damaged sections refused (truncated, a byte over, version, count); an edge past the network refused;
+  - eight findings, one per case.
+
+CHECKS (5fa7cc8 + the slice; fd07783 differs only in roads.cpp, round 3's, which none of these files include or call)
+- CI's tests with CI's flags (-Wall -Wextra -Werror, UBSan): worldmodel_test, world_format_test and worldv_test all pass.
+- worldc (-Wall -Wextra, 0 warnings) on world/: every section of world.bin is byte-identical with 5fa7cc8's, plus blocks.parcels (11,282 bytes). readBlocks reads it back.
+- worldv: 0 errors and the 4 agreed warnings. MinGW -Wall on main.cpp with the exe build's flags: 0 errors, 0 warnings.
+- The procedural world is untouched: meshcensus3 on 5fa7cc8 and on the slice gives all 13,913 cell and query lines identical (4,366 cells, mesh 7b74a1ba589d563b, queries 6b0c633dbf3bbd60).
+- The exe built with 0 warnings: /tmp/city/nt_b2s1.exe, 16,174,080 bytes. No shots: nothing drawn changes.
+- Drives with it, 0 fatal each:
+  - hand, 30 s: logs "325 parcels and 0 lots" and ends at t=21.5 at 1911.9,282.8, the same place as 68's and round 3's drives. It has 82 peds and 56 vehicles; 68's had 77 and 53, and since then 69 brought the dead-end mesh and the all-way-stop fix.
+  - procedural, 24 s first person: 6265 nodes, 9547 edges. It ends at t=17.5 at 1806.7,257.2 with 87 peds and 67 vehicles, exactly 68's drive (nt_r68).
+
+QUESTIONS
+1. The pilot has no lot. Shall I add one within the pilot so the AI has a real graph to read? The plan's 2c list has the boatyard's lot on the water. Or keep lots on the test fixtures until you say.
+2. Slice 2 (walk and spots, with the implied seats and bus waits) is written and tested, and its checks are running. Spots carry their facing as a unit vector, like the bays (dx, dy; 0,0 for any way), rather than a yaw. Is that fine with the AI agent?
+3. For slice 3 (colliders): the catalog's size= is each piece's envelope. For a palm that is its 4 m canopy, and for a street light its 2.4 m arm, so a collider at size= would wall off the sidewalk. My plan is an optional piece field body=WxDxH for the solid part: the trunk, 0.52 m wide as the physics has it; the pole, 0.34 m; the umbrella's pole. I'd add it to the pilot catalog's 5 trees, the umbrella and the street light, and use size= wherever body= isn't written. The alternative is a per-type table in code (catalogcodes.h, mirroring physics.cpp), which keeps the format as it is. Which do you want?

@@ -1,0 +1,32 @@
+city snapshot-safe: AI set 20 item 2, the I-38 gore median. The median barrier through a ramp-only node now follows the lanes' curve. On 41c3ca0 (66).
+
+FILE (blob written)
+- src/world/roadmesh.cpp eac131ff on 0c6aef3c (66's).
+
+WHAT IT DOES
+- Where only the expressway and its ramps meet, the median barrier and its two yellow lines used to run straight from one cut point to the node centre and on to the other cut point.
+- The lane graph's connectors through such a node are cubic Beziers on the edges' directions at the cut points.
+- Now the barrier, its collision and the lines follow that same curve: lanes.cpp addConn's rule, with the tangents blended as laneTangent blends them. So the fast lanes keep the median's 0.30 m to the barrier through the node, as they do along the edges.
+- Nothing else changes: the network, the lanes, and the edges' barriers are as they were.
+
+MEASURED
+I used a scratch traffic_sim option that checks the barrier's collision boxes against the median-side edges of the fast lanes and connectors.
+- All 50 ramp-only nodes:
+  - Now: the worst is -0.033 m at node 74, where the Sol Expressway meets the Flamingo Boulevard Exit (1237,661). There the barrier overlaps the fast lane by 3 cm. 6 nodes are under 0.25 m.
+  - Along the curve: 0.299-0.300 m at every node.
+- The AI's gore (I-38 by the Bayshore Boulevard Exit and Entrance, 2480-2492 / 3668-3776):
+  - 0.295-0.305 m on 66 now, 0.299-0.300 m with the change.
+  - I couldn't reproduce 0.16-0.37 m there. The bent nodes above are where it is that tight.
+- Along the edges the clearance is 0.300 m by construction: the 1.2 m median is a 0.6 m barrier with 0.3 m each side. More room than that needs a wider expressway median, which moves every I-38 cell and interchange. Say if you want it.
+
+CENSUS (procedural)
+- meshcensus2 against 66: 76 cell meshes differ (both LODs), every one within 40 m of one of the 50 ramp-only nodes.
+- Road queries: 0 of 9,547 edge lines differ.
+- Road vertices: 11,348,722 -> 11,384,050.
+- The road network and buildings don't move: this is the mesher only.
+
+CHECKS
+- MinGW main.cpp 0 errors / 0 warnings, on 66's tree with the file.
+- @EXE@
+- @SHOTS@
+- @DRIVE@

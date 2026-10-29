@@ -1,0 +1,1006 @@
+ntw 1 roads district=cl
+# Calle Luna: the heart (stage 1's pilot) and the south bank (stage 2), docs/HANDBUILT_WORLD.md section 10.1. Written
+# by tools/author/roads.py from its street design; edit the design and re-run it, or edit here and keep the ids.
+node cl.n0002 at=1190.00,62.00 z=4.22 control=none
+node cl.n0003 at=1190.00,245.00 z=4.13 control=signal plan=lib.signal.cl_twophase offset=15.0
+node cl.n0004 at=1190.00,350.00 z=4.01 control=signal plan=lib.signal.cl_twophase offset=0.0
+node cl.n0005 at=1190.00,456.00 z=3.97 control=none
+node cl.n0006 at=1190.00,561.82 z=4.02 control=signal plan=lib.signal.cl_twophase offset=30.0
+node cl.n0007 at=1190.00,660.00 z=4.07 control=none
+node cl.n0008 at=1190.00,710.00 z=4.08 bulb=10.00
+node cl.n0009 at=1330.00,216.90 z=3.96 control=none
+node cl.n0010 at=1330.00,298.00 z=3.93 control=none
+node cl.n0011 at=1330.00,350.00 z=3.92 control=none
+node cl.n0012 at=1330.00,403.00 z=3.90 control=none
+node cl.n0013 at=1330.00,456.00 z=3.88 control=stop
+node cl.n0014 at=1330.00,561.20 z=3.78 control=none
+node cl.n0015 at=1330.00,660.00 z=3.82 control=none
+node cl.n0016 at=1470.00,191.70 z=3.84 control=none
+node cl.n0017 at=1470.00,298.00 z=3.76 control=none
+node cl.n0018 at=1470.00,350.00 z=3.72 control=signal plan=lib.signal.cl_twophase offset=25.0
+node cl.n0019 at=1470.00,403.00 z=3.72 control=none
+node cl.n0020 at=1470.00,456.00 z=3.70 control=stop
+node cl.n0021 at=1470.00,560.58 z=3.58 control=signal plan=lib.signal.cl_twophase offset=51.0
+node cl.n0022 at=1470.00,660.00 z=3.52 control=none
+node cl.n0023 at=1610.00,178.25 z=3.63 control=none
+node cl.n0024 at=1610.00,298.00 z=3.56 control=none
+node cl.n0025 at=1610.00,350.00 z=3.52 control=signal plan=lib.signal.cl_twophase offset=38.0
+node cl.n0026 at=1610.00,403.00 z=3.51 control=none
+node cl.n0027 at=1610.00,456.00 z=3.49 control=stop
+node cl.n0028 at=1610.00,559.70 z=3.42 control=none
+node cl.n0029 at=1610.00,660.00 z=3.34 control=none
+node cl.n0030 at=1700.00,197.00 z=3.53 control=none
+node cl.n0031 at=1700.00,298.00 z=3.49 control=none
+node cl.n0032 at=1700.00,350.00 z=3.42 control=none
+node cl.n0033 at=1740.00,350.00 z=3.39 control=none
+node cl.n0034 at=1740.00,403.00 z=3.36 control=none
+node cl.n0035 at=1740.00,456.00 z=3.31 control=stop
+node cl.n0036 at=1740.00,555.80 z=3.21 control=none
+node cl.n0037 at=1740.00,660.00 z=3.12 control=none
+node cl.n0039 at=1850.00,258.12 z=3.29 control=signal plan=lib.signal.cl_twophase offset=45.0
+node cl.n0040 at=1850.00,298.00 z=3.30 control=none
+node cl.n0041 at=1850.00,350.00 z=3.28 control=signal plan=lib.signal.cl_twophase offset=0.0
+node cl.n0042 at=1850.00,403.00 z=3.23 control=none
+node cl.n0043 at=1850.00,456.00 z=3.15 control=none
+node cl.n0044 at=1850.00,552.50 z=3.14 control=signal plan=lib.signal.cl_twophase offset=20.0
+node cl.n0045 at=1850.00,660.00 z=3.06 control=stop
+node cl.n0046 at=1960.00,300.00 z=3.12 control=none
+node cl.n0047 at=1960.00,350.00 z=3.10 control=stop
+node cl.n0048 at=1960.00,456.00 z=3.00 control=none
+node cl.n0049 at=1960.00,549.20 z=2.93 control=stop
+node cl.n0050 at=1960.00,660.00 z=2.84 control=none
+node cl.n0051 at=1960.00,710.00 z=2.81 bulb=10.00
+node cl.n0052 at=2010.00,318.00 z=3.05 bulb=10.00
+node cl.n0053 at=1000.00,-870.00 z=4.47
+node cl.n0054 at=1000.00,-755.00 z=4.48 control=none
+node cl.n0055 at=1000.00,-650.00 z=4.48 control=none
+node cl.n0056 at=1000.00,-540.00 z=4.46 control=none
+node cl.n0057 at=1000.00,-420.00 z=4.49 control=none
+node cl.n0058 at=1000.00,-310.00 z=4.48 control=none
+node cl.n0059 at=1000.00,-205.00 z=4.42 control=none
+node cl.n0060 at=1000.00,-100.00 z=4.40 control=none
+node cl.n0061 at=1000.00,92.00 z=4.36
+node cl.n0062 at=1190.00,-912.00 z=4.28 bulb=10.00
+node cl.n0063 at=1190.00,-870.00 z=4.19 control=none
+node cl.n0064 at=1190.00,-755.00 z=4.23 control=none
+node cl.n0065 at=1190.00,-650.00 z=4.20 control=signal plan=lib.signal.cl_twophase offset=20.0
+node cl.n0066 at=1190.00,-540.00 z=4.21 control=none
+node cl.n0067 at=1190.00,-420.00 z=4.25 control=none
+node cl.n0068 at=1190.00,-310.00 z=4.30 control=signal plan=lib.signal.cl_twophase offset=10.0
+node cl.n0069 at=1190.00,-205.00 z=4.25 control=none
+node cl.n0070 at=1190.00,-100.00 z=4.25 control=none
+node cl.n0071 at=1330.00,-870.00 z=3.93 control=none
+node cl.n0072 at=1330.00,-755.00 z=3.94 control=none
+node cl.n0073 at=1330.00,-650.00 z=3.94 control=none
+node cl.n0074 at=1330.00,-540.00 z=3.92 control=stop
+node cl.n0075 at=1330.00,-420.00 z=4.03 control=none
+node cl.n0076 at=1330.00,-310.00 z=4.04 control=none
+node cl.n0077 at=1330.00,-205.00 z=4.05 control=stop
+node cl.n0078 at=1330.00,-100.00 z=4.01 control=none
+node cl.n0079 at=1330.00,45.40 z=4.06 control=none
+node cl.n0080 at=1470.00,-870.00 z=3.71 control=none
+node cl.n0081 at=1470.00,-755.00 z=3.66 control=none
+node cl.n0082 at=1470.00,-650.00 z=3.63 control=none
+node cl.n0083 at=1470.00,-540.00 z=3.67 control=stop
+node cl.n0084 at=1470.00,-420.00 z=3.80 control=none
+node cl.n0085 at=1470.00,-310.00 z=3.83 control=none
+node cl.n0086 at=1470.00,-205.00 z=3.86 control=stop
+node cl.n0087 at=1470.00,-100.00 z=3.84 control=none
+node cl.n0088 at=1470.00,15.00 z=3.76 control=none
+node cl.n0089 at=1610.00,-650.00 z=3.47 control=none
+node cl.n0090 at=1610.00,-540.00 z=3.47 control=stop
+node cl.n0091 at=1610.00,-420.00 z=3.50 control=none
+node cl.n0092 at=1610.00,-310.00 z=3.57 control=none
+node cl.n0093 at=1610.00,-205.00 z=3.54 control=stop
+node cl.n0094 at=1610.00,-100.00 z=3.61 control=none
+node cl.n0095 at=1610.00,9.38 z=3.63 control=none
+node cl.n0096 at=1730.00,-870.00 z=3.26 control=none
+node cl.n0097 at=1730.00,-755.00 z=3.21 control=none
+node cl.n0098 at=1730.00,-650.00 z=3.28 control=none
+node cl.n0099 at=1730.00,-540.00 z=3.31 control=stop
+node cl.n0100 at=1730.00,-420.00 z=3.35 control=none
+node cl.n0101 at=1730.00,-310.00 z=3.37 control=none
+node cl.n0102 at=1730.00,-205.00 z=3.37 control=stop
+node cl.n0103 at=1730.00,-100.00 z=3.40 control=none
+node cl.n0104 at=1730.00,39.50 z=3.47 control=none
+node cl.n0105 at=1850.00,-912.00 z=3.13 bulb=10.00
+node cl.n0106 at=1850.00,-870.00 z=3.12 control=none
+node cl.n0107 at=1850.00,-755.00 z=3.06 control=none
+node cl.n0108 at=1850.00,-650.00 z=3.11 control=signal plan=lib.signal.cl_twophase offset=50.0
+node cl.n0109 at=1850.00,-540.00 z=3.18 control=none
+node cl.n0110 at=1850.00,-420.00 z=3.18 control=none
+node cl.n0111 at=1850.00,-310.00 z=3.23 control=signal plan=lib.signal.cl_twophase offset=40.0
+node cl.n0112 at=1850.00,-205.00 z=3.29 control=none
+node cl.n0113 at=1850.00,-100.00 z=3.22 control=none
+node cl.n0114 at=1850.00,30.00 z=3.27 control=none
+node cl.n0115 at=1850.00,80.00 z=3.27 control=signal plan=lib.signal.cl_twophase offset=0.0
+node cl.n0116 at=1980.00,-870.00 z=2.94 control=none
+node cl.n0117 at=1980.00,-755.00 z=2.94 control=none
+node cl.n0118 at=1980.00,-650.00 z=2.98 control=none
+node cl.n0119 at=1980.00,-540.00 z=2.98 control=stop
+node cl.n0120 at=1980.00,-420.00 z=3.00 control=none
+node cl.n0121 at=1980.00,-310.00 z=3.08 control=none
+node cl.n0122 at=1980.00,-205.00 z=3.05 control=stop
+node cl.n0123 at=1980.00,-100.00 z=3.05 control=none
+node cl.n0124 at=1980.00,30.00 z=3.11 control=none
+node cl.n0125 at=1980.00,125.71 z=3.10 control=none
+node cl.n0126 at=2110.00,-870.00 z=2.75 control=none
+node cl.n0127 at=2110.00,-755.00 z=2.79 control=none
+node cl.n0128 at=2110.00,-650.00 z=2.84 control=none
+node cl.n0129 at=2110.00,-540.00 z=2.88 control=stop
+node cl.n0130 at=2110.00,-420.00 z=2.88 control=none
+node cl.n0131 at=2110.00,-310.00 z=2.94 control=none
+node cl.n0132 at=2110.00,-205.00 z=2.94 control=stop
+node cl.n0133 at=2110.00,-100.00 z=2.89 control=none
+node cl.n0134 at=2110.00,30.00 z=2.89 control=none
+node cl.n0135 at=2110.00,163.00 z=2.81 control=none
+node cl.n0136 at=2250.00,-870.00 z=2.54 control=none
+node cl.n0137 at=2250.00,-755.00 z=2.52 control=none
+node cl.n0138 at=2250.00,-650.00 z=2.55 control=none
+node cl.n0139 at=2250.00,-540.00 z=2.62 control=stop
+node cl.n0140 at=2250.00,-420.00 z=2.59 control=none
+node cl.n0141 at=2250.00,-310.00 z=2.69 control=none
+node cl.n0142 at=2250.00,-205.00 z=2.67 control=stop
+node cl.n0143 at=2250.00,-100.00 z=2.70 control=none
+node cl.n0144 at=2250.00,30.00 z=2.66 control=none
+node cl.n0145 at=2250.00,106.43 z=2.63 control=none
+node cl.n0146 at=2390.00,-912.00 z=2.29 bulb=10.00
+node cl.n0147 at=2390.00,-870.00 z=2.30 control=none
+node cl.n0148 at=2390.00,-755.00 z=2.28 control=none
+node cl.n0149 at=2390.00,-650.00 z=2.33 control=signal plan=lib.signal.cl_twophase offset=35.0
+node cl.n0150 at=2390.00,-540.00 z=2.38 control=none
+node cl.n0151 at=2390.00,-420.00 z=2.35 control=none
+node cl.n0152 at=2390.00,-310.00 z=2.40 control=signal plan=lib.signal.cl_twophase offset=25.0
+node cl.n0153 at=2390.00,-205.00 z=2.46 control=none
+node cl.n0154 at=2390.00,-100.00 z=2.46 control=none
+node cl.n0155 at=2390.00,50.00 z=2.54
+node cl.n0156 at=2481.40,-100.00 z=2.39
+node cl.n0157 at=2495.35,-205.00 z=2.38 control=none
+node cl.n0158 at=2509.30,-310.00 z=2.29 control=none
+node cl.n0159 at=2523.91,-420.00 z=2.17 control=none
+node cl.n0160 at=2539.86,-540.00 z=2.18 control=none
+node cl.n0161 at=2554.47,-650.00 z=2.16 control=none
+node cl.n0162 at=2568.42,-755.00 z=2.14 control=none
+node cl.n0163 at=2583.70,-870.00 z=2.12
+edge cl.e0002 from=cl.n0002 to=cl.n0003 class=boulevard name="Bougainvillea Boulevard" lanes=2/2 sidewalk=both:2.50
+  shape=1190.00,62.00;1190.00,245.00 profile=0.00:4.22;40.00:5.50;143.00:5.50;183.00:4.13
+  deck from=30.00 to=153.00 kind=bridge
+end
+edge cl.e0004 from=cl.n0003 to=cl.n0004 class=boulevard name="Bougainvillea Boulevard" lanes=2/2 sidewalk=both:4.50
+  shape=1190.00,245.00;1190.00,350.00
+end
+edge cl.e0005 from=cl.n0003 to=cl.n0009 class=street name="Paseo del Rio" lanes=1/1 parking=left:2.40 sidewalk=both:4.00
+  shape=1190.00,245.00;1300.00,222.00;1330.00,216.90
+end
+edge cl.e0006 from=cl.n0004 to=cl.n0005 class=boulevard name="Bougainvillea Boulevard" lanes=2/2 sidewalk=both:4.50
+  shape=1190.00,350.00;1190.00,456.00
+end
+edge cl.e0007 from=cl.n0004 to=cl.n0011 class=avenue name="Calle Luna" lanes=1/1 parking=both:2.40 sidewalk=both:4.50
+  shape=1190.00,350.00;1330.00,350.00
+end
+edge cl.e0008 from=cl.n0005 to=cl.n0006 class=boulevard name="Bougainvillea Boulevard" lanes=2/2 sidewalk=both:4.50
+  shape=1190.00,456.00;1190.00,561.82
+end
+edge cl.e0009 from=cl.n0005 to=cl.n0013 class=street name="Calle Siete" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1190.00,456.00;1330.00,456.00
+end
+edge cl.e0010 from=cl.n0006 to=cl.n0007 class=boulevard name="Bougainvillea Boulevard" lanes=2/2 sidewalk=both:4.50
+  shape=1190.00,561.82;1190.00,660.00
+end
+edge cl.e0011 from=cl.n0006 to=cl.n0014 class=avenue name="Avenida Flores" lanes=2/2 parking=both:2.40
+  sidewalk=both:4.00 shape=1190.00,561.82;1330.00,561.20
+end
+edge cl.e0012 from=cl.n0007 to=cl.n0008 class=street name="Bougainvillea Boulevard" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1190.00,660.00;1190.00,710.00
+end
+edge cl.e0013 from=cl.n0007 to=cl.n0015 class=street name="Calle Nueve" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1190.00,660.00;1330.00,660.00
+end
+edge cl.e0014 from=cl.n0009 to=cl.n0010 class=street name="Avenida Ceiba" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1330.00,216.90;1330.00,298.00
+end
+edge cl.e0015 from=cl.n0009 to=cl.n0016 class=street name="Paseo del Rio" lanes=1/1 parking=left:2.40 sidewalk=both:4.00
+  shape=1330.00,216.90;1400.00,205.00;1470.00,191.70
+end
+edge cl.e0016 from=cl.n0010 to=cl.n0011 class=street name="Avenida Ceiba" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1330.00,298.00;1330.00,350.00
+end
+edge cl.e0017 from=cl.n0010 to=cl.n0017 class=lane lanes=1/0 shoulder=both:0.50 sidewalk=none speed=6.0
+  shape=1330.00,298.00;1470.00,298.00
+end
+edge cl.e0018 from=cl.n0011 to=cl.n0012 class=street name="Avenida Ceiba" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1330.00,350.00;1330.00,403.00
+end
+edge cl.e0019 from=cl.n0011 to=cl.n0018 class=avenue name="Calle Luna" lanes=1/1 parking=both:2.40 sidewalk=both:4.50
+  shape=1330.00,350.00;1470.00,350.00
+end
+edge cl.e0020 from=cl.n0012 to=cl.n0013 class=street name="Avenida Ceiba" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1330.00,403.00;1330.00,456.00
+end
+edge cl.e0021 from=cl.n0013 to=cl.n0014 class=street name="Avenida Ceiba" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1330.00,456.00;1330.00,561.20
+end
+edge cl.e0022 from=cl.n0013 to=cl.n0020 class=street name="Calle Siete" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1330.00,456.00;1470.00,456.00
+end
+edge cl.e0023 from=cl.n0014 to=cl.n0015 class=street name="Avenida Ceiba" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1330.00,561.20;1330.00,660.00
+end
+edge cl.e0024 from=cl.n0014 to=cl.n0021 class=avenue name="Avenida Flores" lanes=2/2 parking=both:2.40
+  sidewalk=both:4.00 shape=1330.00,561.20;1470.00,560.58
+end
+edge cl.e0025 from=cl.n0015 to=cl.n0022 class=street name="Calle Nueve" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1330.00,660.00;1470.00,660.00
+end
+edge cl.e0026 from=cl.n0016 to=cl.n0017 class=street name="Paseo de los Heroes" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1470.00,191.70;1470.00,298.00
+end
+edge cl.e0027 from=cl.n0016 to=cl.n0023 class=street name="Paseo del Rio" lanes=1/1 parking=left:2.40 sidewalk=both:4.00
+  shape=1470.00,191.70;1500.00,186.00;1580.00,176.00;1610.00,178.25
+end
+edge cl.e0028 from=cl.n0017 to=cl.n0018 class=street name="Paseo de los Heroes" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1470.00,298.00;1470.00,350.00
+end
+edge cl.e0029 from=cl.n0017 to=cl.n0024 class=lane lanes=1/0 shoulder=both:0.50 sidewalk=none speed=6.0
+  shape=1470.00,298.00;1610.00,298.00
+end
+edge cl.e0030 from=cl.n0018 to=cl.n0019 class=boulevard name="Paseo de los Heroes" lanes=1/1 parking=both:2.40
+  sidewalk=both:3.50 shape=1470.00,350.00;1470.00,403.00
+end
+edge cl.e0031 from=cl.n0018 to=cl.n0025 class=avenue name="Calle Luna" lanes=1/1 parking=both:2.40 sidewalk=both:4.50
+  shape=1470.00,350.00;1610.00,350.00
+end
+edge cl.e0032 from=cl.n0019 to=cl.n0012 class=lane lanes=1/0 shoulder=both:0.50 sidewalk=none speed=6.0
+  shape=1470.00,403.00;1330.00,403.00
+end
+edge cl.e0033 from=cl.n0019 to=cl.n0020 class=boulevard name="Paseo de los Heroes" lanes=1/1 parking=both:2.40
+  sidewalk=both:3.50 shape=1470.00,403.00;1470.00,456.00
+end
+edge cl.e0034 from=cl.n0020 to=cl.n0021 class=boulevard name="Paseo de los Heroes" lanes=1/1 parking=both:2.40
+  sidewalk=both:3.50 shape=1470.00,456.00;1470.00,560.58
+end
+edge cl.e0035 from=cl.n0020 to=cl.n0027 class=street name="Calle Siete" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1470.00,456.00;1610.00,456.00
+end
+edge cl.e0036 from=cl.n0021 to=cl.n0022 class=boulevard name="Paseo de los Heroes" lanes=1/1 parking=both:2.40
+  sidewalk=both:3.50 shape=1470.00,560.58;1470.00,660.00
+end
+edge cl.e0037 from=cl.n0021 to=cl.n0028 class=avenue name="Avenida Flores" lanes=2/2 parking=both:2.40
+  sidewalk=both:4.00 shape=1470.00,560.58;1600.00,560.00;1610.00,559.70
+end
+edge cl.e0038 from=cl.n0022 to=cl.n0029 class=street name="Calle Nueve" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1470.00,660.00;1610.00,660.00
+end
+edge cl.e0039 from=cl.n0023 to=cl.n0024 class=street name="Avenida Coral" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1610.00,178.25;1610.00,298.00
+end
+edge cl.e0040 from=cl.n0023 to=cl.n0030 class=street name="Paseo del Rio" lanes=1/1 parking=left:2.40 sidewalk=both:4.00
+  shape=1610.00,178.25;1660.00,182.00;1700.00,197.00
+end
+edge cl.e0041 from=cl.n0024 to=cl.n0025 class=street name="Avenida Coral" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1610.00,298.00;1610.00,350.00
+end
+edge cl.e0042 from=cl.n0024 to=cl.n0031 class=lane lanes=1/0 shoulder=both:0.50 sidewalk=none speed=6.0
+  shape=1610.00,298.00;1700.00,298.00
+end
+edge cl.e0043 from=cl.n0025 to=cl.n0026 class=street name="Avenida Coral" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1610.00,350.00;1610.00,403.00
+end
+edge cl.e0044 from=cl.n0025 to=cl.n0032 class=avenue name="Calle Luna" lanes=1/1 parking=both:2.40 sidewalk=both:4.50
+  shape=1610.00,350.00;1700.00,350.00
+end
+edge cl.e0045 from=cl.n0026 to=cl.n0019 class=lane lanes=1/0 shoulder=both:0.50 sidewalk=none speed=6.0
+  shape=1610.00,403.00;1470.00,403.00
+end
+edge cl.e0046 from=cl.n0026 to=cl.n0027 class=street name="Avenida Coral" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1610.00,403.00;1610.00,456.00
+end
+edge cl.e0047 from=cl.n0027 to=cl.n0028 class=street name="Avenida Coral" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1610.00,456.00;1610.00,559.70
+end
+edge cl.e0048 from=cl.n0027 to=cl.n0035 class=street name="Calle Siete" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1610.00,456.00;1740.00,456.00
+end
+edge cl.e0049 from=cl.n0028 to=cl.n0029 class=street name="Avenida Coral" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1610.00,559.70;1610.00,660.00
+end
+edge cl.e0050 from=cl.n0028 to=cl.n0036 class=avenue name="Avenida Flores" lanes=2/2 parking=both:2.40
+  sidewalk=both:4.00 shape=1610.00,559.70;1740.00,555.80
+end
+edge cl.e0051 from=cl.n0029 to=cl.n0037 class=street name="Calle Nueve" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1610.00,660.00;1740.00,660.00
+end
+edge cl.e0052 from=cl.n0030 to=cl.n0031 class=street name="Avenida Palma" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1700.00,197.00;1700.00,298.00
+end
+edge cl.e0053 from=cl.n0030 to=cl.n0039 class=street name="Paseo del Rio" lanes=1/1 parking=left:2.40 sidewalk=both:4.00
+  shape=1700.00,197.00;1740.00,212.00;1820.00,245.00;1850.00,258.12
+end
+edge cl.e0054 from=cl.n0031 to=cl.n0032 class=street name="Avenida Palma" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1700.00,298.00;1700.00,350.00
+end
+edge cl.e0055 from=cl.n0031 to=cl.n0040 class=lane lanes=1/0 shoulder=both:0.50 sidewalk=none speed=6.0
+  shape=1700.00,298.00;1850.00,298.00
+end
+edge cl.e0056 from=cl.n0032 to=cl.n0033 class=avenue name="Calle Luna" lanes=1/1 parking=both:2.40 sidewalk=both:4.50
+  shape=1700.00,350.00;1740.00,350.00
+end
+edge cl.e0057 from=cl.n0033 to=cl.n0034 class=street name="Avenida Palma" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1740.00,350.00;1740.00,403.00
+end
+edge cl.e0058 from=cl.n0033 to=cl.n0041 class=avenue name="Calle Luna" lanes=1/1 parking=both:2.40 sidewalk=both:4.50
+  shape=1740.00,350.00;1850.00,350.00
+end
+edge cl.e0059 from=cl.n0034 to=cl.n0026 class=lane lanes=1/0 shoulder=both:0.50 sidewalk=none speed=6.0
+  shape=1740.00,403.00;1610.00,403.00
+end
+edge cl.e0060 from=cl.n0034 to=cl.n0035 class=street name="Avenida Palma" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1740.00,403.00;1740.00,456.00
+end
+edge cl.e0061 from=cl.n0035 to=cl.n0036 class=street name="Avenida Palma" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1740.00,456.00;1740.00,555.80
+end
+edge cl.e0062 from=cl.n0035 to=cl.n0043 class=street name="Calle Siete" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1740.00,456.00;1850.00,456.00
+end
+edge cl.e0063 from=cl.n0036 to=cl.n0037 class=street name="Avenida Palma" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1740.00,555.80;1740.00,660.00
+end
+edge cl.e0064 from=cl.n0036 to=cl.n0044 class=avenue name="Avenida Flores" lanes=2/2 parking=both:2.40
+  sidewalk=both:4.00 shape=1740.00,555.80;1850.00,552.50
+end
+edge cl.e0065 from=cl.n0037 to=cl.n0045 class=street name="Calle Nueve" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1740.00,660.00;1850.00,660.00
+end
+edge cl.e0066 from=cl.n0039 to=cl.n0040 class=avenue name="Avenida del Sol" lanes=2/2 parking=both:2.40
+  sidewalk=both:3.50 shape=1850.00,258.12;1850.00,298.00
+end
+edge cl.e0067 from=cl.n0039 to=cl.n0046 class=street name="Paseo del Rio" lanes=1/1 parking=left:2.40 sidewalk=both:4.00
+  shape=1850.00,258.12;1900.00,280.00;1960.00,300.00
+end
+edge cl.e0068 from=cl.n0040 to=cl.n0041 class=avenue name="Avenida del Sol" lanes=2/2 parking=both:2.40
+  sidewalk=both:3.50 shape=1850.00,298.00;1850.00,350.00
+end
+edge cl.e0069 from=cl.n0041 to=cl.n0042 class=avenue name="Avenida del Sol" lanes=2/2 parking=both:2.40
+  sidewalk=both:3.50 shape=1850.00,350.00;1850.00,403.00
+end
+edge cl.e0070 from=cl.n0041 to=cl.n0047 class=avenue name="Calle Luna" lanes=1/1 parking=both:2.40 sidewalk=both:4.50
+  shape=1850.00,350.00;1960.00,350.00
+end
+edge cl.e0071 from=cl.n0042 to=cl.n0034 class=lane lanes=1/0 shoulder=both:0.50 sidewalk=none speed=6.0
+  shape=1850.00,403.00;1740.00,403.00
+end
+edge cl.e0072 from=cl.n0042 to=cl.n0043 class=avenue name="Avenida del Sol" lanes=2/2 parking=both:2.40
+  sidewalk=both:3.50 shape=1850.00,403.00;1850.00,456.00
+end
+edge cl.e0073 from=cl.n0043 to=cl.n0044 class=avenue name="Avenida del Sol" lanes=2/2 parking=both:2.40
+  sidewalk=both:3.50 shape=1850.00,456.00;1850.00,552.50
+end
+edge cl.e0074 from=cl.n0043 to=cl.n0048 class=street name="Calle Siete" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1850.00,456.00;1960.00,456.00
+end
+edge cl.e0075 from=cl.n0044 to=cl.n0045 class=avenue name="Avenida del Sol" lanes=2/2 parking=both:2.40
+  sidewalk=both:3.50 shape=1850.00,552.50;1850.00,660.00
+end
+edge cl.e0076 from=cl.n0044 to=cl.n0049 class=avenue name="Avenida Flores" lanes=2/2 parking=both:2.40
+  sidewalk=both:4.00 shape=1850.00,552.50;1960.00,549.20
+end
+edge cl.e0077 from=cl.n0045 to=cl.n0050 class=street name="Calle Nueve" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1850.00,660.00;1960.00,660.00
+end
+edge cl.e0078 from=cl.n0046 to=cl.n0047 class=street name="Avenida Este" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1960.00,300.00;1960.00,350.00
+end
+edge cl.e0079 from=cl.n0046 to=cl.n0052 class=street name="Paseo del Rio" lanes=1/1 parking=left:2.40 sidewalk=both:4.00
+  shape=1960.00,300.00;2010.00,318.00
+end
+edge cl.e0080 from=cl.n0047 to=cl.n0048 class=street name="Avenida Este" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1960.00,350.00;1960.00,456.00
+end
+edge cl.e0081 from=cl.n0048 to=cl.n0049 class=street name="Avenida Este" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1960.00,456.00;1960.00,549.20
+end
+edge cl.e0082 from=cl.n0049 to=cl.n0050 class=street name="Avenida Este" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1960.00,549.20;1960.00,660.00
+end
+edge cl.e0083 from=cl.n0050 to=cl.n0051 class=street name="Avenida Este" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1960.00,660.00;1960.00,710.00
+end
+edge cl.e0084 from=cl.n0002 to=cl.n0070 class=boulevard name="Bougainvillea Boulevard" lanes=2/2 sidewalk=both:3.50
+  shape=1190.00,62.00;1190.00,-100.00
+end
+edge cl.e0085 from=cl.n0002 to=cl.n0079 class=street name="Calle del Muelle" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1190.00,62.00;1300.00,52.00;1330.00,45.40
+end
+edge cl.e0086 from=cl.n0053 to=cl.n0063 class=street name="Calle Veintiuno" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1000.00,-870.00;1190.00,-870.00
+end
+edge cl.e0087 from=cl.n0054 to=cl.n0053 class=street name="Avenida Poniente" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1000.00,-755.00;1000.00,-870.00
+end
+edge cl.e0088 from=cl.n0054 to=cl.n0064 class=street name="Calle Diecinueve" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1000.00,-755.00;1190.00,-755.00
+end
+edge cl.e0089 from=cl.n0055 to=cl.n0054 class=street name="Avenida Poniente" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1000.00,-650.00;1000.00,-755.00
+end
+edge cl.e0090 from=cl.n0055 to=cl.n0065 class=avenue name="Avenida de la Estacion" lanes=1/1 parking=both:2.40
+  sidewalk=both:4.50 shape=1000.00,-650.00;1190.00,-650.00
+end
+edge cl.e0091 from=cl.n0056 to=cl.n0055 class=street name="Avenida Poniente" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1000.00,-540.00;1000.00,-650.00
+end
+edge cl.e0092 from=cl.n0056 to=cl.n0066 class=street name="Calle Diecisiete" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1000.00,-540.00;1190.00,-540.00
+end
+edge cl.e0093 from=cl.n0057 to=cl.n0056 class=street name="Avenida Poniente" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1000.00,-420.00;1000.00,-540.00
+end
+edge cl.e0094 from=cl.n0057 to=cl.n0067 class=street name="Calle Quince" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1000.00,-420.00;1190.00,-420.00
+end
+edge cl.e0095 from=cl.n0058 to=cl.n0057 class=street name="Avenida Poniente" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1000.00,-310.00;1000.00,-420.00
+end
+edge cl.e0096 from=cl.n0058 to=cl.n0068 class=avenue name="Avenida del Mercado" lanes=1/1 parking=both:2.40
+  sidewalk=both:4.50 shape=1000.00,-310.00;1190.00,-310.00
+end
+edge cl.e0097 from=cl.n0059 to=cl.n0058 class=street name="Avenida Poniente" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1000.00,-205.00;1000.00,-310.00
+end
+edge cl.e0098 from=cl.n0059 to=cl.n0069 class=street name="Calle Trece" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1000.00,-205.00;1190.00,-205.00
+end
+edge cl.e0099 from=cl.n0060 to=cl.n0059 class=street name="Avenida Poniente" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1000.00,-100.00;1000.00,-205.00
+end
+edge cl.e0100 from=cl.n0060 to=cl.n0070 class=street name="Calle Once" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1000.00,-100.00;1190.00,-100.00
+end
+edge cl.e0101 from=cl.n0061 to=cl.n0002 class=street name="Calle del Muelle" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1000.00,92.00;1075.00,79.00;1150.00,66.00;1190.00,62.00
+end
+edge cl.e0102 from=cl.n0061 to=cl.n0060 class=street name="Avenida Poniente" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1000.00,92.00;1000.00,-100.00
+end
+edge cl.e0103 from=cl.n0063 to=cl.n0062 class=boulevard name="Bougainvillea Boulevard" lanes=2/2 sidewalk=both:3.50
+  shape=1190.00,-870.00;1190.00,-912.00
+end
+edge cl.e0104 from=cl.n0063 to=cl.n0071 class=street name="Calle Veintiuno" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1190.00,-870.00;1330.00,-870.00
+end
+edge cl.e0105 from=cl.n0064 to=cl.n0063 class=boulevard name="Bougainvillea Boulevard" lanes=2/2 sidewalk=both:3.50
+  shape=1190.00,-755.00;1190.00,-870.00
+end
+edge cl.e0106 from=cl.n0064 to=cl.n0072 class=street name="Calle Diecinueve" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1190.00,-755.00;1330.00,-755.00
+end
+edge cl.e0107 from=cl.n0065 to=cl.n0064 class=boulevard name="Bougainvillea Boulevard" lanes=2/2 sidewalk=both:3.50
+  shape=1190.00,-650.00;1190.00,-755.00
+end
+edge cl.e0108 from=cl.n0065 to=cl.n0073 class=avenue name="Avenida de la Estacion" lanes=1/1 parking=both:2.40
+  sidewalk=both:4.50 shape=1190.00,-650.00;1330.00,-650.00
+end
+edge cl.e0109 from=cl.n0066 to=cl.n0065 class=boulevard name="Bougainvillea Boulevard" lanes=2/2 sidewalk=both:3.50
+  shape=1190.00,-540.00;1190.00,-650.00
+end
+edge cl.e0110 from=cl.n0066 to=cl.n0074 class=street name="Calle Diecisiete" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1190.00,-540.00;1330.00,-540.00
+end
+edge cl.e0111 from=cl.n0067 to=cl.n0066 class=boulevard name="Bougainvillea Boulevard" lanes=2/2 sidewalk=both:3.50
+  shape=1190.00,-420.00;1190.00,-540.00
+end
+edge cl.e0112 from=cl.n0067 to=cl.n0075 class=street name="Calle Quince" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1190.00,-420.00;1330.00,-420.00
+end
+edge cl.e0113 from=cl.n0068 to=cl.n0067 class=boulevard name="Bougainvillea Boulevard" lanes=2/2 sidewalk=both:3.50
+  shape=1190.00,-310.00;1190.00,-420.00
+end
+edge cl.e0114 from=cl.n0068 to=cl.n0076 class=avenue name="Avenida del Mercado" lanes=1/1 parking=both:2.40
+  sidewalk=both:4.50 shape=1190.00,-310.00;1330.00,-310.00
+end
+edge cl.e0115 from=cl.n0069 to=cl.n0068 class=boulevard name="Bougainvillea Boulevard" lanes=2/2 sidewalk=both:3.50
+  shape=1190.00,-205.00;1190.00,-310.00
+end
+edge cl.e0116 from=cl.n0069 to=cl.n0077 class=street name="Calle Trece" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1190.00,-205.00;1330.00,-205.00
+end
+edge cl.e0117 from=cl.n0070 to=cl.n0069 class=boulevard name="Bougainvillea Boulevard" lanes=2/2 sidewalk=both:3.50
+  shape=1190.00,-100.00;1190.00,-205.00
+end
+edge cl.e0118 from=cl.n0070 to=cl.n0078 class=street name="Calle Once" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1190.00,-100.00;1330.00,-100.00
+end
+edge cl.e0119 from=cl.n0071 to=cl.n0080 class=street name="Calle Veintiuno" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1330.00,-870.00;1470.00,-870.00
+end
+edge cl.e0120 from=cl.n0072 to=cl.n0071 class=street name="Avenida Mangle" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1330.00,-755.00;1330.00,-870.00
+end
+edge cl.e0121 from=cl.n0072 to=cl.n0081 class=street name="Calle Diecinueve" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1330.00,-755.00;1470.00,-755.00
+end
+edge cl.e0122 from=cl.n0073 to=cl.n0072 class=street name="Avenida Mangle" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1330.00,-650.00;1330.00,-755.00
+end
+edge cl.e0123 from=cl.n0073 to=cl.n0082 class=avenue name="Avenida de la Estacion" lanes=1/1 parking=both:2.40
+  sidewalk=both:4.50 shape=1330.00,-650.00;1470.00,-650.00
+end
+edge cl.e0124 from=cl.n0074 to=cl.n0073 class=street name="Avenida Mangle" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1330.00,-540.00;1330.00,-650.00
+end
+edge cl.e0125 from=cl.n0074 to=cl.n0083 class=street name="Calle Diecisiete" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1330.00,-540.00;1470.00,-540.00
+end
+edge cl.e0126 from=cl.n0075 to=cl.n0074 class=street name="Avenida Mangle" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1330.00,-420.00;1330.00,-540.00
+end
+edge cl.e0127 from=cl.n0075 to=cl.n0084 class=street name="Calle Quince" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1330.00,-420.00;1470.00,-420.00
+end
+edge cl.e0128 from=cl.n0076 to=cl.n0075 class=street name="Avenida Mangle" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1330.00,-310.00;1330.00,-420.00
+end
+edge cl.e0129 from=cl.n0076 to=cl.n0085 class=avenue name="Avenida del Mercado" lanes=1/1 parking=both:2.40
+  sidewalk=both:4.50 shape=1330.00,-310.00;1470.00,-310.00
+end
+edge cl.e0130 from=cl.n0077 to=cl.n0076 class=street name="Avenida Mangle" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1330.00,-205.00;1330.00,-310.00
+end
+edge cl.e0131 from=cl.n0077 to=cl.n0086 class=street name="Calle Trece" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1330.00,-205.00;1470.00,-205.00
+end
+edge cl.e0132 from=cl.n0078 to=cl.n0077 class=street name="Avenida Mangle" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1330.00,-100.00;1330.00,-205.00
+end
+edge cl.e0133 from=cl.n0078 to=cl.n0087 class=street name="Calle Once" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1330.00,-100.00;1470.00,-100.00
+end
+edge cl.e0134 from=cl.n0079 to=cl.n0078 class=street name="Avenida Mangle" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1330.00,45.40;1330.00,-100.00
+end
+edge cl.e0135 from=cl.n0079 to=cl.n0088 class=street name="Calle del Muelle" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1330.00,45.40;1400.00,30.00;1470.00,15.00
+end
+edge cl.e0136 from=cl.n0080 to=cl.n0096 class=street name="Calle Veintiuno" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1470.00,-870.00;1730.00,-870.00
+end
+edge cl.e0137 from=cl.n0081 to=cl.n0080 class=street name="Avenida Caoba" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1470.00,-755.00;1470.00,-870.00
+end
+edge cl.e0138 from=cl.n0082 to=cl.n0081 class=street name="Avenida Caoba" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1470.00,-650.00;1470.00,-755.00
+end
+edge cl.e0139 from=cl.n0082 to=cl.n0089 class=avenue name="Avenida de la Estacion" lanes=1/1 parking=both:2.40
+  sidewalk=both:4.50 shape=1470.00,-650.00;1610.00,-650.00
+end
+edge cl.e0140 from=cl.n0083 to=cl.n0082 class=street name="Avenida Caoba" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1470.00,-540.00;1470.00,-650.00
+end
+edge cl.e0141 from=cl.n0083 to=cl.n0090 class=street name="Calle Diecisiete" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1470.00,-540.00;1610.00,-540.00
+end
+edge cl.e0142 from=cl.n0084 to=cl.n0083 class=street name="Avenida Caoba" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1470.00,-420.00;1470.00,-540.00
+end
+edge cl.e0143 from=cl.n0084 to=cl.n0091 class=street name="Calle Quince" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1470.00,-420.00;1610.00,-420.00
+end
+edge cl.e0144 from=cl.n0085 to=cl.n0084 class=street name="Avenida Caoba" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1470.00,-310.00;1470.00,-420.00
+end
+edge cl.e0145 from=cl.n0085 to=cl.n0092 class=avenue name="Avenida del Mercado" lanes=1/1 parking=both:2.40
+  sidewalk=both:4.50 shape=1470.00,-310.00;1610.00,-310.00
+end
+edge cl.e0146 from=cl.n0086 to=cl.n0085 class=street name="Avenida Caoba" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1470.00,-205.00;1470.00,-310.00
+end
+edge cl.e0147 from=cl.n0086 to=cl.n0093 class=street name="Calle Trece" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1470.00,-205.00;1610.00,-205.00
+end
+edge cl.e0148 from=cl.n0087 to=cl.n0086 class=street name="Avenida Caoba" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1470.00,-100.00;1470.00,-205.00
+end
+edge cl.e0149 from=cl.n0087 to=cl.n0094 class=street name="Calle Once" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1470.00,-100.00;1610.00,-100.00
+end
+edge cl.e0150 from=cl.n0088 to=cl.n0087 class=street name="Avenida Caoba" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1470.00,15.00;1470.00,-100.00
+end
+edge cl.e0151 from=cl.n0088 to=cl.n0095 class=street name="Calle del Muelle" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1470.00,15.00;1560.00,5.00;1610.00,9.38
+end
+edge cl.e0152 from=cl.n0089 to=cl.n0098 class=avenue name="Avenida de la Estacion" lanes=1/1 parking=both:2.40
+  sidewalk=both:4.50 shape=1610.00,-650.00;1730.00,-650.00
+end
+edge cl.e0153 from=cl.n0090 to=cl.n0089 class=street name="Avenida Almendro" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1610.00,-540.00;1610.00,-650.00
+end
+edge cl.e0154 from=cl.n0090 to=cl.n0099 class=street name="Calle Diecisiete" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1610.00,-540.00;1730.00,-540.00
+end
+edge cl.e0155 from=cl.n0091 to=cl.n0090 class=street name="Avenida Almendro" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1610.00,-420.00;1610.00,-540.00
+end
+edge cl.e0156 from=cl.n0091 to=cl.n0100 class=street name="Calle Quince" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1610.00,-420.00;1730.00,-420.00
+end
+edge cl.e0157 from=cl.n0092 to=cl.n0091 class=street name="Avenida Almendro" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1610.00,-310.00;1610.00,-420.00
+end
+edge cl.e0158 from=cl.n0092 to=cl.n0101 class=avenue name="Avenida del Mercado" lanes=1/1 parking=both:2.40
+  sidewalk=both:4.50 shape=1610.00,-310.00;1730.00,-310.00
+end
+edge cl.e0159 from=cl.n0093 to=cl.n0092 class=street name="Avenida Almendro" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1610.00,-205.00;1610.00,-310.00
+end
+edge cl.e0160 from=cl.n0093 to=cl.n0102 class=street name="Calle Trece" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1610.00,-205.00;1730.00,-205.00
+end
+edge cl.e0161 from=cl.n0094 to=cl.n0093 class=street name="Avenida Almendro" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1610.00,-100.00;1610.00,-205.00
+end
+edge cl.e0162 from=cl.n0094 to=cl.n0103 class=street name="Calle Once" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1610.00,-100.00;1730.00,-100.00
+end
+edge cl.e0163 from=cl.n0095 to=cl.n0094 class=street name="Avenida Almendro" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1610.00,9.38;1610.00,-100.00
+end
+edge cl.e0164 from=cl.n0095 to=cl.n0104 class=street name="Calle del Muelle" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1610.00,9.38;1640.00,12.00;1720.00,35.00;1730.00,39.50
+end
+edge cl.e0165 from=cl.n0096 to=cl.n0106 class=street name="Calle Veintiuno" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1730.00,-870.00;1850.00,-870.00
+end
+edge cl.e0166 from=cl.n0097 to=cl.n0096 class=street name="Avenida Tamarindo" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1730.00,-755.00;1730.00,-870.00
+end
+edge cl.e0167 from=cl.n0097 to=cl.n0107 class=street name="Calle Diecinueve" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1730.00,-755.00;1850.00,-755.00
+end
+edge cl.e0168 from=cl.n0098 to=cl.n0097 class=street name="Avenida Tamarindo" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1730.00,-650.00;1730.00,-755.00
+end
+edge cl.e0169 from=cl.n0098 to=cl.n0108 class=avenue name="Avenida de la Estacion" lanes=1/1 parking=both:2.40
+  sidewalk=both:4.50 shape=1730.00,-650.00;1850.00,-650.00
+end
+edge cl.e0170 from=cl.n0099 to=cl.n0098 class=street name="Avenida Tamarindo" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1730.00,-540.00;1730.00,-650.00
+end
+edge cl.e0171 from=cl.n0099 to=cl.n0109 class=street name="Calle Diecisiete" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1730.00,-540.00;1850.00,-540.00
+end
+edge cl.e0172 from=cl.n0100 to=cl.n0099 class=street name="Avenida Tamarindo" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1730.00,-420.00;1730.00,-540.00
+end
+edge cl.e0173 from=cl.n0100 to=cl.n0110 class=street name="Calle Quince" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1730.00,-420.00;1850.00,-420.00
+end
+edge cl.e0174 from=cl.n0101 to=cl.n0100 class=street name="Avenida Tamarindo" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1730.00,-310.00;1730.00,-420.00
+end
+edge cl.e0175 from=cl.n0101 to=cl.n0111 class=avenue name="Avenida del Mercado" lanes=1/1 parking=both:2.40
+  sidewalk=both:4.50 shape=1730.00,-310.00;1850.00,-310.00
+end
+edge cl.e0176 from=cl.n0102 to=cl.n0101 class=street name="Avenida Tamarindo" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1730.00,-205.00;1730.00,-310.00
+end
+edge cl.e0177 from=cl.n0102 to=cl.n0112 class=street name="Calle Trece" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1730.00,-205.00;1850.00,-205.00
+end
+edge cl.e0178 from=cl.n0103 to=cl.n0102 class=street name="Avenida Tamarindo" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1730.00,-100.00;1730.00,-205.00
+end
+edge cl.e0179 from=cl.n0103 to=cl.n0113 class=street name="Calle Once" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1730.00,-100.00;1850.00,-100.00
+end
+edge cl.e0180 from=cl.n0104 to=cl.n0103 class=street name="Avenida Tamarindo" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1730.00,39.50;1730.00,-100.00
+end
+edge cl.e0181 from=cl.n0104 to=cl.n0115 class=street name="Calle del Muelle" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1730.00,39.50;1780.00,62.00;1850.00,80.00
+end
+edge cl.e0182 from=cl.n0106 to=cl.n0105 class=avenue name="Avenida del Sol" lanes=2/2 parking=both:2.40
+  sidewalk=both:3.50 shape=1850.00,-870.00;1850.00,-912.00
+end
+edge cl.e0183 from=cl.n0106 to=cl.n0116 class=street name="Calle Veintiuno" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1850.00,-870.00;1980.00,-870.00
+end
+edge cl.e0184 from=cl.n0107 to=cl.n0106 class=avenue name="Avenida del Sol" lanes=2/2 parking=both:2.40
+  sidewalk=both:3.50 shape=1850.00,-755.00;1850.00,-870.00
+end
+edge cl.e0185 from=cl.n0107 to=cl.n0117 class=street name="Calle Diecinueve" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1850.00,-755.00;1980.00,-755.00
+end
+edge cl.e0186 from=cl.n0108 to=cl.n0107 class=avenue name="Avenida del Sol" lanes=2/2 parking=both:2.40
+  sidewalk=both:3.50 shape=1850.00,-650.00;1850.00,-755.00
+end
+edge cl.e0187 from=cl.n0108 to=cl.n0118 class=avenue name="Avenida de la Estacion" lanes=1/1 parking=both:2.40
+  sidewalk=both:4.50 shape=1850.00,-650.00;1980.00,-650.00
+end
+edge cl.e0188 from=cl.n0109 to=cl.n0108 class=avenue name="Avenida del Sol" lanes=2/2 parking=both:2.40
+  sidewalk=both:3.50 shape=1850.00,-540.00;1850.00,-650.00
+end
+edge cl.e0189 from=cl.n0109 to=cl.n0119 class=street name="Calle Diecisiete" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1850.00,-540.00;1980.00,-540.00
+end
+edge cl.e0190 from=cl.n0110 to=cl.n0109 class=avenue name="Avenida del Sol" lanes=2/2 parking=both:2.40
+  sidewalk=both:3.50 shape=1850.00,-420.00;1850.00,-540.00
+end
+edge cl.e0191 from=cl.n0110 to=cl.n0120 class=street name="Calle Quince" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1850.00,-420.00;1980.00,-420.00
+end
+edge cl.e0192 from=cl.n0111 to=cl.n0110 class=avenue name="Avenida del Sol" lanes=2/2 parking=both:2.40
+  sidewalk=both:3.50 shape=1850.00,-310.00;1850.00,-420.00
+end
+edge cl.e0193 from=cl.n0111 to=cl.n0121 class=avenue name="Avenida del Mercado" lanes=1/1 parking=both:2.40
+  sidewalk=both:4.50 shape=1850.00,-310.00;1980.00,-310.00
+end
+edge cl.e0194 from=cl.n0112 to=cl.n0111 class=avenue name="Avenida del Sol" lanes=2/2 parking=both:2.40
+  sidewalk=both:3.50 shape=1850.00,-205.00;1850.00,-310.00
+end
+edge cl.e0195 from=cl.n0112 to=cl.n0122 class=street name="Calle Trece" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1850.00,-205.00;1980.00,-205.00
+end
+edge cl.e0196 from=cl.n0113 to=cl.n0112 class=avenue name="Avenida del Sol" lanes=2/2 parking=both:2.40
+  sidewalk=both:3.50 shape=1850.00,-100.00;1850.00,-205.00
+end
+edge cl.e0197 from=cl.n0113 to=cl.n0123 class=street name="Calle Once" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1850.00,-100.00;1980.00,-100.00
+end
+edge cl.e0198 from=cl.n0114 to=cl.n0113 class=avenue name="Avenida del Sol" lanes=2/2 parking=both:2.40
+  sidewalk=both:3.50 shape=1850.00,30.00;1850.00,-100.00
+end
+edge cl.e0199 from=cl.n0114 to=cl.n0124 class=street name="Calle Ribera" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1850.00,30.00;1980.00,30.00
+end
+edge cl.e0200 from=cl.n0115 to=cl.n0039 class=avenue name="Avenida del Sol" lanes=2/2 sidewalk=both:2.50
+  shape=1850.00,80.00;1850.00,258.12 profile=0.00:3.27;40.00:5.50;138.12:5.50;178.12:3.29
+  deck from=30.00 to=148.12 kind=bridge
+end
+edge cl.e0201 from=cl.n0115 to=cl.n0114 class=avenue name="Avenida del Sol" lanes=2/2 parking=both:2.40
+  sidewalk=both:3.50 shape=1850.00,80.00;1850.00,30.00
+end
+edge cl.e0202 from=cl.n0115 to=cl.n0125 class=street name="Calle del Muelle" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1850.00,80.00;1920.00,100.00;1980.00,125.71
+end
+edge cl.e0203 from=cl.n0116 to=cl.n0126 class=street name="Calle Veintiuno" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1980.00,-870.00;2110.00,-870.00
+end
+edge cl.e0204 from=cl.n0117 to=cl.n0116 class=street name="Avenida Guayacan" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1980.00,-755.00;1980.00,-870.00
+end
+edge cl.e0205 from=cl.n0117 to=cl.n0127 class=street name="Calle Diecinueve" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1980.00,-755.00;2110.00,-755.00
+end
+edge cl.e0206 from=cl.n0118 to=cl.n0117 class=street name="Avenida Guayacan" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1980.00,-650.00;1980.00,-755.00
+end
+edge cl.e0207 from=cl.n0118 to=cl.n0128 class=avenue name="Avenida de la Estacion" lanes=1/1 parking=both:2.40
+  sidewalk=both:4.50 shape=1980.00,-650.00;2110.00,-650.00
+end
+edge cl.e0208 from=cl.n0119 to=cl.n0118 class=street name="Avenida Guayacan" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1980.00,-540.00;1980.00,-650.00
+end
+edge cl.e0209 from=cl.n0119 to=cl.n0129 class=street name="Calle Diecisiete" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1980.00,-540.00;2110.00,-540.00
+end
+edge cl.e0210 from=cl.n0120 to=cl.n0119 class=street name="Avenida Guayacan" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1980.00,-420.00;1980.00,-540.00
+end
+edge cl.e0211 from=cl.n0120 to=cl.n0130 class=street name="Calle Quince" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1980.00,-420.00;2110.00,-420.00
+end
+edge cl.e0212 from=cl.n0121 to=cl.n0120 class=street name="Avenida Guayacan" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1980.00,-310.00;1980.00,-420.00
+end
+edge cl.e0213 from=cl.n0121 to=cl.n0131 class=avenue name="Avenida del Mercado" lanes=1/1 parking=both:2.40
+  sidewalk=both:4.50 shape=1980.00,-310.00;2110.00,-310.00
+end
+edge cl.e0214 from=cl.n0122 to=cl.n0121 class=street name="Avenida Guayacan" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1980.00,-205.00;1980.00,-310.00
+end
+edge cl.e0215 from=cl.n0122 to=cl.n0132 class=street name="Calle Trece" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1980.00,-205.00;2110.00,-205.00
+end
+edge cl.e0216 from=cl.n0123 to=cl.n0122 class=street name="Avenida Guayacan" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1980.00,-100.00;1980.00,-205.00
+end
+edge cl.e0217 from=cl.n0123 to=cl.n0133 class=street name="Calle Once" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1980.00,-100.00;2110.00,-100.00
+end
+edge cl.e0218 from=cl.n0124 to=cl.n0123 class=street name="Avenida Guayacan" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1980.00,30.00;1980.00,-100.00
+end
+edge cl.e0219 from=cl.n0124 to=cl.n0134 class=street name="Calle Ribera" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=1980.00,30.00;2110.00,30.00
+end
+edge cl.e0220 from=cl.n0125 to=cl.n0124 class=street name="Avenida Guayacan" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1980.00,125.71;1980.00,30.00
+end
+edge cl.e0221 from=cl.n0125 to=cl.n0135 class=street name="Calle del Muelle" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=1980.00,125.71;1990.00,130.00;2060.00,155.00;2110.00,163.00
+end
+edge cl.e0222 from=cl.n0126 to=cl.n0136 class=street name="Calle Veintiuno" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=2110.00,-870.00;2250.00,-870.00
+end
+edge cl.e0223 from=cl.n0127 to=cl.n0126 class=street name="Avenida Jacaranda" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=2110.00,-755.00;2110.00,-870.00
+end
+edge cl.e0224 from=cl.n0127 to=cl.n0137 class=street name="Calle Diecinueve" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=2110.00,-755.00;2250.00,-755.00
+end
+edge cl.e0225 from=cl.n0128 to=cl.n0127 class=street name="Avenida Jacaranda" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=2110.00,-650.00;2110.00,-755.00
+end
+edge cl.e0226 from=cl.n0128 to=cl.n0138 class=avenue name="Avenida de la Estacion" lanes=1/1 parking=both:2.40
+  sidewalk=both:4.50 shape=2110.00,-650.00;2250.00,-650.00
+end
+edge cl.e0227 from=cl.n0129 to=cl.n0128 class=street name="Avenida Jacaranda" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=2110.00,-540.00;2110.00,-650.00
+end
+edge cl.e0228 from=cl.n0129 to=cl.n0139 class=street name="Calle Diecisiete" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=2110.00,-540.00;2250.00,-540.00
+end
+edge cl.e0229 from=cl.n0130 to=cl.n0129 class=street name="Avenida Jacaranda" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=2110.00,-420.00;2110.00,-540.00
+end
+edge cl.e0230 from=cl.n0130 to=cl.n0140 class=street name="Calle Quince" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=2110.00,-420.00;2250.00,-420.00
+end
+edge cl.e0231 from=cl.n0131 to=cl.n0130 class=street name="Avenida Jacaranda" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=2110.00,-310.00;2110.00,-420.00
+end
+edge cl.e0232 from=cl.n0131 to=cl.n0141 class=avenue name="Avenida del Mercado" lanes=1/1 parking=both:2.40
+  sidewalk=both:4.50 shape=2110.00,-310.00;2250.00,-310.00
+end
+edge cl.e0233 from=cl.n0132 to=cl.n0131 class=street name="Avenida Jacaranda" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=2110.00,-205.00;2110.00,-310.00
+end
+edge cl.e0234 from=cl.n0132 to=cl.n0142 class=street name="Calle Trece" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=2110.00,-205.00;2250.00,-205.00
+end
+edge cl.e0235 from=cl.n0133 to=cl.n0132 class=street name="Avenida Jacaranda" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=2110.00,-100.00;2110.00,-205.00
+end
+edge cl.e0236 from=cl.n0133 to=cl.n0143 class=street name="Calle Once" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=2110.00,-100.00;2250.00,-100.00
+end
+edge cl.e0237 from=cl.n0134 to=cl.n0133 class=street name="Avenida Jacaranda" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=2110.00,30.00;2110.00,-100.00
+end
+edge cl.e0238 from=cl.n0134 to=cl.n0144 class=street name="Calle Ribera" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=2110.00,30.00;2250.00,30.00
+end
+edge cl.e0239 from=cl.n0135 to=cl.n0134 class=street name="Avenida Jacaranda" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=2110.00,163.00;2110.00,30.00
+end
+edge cl.e0240 from=cl.n0135 to=cl.n0145 class=street name="Calle del Muelle" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=2110.00,163.00;2160.00,150.00;2230.00,115.00;2250.00,106.43
+end
+edge cl.e0241 from=cl.n0136 to=cl.n0147 class=street name="Calle Veintiuno" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=2250.00,-870.00;2390.00,-870.00
+end
+edge cl.e0242 from=cl.n0137 to=cl.n0136 class=street name="Avenida Flamboyan" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=2250.00,-755.00;2250.00,-870.00
+end
+edge cl.e0243 from=cl.n0137 to=cl.n0148 class=street name="Calle Diecinueve" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=2250.00,-755.00;2390.00,-755.00
+end
+edge cl.e0244 from=cl.n0138 to=cl.n0137 class=street name="Avenida Flamboyan" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=2250.00,-650.00;2250.00,-755.00
+end
+edge cl.e0245 from=cl.n0138 to=cl.n0149 class=avenue name="Avenida de la Estacion" lanes=1/1 parking=both:2.40
+  sidewalk=both:4.50 shape=2250.00,-650.00;2390.00,-650.00
+end
+edge cl.e0246 from=cl.n0139 to=cl.n0138 class=street name="Avenida Flamboyan" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=2250.00,-540.00;2250.00,-650.00
+end
+edge cl.e0247 from=cl.n0139 to=cl.n0150 class=street name="Calle Diecisiete" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=2250.00,-540.00;2390.00,-540.00
+end
+edge cl.e0248 from=cl.n0140 to=cl.n0139 class=street name="Avenida Flamboyan" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=2250.00,-420.00;2250.00,-540.00
+end
+edge cl.e0249 from=cl.n0140 to=cl.n0151 class=street name="Calle Quince" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=2250.00,-420.00;2390.00,-420.00
+end
+edge cl.e0250 from=cl.n0141 to=cl.n0140 class=street name="Avenida Flamboyan" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=2250.00,-310.00;2250.00,-420.00
+end
+edge cl.e0251 from=cl.n0141 to=cl.n0152 class=avenue name="Avenida del Mercado" lanes=1/1 parking=both:2.40
+  sidewalk=both:4.50 shape=2250.00,-310.00;2390.00,-310.00
+end
+edge cl.e0252 from=cl.n0142 to=cl.n0141 class=street name="Avenida Flamboyan" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=2250.00,-205.00;2250.00,-310.00
+end
+edge cl.e0253 from=cl.n0142 to=cl.n0153 class=street name="Calle Trece" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=2250.00,-205.00;2390.00,-205.00
+end
+edge cl.e0254 from=cl.n0143 to=cl.n0142 class=street name="Avenida Flamboyan" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=2250.00,-100.00;2250.00,-205.00
+end
+edge cl.e0255 from=cl.n0143 to=cl.n0154 class=street name="Calle Once" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=2250.00,-100.00;2390.00,-100.00
+end
+edge cl.e0256 from=cl.n0144 to=cl.n0143 class=street name="Avenida Flamboyan" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=2250.00,30.00;2250.00,-100.00
+end
+edge cl.e0257 from=cl.n0145 to=cl.n0144 class=street name="Avenida Flamboyan" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=2250.00,106.43;2250.00,30.00
+end
+edge cl.e0258 from=cl.n0145 to=cl.n0155 class=street name="Calle del Muelle" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=2250.00,106.43;2300.00,85.00;2390.00,50.00
+end
+edge cl.e0259 from=cl.n0147 to=cl.n0146 class=boulevard name="Flamingo Boulevard" lanes=2/2 sidewalk=both:3.50
+  shape=2390.00,-870.00;2390.00,-912.00
+end
+edge cl.e0260 from=cl.n0147 to=cl.n0163 class=street name="Calle Veintiuno" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=2390.00,-870.00;2583.70,-870.00
+end
+edge cl.e0261 from=cl.n0148 to=cl.n0147 class=boulevard name="Flamingo Boulevard" lanes=2/2 sidewalk=both:3.50
+  shape=2390.00,-755.00;2390.00,-870.00
+end
+edge cl.e0262 from=cl.n0148 to=cl.n0162 class=street name="Calle Diecinueve" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=2390.00,-755.00;2568.42,-755.00
+end
+edge cl.e0263 from=cl.n0149 to=cl.n0148 class=boulevard name="Flamingo Boulevard" lanes=2/2 sidewalk=both:3.50
+  shape=2390.00,-650.00;2390.00,-755.00
+end
+edge cl.e0264 from=cl.n0149 to=cl.n0161 class=avenue name="Avenida de la Estacion" lanes=1/1 parking=both:2.40
+  sidewalk=both:4.50 shape=2390.00,-650.00;2554.47,-650.00
+end
+edge cl.e0265 from=cl.n0150 to=cl.n0149 class=boulevard name="Flamingo Boulevard" lanes=2/2 sidewalk=both:3.50
+  shape=2390.00,-540.00;2390.00,-650.00
+end
+edge cl.e0266 from=cl.n0150 to=cl.n0160 class=street name="Calle Diecisiete" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=2390.00,-540.00;2539.86,-540.00
+end
+edge cl.e0267 from=cl.n0151 to=cl.n0150 class=boulevard name="Flamingo Boulevard" lanes=2/2 sidewalk=both:3.50
+  shape=2390.00,-420.00;2390.00,-540.00
+end
+edge cl.e0268 from=cl.n0151 to=cl.n0159 class=street name="Calle Quince" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=2390.00,-420.00;2523.91,-420.00
+end
+edge cl.e0269 from=cl.n0152 to=cl.n0151 class=boulevard name="Flamingo Boulevard" lanes=2/2 sidewalk=both:3.50
+  shape=2390.00,-310.00;2390.00,-420.00
+end
+edge cl.e0270 from=cl.n0152 to=cl.n0158 class=avenue name="Avenida del Mercado" lanes=1/1 parking=both:2.40
+  sidewalk=both:4.50 shape=2390.00,-310.00;2509.30,-310.00
+end
+edge cl.e0271 from=cl.n0153 to=cl.n0152 class=boulevard name="Flamingo Boulevard" lanes=2/2 sidewalk=both:3.50
+  shape=2390.00,-205.00;2390.00,-310.00
+end
+edge cl.e0272 from=cl.n0153 to=cl.n0157 class=street name="Calle Trece" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=2390.00,-205.00;2495.35,-205.00
+end
+edge cl.e0273 from=cl.n0154 to=cl.n0153 class=boulevard name="Flamingo Boulevard" lanes=2/2 sidewalk=both:3.50
+  shape=2390.00,-100.00;2390.00,-205.00
+end
+edge cl.e0274 from=cl.n0154 to=cl.n0156 class=street name="Calle Once" lanes=1/1 parking=both:2.40 sidewalk=both:2.50
+  shape=2390.00,-100.00;2481.40,-100.00
+end
+edge cl.e0275 from=cl.n0155 to=cl.n0154 class=boulevard name="Flamingo Boulevard" lanes=2/2 sidewalk=both:3.50
+  shape=2390.00,50.00;2390.00,-100.00
+end
+edge cl.e0276 from=cl.n0156 to=cl.n0157 class=street name="Calle del Viaducto" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=2481.40,-100.00;2495.35,-205.00
+end
+edge cl.e0277 from=cl.n0157 to=cl.n0158 class=street name="Calle del Viaducto" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=2495.35,-205.00;2509.30,-310.00
+end
+edge cl.e0278 from=cl.n0158 to=cl.n0159 class=street name="Calle del Viaducto" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=2509.30,-310.00;2523.91,-420.00
+end
+edge cl.e0279 from=cl.n0159 to=cl.n0160 class=street name="Calle del Viaducto" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=2523.91,-420.00;2539.86,-540.00
+end
+edge cl.e0280 from=cl.n0160 to=cl.n0161 class=street name="Calle del Viaducto" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=2539.86,-540.00;2554.47,-650.00
+end
+edge cl.e0281 from=cl.n0161 to=cl.n0162 class=street name="Calle del Viaducto" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=2554.47,-650.00;2568.42,-755.00
+end
+edge cl.e0282 from=cl.n0162 to=cl.n0163 class=street name="Calle del Viaducto" lanes=1/1 parking=both:2.40
+  sidewalk=both:2.50 shape=2568.42,-755.00;2583.70,-870.00
+end

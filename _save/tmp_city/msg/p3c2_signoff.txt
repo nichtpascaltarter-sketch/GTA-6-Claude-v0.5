@@ -1,0 +1,90 @@
+city snapshot-safe: 3c batch 2, blocks b004 and b007. Their 27 buildings stand on Calle Luna and the Paseo del Rio with batch 1's plans and rules, on the ground slice's levelled parcels. dress.py is now in tools/author/ with its input tool, and it fixes a hole in snapshot 81's paving. Base 17fe40f, snapshot 81 (tree 8e8c3049). 32 files: 3 changed on its blobs, 29 new.
+
+FILES (path, base, new)
+docs/HANDBUILT_WORLD.md 05b582ee 25639e7a
+tools/author/street.py 8f1254f2 65d1141c
+world/districts/cl/blocks/b004/block.ntw dc9a0879 a78bc1ac
+tools/author/dress.py new 5ff4378e
+tools/author/worlddump.cpp new 5fc542fe
+world/districts/cl/blocks/b004/h13.ntw new b8cc6fe4
+world/districts/cl/blocks/b004/h14.ntw new b1e85e19
+world/districts/cl/blocks/b004/h15.ntw new fcaaff3c
+world/districts/cl/blocks/b004/h16.ntw new 54a08509
+world/districts/cl/blocks/b004/h17.ntw new 38572441
+world/districts/cl/blocks/b004/m03.ntw new 5be43a4e
+world/districts/cl/blocks/b004/m04.ntw new ee4532b9
+world/districts/cl/blocks/b004/m05.ntw new e3097031
+world/districts/cl/blocks/b004/m06.ntw new 176d0eba
+world/districts/cl/blocks/b004/m07.ntw new 3224a5c5
+world/districts/cl/blocks/b004/m10.ntw new 1d03ba72
+world/districts/cl/blocks/b004/s01.ntw new dc86d3e9
+world/districts/cl/blocks/b004/s02.ntw new 46bccd5d
+world/districts/cl/blocks/b004/s08.ntw new 2fe8b326
+world/districts/cl/blocks/b004/s09.ntw new 825cc3f2
+world/districts/cl/blocks/b004/s11.ntw new 1d92d59d
+world/districts/cl/blocks/b004/s12.ntw new 04a44e93
+world/districts/cl/blocks/b007/h10.ntw new 49b18a8d
+world/districts/cl/blocks/b007/m02.ntw new 2a2c9139
+world/districts/cl/blocks/b007/m05.ntw new 5aafa05f
+world/districts/cl/blocks/b007/m06.ntw new 9c354177
+world/districts/cl/blocks/b007/m07.ntw new 449f6490
+world/districts/cl/blocks/b007/s01.ntw new 9f93e504
+world/districts/cl/blocks/b007/s03.ntw new e513e375
+world/districts/cl/blocks/b007/s04.ntw new cbce16a3
+world/districts/cl/blocks/b007/s08.ntw new c834236b
+world/districts/cl/blocks/b007/s09.ntw new 74e23f71
+(also in /tmp/city/p3c2_blobs.txt)
+
+WHAT (player-facing, hand world only)
+- b004 (Calle Luna to the river, Paseo de los Heroes to Avenida Coral) has 17 buildings:
+  - Calle Luna's side is a street wall of 11, with a corner shop at each end and walk-ups and shops with flats between them.
+  - The Paseo del Rio's side has a corner shop at the Heroes and five houses, bungalows and casitas in turn.
+  - p14, at the Coral corner, stays a yard: behind the corner's cut its frontage is 1.2 m.
+- b007 (Calle Luna to the river, Avenida del Sol to Este) has 10 buildings:
+  - Calle Luna's side is a street wall of 8, with a corner shop at each end.
+  - The Paseo del Rio's side has a corner shop at Sol and a bungalow.
+  - Three parcels stay yards: p08 has 9.3 m of frontage, too little for a house, and p09 and p10, the corner at Este and the sliver behind it, have no room for a 14 m deep footprint.
+- All 27 can be walked into from the sidewalk and through every room. No new plans: there is no new walk through one.
+- The fixed hole: b004.p11's paving, behind b004's Paseo houses, was drawn with a 643 m² wedge missing (1,533 of 2,176 m²), down to the terrain under it. It came from the ground slice. Now it is whole.
+- Procedural mode is unchanged: the census is identical, and world.bin changes only in hand sections (buildings, blocks, blocks.parcels, manifest).
+
+HOW
+- tools/author/street.py, for parcels whose outline runs 0.5 m in under their streets (the ground slice):
+  - The face's front line is the parcels' fronts plus that 0.5 m (UNDER) plus the 0.6 m setback. So the buildings stand 0.6 m behind the sidewalk, as in batch 1.
+  - A corner plan's side wall stands UNDER + 0.05 in from the parcel's side, which is 0.05 m behind the side street's sidewalk.
+  - With --ground, every footprint corner, taken 0.25 m in, must stand on its parcel's level ground (at most 0.08 m over its grade's ground). The raised-floor check samples 0.25 m in from the edges too, half the grid's step.
+  - I dumped the ground grids at 0.25 m. At 0.5 m the sidewalk's edge smeared over a cell, and the corner shop by Avenida del Sol was refused.
+  - Without these changes the corner shops would have stood 0.45 m out on the side streets' sidewalks, with floors raised up to 0.07 m.
+  - b006's files are as batch 1 wrote them. A re-run of street.py on b006 would now move its front line, because the ground slice moved its parcels' outlines.
+- tools/author/dress.py (new in the tree): my pilot script, with its header updated for its inputs. The block files' marker keeps its wording, since each file is split on it.
+  - The fix: with_tees no longer re-inserts a parcel's own vertex. A vertex 2 cm off the parcel's next side came back as a spike once run_under moved it, and cellgen's ear clipping (triangulate) stops at a spike and drops what is left. A port of that triangulation (scratch) over all 327 parcels finds only b004.p11, and none after the fix. Regenerated, only b004.p11's outline changes.
+- tools/author/worlddump.cpp (new): a host tool that prints dress.py's inputs.
+  - "roads <world.bin>" prints the roads as the hand world reads them, with each side's kerb line and sidewalk, and the turning circles.
+  - "grids <terrain dir> <out dir>" decodes the baked grids.
+  - Its dumps match my pilot's inputs byte for byte. The tree's dress.py, fed them, reproduces all 25 block files, b004.p11 aside.
+- docs: HANDBUILT_WORLD 5.3 (worlddump, street.py on levelled parcels, a paragraph on dress.py) and 7.4 (the 60 interiors).
+
+CHECKS
+- Builds and data:
+  - worldc: 0 warnings, 60 buildings from 112 files. world.bin changes only in buildings, blocks, blocks.parcels and manifest. The two blocks sections are b004.p11's outline.
+  - worldv: 0 errors and the 4 warnings as before (112 files, 2,553 records).
+  - CI's three tests pass with CI's flags.
+  - MinGW -Wall gives 0 errors and 0 warnings on main.cpp, and on worlddump.cpp with -Wextra. Host -Wall -Wextra on worlddump.cpp: 0 warnings.
+  - street.py and dress.py compile.
+  - The procedural census: 0 of 13,914 lines differ from 81's.
+  - The exe nt_b15b: 16,466,944 B, with 0 warnings.
+  - The scratch port of the ground's triangulation: no parcel loses ground (b004.p11 lost 643 m² on 81).
+- Host harness (scratch), hand interiors with the game's walk rules and all colliders solid: from outside each main entrance it reaches all 699 rooms of the 60 interiors, and no leg of the tour leaves the walk.
+- In the game (hand world):
+  - Shots, 0 fatal, in /tmp/city/b15smoke/shots/ and shots2/ (PNG). b004's Calle Luna face by day from the Coral corner: the corner shop's side windows face Avenida Coral, then the street wall. b007's Calle Luna face by night from the Este corner, its shop windows and flats lit. An aerial over b004: the Paseo's houses, tile roofs alternating with grey ones, and its yards, before and after the fix.
+  - Hand drive, 0 fatal: at t=21.5 it is at 1919.8, 285.4 with 81 peds and 51 vehicles, the same as on 81.
+  - Procedural drive, 0 fatal: at t=17.5 it is at 1789.9, 130.6 with 93 peds, 63 vehicles and wanted 2, the same as on 81.
+  - The shots and drives ran on nt_b15, before the fix. The aerial and both drives ran again on nt_b15b, after it: the drives gave the same results, and the aerial shows the yard whole.
+
+THE NUMBERS (cell build times, resident interiors)
+- Hand cells: the 60 buildings fall in 6 cells. The busiest are:
+  - 46,41: 26 placements, 23,958 triangles, 4.3-5.2 ms.
+  - 47,41: 17 placements, 16,354 triangles, 3.0-4.4 ms.
+  - The others take 1.8 ms or less, and their far builds 0.5 ms or less.
+- Interiors: all 60 hand-built interiors are resident at once within the 480 m radius, 355,660 triangles in all. One builds in 6.6 ms at most (cl.b005.s05).
+- So the 480 m radius stays. The next batches add a cell or two each, and the numbers above leave room.

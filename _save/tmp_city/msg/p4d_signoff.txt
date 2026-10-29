@@ -1,0 +1,115 @@
+city snapshot-safe: 3n R4d, the Calle Nueve face of b023-b025: 20 buildings in Calle Siete's mix (your default 2a: casita_d, its flat-roofed twin and the bungalow, no new plans), with the palette seed. With it, row 4 is complete: b020-b025 hold 105 buildings, 59 on Avenida Flores and 46 on Calle Nueve. Base 74b705a (tree a5f557f8, snapshot 98). 21 files: 1 changed on its blobs, 20 new.
+
+FILES (path, base, new)
+docs/HANDBUILT_WORLD.md c4b2e3fa f7b60d3b
+world/districts/cl/blocks/b023/h12.ntw new 5a2d3643
+world/districts/cl/blocks/b023/h13.ntw new 3634c3e3
+world/districts/cl/blocks/b023/h14.ntw new 95fdcdaf
+world/districts/cl/blocks/b023/h15.ntw new 6fade7c5
+world/districts/cl/blocks/b023/h16.ntw new 2e167bc9
+world/districts/cl/blocks/b023/h17.ntw new 6a7fd9bd
+world/districts/cl/blocks/b023/s11.ntw new 16fcb77e
+world/districts/cl/blocks/b023/s18.ntw new 6bd6bdb3
+world/districts/cl/blocks/b024/h10.ntw new 61be30d6
+world/districts/cl/blocks/b024/h11.ntw new 298e035a
+world/districts/cl/blocks/b024/h12.ntw new 1d600566
+world/districts/cl/blocks/b024/h13.ntw new 24ffbc54
+world/districts/cl/blocks/b024/s09.ntw new 29881db3
+world/districts/cl/blocks/b024/s14.ntw new 722127b2
+world/districts/cl/blocks/b025/h10.ntw new 4db30a52
+world/districts/cl/blocks/b025/h11.ntw new 6135090b
+world/districts/cl/blocks/b025/h12.ntw new a69e4f6c
+world/districts/cl/blocks/b025/h13.ntw new 4bdf91da
+world/districts/cl/blocks/b025/s09.ntw new 8b545b50
+world/districts/cl/blocks/b025/s14.ntw new 27f5d4ab
+(also in /tmp/city/p4d_blobs.txt; pasted from it)
+
+WHAT (player-facing, hand world only)
+- Calle Nueve's south side is now built from Coral to Este as well, so it's built along its whole length, and row 4 (b020-b025) is complete. Across Calle Nueve the ground stays bare until the park edge (1b), the next batch.
+- The three new faces, west to east (each runs corner, houses, corner):
+  - b023 (Coral to Palma):
+    - Corners: s11 (rose) and s18 (coral).
+    - Gable casitas: h12 (sky) and h13 (lemon).
+    - Twins: h15 (coral) and h16 (rose).
+    - Bungalows: h14 (butter) and h17 (seafoam).
+  - b024 (Palma to Sol):
+    - Corners: s09 (lemon) and s14 (sky).
+    - Gable casitas: h11 (rose) and h12 (sky).
+    - Twins: h10 (sand) and h13 (mint).
+  - b025 (Sol to Este):
+    - Corners: s09 (rose) and s14 (lemon).
+    - Gable casita: h12 (rose).
+    - Twins: h10 (sky) and h13 (mint).
+    - Bungalow: h11 (peach).
+- In all: 6 corner shops with a flat over them, 5 gable casitas, 6 flat-roofed twins and 3 bungalows. The plan's count was 11 casitas, 3 bungalows and 6 corners.
+- All 20 can be walked into from the sidewalk and through every room (171 new rooms). There are no new plans or palettes.
+- Two corners stand further in from Sol, where its sidewalk reaches into their parcels: b024.s14 and b025.s09, by 0.6 m each.
+- The face rules hold:
+  - No palette is twice side by side, and no plan has the same palette twice within three.
+  - No three casitas alike stand side by side. b024's four houses are all casitas: twin, gable, gable, twin.
+  - The longest run of one plan is 2: b023's gable casitas h12-h13 and its twins h15-h16, and b024's gable casitas h11-h12.
+- Procedural mode is unchanged.
+
+HOW
+- As R4c: street.py as merged (seed 6, the palettes' own seed, the twin rule, --ground) wrote b023-b025 into a scratch copy of R4c's tree.
+- Its re-run changed no existing file. I took only its 20 files facing Calle Nueve, with no hand edits.
+- Docs:
+  - HANDBUILT 5.3: "...then the Calle Nueve face of b020-b022 (26) and of b023-b025 (20), which completes row 4".
+  - HANDBUILT 7.4: "...and with b023-b025's 20 the 412 hold 4,635 rooms in 2,371k".
+
+CHECKS
+- worldc: 0 warnings, 412 buildings from 467 files. world.bin changes only in buildings and manifest.
+- worldv: 0 errors and the same 4 warnings as before (467 files, 3,278 records).
+- CI's three world tests pass with CI's flags (-Wall -Wextra -Werror and UBSan). MinGW -Wall on main.cpp: 0 errors, 0 warnings.
+- The procedural census: 0 of 13,914 lines differ from R4c's.
+- The exe nt_b32: 16,497,664 B, with 0 warnings.
+- The 20 new files are canonical (ntwfmt --check, 49 files in b023-b025), with id = path and 5 lines each. The private scan is clean.
+- Against 98's tree a5f557f8, the work tree differs in exactly these 21 files: of its 965 tracked files only the doc changed, and the 20 are new.
+- Harness: 4,635 of 4,635 rooms in the 412 interiors, 0 tour legs off the walk.
+- Shots, 0 fatal, in /tmp/city/b32smoke/shots/ (PNG):
+  - r4d_b023_calle_nueve_1700: Calle Nueve at 17:00 from Coral, looking east. b023's face is on the right: the rose corner s11 with green awnings and shelves in its shop windows, then the sky and lemon gable casitas h12 and h13 under their tile roofs, and the butter bungalow h14. The row runs on to Este, and the bare ground is on the left.
+  - r4d_b025_calle_nueve_2030: b025's face by night from Este, looking west. You see the lemon corner s14 with its shop windows lit, then the mint twin h13 and the rose gable casita h12, with the lamps lit along Calle Nueve. The bare ground is on the right.
+  - r4d_aerial_1700: from over the bare ground, looking south across Calle Nueve. b024's whole face is in the middle, with its two tile roofs; b023 is on the right and b025 on the left. Behind them lie the blocks' yards, R4b's Avenida Flores face from the back, then the avenue, row 3 and the river.
+- Hand drives, 0 fatal: every checkpoint is the same as on R4c, including the first (t=2.6). Procedural drive, 0 fatal: the same as on R4c.
+- All games ran in your quiet window (23:08-23:23), each starting from load under 2.0 with no showcase running.
+
+MEASURED AGAINST THE PREDICTIONS (the row 4 plan, as you restated them)
+
+| Cell | Placements: predicted / measured | Triangles: predicted / measured | Near build: predicted / measured (shots; drive) | Upload: predicted / measured |
+|---|---|---|---|---|
+| 46,42 | 47 to 58 / 58 | ~55.5k / 55,536 | ~7.5 ms / 6.9; 6.7 ms | ~58k / 57,858, in one frame with three empty near cells (48,40, 45,39, 48,41): 7.10 ms |
+| 47,42 | 23 to 32 / 32 | ~35k / 35,340 | not predicted / 7.2; 3.9 ms | not among the five slowest |
+
+- 46,42's upload carries 2,322 triangles over its buildings, as on R4c. It's under the 64k budget, so it isn't alone, but only empty cells shared its frame.
+- The rest of row 42, unchanged:
+  - 45,42 (55 placements): near 7.1 ms in the shots and 7.3 ms in the drive. Its upload was 62,529 with one empty far cell, 5.59 ms.
+  - 44,42 (18 placements): near 2.7 ms in the shots.
+- The row 4 plan expected the drive's resident interiors to reach roughly 380. They reach 388.
+
+Row 41 again, from the same runs (shots / drive):
+- 45,41 (68 placements, 70,552 triangles): near 9.2 / 9.1 ms; upload 74,875 alone, 6.38 ms.
+- 46,41 (81, 75,018): near 10.5 / 9.6 ms; upload 78,685 alone, 9.48 ms.
+- 47,41 (48, 46,594): near 5.8 / 5.5 ms; upload 50,434 with 45,40 (11,549) and two empty near cells, 6.25 ms.
+- 44,41 (27, 24,918): near 3.7 ms in the shots.
+- R4c's drive in the same pair: 46,41 10.6 ms, 45,41 12.2 ms, 45,42 8.1 ms.
+
+THE NEAR-BUILD SPREAD
+- The busiest near builds read 9.1-12.2 ms in these runs. The top is 45,41's 12.2 ms in R4c's drive of this pair, against 9.7 ms in R4c's own pair.
+- Nothing passed ~15 ms, so by your sharpened rule (a) stays parked.
+- No near cell arrived late that I can see: the first checkpoint came at t=2.6 in both drives.
+
+THE NO-UPLOAD FRAME
+- R4d's drive has no streaming frame over 3 ms without an upload: all five of its slowest streaming frames are uploads. So I didn't run the scratch eviction drive. nt_s93 (R4d with the eviction timers) is built, ready if the frame comes back.
+
+Frame log, R4c against R4d, back to back (load at start 1.79 / 1.77):
+- Median: 6.7 / 6.6 ms.
+- Frames over 33 ms: 252 / 252.
+- Streaming max: 11.39 / 9.48 ms. Both are 46,41's upload alone.
+- Streaming p99: 1.59 / 0.99 ms.
+- The first frames' p99 and max are the load: p99 1,825 / 1,736 ms, max 15,651 / 14,961 ms.
+- Interiors: up to 388 resident in R4d's drive (2,229,396 triangles), against 368 on R4c; up to 235 in the shots game.
+- Memory: the hand drive used 3,030-3,142 MB on R4c and 3,031-3,149 MB on R4d.
+
+Next: the park edge (b026), as its own batch on R4d's tree, to be signed off against R4d's merge.
+- The dry run passes the first part of your bar. dress.py's re-run plus ntwfmt rewrites b001-b025's 25 block files byte for byte, and only b026 is new.
+- Its builds and checks are running now at nice 19. Its games wait for your next "quiet".

@@ -1,0 +1,34 @@
+city snapshot-safe: N0a: tools/author/roads.py, the pilot's streets script made a plain tool in the repo, as you GO'd it. Base 8732459 (tree 9287b78b, snapshot 104). 2 files: 1 changed on its blob, 1 new. No world file changes.
+
+FILES (path, base, new)
+docs/HANDBUILT_WORLD.md 456995f3 a081064a
+tools/author/roads.py new 26a5c61a
+(also in /tmp/city/pn0a_blobs.txt; pasted from it)
+
+WHAT (player-facing)
+- Nothing in the game changes: no world file, no source file.
+- For authors: the script that wrote the pilot's streets (world/districts/cl/roads.ntw) is now in the repo, as tools/author/roads.py. N0b's streets will be designed in it.
+
+HOW
+- roads.py is my scratch streets.py with a new header and its own name in its printout. The code below the header is the same, line for line.
+- The header says:
+  - what it does: the streets are designed in it as centrelines; it finds where they meet, splits them into nodes and edges, puts each node on the baked terrain and writes the district's roads.ntw, keeping the ids already there;
+  - how to run it: python3 -I tools/author/roads.py <grids dir> <out roads.ntw> [--report];
+  - where its grids come from: worlddump grids world/terrain <dir> (tools/author/worlddump.cpp);
+  - that its output is then formatted with ntwfmt, as dress.py's is.
+- The doc: HANDBUILT 5.3 lists roads.py first among the authoring scripts, and its worlddump sentence says roads.py reads the grids too.
+- roads.ntw's own header comment still says "Written by the city agent's authoring script". I kept it so that N0a changes no world file. N0b rewrites that file anyway, and will name tools/author/roads.py there.
+
+CHECKS
+- The re-run: roads.py, then ntwfmt, on a copy of main's roads.ntw rewrites it byte for byte (52 nodes, 83 edges, 8,933 m of street, 9 signals, 7 all-way stops).
+- Run in place in the work tree, the file stays unchanged, and ntwfmt --check calls it canonical.
+- A fresh run, with no file to keep ids from, also gives main's file byte for byte: the ids follow the design's own order, so the file can be remade from the design alone.
+- Its inputs: the grids worlddump prints from main's world/terrain equal the ones the script was written against (height, water and region, byte for byte). worlddump and ntwfmt, built from the work tree: 0 warnings.
+- py_compile: OK.
+- The private scan of the 315 added lines (roads.py's 309 and the doc's 6): clean.
+- Against main's tree, the work tree differs in exactly these 2 files.
+- No games, as you said. No world, source or build file changes, so CI's tests, worldc, worldv, the census and the exe can't move; I didn't run them.
+
+NEXT
+- N0b: I'll design the south bank's streets in roads.py in a private tree while N0a is in review (dry runs only), and sign it off against N0a's merge. Its games wait for your "quiet". Tell me if you want N0b to wait for a separate go instead.
+- I'll wait for your word.

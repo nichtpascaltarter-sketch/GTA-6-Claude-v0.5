@@ -14,6 +14,10 @@
 #include "../sim/vehicle_sim.h"
 #include "../core/rng.h"
 
+namespace World {
+struct RoadOverrides;   // (roadoverrides.h: what the hand-built world authors beyond the RoadNetwork)
+}
+
 namespace AI {
 
 // =====================================================================================================================
@@ -59,6 +63,23 @@ struct Conflict {
     u8 yield;               // 1 = this connector yields to the other when both have the right to go
 };
 
+// Where a long vehicle's body sweeps past its path through a junction (lanes.cpp: a design van, truck and bus driven
+// through the turn at walking pace on their steering lock): the end of another approach's lane, from u to its stop line,
+// that its body crosses where a car waiting there would be - and from uWide where a wide one would (a van, truck or bus
+// waiting there: its side nearer the turn)
+struct SweepZone {
+    int lane = -1;
+    float u[3] = {1e9f, 1e9f, 1e9f};       // by sweepClass: [0] a van, [1] a truck, [2] a bus or long truck; 1e9: clear
+    float uWide[3] = {1e9f, 1e9f, 1e9f};
+    float at(int cls, bool wide) const { return wide ? uWide[cls] : u[cls]; }
+};
+inline bool sweepWide(float halfWid) { return halfWid > 1.05f; }   // (waiting: a van, truck or bus - SweepZone::uWide)
+// the band round a waiting lane's middle a long body's sweep must keep out of (lanes.cpp, ensureSweeps): 1.7 m - a car's
+// half width, 0.2 m to spare and 0.5 m by which the real bodies swing wider than the design vehicles - and for a wide one
+// waiting (a van, truck or bus) 2.5 m more per radian the design body is off the path's heading, up to 0.5 m. Calibrated
+// with the harness's turn test against the real bodies at the pilot's tight junctions (its zone check)
+constexpr float kSweepBand = 1.7f, kSweepWidePerRad = 2.5f, kSweepWideMax = 0.5f;
+
 struct Connector {
     int from = -1, to = -1;   // lanes
     int node = -1;
@@ -76,6 +97,7 @@ struct Connector {
     std::vector<Conflict> conflicts;
     std::vector<Conflict> wide;   // extra conflicts that only matter when a long vehicle sweeps wider than its path
     float minRadius = 1e9f;       // tightest radius along the path (long vehicles avoid turns tighter than they can follow)
+    mutable std::vector<SweepZone> sweep;   // the waiting cars a long body would sweep on its way (LaneGraph::ensureSweeps)
 };
 
 struct Approach {
@@ -86,9 +108,14 @@ struct Approach {
     u8 axis = 0;              // signal axis
     u8 rank = 0;              // priority rank at uncontrolled nodes (1 = main road)
     bool crosswalk = false;
+    // as the world writes them (RoadOverrides' NodeRule, the hand-built world): traffic arriving here stops at its line
+    // and then gives way (a stop sign at an otherwise uncontrolled junction), gives way without stopping (yield), or may
+    // not turn right on red
+    bool stopSign = false, giveWay = false, noRedTurn = false;
     float cut = 0.f;          // intersection box cut-back along the edge
     float crossS = 0.f;       // distance from the node (along the edge) of the crosswalk center line
-    float hw = 0.f, sw = 0.f; // paved half width, sidewalk width
+    float hw = 0.f, sw = 0.f; // paved half width, sidewalk width (the wider side's)
+    float hwS[2] = {0.f, 0.f}, swS[2] = {0.f, 0.f};   // the same on each side: [0] clockwise, [1] counter-clockwise
     std::vector<int> inLanes, outLanes;
 };
 
@@ -102,6 +129,8 @@ struct NodeInfo {
     u8 axisCount = 0;
     bool deadEnd = false;
     bool uturnBlocked = false;    // dead end whose turning circle is obstructed (routing avoids it)
+    bool ruled = false;           // its control written in the world (RoadOverrides' NodeRule), not derived
+    float bulb = 0.f;             // a dead end's turning-circle radius as written (0: derived, RoadNetwork::bulbRadius)
     bool gradeSeparated = false;
     int firstConn = 0, connCount = 0;
     std::vector<Approach> approaches;
@@ -146,8 +175,27 @@ struct ScenarioPoint {
     float u = 0.f;     // bus stops: lane coordinate of the stop
 };
 
+// A road edge's cross-section as built, its sides seen looking along it (n0 -> n1): [0] left, [1] right. The kerb lines
+// and sidewalks are the edge's own per side (RoadEdge::halfWidthSide / sidewalkSide, what the mesher draws: symmetric in
+// the procedural world); the lane width, median, limit and parking are RoadOverrides' EdgeExtra where the world authors
+// one (the hand-built world), else the road class's, as the lane graph has always used them.
+struct EdgeSection {
+    enum : u8 { ES_MEDIAN_BARRIER = 1, ES_TUNNEL = 2 };
+    float laneWidth = 3.2f;
+    float median = 0.f;               // between the two directions (0: a painted line)
+    float speed = 12.f;               // limit, m/s
+    float kerb[2] = {0.f, 0.f};       // the kerb line: lateral distance from the edge's centre line to the kerb
+    float park[2] = {-1.f, -1.f};     // the part of the paved strip inside the kerb kept for parking, along the kerb
+                                      // (EdgeExtra::parkingOn); -1: not authored, the class's rule (its shoulder)
+    float walk[2] = {0.f, 0.f};       // sidewalk width (0: none)
+    u8 flags = 0;                     // ES_*
+    bool authored = false;            // from EdgeExtra
+};
+
 struct LaneGraph {
     const World::RoadNetwork* roads = nullptr;
+    std::vector<EdgeSection> sections;    // per road edge
+    mutable std::vector<u8> sweepDone;    // per node: its connectors' sweep zones worked out (ensureSweeps)
     std::vector<Lane> lanes;
     std::vector<Connector> conns;
     std::vector<NodeInfo> nodes;
@@ -166,7 +214,8 @@ struct LaneGraph {
     std::vector<std::vector<int>> laneHash, walkHash;
     double buildSeconds = 0.0;
 
-    void build(const World::RoadNetwork& rn);
+    // ov: the hand-built world's authored road data (nullptr, or empty: everything derived, as always)
+    void build(const World::RoadNetwork& rn, const World::RoadOverrides* ov = nullptr);
     int pathCount() const { return (int)lanes.size() + (int)conns.size(); }
     bool isLane(int path) const { return path >= 0 && path < (int)lanes.size(); }
     const Connector& conn(int path) const { return conns[path - (int)lanes.size()]; }
@@ -186,6 +235,15 @@ struct LaneGraph {
     // nearest lane to p with travel direction roughly along `heading` (use vec2(0) for any), -1 if none in range
     int nearestLane(vec2 p, vec2 heading, float maxDist, float* uOut, float* latOut = nullptr, u8 excludeFlags = LF_NOTRAFFIC) const;
     int laneOf(int edge, int dir, int index) const;
+    // the kerb side of a lane: the paved strip between its edge and the kerb on side s of travel (+1 right, -1 left;
+    // meaningful for the outermost lane on that side), and the parking along the kerb on its right - how wide, and the
+    // lateral offset (right of travel, from the lane's centre) of a parked car's centre
+    float kerbStrip(int lane, int s = 1) const;
+    float shoulderOf(int lane, int s) const;   // the strip for a side step: authored, else the class's shoulder
+    float parkWidth(int lane) const;
+    float parkLat(int lane) const;
+    // the long vehicles' sweep zones of a junction's connectors, worked out on first use (Connector::sweep)
+    void ensureSweeps(int node) const;
     // signals
     SignalState movementSignal(int node, int approach, int turn, double time) const;
     PedSignal pedSignal(int node, int approach, double time) const;
@@ -298,6 +356,10 @@ struct VehicleInfo {         // static per-vehicle data the core needs (from Veh
     float maxLean = 0.8f;       // bikes: the rider's full lean (rad) - at speed the steer input is a share of it
     bool bus = false, bike = false, big = false;
 };
+// the sweep class of a vehicle (SweepZone::u) by its wheelbase: 0 a van or pickup (3.6 m and over: their tails cut the
+// tightest corners into a car waiting there, the harness's turn test), 1 a truck (4.5 m and over), 2 a bus or long truck
+// (5.8 m and over), -1 a body that keeps to its path
+inline int sweepClass(const VehicleInfo& vi) { return vi.wheelbase >= 5.8f ? 2 : (vi.wheelbase >= 4.5f ? 1 : (vi.wheelbase >= 3.6f ? 0 : -1)); }
 
 VehicleInfo makeVehicleInfo(const Vehicles::VehicleModel& m, const Vehicles::VehicleState& s);
 
@@ -359,6 +421,12 @@ struct Driver {
     int obstBody = -1;
     bool obstBacking = false;   // the vehicle ahead is backing up towards us (close): brake and lean on the horn
     bool sweepCar = false;      // long vehicle: a stopped car in the space its body is about to sweep through
+    bool sweepWait = false;     // long vehicle held at its line: a car stands where its turn would sweep (SweepZone)
+    int sweepHeldConn = -1;     // ... the connector it last held for (counted once per turn)
+    float sweepSince = 0.f;     // ... since when (its hold's limit: 25 s, 90 s at signals)
+    int sweepFor = -1;          // ... the driver standing there (it waits for us: conflictsClear lets that one go)
+    int sweepRanOut = -1;       // the connector whose hold it gave up with a car still there (counted once)
+    int sweepGaveWay = -1;      // the connector of the long vehicle this one last stopped short for (counted once)
     float sweepGap = 1e9f;      // ... and how far ahead of the front bumper it is
     float sweepHold = 0.f;      // time spent stopped short of it (lagging a turn) - after a while the crawl resumes
     bool kturnSweep = false;    // the three-point turn under way is one to bring the nose round past such a car
@@ -423,6 +491,11 @@ struct Driver {
 
 struct TrafficStats {
     long redViolations = 0, stopSignViolations = 0, stuckEvents = 0, recoveries = 0, relocalizations = 0, deadlockBreaks = 0;
+    long writtenStops = 0;   // full stops made at stop signs as the world writes them (two-way stops: RoadOverrides' NodeRule)
+    long stopsPast = 0;      // stops made over 0.4 m past the line at an all-way stop or a stop sign (they still wait their turn)
+    long sweepHolds = 0;     // long vehicles held at their line by a car in their turn's sweep (once per turn)
+    long sweepYields = 0;    // cars stopped short of a long vehicle's sweep while it turned (once per turn)
+    long sweepRanOut = 0;    // long vehicles that went on, their hold run out, with a car still in their sweep
     long kTurns = 0;
 };
 
@@ -487,6 +560,8 @@ public:
     float gate(Driver& d, int conn, float distToEntry, float v, bool inBox);
     bool conflictsClear(const Driver& d, const Connector& c, int connId, float distToEntry, float v, bool permissiveOnly, float margin) const;
     bool stopGrant(Driver& d, int conn);
+    // a car standing in the end of `lane` from u on (a long vehicle's sweep zone), other than selfDriver's own
+    int sweepZoneTaken(const SweepZone& z, int cls, int selfDriver) const;   // the driver standing there, -1: none
     void laneChangeLogic(Driver& d, float v, float distToEnd);
     bool gapOk(const Driver& d, int lane, float v, float extra) const;
     void control(Driver& d, const Vehicles::VehicleState& s, vec2 pos, vec2 fwd, float v, float dt, DriveOut& out);

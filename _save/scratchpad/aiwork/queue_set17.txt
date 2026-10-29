@@ -1,9 +1,0 @@
-bin/nt_ai101.exe knock:150:12:60:960x540
-bin/nt_ai101.exe trafficstop:150:12:60:960x540
-bin/nt_ai101.exe crashscene:150:12:60:960x540
-bin/nt_ai101.exe events:240:12:60:960x540
-bin/nt_ai101.exe hitped:120:12:60:960x540
-bin/nt_ai101.exe nearmiss:120:12:30
-bin/nt_ai101.exe nightwalk:150:12:60
-bin/nt_ai101.exe breakdown:150:12:60:960x540
-bin/nt_ai101.exe copreturn:110:12:60:960x540

@@ -7,7 +7,7 @@ git fetch -q origin claude/pc-queue || exit 2
 P=$(git rev-parse origin/claude/pc-queue) || exit 2
 export GIT_INDEX_FILE=$SP/pc/index; rm -f $GIT_INDEX_FILE; git read-tree $P || exit 2
 case "$1" in
-  add) B=$(git hash-object -w "$3") && printf '100644 %s\tqueue/%s.md\n' $B "$2" | git update-index --add --index-info; M="PC package $2 queued";;
+  add) [ -f "$3" ] || { echo "usage: queue_pkg.sh add <id> <file.md>" >&2; exit 2; }; B=$(git hash-object -w "$3") && printf '100644 %s\tqueue/%s.md\n' $B "$2" | git update-index --add --index-info; M="PC package $2 queued";;
   cancel) B=$(printf 'taken back by the lead %s\n' "$(date -u +%FT%TZ)" | git hash-object -w --stdin) && printf '100644 %s\tqueue/%s.cancelled\n' $B "$2" | git update-index --add --index-info; M="PC package $2 taken back";;
   *) echo "usage: $0 add <id> <file> | cancel <id>"; exit 2;;
 esac

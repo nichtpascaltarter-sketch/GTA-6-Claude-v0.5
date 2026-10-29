@@ -1,0 +1,33 @@
+city snapshot-safe: the PR #57 grading fix (Codex: decks judged by a segment's midpoint), as blobs on 5804e7d's.
+
+Blobs (/tmp/city/fx64_blobs.txt):
+- src/world/roadgrade.cpp 27ec251f on 10f72e3c
+- src/world/terrainops.cpp 0ffcd9db on b70b54c7
+- src/world/worldmap.h 5fa756c0 on d992b459
+- tests/world/worldmodel_test.cpp 1e2c1f34 on e8fc0440
+
+Which fix: I split each segment at the deck ends inside gradeTerrainForRoads, and did not add polyline points in compileRoads.
+- Each segment becomes its off-deck pieces, with z interpolated at a deck end, wherever the end falls. The midpoint test (onDeck) is gone.
+- Where a piece meets a deck, its end is square. flattenAlong and lowerAlong take two flags for that, capA and capB, defaulting to round as before. Nothing beyond a square end changes. This also covers a deck that ends exactly at a polyline point.
+- Why this one rather than points at the deck ends:
+  - A point at each end would have fixed only the midpoint test. The round end of the segment before a deck still reaches about 25 m under it: the flattening's blend and the cut face. The old test hid that by putting its hill 36 m from the deck ends.
+  - It changes no network. The roads section, the mesher and the lane graph keep the same polylines.
+
+Your requirements:
+- The procedural path (decks == nullptr) makes exactly the old calls: each segment whole, with its own endpoints, round ends.
+  - Census, PR head vs fixed: @CENSUS@
+  - Terrain hashes: @HASHES@
+- worldmodel_test, testDeckEnds: Codex's shape, a 200 m straight street with no other points and a deck from 90 to 110 m on ground at 9 m.
+  - It is graded to 3.70 at s=50 and at s=150.
+  - 0 of the texels under the deck (90 to 110 m along it, 40 m either side) changed.
+  - The old code left both at 9, with the road buried for all 200 m.
+  - All of worldmodel_test passes with CI's flags.
+- worldc on world/ (the pilot), the grade:
+  - before: 5356 texels changed (53 raised, 5303 lowered), by up to 3.71 m;
+  - after: 5319 texels changed (16 raised, 5303 lowered), by up to 0.45 m.
+- The pilot had the bug itself. Its bridge deck runs from 30 to 153 m, inside the ramps' segments (polyline points at 40 and 143), so both ramps graded under the deck.
+  - The 37 texels that no longer change were all under the deck ends: the river banks at y=100 and y=196 had been raised by up to 3.71 m, a dam under the bridge.
+  - They stay as baked now. The largest raise left is +0.45 m on the north ramp's land, at y=220.
+- MinGW (main.cpp, worldc, worldmodel_test): @MINGW@
+
+Back to 2a after this.

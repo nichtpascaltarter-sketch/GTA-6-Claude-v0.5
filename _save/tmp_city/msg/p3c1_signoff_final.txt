@@ -1,0 +1,97 @@
+city snapshot-safe: 3c batch 1, block b006. Its 21 buildings stand on both of its faces and can all be walked into: the street wall of shops, walk-ups and corner shops on Calle Luna, and casitas, bungalows and corner shops on Paseo del Rio. There are two new plans, the corner shop and the casita, and the authoring script that placed them all. Base 79, my polish blobs (8 files) on 78 (278d2a7). 32 files: 3 changed on 79's blobs, 29 new.
+
+FILES (path, base, new)
+docs/HANDBUILT_WORLD.md 05a8a5df de936e7b
+src/game/interiors_game.cpp 150eb1fa 836ac923
+src/world/handshells.cpp d1227501 08a2f8fb
+tools/author/street.py new 8f1254f2
+world/lib/plans/shop/corner_c.ntw new 118d9836
+world/lib/plans/house/casita_d.ntw new dfca5451
+world/lib/layouts/shop/corner_c_f0.ntw new 12840f6a
+world/lib/layouts/shop/corner_c_f1.ntw new 1235786e
+world/lib/layouts/house/casita_d_f0.ntw new 24f87a89
+world/lib/layouts/house/casita_d_f1.ntw new f64716f0
+world/lib/facades/calle_casita.ntw new 868e6477
+world/districts/cl/blocks/b006/h15.ntw new 3c9c4967
+world/districts/cl/blocks/b006/h16.ntw new c601d781
+world/districts/cl/blocks/b006/h17.ntw new ae842eed
+world/districts/cl/blocks/b006/h18.ntw new 22045997
+world/districts/cl/blocks/b006/h19.ntw new 2e96c17e
+world/districts/cl/blocks/b006/h20.ntw new c75295b2
+world/districts/cl/blocks/b006/m05.ntw new e9ccc013
+world/districts/cl/blocks/b006/m07.ntw new 004f9ad5
+world/districts/cl/blocks/b006/m08.ntw new 67bc407c
+world/districts/cl/blocks/b006/m10.ntw new 3401d4b7
+world/districts/cl/blocks/b006/s01.ntw new fa244688
+world/districts/cl/blocks/b006/s02.ntw new fcf078e8
+world/districts/cl/blocks/b006/s03.ntw new ff70986f
+world/districts/cl/blocks/b006/s04.ntw new f47abdbe
+world/districts/cl/blocks/b006/s06.ntw new 0c489fb2
+world/districts/cl/blocks/b006/s09.ntw new 23d2d0f2
+world/districts/cl/blocks/b006/s11.ntw new e33b4a06
+world/districts/cl/blocks/b006/s12.ntw new a53c007c
+world/districts/cl/blocks/b006/s13.ntw new 07f1bac6
+world/districts/cl/blocks/b006/s14.ntw new f2fac578
+world/districts/cl/blocks/b006/s21.ntw new 611bb2b9
+
+WHAT (player-facing)
+- Block b006, Calle Luna to the river between Avenida Palma and Avenida del Sol, has 21 buildings.
+  - Calle Luna's side is a street wall of 13: shops with flats over them and walk-ups in pairs, each pair's party walls touching.
+  - Each corner is a new corner shop. It has shop windows and a second door on the side street, and its flat has windows on both streets. This is the FOR LATER note: b005's corner walk-up shows a blank wall to its side street.
+  - Paseo del Rio's side has 8: casitas and bungalows in turn, each in the middle of its parcel, and a corner shop at each end. They turn 22 degrees with the street.
+- All 21 can be walked into from the sidewalk through their doors, up their stairs and into every room. The flats over the shops have their own street doors, and the shops' stores are behind their staff doors.
+- New in the library:
+  - lib.plan.shop.corner_c, 8.4 by 14 m: a shop on both streets with a flat over it. Mirrored, its side-street wall changes sides.
+  - lib.plan.house.casita_d, 9 by 10 m: a 1930s two-storey house under a tile roof, with its stair beside the hall and a garden door.
+  - lib.facade.calle_casita: stucco on a stone plinth, casements with fixed shutters.
+  - Four layouts for those two plans.
+- A door over a strip of lower ground at the wall's foot, however narrow, now gets its stoop.
+  - At s21 the flat's door had a 0.1 m crack at -0.48 m between the sidewalk and the threshold. A walk dropped into it and could not climb out.
+  - b005's stoops can come out 0.15 m shorter where the sidewalk lies that close.
+- Procedural mode is unchanged: the census is identical, and world.bin changes only in its hand sections (library, buildings, manifest).
+
+HOW
+- tools/author/street.py (new, Python, run with -I): HANDBUILT 5.3's street script.
+  - It reads the block's parcels, the district's streets and the library's plans and palettes.
+  - It writes one building file per placement, as b005's are. A re-run rewrites only the files that still carry its line.
+  - The rules:
+    - Street wall on an avenue, a house in the middle of each parcel on a street.
+    - A corner plan where another street runs by a parcel's end.
+    - Mirrors alternate, no palette twice side by side, no plan with the same palette twice within three, no house plan twice in neighbouring parcels.
+    - Every footprint corner inside its parcel. The front line steps back up to 0.9 m where a parcel's cut or a crooked front asks for it, as at p08's triangle.
+  - z: 0.01 m over the sidewalk in front, from the street's profile and kerb.
+    - With --ground, it also checks the ground under the footprint. That is a grid of the compiled ground, which I dumped from world.bin with a scratch host tool.
+  - Seed 6. A re-run gives the same files.
+- handshells.cpp:
+  - buildStoops' flush test reads the ground 0.05, 0.15 and 0.3 m out, not 0.15 m alone, and the landing's search starts at 0.15 m.
+  - buildHandBuildingsCell logs each cell it builds: placements, triangles, ms.
+- interiors_game.cpp: the "Interior ... built" line also gives the interiors resident, how many are hand-built, and their triangles.
+- docs: HANDBUILT_WORLD 5.3 (the script), 7.2 (the stoop's rule) and 7.4 (the 33 interiors, the logs).
+
+CHECKS
+- Builds and data:
+  - CI's three tests pass with CI's flags.
+  - worldc: 0 warnings, 33 buildings, 85 files. world.bin changes only in its library, buildings and manifest sections.
+  - worldv: 0 errors and 4 warnings, as on 79 (85 files, 2,497 records).
+  - MinGW -Wall: 0 errors and 0 warnings on main.cpp and on worldc.cpp. Host syntax of the tools: 0 errors.
+  - street.py compiles, and a re-run (seed 6, --ground) gives the same 21 placements.
+  - The procedural census: 0 of 13,914 lines differ from 79's.
+  - The exe nt_b13: 16,443,904 B, with 0 warnings. It carries 79's tide test fix too.
+- Host harness (scratch), hand interiors with the game's walk rules and all colliders solid: from outside each main entrance it reaches all 348 rooms of the 33 interiors, and no leg of the tour (--handtour) leaves the walk.
+- In the game (nt_b13, hand world):
+  - Shots, 0 fatal: Calle Luna's face and the Paseo del Rio's face at 15:30 and at 20:30, and an aerial at 15:30, in /tmp/city/b13smoke/shots/ (PNG). The street wall reads as one: the corner shop's side windows face the side street, the casitas' tile roofs alternate with the bungalows', and by night the shop windows and the flats light up.
+  - The tour (--handtour) of h15, a casita, and s21, a corner shop, 0 fatal: each reaches 9 of 9 rooms walking, in 58.4 s and 58.8 s, with 0 waypoints out of reach.
+  - Hand drive, 0 fatal: at t=21.5 it is at 1911.9, 282.8 with 82 peds and 56 vehicles, the same as on 79.
+  - Procedural drive, 0 fatal: at t=17.5 it is at 1789.9, 130.6 with 93 peds, 63 vehicles and wanted 2, the same as on 79.
+
+THE NUMBERS ASKED FOR (cell build times, resident interiors)
+- Hand cells: the 33 buildings fall in 4 cells. Each built 3 times (the shots, the tour, the hand drive):
+  - 46,41: 20 placements, 17,362 triangles, 4.3-4.5 ms. Once it took 18.1 ms, in the tour, while a build ran beside the game.
+  - 47,41: 7 placements, 5,352 triangles, 0.9-1.3 ms.
+  - 46,40: 5 placements, 4,336 triangles, 0.7-2.6 ms.
+  - 47,40: 1 placement, 1,162 triangles, 0.2 ms.
+- Interiors: all 33 hand-built interiors are resident at once within the 480 m radius, 179,132 triangles in all. One builds in 8.3 ms at most (cl.b005.h11).
+- So I kept the 480 m radius, as agreed. The district is smaller than the radius, and nothing in these numbers needs a cut yet. The per-plan shell cache can wait for a batch that makes a cell slower.
+
+FOUND (named before; now the next slice)
+- The holes under the junctions' corner sidewalks, and the yards 0.45 m under the sidewalks: you gave them a GO as the next slice, and it is under way on top of this batch.

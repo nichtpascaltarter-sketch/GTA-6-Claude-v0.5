@@ -1,4 +1,0 @@
-ntw 1 set id=lib.set.living.cottage_01 room=living style=cottage income=mid
-fits w=3.20-6.00 d=3.00-5.00
-item kind=lib.kit.sofa_3seat at=0.00,3.20 yaw=180.0
-item kind=lib.kit.rug_oval at=0.00,2.00

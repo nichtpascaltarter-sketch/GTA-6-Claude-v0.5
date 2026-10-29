@@ -27,7 +27,8 @@ WASAPI, and WinHTTP and BCrypt for updates) and the compiler's standard library.
 ## Building
 
 - **Windows:** run `build.bat`. It uses MSVC when Visual Studio (Build Tools) is installed and falls back to MinGW-w64
-  `g++`. Output: `bin\NeonTide.exe`, statically linked with no DLL dependencies.
+  `g++`. Output: `bin\NeonTide.exe`, statically linked with no DLL dependencies. `build.bat bundle` also gives the
+  exe the [bundled compiler](#the-bundled-compiler) for the updater.
 - **Linux cross-compile:** `./build.sh` (MinGW-w64 g++ 13, static). `./build.sh debug` builds with symbols.
 - **Version and commit:** every build carries the commit it was built from: git's `HEAD` when the folder is a git
   checkout, or the `NT_COMMIT` environment variable, which takes precedence (otherwise `unknown`). The main menu shows
@@ -55,12 +56,56 @@ source on your PC; open or unmerged pull requests are never built.
   - [w64devkit](https://github.com/skeeto/w64devkit/releases) unpacked to `C:\w64devkit` (or `%USERPROFILE%\w64devkit`),
     or MinGW-w64 GCC from MSYS2 in `C:\msys64\ucrt64` or `C:\msys64\mingw64`, or any `g++` and `windres` on `PATH`.
 
+  - Or none: an exe made with `build.bat bundle` carries its own compiler (see
+    [The bundled compiler](#the-bundled-compiler)).
+
   Without a compiler, the main menu says what building needs, and nothing is downloaded.
+- Some PCs will not start a program that the build has just made: an antivirus, or Windows' Smart App Control, may
+  block a new one. One of the tools `build.bat` makes and runs, `build\worldc.exe`, packs the hand-built world; when
+  it will not start (it gets a second try 5 seconds later), the game is built without that world and `build.log` says
+  so. The game is complete without it: only `--world=hand` has nothing to load. So updates keep working on such a PC.
 - If a build fails, the game keeps running the version it has. The main menu offers **Open log**, which opens
   `build.log` in the update's folder. That commit is not built again with the same compiler; the next commit on
   `main` is. Old update folders are removed. A build without a commit (`unknown`) updates to `main`'s newest once. A
   build is not updated when it is already at `main`'s newest commit, ahead of `main`, on another branch, or built from
   a commit GitHub does not know.
+
+### The bundled compiler
+
+`build.bat bundle` builds the game as usual and then appends a C++ compiler to `bin\NeonTide.exe`: a cut-down
+[w64devkit](https://github.com/skeeto/w64devkit) 2.9.1 for x64 (MinGW-w64 GCC), about 61 MB, which makes the exe
+about 76 MB. It holds what `build.bat`'s MinGW-w64 branch needs (the compiler drivers, `cc1plus` and `cc1`, `as`,
+`ld`, `windres`, the headers and libraries) and the license texts.
+
+- **Making it:** once per PC, `build.bat bundle` downloads the pinned release
+  (`w64devkit-x64-2.9.1.7z.exe`, 61 MB) with Windows' `curl.exe`, checks its SHA-256
+  (`9208c19755cd4964b7915b9afcf02c66d493a4c870c4b3e83f6c538d9c1237a5`), unpacks it with its own self-extractor and
+  packs the parts it needs with `tar.exe` into `%LOCALAPPDATA%\NeonTide\toolchain\payload.tgz` (with `payload.txt`).
+  Later `build.bat bundle` runs reuse that file. `tools\payload.cpp`, built in the same run, appends it to the exe
+  with a footer that holds its size, SHA-256 and name. This step is optional: when something goes wrong, the exe
+  stays as built, without the compiler, and `build.bat` still succeeds and says why. The download is not kept in the
+  repository, and neither is anything else of the compiler except `tools\toolchain\` (the license texts and notes).
+- **Using it:** when the PC has neither Visual Studio's C++ tools nor MinGW-w64, the updater unpacks the exe's
+  compiler with `tar.exe` to `%LOCALAPPDATA%\NeonTide\toolchain\<first 16 digits of its SHA-256>\` (once, after
+  checking its SHA-256; it takes about 340 MB) and builds with it. `build.bat` then takes `g++` from that folder
+  (`NT_MINGW`). The main menu says that the update is unpacked and built with the bundled compiler.
+- **Passing it on:** every exe the updater builds gets the same compiler appended: the running exe's, or else the one
+  `build.bat bundle` keeps on this PC. `<exe>.pending.json`'s size and SHA-256 cover the whole file. The compiler
+  stays at the version it was packed with until `build.bat bundle` runs again with a newer pin.
+- **Licenses and source:** GCC 16.2.0 and GNU Binutils 2.47 are under the GNU GPL version 3 or later (GCC's runtime
+  libraries with the GCC Runtime Library Exception 3.1, so the game's own license is not affected), GMP 6.3.0, MPFR
+  4.2.2 and MPC 1.4.1 under the GNU LGPL version 3 or later, Mingw-w64 14.0.0 under the licenses in its
+  `COPYING.MinGW-w64-runtime.txt`, and w64devkit's recipe is public domain. The texts are in the payload's
+  `licenses\` folder (and in `tools\toolchain\`). Whoever shares an exe that carries the compiler shares these
+  programs, so their source code has to stay available; it is here:
+  - w64devkit 2.9.1 (the build recipe, with every version, checksum and patch it uses):
+    https://github.com/skeeto/w64devkit/tree/v2.9.1
+  - GCC 16.2.0: https://ftp.gnu.org/gnu/gcc/gcc-16.2.0/gcc-16.2.0.tar.xz
+  - GNU Binutils 2.47: https://ftp.gnu.org/gnu/binutils/binutils-2.47.tar.xz
+  - GMP 6.3.0: https://ftp.gnu.org/gnu/gmp/gmp-6.3.0.tar.xz
+  - MPFR 4.2.2: https://ftp.gnu.org/gnu/mpfr/mpfr-4.2.2.tar.xz
+  - MPC 1.4.1: https://ftp.gnu.org/gnu/mpc/mpc-1.4.1.tar.xz
+  - Mingw-w64 14.0.0: https://downloads.sourceforge.net/project/mingw-w64/mingw-w64/mingw-w64-release/mingw-w64-v14.0.0.tar.bz2
 
 ## Controls
 
@@ -121,12 +166,13 @@ times to `%LOCALAPPDATA%\NeonTide\benchmark.txt`. Options: `--quality 0..3`, `--
 - `--play`: skip the menu into a new game. `--firstperson`: first person on foot and in vehicles (`--autoplay fpguns` then
   screenshots every gun at the hip, aiming, sprinting, reloading and through scopes; `--tourstart N` /
   `--tourcount M` pick steps; `--autoplay melee --meleeweapon knife|bat` fights with a blade or a bat).
-- `--autoplay walk|drive|bike|fly|boat|shoot|melee|tour|panic|chase|soak|metro|bus|ferry` runs scripted play-tests
-  with periodic screenshots and telemetry in the log. Related flags: `--autoduration S`, `--autoevery S`,
-  `--renderevery N`, and `--tourstart N` / `--tourcount M` for tour slices. `--autoplay camfade` holds a
-  pedestrian across the camera's line of sight and in front of the first-person eyes to check the camera fade;
-  `--autoplay uishots` screenshots the HUD, pause menu, map, settings pages, stats, briefing, phone apps and the
-  wanted HUD.
+- `--autoplay walk|drive|bike|fly|boat|shoot|melee|tour|panic|chase|soak|metro|bus|ferry` runs scripted play-tests with
+  periodic screenshots and telemetry in the log; at its end it logs its frames (`autoplay frames`: median, p99, max, how
+  many took over 33 ms, the streaming's share) and the slowest with what they streamed in. Related flags:
+  `--autoduration S`, `--autoevery S`, `--renderevery N`, and `--tourstart N` / `--tourcount M` for tour slices.
+  `--autoplay camfade` holds a pedestrian across the camera's line of sight and in front of the first-person eyes to
+  check the camera fade; `--autoplay uishots` screenshots the HUD, pause menu, map, settings pages, stats, briefing,
+  phone apps and the wanted HUD.
 - `--missiontest ...`: automated campaign and side-activity runs.
 - `--shot x,y,z,yaw,pitch,hour,name`: free-camera screenshots. Related flags: `--viewer vehicles|characters`,
   `--weaponshowcase x,y,z`, `--wildlifetest`.
@@ -137,7 +183,8 @@ times to `%LOCALAPPDATA%\NeonTide\benchmark.txt`. Options: `--quality 0..3`, `--
 - Updates: `--no-update` skips the updater. `--update-url URL` asks the server at URL instead of api.github.com and
   github.com (plain http only to 127.0.0.1 or localhost), and it checks even during automated runs. `--update-test`
   installs a built update, or else checks, downloads, builds and verifies one, without opening a window, then exits
-  (0 done, 1 no update, 2 not built). Other automated runs (`--autotest`, `--benchmark`, `--shot` ...) never update.
+  (0 done, 1 no update, 2 not built). `--update-bundled` builds updates with the bundled compiler even when another
+  one is installed. Other automated runs (`--autotest`, `--benchmark`, `--shot` ...) never update.
 - Native test harnesses live in `tests/` (vehicle physics, animation, audio, wildlife, transit, graphics layer,
   updater logic), plus `tools/worldcheck.cpp` for world data.
 

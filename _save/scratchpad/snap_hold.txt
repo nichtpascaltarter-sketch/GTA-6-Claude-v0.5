@@ -1,1 +1,0 @@
-16:15 held tree 1ada999467ec62ec7f9eb326c63c24f490b3010d (origin/main moved): House garages stay on their own lots: no more garages reaching into the neighbour's house, shop or walk-up

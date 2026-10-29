@@ -1,8 +1,0 @@
-Stair pace fix (animation): graft onto the shared tree once accepted
-- src/anim/animator.cpp: base 002915d05faa27c2f22ed0e704f2d404ee871628 (snapshot 57) -> take blob
-  503a588679bc97c54958b7d28d37f6fd98c95887 whole (git hash-object -w done), or git apply
-  SP/loco/qs/stairpace_animator_002915d0.patch (+117/-30; git apply --check OK).
-- src/anim/character.h: base 1628ef2eac91fa7f8788ea10b915193d20a5e702 -> blob acdfc600fa70399bc8fd5b99f166a223552abfc4,
-  or git apply SP/loco/qs/stairpace_character_1628ef2e.patch: three additive Animator fields after stairLand
-  (stairDir[2], liftGround[2], blendSteady). If the faces agent has touched character.h since, take the patch, not the blob.
-- No other files. No GCC builtins, VLAs, typeof or M_PI.

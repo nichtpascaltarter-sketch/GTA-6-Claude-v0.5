@@ -9,8 +9,10 @@ struct MaterialInfoGPU {
     float normalScale, shadingModel, flags, emissive;
 };
 
+// MF_WEATHERED: the rust of a corrugated metal sheet (matgen genMetalRoof) varies over the world instead of repeating with
+// the tile (world.hlsl psWorld)
 enum MatFlags { MF_PAINT = 1, MF_GLASS = 2, MF_FACADE = 4, MF_FOLIAGE = 8, MF_EMISSIVE = 16, MF_UNLIT = 32, MF_CARPAINT = 64,
-                MF_SKIN = 128, MF_HAIR = 256, MF_CLOTH = 512 };
+                MF_SKIN = 128, MF_HAIR = 256, MF_CLOTH = 512, MF_WEATHERED = 1024 };
 
 struct MaterialLibrary {
     gfx::Texture albedoArr, normalArr;
@@ -46,7 +48,7 @@ struct MaterialLibrary {
             {MAT_WOOD_SIDING, 13, vec3(0.82f, 0.82f, 0.8f), vec3(0.5f), vec3(0.3f), vec4(0, 0, 0, 5), 2.f, 1.f, 0, 0, 0},
             {MAT_ROOF_TILE, 14, vec3(0.42f, 0.14f, 0.065f), vec3(0.58f, 0.24f, 0.1f), vec3(0.18f, 0.22f, 0.1f), vec4(0, 0, 0, 7), 2.4f, 1.f, 0, 0, 0},
             {MAT_ROOF_SHINGLE, 15, vec3(0.1f, 0.1f, 0.1f), vec3(0.2f, 0.185f, 0.17f), vec3(0.2f), vec4(0, 0, 0, 6), 3.f, 1.f, 0, 0, 0},
-            {MAT_ROOF_METAL, 16, vec3(0.55f, 0.56f, 0.58f), vec3(0.45f, 0.47f, 0.5f), vec3(0.32f, 0.16f, 0.07f), vec4(0, 0, 0, 5), 2.5f, 1.f, 0.6f, 0, 0},
+            {MAT_ROOF_METAL, 16, vec3(0.55f, 0.56f, 0.58f), vec3(0.45f, 0.47f, 0.5f), vec3(0.32f, 0.16f, 0.07f), vec4(0, 0, 0, 5), 2.5f, 1.f, 0.6f, MF_WEATHERED, 0},
             {MAT_ROOF_GRAVEL, 6, vec3(0.33f, 0.32f, 0.3f), vec3(0.47f, 0.45f, 0.42f), vec3(0.18f, 0.18f, 0.18f), vec4(0, 0, 0, 5), 2.f, 1.f, 0, 0, 0},
             {MAT_GLASS, 17, vec3(0.02f, 0.025f, 0.03f), vec3(0.02f), vec3(0.02f), vec4(0, 0, 0, 1), 4.f, 1.f, 0, MF_GLASS, 0},
             {MAT_METAL_PAINTED, 18, vec3(0.6f), vec3(0.6f), vec3(0.3f, 0.3f, 0.28f), vec4(0, 0, 0, 2), 2.f, 1.f, 0, 0, 0},
@@ -54,7 +56,7 @@ struct MaterialLibrary {
             {MAT_PAVERS, 20, vec3(0.42f, 0.28f, 0.19f), vec3(0.52f, 0.4f, 0.29f), vec3(0.3f, 0.28f, 0.25f), vec4(0, 0, 0, 6), 2.f, 1.f, 0, 0, 0},
             {MAT_MARBLE, 21, vec3(0.8f, 0.78f, 0.74f), vec3(0.45f, 0.43f, 0.4f), vec3(0.3f), vec4(0, 0, 0, 2), 2.f, 1.f, 0, 0, 0},
             {MAT_STONE, 22, vec3(0.48f, 0.43f, 0.36f), vec3(0.6f, 0.55f, 0.48f), vec3(0.28f, 0.26f, 0.24f), vec4(0, 0, 0, 7), 3.f, 1.f, 0, 0, 0},
-            {MAT_CORRUGATED, 16, vec3(0.42f, 0.44f, 0.47f), vec3(0.36f, 0.38f, 0.4f), vec3(0.3f, 0.15f, 0.06f), vec4(0, 0, 0, 5), 2.f, 1.f, 0.7f, 0, 0},
+            {MAT_CORRUGATED, 16, vec3(0.42f, 0.44f, 0.47f), vec3(0.36f, 0.38f, 0.4f), vec3(0.3f, 0.15f, 0.06f), vec4(0, 0, 0, 5), 2.f, 1.f, 0.7f, MF_WEATHERED, 0},
             {MAT_FABRIC, 23, vec3(0.85f), vec3(0.25f), vec3(0.3f), vec4(1, 0, 0, 3), 2.f, 1.f, 0, 0, 0},
             {MAT_WOOD, 24, vec3(0.28f, 0.18f, 0.1f), vec3(0.4f, 0.27f, 0.16f), vec3(0.3f), vec4(0, 0, 0, 5), 2.f, 1.f, 0, 0, 0},
             {MAT_TILE_POOL, 25, vec3(0.1f, 0.45f, 0.65f), vec3(0.18f, 0.58f, 0.78f), vec3(0.75f, 0.75f, 0.72f), vec4(0, 0, 0, 3), 1.f, 1.f, 0, 0, 0},

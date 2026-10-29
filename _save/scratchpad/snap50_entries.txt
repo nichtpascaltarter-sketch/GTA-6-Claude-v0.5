@@ -1,6 +1,0 @@
-100644 46cfe87e1fd22ba837e2baa996897135807acc74	src/world/buildmesh.cpp
-100644 6eb67390b3d0a03117f1a842ae03389bbcc8bd86	src/world/propmesh.cpp
-100644 cb2b991fcfd0589a0ee83ef7d96ce1280767c0f5	src/world/landmarks.cpp
-100644 8a227ddb9a69e5b38beaa7c71e3f926dc06fe5ea	src/world/leisure.cpp
-100644 07a30a1f90dfc397cabf6f62e61933538bf561f3	src/shaders/facade.hlsli
-100644 32126ee5e320343657b5d39a2fb4fb898b409c14	src/shaders/world.hlsl

@@ -1,9 +1,0 @@
-{
-  "id": "56",
-  "subject": "Snapshot 63: first-start setup page (PC) + hand-built roads in world.bin + PC worker doc",
-  "description": "Tree 77c89be9 on 0bdeab3 (17 files); lead CI GCC all pass; snap_smoke running (snap63_run.log). Then PR, Codex, merge.",
-  "activeForm": "Landing snapshot 63",
-  "status": "pending",
-  "blocks": [],
-  "blockedBy": []
-}

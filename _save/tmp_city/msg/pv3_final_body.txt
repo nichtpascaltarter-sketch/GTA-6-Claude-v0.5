@@ -1,0 +1,102 @@
+A NOTE ON THE SIDE'S NAME
+- My plan called row 3 Calle Siete's "south side". By the map it's the north side: Calle Siete runs at y 456, and row 3's houses stand north of it (y 465-475) facing south, with row 2's south of it facing north. The blocks are the ones you GO'd (b014-b019 now, b008-b013 for V4); only my label was wrong.
+
+WHAT (player-facing, hand world only)
+- Calle Siete's row-3 houses (b014-b019): the roofs now vary block to block. The first houses from the west go G, T, B, T, G, T where they went G, G, B, G, G, G.
+- Each face's houses, west to east, before and after (G gable casita, T twin with the flat roof, B bungalow; the corner shops at the ends stay as they are):
+  - b014: GBTBTTG to GBTBTTG. Its draw came out as today's, which the rules allow (they compare faces with each other); its files change only in the line that says how they were written.
+  - b015: GTTGTBG to TGTGTBT
+  - b016: BGTTGTB to BGGTTGB
+  - b017: GGTBTTG to TTGBGTT
+  - b018: GTTGG to GGTGG
+  - b019: GTBG to TGBT
+- 15 casitas swap their roofs and keep their colours:
+  - 8 gables become twins: b015.h13 and h19, b016.h16, b017.h13, h14 and h19, b019.h09 and h12.
+  - 7 twins become gables: b015.h14, b016.h14 and h17, b017.h15 and h17, b018.h12, b019.h10.
+- No bungalow moves. As on row 4, today's bungalows already stand where the most of them fit, and in each of these faces only one arrangement holds that most. So the casitas and bungalows per face stay as they were: b014 5+2, b015 6+1, b016 5+2, b017 6+1, b018 5+0, b019 3+1 (row 3: 30+7). The district stays at 40 bungalows of 130.
+- So nothing else changes either:
+  - no shrub moves (gable and twin share their footprint and doors);
+  - no colour changes (the palettes are drawn before the roof is settled, and the bungalows didn't move);
+  - no other building, road, ground or lamp. Procedural mode is unchanged.
+- The other 22 house files change only in that one line: b014's 7 and 15 more whose roof came out the same.
+
+HOW
+- street.py, as V1 signed it off, with one change, to the guard:
+  - --guard can be given once per cell, as --guard cell=base[:cap].
+  - A face's draw still redraws if it would take a cell's near upload to 64,000. For a cell over 64,000 already, it now redraws if it would take the cell past cap: its upload before the batch, while base carries the running total from face to face.
+  - Row 3's busiest cells, 45,41 (74,875) and 46,41 (78,685), are both over 64,000, so each uploads alone. The guard keeps them from growing.
+  - V1's row 4, re-made with this street.py on S2's world, comes out byte for byte V1's, so the change moves nothing already written.
+- The write, on V1's tree (f07179f2): b014 to b019, west to east, with --guard 45,41 and 46,41 chained from those uploads, then dress.py (no block file changes) and ntwfmt.
+- tools/author/rulecheck.py, new, as you asked: my scratch checker made a plain tool.
+  - Its header says what it checks and how to run it: python3 -I tools/author/rulecheck.py <world dir> [<base world dir>].
+  - It checks every face for the kept rules (the palettes, no three casitas alike side by side, no two bungalows side by side), and the faces drawn per face for (a), (b) and (c).
+  - With a base world, it also checks the corners' places, and counts each face's casitas and bungalows and the district's share before and after.
+  - It prints one PROBLEM line per broken rule and exits 1 if there is any.
+- Docs, HANDBUILT 5.3:
+  - The authoring scripts list adds rulecheck.py: "checks the rules over the building files street.py wrote, apart from its own draw: the palettes, no three casitas alike and no two bungalows side by side on every face, the variety rules on the faces drawn per face, and against a base world the corners' places and each face's houses before and after. It exits 1 on a broken rule."
+  - street.py's paragraph: "With --guard, a draw that would take a cell's near upload to 64,000 triangles draws again, and for a cell over that already, one that would take it past its upload before the batch". Its history adds "and Calle Siete's 37 of row 3 (b014-b019)".
+
+THE FIRST-THREE RULE, as written
+- (a): the first houses from the west are G, T, B, T, G, T (b014 to b019); each differs from its west neighbour's. b014 has none.
+- (b): the first threes are GBT, TGT, BGG, TTG, GGT and TGB; each differs from its west neighbour's. The faces across, row 2's, are still drawn the old way, so (b) doesn't compare with them yet. V4 will check row 2 against these.
+- (c): the six sequences differ from each other and from all six of row 2's.
+- (d): no fallback. Every face kept its first draw.
+
+THE CHECKS YOU KEPT
+- The --classic control: on S2's world (all of it drawn the old way), V3's street.py with --classic rewrites the street.py files of 22 blocks (379 files) byte for byte. b006's 21 differ, as before.
+- On V1's world, --classic rewrites all 344 files drawn the old way byte for byte. The 35 that V1 drew per face go back to their old draw, as they should.
+- The rule checker (now tools/author/rulecheck.py), on V3's tree against V1's: 0 problems; bungalows 40 to 40 of 130.
+- The guard: 45,41 74,875 to about 74,875 (4 roof swaps, net 0) and 46,41 78,685 to about 78,685 (8 swaps, net 0), both within their caps. 47,41 50,434 to about 50,290 (3 swaps, -144). 44,41 doesn't change (b014 keeps its roofs). The guard didn't bind: every face kept its first draw. The drive measured 45,41 at exactly 74,875, 46,41 at exactly 78,685 and 47,41 at exactly 50,290 (below).
+- The re-run: street.py (with the same guards) and dress.py, re-run on a copy of V3's tree, rewrite it byte for byte.
+
+CHECKS
+- worldc: 0 warnings, 412 buildings from 468 files. Against V1, world.bin changes in buildings and manifest only.
+- worldv: 0 errors and the same 4 warnings (468 files, 3,429 records, as on V1).
+- CI's three world tests pass with CI's flags (-Wall -Wextra -Werror and UBSan). MinGW -Wall on main.cpp: 0 errors, 0 warnings. street.py and rulecheck.py compile (py_compile).
+- The procedural census: 0 of 13,914 lines differ from V1's.
+- The exe nt_b38: 16,502,784 B, with 0 warnings.
+- Harness: 4,632 of 4,632 rooms in the 412 interiors (2,370,048 triangles), the same line as V1's: gable and twin share their rooms. 0 tour legs off the walk.
+- The world is canonical (ntwfmt --check). The private scan of the 299 added lines is clean.
+- Against V1's tree f07179f2, the work tree differs in exactly these 40 files (39 changed, 1 new).
+
+SHOTS (row 3's own batches' cameras, R3a's and R3b's, at 15:30; before: V1's nt_b37; after: nt_b38. PNG in /tmp/city/b38smoke/before and /tmp/city/b38smoke/after; 0 fatal)
+- r3a_aerial_1530 and r3b_aerial_1530: row 3 from above its back yards, looking south over Calle Siete.
+  - The tile-roofed gables now stand elsewhere in each block.
+  - In b015 (r3a's middle block) they move from 1st, 4th and 7th from the west to 2nd and 4th.
+  - In b017 (r3b) they move from 1st, 2nd and 7th to 3rd and 5th.
+  - Row 2's faces across the street are unchanged.
+- r3a_b015_calle_siete_1530, Calle Siete from b015's east end, looking west. Before, the first house on the right is b015.h19, a yellow gable casita with an orange tile roof. After, it's a yellow twin with a flat roof, in the same lemon. The bungalow and the blue twin beyond it are as before.
+- r3b_b017_calle_siete_1530, the same view along b017: its roofs change as its sequence above.
+
+THE FRAME LOG (the pair back to back in your quiet window: V1's nt_b37, the base's exe, from a load of 1.47, then nt_b38 from 1.80; nt_b37 first, nt_b38 second in each pair below)
+- Median frame: 8.3 / 8.6 ms.
+- Frames over 33 ms: 253 / 252.
+- Streaming max: 12.85 / 15.70 ms. Both are 46,41's upload alone, the same 78,685 triangles, so the 2.85 ms between them is this box's noise.
+- Streaming p99: 2.60 / 2.06 ms.
+- The first frames' p99 and max are the load: p99 2,285 / 2,340 ms, max 19,165 / 19,416 ms.
+- Near builds: 0.1-16.7 / 0.1-12.6 ms.
+  - The busiest: 45,41 16.7 / 12.6, 46,42 15.3 / 8.6, 45,42 13.3 / 8.0, 46,41 13.2 / 11.0.
+  - V3's drive stays under ~15 ms; it was the baseline that passed it in this window. So (a) stays parked by your rule.
+- Interiors: up to 388 resident in both (2,228,556 triangles).
+- Memory: 3,027-3,144 / 3,048-3,158 MB.
+
+UPLOADS (measured on nt_b38)
+- 45,41: 74,875 and 46,41: 78,685, both as before and as the guard predicted.
+- 47,41: 50,290 (predicted 50,290, from 50,434). Its near placements' triangles go from 46,594 to 46,450 (-144).
+- Unchanged: 45,42 62,783; 46,42 57,524; 45,40 11,549.
+
+DRIVES (0 fatal, 06:33-06:57, each from a load under 2.0 with no showcase)
+- Hand drive on nt_b38: every checkpoint is as on 100 (and on nt_b37 in the same window).
+  - t=2.6: pos 1763.7 219.3 3.3, speed 8.3, peds 90, vehicles 62, wanted 0.
+  - t=11.5: pos 1821.2 244.2 3.2, speed 5.9, peds 90, vehicles 63, wanted 0.
+  - t=21.5: pos 1919.8 285.4 3.0, speed 8.7, peds 82, vehicles 51, wanted 0.
+- Procedural drive on nt_b38: every checkpoint is as on 100.
+  - t=3.0: pos 1783.7 157.8 6.5, speed 4.5, peds 88, vehicles 58, wanted 0.
+  - t=9.5: pos 1786.9 151.9 6.4, speed 2.4, peds 90, vehicles 60, wanted 1.
+  - t=17.5: pos 1789.9 130.6 6.4, speed 12.4, peds 93, vehicles 63, wanted 2.
+
+NEXT
+- V4 (row 2, b008-b013) is already written and built on this tree, at nice 19. I'll sign it off against V3's merge once you send the sha, and its games wait for your "quiet".
+  - Its rule (b) did bite: b010's third draw matched b016's first three across the street, and was redrawn.
+  - Its guard binds on 46,41: four of b010's draws would have grown 46,41.
+  - b011's bungalow moves one lot east.

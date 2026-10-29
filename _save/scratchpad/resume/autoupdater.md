@@ -36,7 +36,7 @@
 - 20:15 harness e2e under Wine PASSED (download/pending, install+relaunch child logs 9.9.9, .old removal, all rejections,
   digest/notes/none checksum sources, list pick, tampered/truncated/not-newer/no-record pending discarded, gating for
   autotest/autoplay/shot/gfxselftest/benchmark/viewer/no-update). UI pause_menu_test (MinGW+Wine) 2646 checks OK.
-  Live: direct HTTPS from sandbox -> GitHub 403 rate limited (shared IP 34.72.41.21, 60/h, 0 left) = env limitation.
+  Live: direct HTTPS from sandbox -> GitHub 403 rate limited (shared IP <the shared egress IP>, 60/h, 0 left) = env limitation.
   Later edits (after harness runs, need re-test): beforeStart appends log for updater-started process even in automated
   runs; menuFrame stops a download on MA_RUN_BENCHMARK; README updated.
   Queued: /tmp/upd/scripts/build2.sh (bg) -> bin/nt_upd.exe (dev) + bin/nt_upd999.exe (9.9.9, QUICK=1). Output /tmp/upd/build2.out
@@ -117,3 +117,33 @@
   as 5acba43. Asked for a PC live-test package -> written $SP/pc/2026-10-20-03.md and sent. Found + fixed: PC session
   sets NoDefaultCurrentDirectoryInExePath -> updater now runs `cmd /d /c .\build.bat` (update_logic.cpp d780fc0c, .h
   25db691b, test 09bf4e1f, PROGRESS 83cec335 / on 1846b52 ca9479c7). e2e run 4 62/62, unit 243.
+
+# 10-26 ~17:00 PARKED by the lead (tools role: updater + worldv). Nothing of mine running.
+- Done/accepted: updater live test on the PC PASSED (10-20-03). worldv slice 6 -> snapshot 64 (bases 0bdeab3 = bdf3016,
+  blobs /tmp/rc6/blobs.txt). Slice 7 + win32.cpp key-tap latch -> snapshot 65 (blobs /tmp/rc7/blobs.txt; tree
+  /tmp/rc7/tree = main 61cf548 + slices 6/7 + latch; bases: slice 6 blobs, win32.cpp bd33ac14). Detailed notes:
+  $SP/resume/tools.md (last entries). Don't touch updater installPending/beforeStart until the front-end agent's
+  .updated.json change lands (I sent the lead 2 notes: delete stale records, ASCII-only titles).
+- RESUME TRIGGERS (the lead resumes me by message when one lands; rebase my tree on that HEAD first, check my files' bases):
+  1. City's legLetter/resolvePlan in worldmodel.h (RoadOverrides step 2, NodeRule): replace my stand-in plan naming in
+     src/world/validate_lanes.cpp (turnName/legLetters/covers: movements already matched by (arrival edge, exit edge))
+     and leg letters in validate_roads.cpp (legLetters for road.sector/signal.node) with it; map resolvePlan's errors
+     (road.sector / signal.node codes); also pass RoadOverrides to LaneGraph::build if it takes them, and drop my
+     interim override filter (allowedPair/movesAt) once build() reads ban/custom/no_uturn/moves. Rerun pilot (expect
+     the 4 T-junction warnings), plants, UBSan+ASan.
+  2. AI set 21 lands (lanes.cpp 1088 `(u8)TK_MERGE`, blob b6219ad1): delete the `#pragma GCC diagnostic` push/ignored
+     "-Wextra"/pop around the lanes.cpp include in tools/worldv.cpp and tests/world/worldv_test.cpp; rebuild with CI
+     flags. Later the AI's EdgeExtra/authored plans in NodeInfo: read widths via Lane/Approach (not class tables) and
+     signal checks may read NodeInfo plans instead of plan files (the AI will tell me).
+  3. City part 2a (blocks typed: parcels, paint, pads, plazas, dressing, catalog code/size; codes block.shape/kind/size)
+     + worldmodel v1 (buildings in world frame): slice 8 = placement (building in parcel, no overlap with roads/paths),
+     walk links/spots (inside geometry, on a lane), 250 m sidewalks without a crossing, crossings reaching both kerbs
+     (needs lane graph per-side sidewalks), map block.* codes; plan it with the city + AI first, then sign off.
+- 10-26 ~18:40 resumed for one fix, PARKED again. Codex's PR #57 finding fixed: transitChecks (validate_roads.cpp)
+  walks the route edge to edge (entry fixes exit, next edge must touch it, a known direction is never overwritten,
+  parallel edges resolved from the next pair + backfill; turn checks at the node actually passed). Blobs
+  /tmp/rc8/blobs.txt: PR #57 (on slice 6) validate_roads.cpp 6adf2073 <- a742abf9, worldv_test 6198460d <- b01d3e44;
+  snapshot 65 (on slice 7) validate_roads.cpp 352f2f0f <- a191b509, worldv_test 7c70f1bd <- 372c29b2. Trees
+  /tmp/rc8/s6 (5804e7d + fix), /tmp/rc8/s7 (5804e7d + slice 7 + fix). UBSan + ASan pass x2; 5804e7d world/: 0 errors,
+  4 warnings. When resuming for a trigger, base on these (rc8) versions of validate_roads.cpp / worldv_test.cpp.
+  The 3 triggers above are unchanged.

@@ -1,7 +1,0 @@
-ntw 1 roads scope=trunk
-node tr.n00001 at=400.00,150.00 z=3.20
-node tr.n00002 at=600.00,150.00 z=3.10
-edge tr.e00001 from=tr.n00001 to=tr.n00002 class=boulevard name="Flamingo Causeway" lanes=2/2 median=4.00:barrier
-  shoulder=both:1.00 shape=400.00,150.00;500.00,150.00;600.00,150.00 profile=0.00:3.20;100.00:9.00;200.00:3.10
-  deck from=40.00 to=160.00 kind=bridge
-end

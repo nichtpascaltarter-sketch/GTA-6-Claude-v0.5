@@ -1,0 +1,150 @@
+PLAN: the next district after the Calle Luna pilot, for the user's go. city, 2026-10-29.
+Recommendation: Calle Luna Sur, the south bank of the Rio Sol, as the rest of district cl (HANDBUILT 10.1's stage 2).
+Sources: the hand world on main 8732459; the pilot's measured numbers (V4's drive, harness, worldc); the doc's census
+(HANDBUILT 13.2-13.3); an existing building probe (the generator as of Sep 30; run, not built) over Calle Luna; the
+terrain's region grid. GUESS marks an estimate.
+
+(1) WHICH DISTRICT, AND WHY
+- Calle Luna Sur: Calle Luna south of the river, x 936-2648, y -928 to -40. 1.48 km2 of land (the pilot's box: 0.72).
+- Why this one:
+  - The first mission leaves the pilot. low_tide sends the player from Mari's apartment (1720,360) to "the old Vargas
+    garage in Calle Luna" at (2200,-480), on the south bank. In hand mode today that drive ends in bare terrain across
+    the river. collateral's stash house (1150,-620) and pink_slips' start (1100,-850) are there too.
+  - It touches the pilot along the whole river. Any other district lies across a strip of unbuilt Calle Luna, and hand
+    mode shows only built districts (D6).
+  - Same street life and style guide as the pilot: its library carries over, and the new families are Calle Luna's own.
+- What a player sees first: from Mari's door, the drive east to Avenida del Sol and south over the river. The south
+  bank's riverfront comes first, then the blocks round Vargas's garage.
+- Neighbours: north, the pilot across the river (and Calle Luna Este to the north-east); east, Downtown and Solaris
+  (Solaris One at 3350,-750); south, the Grove (the east half) and Westbrook (the west half); west, Westbrook.
+- How it joins the pilot's streets:
+  - the bascule bridge already lands on the south bank at Calle del Muelle (1190,62). Bougainvillea Boulevard runs on
+    south as the west spine;
+  - Calle del Muelle's turning circles at (1150,66) and (1780,62) open into through streets along the south bank;
+  - a second bridge (Q4) carries Avenida del Sol (x 1850, 2/2) south as the east spine, down to the SkyLine station at
+    (1850,-629). It follows the generator's Sunrise Boulevard (x 1800: bus 7's street, which crosses the river there);
+  - the pilot's other three circles wait for Calle Luna Este and the north strip: Paseo del Rio's east end (2010,318),
+    and Bougainvillea's and Avenida Este's north ends.
+- The rest of Calle Luna after it: Este (the marina, and Solaris Pier for collateral: 310 procedural buildings), the
+  north strip (266) and the west strip (83).
+
+(2) SIZE
+- Procedural (the probe; its generator is a month old, so +-10%): 1,291 buildings in 32 cells: 743 shops, 332
+  midrises and 216 houses (back garages not counted). By quadrant: SW 459, SE 435, and 397 south of the SkyLine street.
+- Hand (GUESS, at the pilot's ratios: it built 412 where the generator had 554; shops x0.52, midrises x0.75, houses
+  x1.8): about 1,000 buildings, ~420 shops, ~250 midrises (walk-ups and 4-floor apartments) and ~330 houses, plus 2
+  specials (Vargas's garage, the cemetery block at 1600,-750). About 60-80 blocks (the pilot has 26).
+- Enterable (GUESS): ~2,100 floors and ~12,500 rooms, every one enterable. Per building: a shop 2 floors and 9 rooms;
+  a walk-up 3 and 21; a 4-floor apartment 4 and ~28; a house 1-2 floors and 6-9 rooms.
+- Against the pilot's 412 buildings, 868 floors and 4,632 rooms: about 2.4x the buildings and floors, 2.7x the rooms.
+
+(3) LIBRARY AND TOOLS: WHAT COVERS IT, WHAT IS NEW
+- As they stand:
+  - The library: 6 plans (bungalow_c; casita_d and its twin casita_e; the shops flats_a and corner_c; walkup_b),
+    10 floor layouts, 5 facades, 16 palettes and 22 catalog pieces. That is the pilot's mix, so about half of the
+    south's buildings (GUESS).
+  - street.py places any block whose faces use its plans. It does avenue walls, corners and houses per parcel, the
+    per-face draws and their rules, palettes, --guard, --ground and --classic.
+  - dress.py works on any block (parcels, levels, terraces, sidewalks, yards, shrubs); rulecheck.py works as is.
+  - The harness (every room reached from the main entrance; tours) works on any plan. It and the roads script (the
+    pilot's streets.py) are host tools in my scratch (447 and 302 lines), not in the repo.
+- New library (GUESS sizes, from the pilot's files: a plan is 9-13 lines, a layout 18-33, a facade 7-10):
+  - Midrises (the generator's Calle Luna mix: walk-up 28%, MiMo 33%, Med 33%): MiMo and Med apartments, 4 floors on
+    the walk-up's stair core, with a new 4th-floor layout and 2 facades. ~120 lines, ~5 h.
+  - Shops (taxpayer, 1920s block, Med, MiMo, bodega):
+    - a one-storey taxpayer row (2-3 units, party walls) and a 1920s block (wider, offices and flats over): ~150
+      lines, ~5 h;
+    - Med and bodega fronts as facades on flats_a and corner_c: ~30 lines, ~1 h.
+  - Houses (bungalow, CBS, ranch, MiMo, Med): a CBS house (hip roof, jalousies, carport) and a ranch. ~110 lines, ~4 h.
+  - Vargas's garage: a workshop (a roll-up bay and an office). ~45 lines, ~2 h.
+  - In all ~7 plans, ~9 layouts, ~7 facades and 3 palette files: the library grows from 26 files to about 52.
+- New engine and tools (GUESS):
+  - handshells.cpp: MiMo eyebrows, Med arches and carports. ~200-300 lines of C++, ~6 h.
+  - tools/author/roads.py: the pilot's streets.py moved into the repo, with joins at turning circles and a second
+    bridge. ~450 lines, ~4 h.
+  - street.py: plan lists per face and the new families in its draws (~+100 lines, ~3 h); rulecheck.py ~+40, ~1 h.
+  - dress.py: the south riverfront, the cemetery's walls and tombs, and the SkyLine street's clear corridor. ~+150
+    lines, ~4 h. The tombs, walls and gate are code-built pieces: ~150 lines of C++, ~3 h.
+  - Only if the numbers call for them (5): (a) parallel near builds ~3 h; an upload split for a cell past 78.5k ~3 h;
+    per-floor residency (HANDBUILT 7.4) ~12 h.
+
+(4) BATCHES (in order, ~30 buildings each; GUESS 34 in all)
+- N0: roads and parcels, no buildings.
+  - roads.py goes into the repo. The south bank's streets (~25 of them, ~80 nodes), the second bridge, the y -650
+    street, and the pilot's two Muelle circles opened. The bounds grow. dress.py lays every block's parcels, levels
+    and sidewalks.
+  - Checks: worldv's road checks (connected, crossings, overlaps, bulbs); worldc's sections (buildings unchanged); the
+    harness still at 4,632 rooms; both drives 0 fatal, plus a hand drive from Mari's over the new bridge to the garage's
+    corner and back by the bascule bridge. The pilot's drive checkpoints may move as the road graph grows, and if they
+    do I explain each one. Shots of the bridge and the seam.
+- N1 proves the new parts, ~25 buildings: Vargas's block and the face across it.
+  - Each new family appears once: the workshop, a MiMo apartment, a CBS house and a taxpayer row. Its cells run under
+    the guard.
+  - Checks: the usual set, plus --missiontest low_tide in hand mode (Mari's to the garage to the diner), the harness
+    on the 4-floor stair, a contact sheet of the new families, and uploads against the predictions.
+- N2-N4, ~30 each: the south-east by the river, with one new family each (Med apartments, the 1920s block, the ranch).
+- N5-N13, ~30 each: the rest of the south-east and the south-west. Includes the blocks of TideStop, the courier depot
+  and the stash house (collateral's stash-house leg works from then on).
+- N14: the cemetery block (a special) and its frontage.
+- N15-N33, ~30 each: the strip south of the SkyLine street, pink_slips' start, and the edges to Westbrook, the Grove
+  and Downtown (with turning circles there).
+- Every batch gets the sign-off set as now: CI's three world tests (-Wall -Wextra -Werror, UBSan); worldv; worldc's
+  sections; MinGW -Wall on the touched files and main.cpp; the procedural census with 0 differences; the exe with 0
+  warnings; the harness (every room); rulecheck with 0 problems; the canopy check; shots with the batch's cameras; hand
+  and procedural drives with 0 fatal; uploads and near builds against the predictions; the frame-log pair run A B B A.
+
+(5) BUDGETS
+- Today, measured on V4:
+  - The busiest cells: 46,41 78,541 and 45,41 74,731 triangles, each uploading alone (15.3 and 9.7 ms in their
+    frames); then 45,42 62,783, 46,42 57,524 and 47,41 50,290. Near builds 13.1 ms at most in a quiet drive (45,41).
+  - Up to 388 interiors resident (2.23M triangles); memory 3.0-3.2 GB; the first load ~22 s; world.bin 2,734 KB, the
+    exe 16.5 MB.
+- The south's cells, near upload (GUESS: the probe's count x 1,050 triangles + 3.5k for roads, ground and props; in
+  the pilot's full cells the hand count came to 1.0-1.25x the generator's):
+    x      43   44   45   46   47   48   49   50
+    y39   21k  49k  51k  54k  54k  53k  37k  17k   (the south bank by the river)
+    y38   27k  68k  70k  71k  74k  70k  57k  19k
+    y37   25k  66k  66k  60k  69k  67k  63k  14k   (the SkyLine street)
+    y36   14k  37k  35k  43k  37k  38k  37k   8k   (the south edge)
+- Where it gets tight:
+  - 9 cells are at or over 64k (the busiest, 47,38, ~67 placements). Each uploads alone (~10-15 ms in its frame, as
+    45,41 and 46,41 do today); the guard keeps all under today's 78.5k (one --guard per cell, capped at 78.5k).
+  - Near builds come to ~10-13 ms (GUESS: 0.15-0.19 ms a placement, as 46,41 and 45,41 today), so (a) stays parked
+    unless a quiet build passes ~15 ms.
+- Residency (GUESS, the 480 m circle):
+  - ~470-510 interiors resident in the south's middle, against 388 today (up to ~640 if the hand count matches the
+    generator's). That is ~3.0M triangles and +0.1-0.3 GB of memory. The first load grows little: an interior builds in
+    1-3 ms, on a worker.
+  - Per-floor residency becomes due if memory passes ~3.5 GB or the first load passes ~30 s.
+- Data: world.bin ~9 MB and the exe ~23 MB (GUESS: ~6.6 KB a building), inside the 35-45 MB budget.
+
+(6) TIME (today's pace: one agent; the lead's review, CI and Codex overlap the next batch; games in quiet windows)
+- Measured on the pilot: a batch of 20-33 buildings with its plans made took ~1 h, sign-off to sign-off (R3a-R4d: 8
+  batches in ~8.5 h); a slice that added a plan ~2-6 h (the twin ~2 h; batch 1 with its corner plan and the ground
+  slice ~6 h).
+- The south bank: N0 ~7 h; N1 ~7 h; N2-N4 ~3.5 h each; N14 (the cemetery) ~6 h; the other 28 ~1.1 h each (~31 h);
+  ~15 h of handshells, tools and library outside the batches; 15% contingency.
+- Total ~85-95 h (+-40%): about 4-5 days at ~20 h a day.
+- The south-east alone (N0-N8, ~250 buildings with every new part) takes ~40 h, about 2 days.
+
+(7) RISKS AND OPEN QUESTIONS (choices for the user; my recommendation first)
+- Q1 Which district next? Calle Luna Sur [rec]: the first mission, the seam with the pilot, the same library. Or Calle
+  Luna Este first (310 procedural buildings, the marina and Solaris Pier, ~1.5 days); or Palmetto Flats (Rook's shop,
+  Act 1's repo_man and dry_dock; it needs the north strip and industrial plans); or Downtown (towers: per-floor
+  residency first).
+- Q2 The scope of the go: the south-east first (~2 days) with a stop to look after it [rec], or the whole south bank
+  (~4-5 days).
+- Q3 Midrises: new facades and a 4th floor on the walk-up's core [rec], or new layouts (MiMo catwalks, Med courtyards):
+  +2-3 days, and exterior stairs in the kit.
+- Q4 A second bridge on Avenida del Sol [rec], or the bascule bridge only (low_tide's drive about doubles).
+- Q5 The SkyLine: its street and a clear corridor now, and the viaduct and station when transit comes [rec]; or a
+  static viaduct now (~1 day, no trains).
+- Q6 Story interiors (TideStop's hold-ups, Tide Customs' respray): later, with the AI and missions agents [rec]; or
+  now (~1 day each).
+- Q7 Back garages and sheds: none, as in the pilot [rec]; or an outbuilding plan (about +15% buildings).
+- Q8 Grow district cl, with one name on the map [rec]; or a new district, "Calle Luna Sur".
+- Risks: the counts (the probe's generator is a month old, +-10%; the hand counts follow the block design); upload
+  spikes in 9 cells (the guard, else an upload split); near builds ((a)); residency and memory (per-floor residency);
+  repetition (13 plans over ~1,400 buildings: the per-face draws, rulecheck, contact sheets); the seam (the pilot's
+  roads and edge blocks change, so each batch explains its drives' checkpoints); machine time (two games a batch).
+- V2 (Paseo del Rio) still waits for the user.

@@ -1,0 +1,611 @@
+# Street-front buildings for one block of the hand-built world (docs/HANDBUILT_WORLD.md section 5.3): an authoring
+# script, run once per design change. It reads the block's parcels (block.ntw), the district's streets (roads.ntw) and
+# the library's plans and palettes, and writes one building file per placement, as hand-written ones are: its plan,
+# `at` (the plan's origin), z (its ground floor, just over the sidewalk in front of it), yaw (square to the street),
+# mirror and palette. Its output is the data: review the summary, the validator and the shots, and edit the files by
+# hand where the rules don't do (a re-run overwrites only the files it wrote, which say so).
+#
+# The rules:
+# - a parcel's buildings stand along its front, 0.6 m behind the sidewalk (a generated parcel's outline runs 0.5 m in
+#   under the sidewalk: tools/author/dress.py), in from its sides; on an avenue they make a
+#   street wall: one or two of the street-front plans side by side, their party walls touching; on a street a house
+#   stands alone in the middle of its parcel, with side yards of 1.5 m, or 1.0 m on a lot too narrow for any house with
+#   them;
+# - a corner parcel (another street runs by its side) takes the corner plan at that end, its side-street wall (the
+#   plan's right, or mirrored its left) towards the side street; with --ground, where that street's sidewalk reaches
+#   further into the parcel than its outline says, the corner plan stands further in from it (0.3 m at a time, up to
+#   2.1 m), every footprint corner still inside the parcel;
+# - a parcel on no street (no front=, as a park) is left to its block file;
+# - a plan fits the frontage and the depth, and suits the parcel's use;
+# - no plan with the same palette twice within three placements, and no palette twice side by side;
+# - a face's houses are drawn per face, by a generator of its own (the houses' draw, below): no two bungalows side by
+#   side, as many as the lots take, and the first houses and the sequences unlike those of the street's other faces;
+#   with --classic, as before it: one generator for the block, and no house plan twice in neighbouring parcels;
+# - the palettes draw from a generator of their own, seeded with the block id and the seed (the text "cl.b014 6"),
+#   after every other draw: so blocks whose plans draw alike don't repeat each other's colours, and a palette moves no
+#   building;
+# - a casita is the gable one or its flat-roofed twin by the face's draw (--classic: by its parcel id's CRC), never
+#   three alike side by side, and a gable casita's palette is the casita family's of the colour it drew (its tile roof
+#   tinted); both are settled after the palettes' draw, so they change no other building;
+# - mirrors alternate, so that neighbours pair on their party walls;
+# - z: the sidewalk's height in front of the building (the street's profile, and 0.15 m of kerb) plus 0.01 m, and with
+#   --ground (the compiled ground on a grid, as tools/worldc.cpp --dump-ground writes it: "grid x0= y0= step= nx= ny="
+#   and ny rows of nx heights) also at least 0.05 m over the ground under the footprint (0.25 m in from its edges, a
+#   step of worldc's grid), which on a levelled parcel must be its own level ground, not a sidewalk.
+# It prints its seed and a summary: placements per plan, and each parcel left empty with the reason.
+#
+# usage: python3 -I tools/author/street.py <world dir> <block id> [--seed N] [--ground grid.txt] [--write] [--classic]
+#        [--guard cell=triangles[:cap] ...]   (--guard 45,42=62639, once per cell: its near upload as it stands, kept
+#        under UPLOAD_CAP; for a cell over UPLOAD_CAP already, kept from growing past cap, its upload before the batch)
+# (the grid: build/worldc --dump-ground=grid.txt --ground-box=<block id>, a 0.25 m grid over the block's parcels and 8 m
+# around them)
+import itertools
+import math
+import os
+import random
+import re
+import sys
+import zlib
+
+WORLD, BLOCK = sys.argv[1], sys.argv[2]
+OPTS = sys.argv[3:]
+SEED = int(OPTS[OPTS.index("--seed") + 1]) if "--seed" in OPTS else 1
+GROUND = OPTS[OPTS.index("--ground") + 1] if "--ground" in OPTS else None
+WRITE = "--write" in OPTS
+# --classic: the draws as before the per-face generator (one generator for the block, no house plan twice in
+# neighbouring parcels, a casita's gable or twin by its parcel id's CRC); --guard 45,42=62639: a cell's near upload now
+CLASSIC = "--classic" in OPTS
+GUARDS = [OPTS[k + 1] for k, o in enumerate(OPTS[:-1]) if o == "--guard"]
+MARK = "# written by tools/author/street.py"
+# The district's plans by role (Calle Luna): the street wall's, the corners', the houses'
+STREET_WALL = ["lib.plan.shop.flats_a", "lib.plan.midrise.walkup_b"]
+CORNER = "lib.plan.shop.corner_c"
+HOUSES = ["lib.plan.house.casita_d", "lib.plan.house.bungalow_c"]
+BUNGALOW = "lib.plan.house.bungalow_c"
+TRIES = 50          # (per face: draws of its houses until one meets every variety rule; else the one breaking fewest)
+# (a hand cell's triangles per placement of each plan, near: from R4c's and R4d's cells, for --guard)
+TRIS = {"lib.plan.house.casita_d": 1150, "lib.plan.house.casita_e": 1006, "lib.plan.house.bungalow_c": 598, "lib.plan.shop.corner_c": 744}
+UPLOAD_CAP = 64000
+# the casita's flat-roofed twin on its two floors, and the gable casita's palettes (Calle Luna's colours, each with a
+# roof tint): both decided after the seeded draws, so that they move no other file
+CASITA, TWIN = "lib.plan.house.casita_d", "lib.plan.house.casita_e"
+ROOFED = "casita"   # (the palette family of the gable casitas: a palette of the same name as Calle Luna's it drew)
+SETBACK, SIDE_GAP, HOUSE_GAP = 0.6, 0.4, 1.5   # (m: behind the sidewalk; in from a parcel's side; a house's side yard)
+UNDER = 0.5   # (m: how far a generated parcel's outline runs in under the streets along it, tools/author/dress.py)
+NARROW_GAP = 1.0   # (m: a house's side yard on a lot too narrow for any house with HOUSE_GAP)
+ASIDE = (0.0, 0.3, 0.6, 0.9, 1.2, 1.5, 1.8, 2.1)   # (m: a corner plan's set-ins from its side street, with --ground)
+
+
+# ------------------------------------------------------------------------------------------------ reading NTW
+def records(path):
+    """The file's records: (type, id or None, {key: value}, line), continuation lines joined, 'end' dropped."""
+    out, cur = [], None
+    for n, raw in enumerate(open(path, encoding="utf-8"), 1):
+        line = raw.rstrip("\n")
+        body = line.split(" #")[0] if not line.lstrip().startswith("#") else ""
+        if not body.strip() or body.strip() == "end":
+            continue
+        if line.startswith(" ") and cur is not None and "=" in body.split()[0]:   # (a continuation; a word first: a child record)
+            cur[3] += " " + body.strip()
+            continue
+        cur = [None, None, None, body.strip(), n]
+        out.append(cur)
+    res = []
+    for _, _, _, text, n in out:
+        toks = re.findall(r'(\w+)="([^"]*)"|(\S+)', text)
+        words = [t[2] if t[2] else t[0] + "=" + t[1] for t in toks]
+        kv = {}
+        for w in words[1:]:
+            if "=" in w:
+                k, v = w.split("=", 1)
+                kv[k] = v
+        rid = words[1] if len(words) > 1 and "=" not in words[1] else None
+        res.append((words[0], rid, kv, n))
+    return res
+
+
+def pts(s):
+    return [tuple(float(v) for v in p.split(",")) for p in s.split(";")]
+
+
+district = BLOCK.split(".")[0]
+bdir = os.path.join(WORLD, "districts", district, "blocks", BLOCK.split(".")[1])
+parcels = [(rid, kv) for t, rid, kv, _ in records(os.path.join(bdir, "block.ntw")) if t == "parcel"]
+nodes, edges = {}, {}
+for t, rid, kv, _ in records(os.path.join(WORLD, "districts", district, "roads.ntw")):
+    if t == "node":
+        nodes[rid] = (pts(kv["at"])[0], float(kv.get("z", "0")))
+    elif t == "edge":
+        edges[rid] = kv
+plans = {}
+for root, _, files in os.walk(os.path.join(WORLD, "lib", "plans")):
+    for f in sorted(files):
+        for t, rid, kv, _ in records(os.path.join(root, f)):
+            if t == "ntw" and "id" in kv:
+                pid = kv["id"]
+            elif t == "meta":
+                w, d = (float(v) for v in kv["size"].split("x"))
+                plans[pid] = {"w": w, "d": d, "cls": kv.get("class", ""), "family": kv.get("family", ""), "floors": int(kv.get("floors", "1"))}
+            elif t == "facade":
+                plans[pid]["palette"] = kv.get("palette", "")
+palettes = {}
+for f in sorted(os.listdir(os.path.join(WORLD, "lib", "palettes"))):
+    fam = None
+    for t, rid, kv, _ in records(os.path.join(WORLD, "lib", "palettes", f)):
+        if t == "ntw":
+            fam = kv["family"]
+        elif t == "palette":
+            palettes.setdefault(fam, []).append("lib.palette.%s.%s" % (fam, rid))
+grid = None
+if GROUND:
+    lines = open(GROUND).read().split("\n")
+    i = next(k for k, l in enumerate(lines) if l.startswith("grid "))
+    h = dict(kv.split("=") for kv in lines[i].split()[1:])
+    grid = (float(h["x0"]), float(h["y0"]), float(h["step"]), int(h["nx"]), int(h["ny"]),
+            [[float(v) for v in l.split()] for l in lines[i + 1:i + 1 + int(h["ny"])]])
+
+
+def ground(x, y):
+    x0, y0, st, nx, ny, g = grid
+    fx, fy = (x - x0) / st, (y - y0) / st
+    i, j = max(0, min(int(fx), nx - 2)), max(0, min(int(fy), ny - 2))
+    tx, ty = fx - i, fy - j
+    return (g[j][i] * (1 - tx) + g[j][i + 1] * tx) * (1 - ty) + (g[j + 1][i] * (1 - tx) + g[j + 1][i + 1] * tx) * ty
+
+
+# ------------------------------------------------------------------------------------------------ geometry
+def shape(e):
+    return pts(e["shape"]) if "shape" in e else [nodes[e["from"]][0], nodes[e["to"]][0]]
+
+
+def nearest(p, e):
+    """(distance, plan distance along, length, segment direction) of point p to edge e's centreline."""
+    P = shape(e)
+    best, acc, total = None, 0.0, sum(math.dist(P[k], P[k + 1]) for k in range(len(P) - 1))
+    for k in range(len(P) - 1):
+        a, b = P[k], P[k + 1]
+        L = math.dist(a, b)
+        u = ((b[0] - a[0]) / L, (b[1] - a[1]) / L)
+        t = max(0.0, min(L, (p[0] - a[0]) * u[0] + (p[1] - a[1]) * u[1]))
+        q = (a[0] + u[0] * t, a[1] + u[1] * t)
+        d = math.dist(p, q)
+        if best is None or d < best[0]:
+            best = (d, acc + t, total, u)
+        acc += L
+    return best
+
+
+def sidewalk_z(p):
+    """The sidewalk's height at p: the nearest street's profile (its nodes' heights along its plan length, as
+    worldmodel_roads.cpp builds an edge without a profile) and the kerb's 0.15 m (roadnet.cpp roadSurfaceHeight)."""
+    best = None
+    for eid, e in edges.items():
+        if e.get("class") == "lane":
+            continue
+        d, s, L, _ = nearest(p, e)
+        if best is None or d < best[0]:
+            z0, z1 = nodes[e["from"]][1], nodes[e["to"]][1]
+            best = (d, z0 + (z1 - z0) * s / L + 0.15)
+    return best[1]
+
+
+def inside(poly, p):
+    c = False
+    for k in range(len(poly)):
+        a, b = poly[k], poly[(k + 1) % len(poly)]
+        if (a[1] > p[1]) != (b[1] > p[1]) and p[0] < a[0] + (p[1] - a[1]) * (b[0] - a[0]) / (b[1] - a[1]):
+            c = not c
+    return c
+
+
+def extent(poly, u, n, o, t0, t1):
+    """The parcel's span along the street (s) where a footprint t0..t1 deep fits: the overlap of its spans at
+    depths t0..t1 (every 0.5 m)."""
+    lo, hi = -1e9, 1e9
+    t = t0
+    while t <= t1 + 1e-6:
+        xs = []
+        for k in range(len(poly)):
+            a, b = poly[k], poly[(k + 1) % len(poly)]
+            ta = (a[0] - o[0]) * n[0] + (a[1] - o[1]) * n[1]
+            tb = (b[0] - o[0]) * n[0] + (b[1] - o[1]) * n[1]
+            if (ta - t) * (tb - t) <= 0 and ta != tb:
+                f = (t - ta) / (tb - ta)
+                x = (a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f)
+                xs.append((x[0] - o[0]) * u[0] + (x[1] - o[1]) * u[1])
+        if len(xs) < 2:
+            return None
+        lo, hi = max(lo, min(xs)), min(hi, max(xs))
+        t += 0.5
+    return (lo, hi) if hi > lo else None
+
+
+# ------------------------------------------------------------------------------------------------ the houses' draw
+# A street's house faces, per face (not --classic): a generator of its own, seeded with the text "cl.b020 cl.e0013 6"
+# (block, front edge, seed), draws the face's houses (its corners are placed as before). First which lots take a
+# bungalow (B) and which a casita: one of the ways that give each lot a plan that fits it, with no two bungalows side by
+# side and no bungalow first (from the west) where the west neighbour's first house is one, holding the most bungalows
+# the lots allow, as the neighbour rule did, so the district keeps its share of them. Then each casita: its gable (G) or
+# flat-roofed twin (T) at even odds, never three alike side by side, and the first not the west neighbour's first. The
+# draw is kept when it meets the variety rules against the street's other faces as their files stand: (a) its first
+# house differs from its west neighbour's first; (b) its first three differ from its west neighbour's and from those of
+# the face across the street, where that one was drawn this way too; (c) no other face of the street has its whole
+# sequence; and with --guard, each guarded cell stays under UPLOAD_CAP, or where it's over UPLOAD_CAP already, under the
+# guard's cap. After TRIES draws, the one breaking fewest is kept, and the summary names what it breaks.
+LETTER = {"lib.plan.house.casita_d": "G", "lib.plan.house.casita_e": "T", "lib.plan.house.bungalow_c": "B"}
+PER_FACE = "seed %d, per face" % SEED
+
+
+def street_faces(name):
+    """The street's house faces in the other blocks' files: (block, yaw, [(x, letter)] west to east, drawn per face)."""
+    out = []
+    root = os.path.join(WORLD, "districts", district, "blocks")
+    for b in sorted(os.listdir(root)):
+        if "cl." + b == BLOCK or not os.path.isdir(os.path.join(root, b)):
+            continue
+        faces_ = {}
+        for f in sorted(os.listdir(os.path.join(root, b))):
+            if not f.endswith(".ntw") or f == "block.ntw":
+                continue
+            text = open(os.path.join(root, b, f), encoding="utf-8").read()
+            lines = text.split("\n")
+            if len(lines) < 4 or not lines[1].endswith("facing " + name):
+                continue
+            m = re.search(r"place plan=(\S+) at=([-\d.]+),([-\d.]+) z=\S+ yaw=([-\d.]+)", text)
+            if not m or m.group(1) not in LETTER and m.group(1) != CORNER:
+                continue
+            yw = round(float(m.group(4))) % 360
+            fc = faces_.setdefault(yw, {"houses": [], "per_face": False})
+            if m.group(1) in LETTER:
+                fc["houses"].append((float(m.group(2)), LETTER[m.group(1)]))
+                fc["per_face"] = fc["per_face"] or PER_FACE in lines[2]
+        for yw, fc in faces_.items():
+            out.append((b, yw, sorted(fc["houses"]), fc["per_face"]))
+    return out
+
+
+def draw_face(eid, name, yaw, lots):
+    """The face's houses drawn (see above): their placements, each with its letter."""
+    gen = random.Random("%s %s %d" % (BLOCK, eid, SEED))
+    lots = sorted(lots, key=lambda r: r[0])
+    xs = {idx: c[next(iter(c))][0]["centre"][0] for idx, c in lots}
+    west_to_east = sorted(xs, key=lambda i: xs[i])
+    lo, hi = min(xs.values()), max(xs.values())
+    others = street_faces(name)
+    same = [f for f in others if abs(((f[1] - yaw) + 180) % 360 - 180) < 10 and f[2]]
+    west = max((f for f in same if f[2][-1][0] < lo), key=lambda f: f[2][-1][0], default=None)
+    across = [f for f in others if abs(((f[1] - yaw) + 180) % 360 - 180) > 170 and f[2] and f[3] and f[2][0][0] < hi and f[2][-1][0] > lo]
+    seqs = ["".join(l for x, l in f[2]) for f in others if f[2]]
+    wseq = "".join(l for x, l in west[2]) if west else None
+    # (the guards: this face's houses in each guarded cell, against the plans their parcels hold now)
+    caps, now = [], {}
+    if GUARDS:
+        for f in os.listdir(bdir):
+            if f.endswith(".ntw") and f != "block.ntw":
+                tx = open(os.path.join(bdir, f), encoding="utf-8").read()
+                mm, mp = re.search(r"parcel=(\S+)", tx), re.search(r"place plan=(\S+)", tx)
+                if mm and mp:
+                    now[mm.group(1)] = mp.group(1)
+        for g in GUARDS:
+            key, val = g.split("=")
+            base, top = (val.split(":") + [val])[:2]
+            caps.append((key, int(base), int(top), tuple(int(v) for v in key.split(","))))
+    incell = lambda pl, cell: (int(math.floor((pl["centre"][0] + 10240.0) / 256.0)), int(math.floor((pl["centre"][1] + 10240.0) / 256.0))) == cell
+    # (the ways of its bungalows and casitas, west to east as the lots run: of those with the fewest bungalows side by
+    # side or first where the west neighbour's first is one, those holding the most bungalows)
+    first = west_to_east[0]
+    idxs = [idx for idx, _ in lots]
+    ways = []
+    for combo in itertools.product(*([k for k, plan in (("B", BUNGALOW), ("C", CASITA)) if plan in cands] for _, cands in lots)):
+        a = dict(zip(idxs, combo))
+        bad = sum(1 for i in idxs if a[i] == "B" and a.get(i - 1) == "B") + (1 if wseq and wseq[:1] == "B" == a[first] else 0)
+        ways.append((bad, -combo.count("B"), combo))
+    ways.sort()
+    ways = [w[2] for w in ways if w[:2] == ways[0][:2]]
+    best = None
+    for attempt in range(TRIES):
+        seq, picks, breaks = {}, {}, []
+        for (idx, cands), kind in zip(lots, gen.choice(ways)):
+            nb, nb2 = seq.get(idx - 1), seq.get(idx - 2)
+            if kind == "C":
+                ban = nb if nb in ("G", "T") and nb == nb2 else None
+                no = wseq[:1] if wseq and idx == first else None   # ((a): gable and twin share a footprint)
+                seq[idx] = gen.choice([v for v in ("G", "T") if v not in (ban, no)] or [v for v in ("G", "T") if v != ban])
+            else:
+                seq[idx] = "B"
+                if nb == "B":
+                    breaks.append("two bungalows side by side")
+            picks[idx] = BUNGALOW if seq[idx] == "B" else CASITA
+        mine = "".join(seq[i] for i in west_to_east)
+        if wseq and mine[:1] == wseq[:1]:
+            breaks.append("(a) its first house is its west neighbour's (%s)" % wseq[:1])
+        if wseq and mine[:3] == wseq[:3]:
+            breaks.append("(b) its first three are its west neighbour's (%s)" % wseq[:3])
+        for f in across:
+            if mine[:3] == "".join(l for x, l in f[2])[:3]:
+                breaks.append("(b) its first three are those across the street (%s)" % f[0])
+        if mine in seqs:
+            breaks.append("(c) another face of the street has its sequence")
+        totals = []
+        for key, base, top, cell in caps:
+            total = base + sum(TRIS.get(TWIN if seq[idx] == "T" else picks[idx], 0) - TRIS.get(now.get(cands[picks[idx]][0]["parcel"], ""), 0)
+                               for idx, cands in lots if incell(cands[picks[idx]][0], cell))
+            totals.append((key, total))
+            if total >= UPLOAD_CAP and total > top:
+                breaks.append("the guard: cell %s at about %d triangles" % (key, total))
+        if best is None or len(breaks) < len(best[2]):
+            best = (seq, picks, breaks, attempt + 1, mine, totals)
+        if not breaks:
+            break
+    seq, picks, breaks, tries, mine, totals = best
+    print("  face %s (%s): houses %s west to east, drawn in %d%s" % (eid, name, mine, tries, "" if not breaks else "; KEPT BREAKING: " + "; ".join(breaks)))
+    for key, total in totals:
+        print("  guard %s: about %d triangles" % (key, total))
+    out = []
+    for idx, cands in lots:
+        for pl in cands[picks[idx]]:
+            pl["variant"] = seq[idx]
+            out.append(pl)
+    return out
+
+
+# ------------------------------------------------------------------------------------------------ faces
+rng = random.Random(SEED)
+print("street.py: block %s, seed %d" % (BLOCK, SEED))
+faces = {}
+placements, skipped = [], []
+for pid, kv in parcels:
+    if "front" not in kv:   # (a parcel on no street, as a park: its block file dresses it)
+        skipped.append((pid, "no street front"))
+        continue
+    faces.setdefault(kv["front"].split(":")[0], []).append((pid, kv))
+for eid, plist in faces.items():
+    e = edges[eid]
+    P = [p for _, kv in plist for p in pts(kv["poly"])]
+    cx, cy = sum(p[0] for p in P) / len(P), sum(p[1] for p in P) / len(P)
+    _, _, _, u = nearest((cx, cy), e)
+    o = shape(e)[0]
+    n = (-u[1], u[0])
+    if (cx - o[0]) * n[0] + (cy - o[1]) * n[1] < 0:
+        n = (-n[0], -n[1])
+    yaw = math.degrees(math.atan2(-n[0], n[1])) % 360.0   # (plan +y, into the building, is (-sin yaw, cos yaw))
+    xdir = (math.cos(math.radians(yaw)), math.sin(math.radians(yaw)))
+    flip = xdir[0] * u[0] + xdir[1] * u[1] < 0            # (the plan's +x runs against the street's s)
+    avenue = e.get("class") == "avenue"
+    # the face's front line: the parcels' fronts (their nearest points to the street), the median, out from under the
+    # sidewalk (UNDER), and the setback
+    fronts = sorted(min((p[0] - o[0]) * n[0] + (p[1] - o[1]) * n[1] for p in pts(kv["poly"])) for _, kv in plist)
+    tf = round(fronts[len(fronts) // 2] + UNDER + SETBACK, 2)
+    plist.sort(key=lambda r: min((p[0] - o[0]) * u[0] + (p[1] - o[1]) * u[1] for p in pts(r[1]["poly"])))
+    name = e.get("name", eid)
+    prev_house = None
+    face_pl, house_lots = [], []
+    for idx, (pid, kv) in enumerate(plist):
+        poly = pts(kv["poly"])
+        if kv.get("use") not in ("mixed", "commercial", "residential"):
+            skipped.append((pid, "use %s takes none of the street's plans" % kv.get("use")))
+            continue
+        # a corner: another street (not a lane) crosses the front street and runs by the parcel's first or last point,
+        # on the parcel's side of the front street, within its sidewalk's reach (its half width and sidewalk, and 3 m)
+        ends = {}
+        for oid, oe in edges.items():
+            if oid == eid or oe.get("class") == "lane" or "sidewalk" not in oe:
+                continue
+            lanes = max(int(v) for v in oe.get("lanes", "1/1").split("/"))
+            reach = lanes * 3.3 + (2.4 if "parking" in oe else 0.0) + float(oe["sidewalk"].split(":")[-1]) + 3.0
+            for k, side in ((0, "lo"), (1, "hi")):
+                # (the ends of its front: its points within 3 m of the front line)
+                sp = [((p[0] - o[0]) * u[0] + (p[1] - o[1]) * u[1], p) for p in poly if (p[0] - o[0]) * n[0] + (p[1] - o[1]) * n[1] < tf + 3.0]
+                q = min(sp)[1] if k == 0 else max(sp)[1]
+                d, _, _, ou = nearest(q, oe)
+                P2 = shape(oe)
+                mid = ((P2[0][0] + P2[-1][0]) / 2, (P2[0][1] + P2[-1][1]) / 2)
+                if d < reach and abs(ou[0] * u[0] + ou[1] * u[1]) < 0.8 and (mid[0] - o[0]) * n[0] + (mid[1] - o[1]) * n[1] > 1.0:
+                    ends[side] = oid
+        corner = ("lo" in ends) if ("lo" in ends) != ("hi" in ends) else None
+
+        def lay(tl, aside=0.0, force=None):
+            """The parcel's row with its front on the line tl, and a corner plan `aside` further in from its side street:
+            [(plan, s at its low end, mirrored)], or a reason; `force`: a house parcel's plan, or the reason it fits none."""
+            # (its span from 0.5 m behind the line, as a parcel's front edge isn't always square to the street; at a
+            # corner's end at the line itself, the corner's cut)
+            span = extent(poly, u, n, o, tl + 0.5, tl + 14.0)
+            front = extent(poly, u, n, o, tl, tl)
+            if not span or not front:
+                return "no 14 m deep footprint fits behind its front"
+            span = (max(span[0], front[0]) if corner is True else span[0], min(span[1], front[1]) if corner is False else span[1])
+            # (in from its sides; at a corner the building stands at the corner, out from under the side street's
+            # sidewalk, and closer to its neighbour when it must)
+            c0, c1 = UNDER + 0.05 + aside, UNDER + 0.05 + aside
+            s0, s1 = span[0] + (c0 if corner is True else SIDE_GAP), span[1] - (c1 if corner is False else SIDE_GAP)
+            if corner is not None and s1 - s0 < plans[CORNER]["w"] + min(plans[p]["w"] for p in STREET_WALL):
+                s0, s1 = (span[0] + c0, span[1] - 0.15) if corner else (span[0] + 0.15, span[1] - c1)
+            free = s1 - s0
+            row = []
+            if avenue or corner is not None:
+                seq = []
+                if corner is not None and free >= plans[CORNER]["w"]:
+                    rest = free - plans[CORNER]["w"]
+                    fill = [p for p in STREET_WALL if plans[p]["w"] <= rest]
+                    fill = [max(fill, key=lambda p: plans[p]["w"])] if fill and avenue else []
+                    seq = ([CORNER] + fill) if corner else (fill + [CORNER])
+                elif avenue:
+                    pairs = sorted(((a, b) for a in STREET_WALL for b in STREET_WALL if plans[a]["w"] + plans[b]["w"] <= free),
+                                   key=lambda ab: -(plans[ab[0]]["w"] + plans[ab[1]]["w"]))
+                    if pairs:
+                        # (a pair that fills the frontage to within 4 m)
+                        best = plans[pairs[0][0]]["w"] + plans[pairs[0][1]]["w"]
+                        pick = [ab for ab in pairs if plans[ab[0]]["w"] + plans[ab[1]]["w"] > best - 4.01]
+                        seq = list(rng.choice(pick))
+                    else:
+                        fits = [p for p in STREET_WALL if plans[p]["w"] <= free]
+                        seq = [max(fits, key=lambda p: plans[p]["w"])] if fits else []
+                if not seq:
+                    return "a %.1f m frontage takes no street-front plan" % free
+                # the row against the corner's end, else in the middle
+                total = sum(plans[p]["w"] for p in seq)
+                s = s0 if corner is True else (s1 - total if corner is False else (s0 + s1 - total) / 2)
+                for k, p in enumerate(seq):
+                    # the corner plan's side-street wall is its right (x = w), which lies at low s when the plan's +x
+                    # runs against s: mirrored when the corner is at the other end; the others alternate
+                    m = (flip != corner) if p == CORNER else k % 2 == 0
+                    row.append((p, s, m))
+                    s += plans[p]["w"]
+            else:
+                fits = [p for p in HOUSES if plans[p]["w"] + 2 * HOUSE_GAP <= free + 2 * SIDE_GAP]
+                # (a lot too narrow for any house with HOUSE_GAP: NARROW_GAP)
+                fits = fits or [p for p in HOUSES if plans[p]["w"] + 2 * NARROW_GAP <= free + 2 * SIDE_GAP]
+                if force is not None:
+                    if force not in fits:
+                        return "a %.1f m frontage takes no %s" % (free, force.split(".")[-1])
+                    p = force
+                else:
+                    fits = [p for p in fits if p != prev_house] or fits
+                    if not fits:
+                        return "a %.1f m frontage takes no house" % free
+                    p = fits[0] if len(fits) == 1 else rng.choice(fits)
+                row.append((p, (s0 + s1 - plans[p]["w"]) / 2, idx % 2 == 1))
+            # (every corner of every footprint inside the parcel, and with --ground on its level ground, not on the
+            # sidewalk its outline runs under: 0.25 m in, a step of worldc's grid)
+            yard = float(kv["grade"]) + 0.03 if grid and "grade" in kv else None
+            for p, s, m in row:
+                for a in (0.0, plans[p]["w"]):
+                    for b in (0.0, plans[p]["d"]):
+                        if not inside(poly, (o[0] + u[0] * (s + a) + n[0] * (tl + b), o[1] + u[1] * (s + a) + n[1] * (tl + b))):
+                            return "a footprint pokes out of it"
+                        ai, bi = min(max(a, 0.25), plans[p]["w"] - 0.25), min(max(b, 0.25), plans[p]["d"] - 0.25)
+                        if yard is not None and ground(o[0] + u[0] * (s + ai) + n[0] * (tl + bi), o[1] + u[1] * (s + ai) + n[1] * (tl + bi)) > yard + 0.08:
+                            return "a footprint stands on the sidewalk"
+            return row
+
+        def make(p, s, m, tl):
+            w, d = plans[p]["w"], plans[p]["d"]
+            # the plan's origin: its front-left corner (x = 0) at the low or high s end, the front on the front line
+            sx = s + w if flip else s
+            at = (o[0] + u[0] * sx + n[0] * tl, o[1] + u[1] * sx + n[1] * tl)
+            # (the sidewalk in front: on the street's profile, and on the grid where there is one)
+            fpts = [(o[0] + u[0] * (s + a) + n[0] * (tl - 1.5), o[1] + u[1] * (s + a) + n[1] * (tl - 1.5)) for a in (0.2, w / 2, w - 0.2)]
+            fz = max([sidewalk_z(q) for q in fpts] + ([ground(*q) for q in fpts] if grid else []))
+            z = fz + 0.01
+            note = ""
+            if grid:
+                gmax = max(ground(o[0] + u[0] * (s + a) + n[0] * (tl + b), o[1] + u[1] * (s + a) + n[1] * (tl + b))
+                           for a in [0.25 + (w - 0.5) * k / 8 for k in range(9)] for b in [0.25 + (d - 0.5) * k / 8 for k in range(9)])
+                if gmax + 0.05 > z:
+                    note = " (raised %.2f m over the ground under it)" % (gmax + 0.05 - z)
+                    z = gmax + 0.05
+            centre = (at[0] + u[0] * (w / 2 if not flip else -w / 2) + n[0] * d / 2, at[1] + u[1] * (w / 2 if not flip else -w / 2) + n[1] * d / 2)
+            return {"parcel": pid, "plan": p, "at": at, "z": math.ceil(z * 100 - 1e-6) / 100, "yaw": yaw, "mirror": m,
+                    "street": name, "corner": p == CORNER, "note": note, "face": eid, "idx": idx, "centre": centre}
+
+        if not CLASSIC and not avenue and corner is None:
+            # a house parcel: each house plan it takes, placed; the face's draw picks one when the face is done
+            cands = {}
+            for hp in HOUSES:
+                for back in (0.0, 0.3, 0.6, 0.9):
+                    got = lay(tf + back, 0.0, force=hp)
+                    if isinstance(got, list):
+                        break
+                if isinstance(got, list):
+                    cands[hp] = [make(p, s, m, tf + back) for p, s, m in got]
+            if not cands:
+                skipped.append((pid, lay(tf, 0.0, force=HOUSES[0])))
+                continue
+            house_lots.append((idx, cands))
+            continue
+        # (on the face's front line, else up to 0.9 m further back where its front or a corner's cut asks for it; and a
+        # corner plan with --ground, where it fails as placed, set further in from its side street)
+        state = rng.getstate()
+        for aside in ASIDE if corner is not None and grid else (0.0,):
+            for back in (0.0, 0.3, 0.6, 0.9):
+                rng.setstate(state)
+                got = lay(tf + back, aside)
+                if isinstance(got, list):
+                    break
+            if isinstance(got, list):
+                break
+        if not isinstance(got, list):
+            rng.setstate(state)
+            skipped.append((pid, lay(tf)))
+            continue
+        row, tl = got, tf + back
+        if "--debug" in OPTS:
+            print("    (%s: ends %s, front line t %.2f)" % (pid, ends, tl))
+        if row and plans[row[0][0]]["cls"] == "house":
+            prev_house = row[0][0]
+        for p, s, m in row:
+            face_pl.append(make(p, s, m, tl))
+    if house_lots:
+        face_pl += draw_face(eid, name, yaw, house_lots)
+    placements += sorted(face_pl, key=lambda r: r["idx"])
+
+# ------------------------------------------------------------------------------------------------ palettes, ids
+def family(p):
+    pal = plans[p].get("palette", "")
+    return pal.split(".")[2] if pal.count(".") >= 3 else "calle"
+
+
+# the palettes' own generator, seeded with the block id and the seed (Python hashes a text seed with SHA-512): after
+# every other draw, so that it moves no building, and blocks whose plans draw alike still get colours of their own
+prng = random.Random("%s %d" % (BLOCK, SEED))
+recent = []
+for pl in placements:
+    fam = palettes[family(pl["plan"])]
+    avoid = {r[1] for r in recent[-1:]} | {r[1] for r in recent[-3:] if r[0] == pl["plan"]}
+    choice = [c for c in fam if c not in avoid] or fam
+    pl["palette"] = prng.choice(choice)
+    recent.append((pl["plan"], pl["palette"]))
+# a casita is the gable plan or its twin by a draw of its own (its parcel id's CRC), but never the third alike side by
+# side (neighbouring parcels of one face); a gable casita takes the casita palette of its colour
+run = []
+for pl in placements:
+    if "variant" in pl:   # (drawn per face: its gable or twin with it)
+        if pl["variant"] == "T":
+            pl["plan"] = TWIN
+        elif pl["variant"] == "G" and ROOFED in palettes:
+            pl["palette"] = pl["palette"].replace(".calle.", ".%s." % ROOFED)
+        continue
+    if pl["plan"] != CASITA or TWIN not in plans:
+        run = []
+        continue
+    if run and (run[-1]["face"], run[-1]["idx"] + 1) != (pl["face"], pl["idx"]):
+        run = []
+    twin = zlib.crc32(pl["parcel"].encode()) & 1 == 1
+    if len(run) >= 2 and run[-1]["plan"] == run[-2]["plan"]:
+        twin = run[-1]["plan"] == CASITA
+    if twin:
+        pl["plan"] = TWIN
+    elif ROOFED in palettes:
+        pl["palette"] = pl["palette"].replace(".calle.", ".%s." % ROOFED)
+    run.append(pl)
+letter = {"shop": "s", "midrise": "m", "house": "h"}
+existing = {f for f in os.listdir(bdir) if f.endswith(".ntw") and f != "block.ntw"}
+for k, pl in enumerate(placements, 1):
+    pl["id"] = "%s.%s%02d" % (BLOCK, letter.get(plans[pl["plan"]]["cls"], "b"), k)
+
+# ------------------------------------------------------------------------------------------------ output
+WHAT = {"lib.plan.shop.flats_a": "a shop with a flat over it", "lib.plan.midrise.walkup_b": "a three-storey walk-up",
+        "lib.plan.shop.corner_c": "the corner shop with a flat over it, its windows on both streets",
+        "lib.plan.house.casita_d": "a two-storey casita", "lib.plan.house.casita_e": "a two-storey casita with a flat roof",
+        "lib.plan.house.bungalow_c": "a bungalow"}
+counts = {}
+for pl in placements:
+    counts[pl["plan"]] = counts.get(pl["plan"], 0) + 1
+    fn = os.path.join(bdir, pl["id"].split(".")[2] + ".ntw")
+    text = ("ntw 1 building id=%s block=%s parcel=%s\n# %s, facing %s\n%s (%s): a re-run rewrites this file, unless this line goes\n"
+            "place plan=%s at=%.2f,%.2f z=%.2f yaw=%.1f%s\nconfig palette=%s\n") % (
+        pl["id"], BLOCK, pl["parcel"], WHAT.get(pl["plan"], pl["plan"]), pl["street"], MARK,
+        PER_FACE if "variant" in pl else "seed %d" % SEED, pl["plan"], pl["at"][0], pl["at"][1], pl["z"],
+        pl["yaw"], " mirror=1" if pl["mirror"] else "", pl["palette"])
+    print("  %s %-28s %s at %.2f,%.2f z %.2f yaw %.1f%s %s%s" % (pl["id"], pl["plan"], pl["parcel"], pl["at"][0], pl["at"][1], pl["z"], pl["yaw"],
+                                                               " mirror" if pl["mirror"] else "", pl["palette"].split(".")[-1], pl["note"]))
+    if WRITE:
+        base = os.path.basename(fn)
+        if base in existing and MARK not in open(fn, encoding="utf-8").read():
+            print("    (kept %s: written by hand)" % base)
+            continue
+        with open(fn, "w", encoding="utf-8", newline="\n") as f:
+            f.write(text)
+print("placements: %d (%s)" % (len(placements), ", ".join("%s %d" % (p.split(".")[-1], c) for p, c in sorted(counts.items()))))
+for pid, why in skipped:
+    print("  left empty: %s: %s" % (pid, why))

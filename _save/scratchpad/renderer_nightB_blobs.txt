@@ -1,7 +1,0 @@
-# COPIED into the shared tree (guard OK: bases = A blobs / HEAD cbf68f8) on lead approval
-f678aa56e80702b7b53d83d33778a072353130de src/shaders/post.hlsl base=502a79bd6d
-fe70d612d75c1e05bc7027cf3701cda5b602368c src/render/post.cpp base=351e24c1cc
-3a3016971fce79b1cbc27f7e0c1e68ce88074d77 src/shaders/skycommon.hlsli base=ad2053bd4c
-045a9da4e1b9b2aa1d9a889b1fdbc885b5dedf9b src/shaders/lighting.hlsl base=ad2ceab27f
-c7f7291abd3f7350d3e3f1a7e267af55f71cc3e3 src/render/renderer.cpp base=7cdc403ccd
-bcdd20d90ac06e4082ca50b5e9b9f078ae4075f6 PROGRESS.md base=630aebd582

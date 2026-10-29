@@ -1,0 +1,61 @@
+city snapshot-safe: 3b-1, the game's building queries see b005's 12 hand-built buildings, with their real main doors. Base 73 (3923758, tree 5d1e032c). 13 files, all on 73's blobs:
+
+FILES (path, base, new)
+docs/HANDBUILT_WORLD.md 74d3b9f2 31bbc502
+docs/NTW_FORMAT.md ab738c87 1b5d12f4
+src/game/ai.cpp cd37a07e 991cc399
+src/world/buildings.h b9cbd0ed b0f81ea6
+src/world/buildingsbin.cpp 79914663 e486e3b1
+src/world/buildingsbin.h 60e8dc50 3b094f0e
+src/world/handshells.cpp 68486e8b 96972922
+src/world/handworld.cpp 3d5a0738 e5c9474b
+src/world/handworld.h 41f14329 1ffc63c5
+src/world/worldmodel.cpp 01cf899b f9e74f72
+src/world/worldmodel.h 90750ad5 48d1e62e
+src/world/worldmodel_buildings.cpp b7816e5f da094873
+tests/world/worldmodel_test.cpp 0377f6fb 7da9cfbe
+
+WHAT (player-facing)
+- In hand mode the 12 buildings are buildings to the game, not only to the renderer and the physics. Peds' spawn and flee checks, window-shopping, traffic, police, wildlife, missions and the map now see them through pointInBuilding, buildingsNear and the rest.
+- With your change: when a ped steps out of one of them, or walks into one, it uses the plan's real main entrance. That is the shop's glass pair door, the walk-up's street door and the bungalow's front door, never the middle of the facade (a walk-up's window).
+- Nothing is drawn differently. The procedural world is unchanged.
+
+HOW
+- The main entrance is now compiled. worldmodel reads the plans' entrance records, and the compiler takes the entrance of kind main, else the first. The shell stores it as an exterior wall and an opening on it ("library" section v3: 8 bytes more per shell). The reader refuses an entrance that is not a door, or that lies past the walls.
+- At load (handshells.cpp), each placement gets a Building record in the building set and in its cell's list. The record holds:
+  - the walls' outer box, base z, the walls' top as its height, and floors;
+  - style from the plan's class (the class list is in BuildingStyle's order; landmark maps to tower);
+  - front = the plan's -y, no facade entry, no interior;
+  - a seed ending in 7, so the population parks no car on a driveway that isn't there;
+  - its own box as its lot;
+  - doorAlong = the main entrance's offset from the box's centre along the front.
+- Building has two new fields: doorAlong, and noStreetDoor for a main entrance that is not on the front wall (none of the 12).
+- aiBuildingDoorNear and aiBuildingDoorAway (ai.cpp) put the door at c + ax*doorAlong. For procedural buildings doorAlong is 0, the same point as before.
+- Docs: NTW_FORMAT 9.10 (what the compiler reads) and HANDBUILT_WORLD 7.2.
+
+CHECKS (all on this tree)
+- CI's three tests with CI's flags (-Wall -Wextra -Werror, UBSan) pass.
+  - worldmodel_test also checks the shop's main entrance (its kind=main door, not its first entrance), the cottage's (none), and two damaged libraries: an entrance that is a window, and one past the walls.
+  - The smallest-records bounds hold (76 bytes a shell).
+- worldc: 0 warnings, 57 files, 2,756,832 B, 17 sections. Against 73, only "library" differs (hash 816c5ebb5848bef8; its LZ size is still 1008 B).
+- worldv: 0 errors, 4 warnings, as on 73.
+- MinGW -Wall: main.cpp 0 errors, 0 warnings; worldc.cpp with -Wextra too, 0 and 0. Host syntax of traffic_sim, worldcheck and terrainbake: 0 errors.
+- Procedural census (meshcensus4): 0 of 13,914 C/Q/F lines differ from 73.
+  - T: 4366 cells, mesh effcf391d20a40f2, queries 0afe996d34cd88a8.
+  - F: 42,219 facades, hash 021a82448ad773d0, none flagged past bit 5.
+- exe: 16,342,528 B, 0 warning or error lines.
+- Records and queries, checked with a scratch harness on this world.bin:
+  - 12 records: 6 shops (style shop, 2 floors, 6.66 m), 2 walk-ups (midrise, 3 floors, 9.18 m), 4 bungalows (house, 1 floor, 2.85 m).
+  - Each door point is at its plan's real entrance: x exact, y on the facade's outer face. For example s02's is at 1632.30, the shop door's at=4.70 through the mirror.
+  - pointInBuilding is true at each centre and just inside each back wall. It is false 0.6 m in front of each facade and in the 1.55 m gap between s02 and s03.
+  - buildingsNear finds each record, and buildingsNear(b005's middle, 40 m) returns all 12. Every seed ends in 7.
+- Hand drive (--world=hand): 0 fatal.
+  - Lane graph 192 / 397 / 330 / 443, dead ends 0 moved / 0 obstructed.
+  - The hand drive's change: none. Its three autoplay lines are identical to 73's:
+    - t=2.5: 90 peds, 61 vehicles at 1762.5,218.1;
+    - t=11.5: 90 peds, 62 vehicles at 1819.7,243.6;
+    - t=21.5: 82 peds, 56 vehicles at 1911.9,282.8.
+  - The route stays more than 120 m from b005, and the door searches (population.cpp, pedai.cpp, traffic.cpp) look 14-30 m round their point. So this drive doesn't test the new doors; the harness above does.
+- Procedural drive: 0 fatal, 6268 nodes, 9547 edges; t=17.5 at 1789.9,130.6, 93 peds, 63 vehicles, wanted 2, as on 73.
+
+Next: 3b-2, the interiors' data. It is under way in a copy of this tree.

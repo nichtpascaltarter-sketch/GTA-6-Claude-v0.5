@@ -1,0 +1,28 @@
+city snapshot-safe: interiors solid. Every interior's walls, furniture, floors, stairs and door leaves now collide: the generator's 29 and the hand-built 12. Base 77 (53b5b34, tree c12a6f25). 6 files on 77's blobs.
+
+FILES (path, base, new)
+@FILES@
+
+WHAT (player-facing)
+- Inside every interior, the player, the NPCs and the vehicles stop at walls, counters, shelves, furniture, closed door leaves and roll-ups.
+  - Before this, only the generator's hollow shells collided, so all of that was walk-through.
+  - Doors still open for anyone walking up to them, and roll-ups for the player's car.
+- The warehouse mezzanine can be climbed, and its office reached.
+- The third-person camera stays under the ceilings inside every interior. It used to pop through to the floor above or the roof when pitched down near a ceiling.
+- Three content fixes keep features working with solid furniture:
+  - Gun shops (Palmetto Arms, Northside Arms): the buy marker was behind the counter and the clerks stood in front of it. They are swapped, so the player buys from the customer's side, within 1.4 m of the marker. With a solid counter, the shop could not have been used.
+  - Dex's Trailer, a safehouse: the lounge (sofa, table, TV, and the window over the sofa) moves 0.45 m, because the sofa stood in front of the bedroom door. The bed (save) and the wardrobe are reachable.
+  - Port Isle Warehouse: the mezzanine stair collides as a ramp, three colliders to a tread, as 3b-3's stairs do. Its 0.18 m risers were 0.36 two at a time, more than the walk's 0.35 m step.
+
+HOW
+- interiors_game.cpp colKeyFor: every interior gets positive keys (2000000 + def*256 + sub). The collision world takes a negative owner for a freed collider.
+- camera.cpp: inside any interior (Interiors::isInside), the camera's lift above the ground doesn't pass up through a collider's underside (a colliders-only raycast up). 3b-3's insideHandBuilt goes; outside interiors the code path is as before.
+- The content fixes: interiorshops.cpp (2 lines), interiorhomes.cpp (the lounge's x), interiorindustrial.cpp (the ramp).
+- Test: --interiortest takes --interiorpath "x,y[,z];..." in model space. It holds the player on the first point until the interior collides there, walks the points, and logs each point reached and where the walk ends. Without a path it logs where the player is after 12 s.
+- Docs: HANDBUILT_WORLD 7.2's sentence on collision.
+
+CHECKS
+@CHECKS@
+
+NAMED, NOT FIXED (what I'd do; each is small)
+@NAMED@

@@ -1,0 +1,18 @@
+city snapshot-safe: worldv's three fixture and doc fixes, for its slice 6. These are the items your note listed. They sit on 63 plus part 1: two of the blobs are on part 1's.
+
+Blobs (/tmp/city/fx_blobs.txt):
+- tests/world/fixtures/samples/transit.ntw 9f25032f on 63's ac8aaa72: bus.8's route is cl.e0011,cl.e0007.
+- tests/world/world_format_test.cpp 4de6aa9d on 63's 24ff960c: its embedded copy of that sample.
+- tests/world/fixtures/model/districts/cl/roads.ntw bbace73e on 63's e49cf828: cl.e0003's moves are l,r.
+- tests/world/worldmodel_test.cpp e8fc0440 on part 1's a6485fde: the samples' transit check, which the swap needs.
+  - The first route edge, cl.e0011, isn't in the samples, so it stays unresolved. The check now asks it for its expected class ("edge").
+  - The second edge resolves to cl.e0007.
+  - The first run caught that the old check asked the first edge for its resolved class.
+- docs/NTW_FORMAT.md b2e1a07c on part 1's 3a48c19a: 9.12's route wording.
+
+These don't touch the tools agent's own fixture files: tests/world/fixtures/world/districts/cl/roads.ntw 0aad3175 and transit/bus.8.ntw 9f25032f. My samples transit.ntw has the same text as its bus.8.ntw, hence the same blob id, but the paths differ.
+
+Checks on 63 + part 1 + these ($SP/p62f):
+- CI's world_format_test, worldv_test and worldmodel_test, with CI's flags: all passed.
+- worldv on world/: 0 errors, 0 warnings.
+- worldv on tests/world/fixtures/model: 0 errors, 0 warnings. The road.moves error is gone.

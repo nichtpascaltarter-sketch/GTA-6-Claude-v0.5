@@ -1,10 +1,19 @@
 // worldc: the world compiler (docs/HANDBUILT_WORLD.md, section 6.1). Reads every .ntw file under world/, checks it
 // against the schema (src/world/ntwschema.h, docs/NTW_FORMAT.md) and compiles it into world.bin, which the build embeds in
-// the exe as the RCDATA resource NT_WORLD (with the world.rc written next to it). Stage 0 compiles the baked terrain;
-// the other kinds get their compilers as the format grows.
+// the exe as the RCDATA resource NT_WORLD (with the world.rc written next to it). What it compiles so far:
+// - the baked terrain (stage 0);
+// - the roads (stage 1), through the world model (src/world/worldmodel.h), with the world, district, signal and transit
+//   files they name: the roads sections (src/world/roadsbin.h: the network, its ids, and the overrides the lane graph
+//   reads so far), and the terrain graded under them ("terrain.grade");
+// - the blocks' parcels, plazas and dressing, with the catalog's pieces (stage 1's part 2): the blocks section
+//   (src/world/blocksbin.h), the parcels' grades in the terrain's grading, every height on the graded ground.
+//   The other kinds' sections come with their consumers.
+// Buildings, places and the rest of the library are errors until their compilers exist.
 // Build from the repo root:  g++ -std=c++17 -O2 -I. tools/worldc.cpp -o build/worldc
 // Run from the repo root:    build/worldc [--world=world] [--out=build/gen/world.bin]
 //                            build/worldc --check=<file.ntw>     (one file against the schema, nothing written)
+//                            build/worldc --dump-ground=<file> --ground-box=<x0,y0,x1,y1 | block id> [--ground-step=0.25]
+//                              (also the compiled ground on a grid, for tools/author/street.py --ground)
 // Exit code 1 on any error, each reported as file:line.
 #include "tools/native_stubs.cpp"
 #include "src/world/ntw.cpp"
@@ -12,6 +21,17 @@
 #include "src/world/gridcodec.cpp"
 #include "src/world/lz.cpp"
 #include "src/world/worldbin.cpp"
+#include "src/core/math.cpp"
+#include "src/world/roadnet.cpp"
+#include "src/world/terrainops.cpp"
+#include "src/world/roadgrade.cpp"
+#include "src/world/worldmodel.cpp"
+#include "src/world/worldmodel_roads.cpp"
+#include "src/world/roadsbin.cpp"
+#include "src/world/blocksbin.cpp"
+#include "src/world/worldmodel_blocks.cpp"
+#include "src/world/buildingsbin.cpp"
+#include "src/world/worldmodel_buildings.cpp"
 #include <algorithm>
 #include <chrono>
 #include <filesystem>
@@ -111,6 +131,10 @@ struct LayerSpec {
     std::vector<u8> bytes;
 };
 
+// The baked terrain as compileTerrain read it: the heights and water the roads and parcels are graded into
+// (worldmodel.h Hand::placeOnTerrain)
+Hand::BakedTerrain gBaked;
+
 // world/terrain/terrain.ntw and its grids -> the terrain record and the four grid sections
 bool compileTerrain(const Source& src, WorldBinWriter& out) {
     const std::string& file = src.path;
@@ -168,6 +192,8 @@ bool compileTerrain(const Source& src, WorldBinWriter& out) {
             char hex[17];
             snprintf(hex, sizeof(hex), "%016llx", (unsigned long long)gi.hash);
             if (strcmp(hex, r.value("hash", "")) != 0) error(file, r.line, std::string("layer ") + L->id + ": the grid's hash is " + hex + ", the file says " + r.value("hash", ""));
+            if (r.id == "height") gBaked.height = values;
+            else if (r.id == "water") gBaked.water = values;
             const int want = r.id == "coast" ? (int)coastRes : (int)res;
             if (gi.width != want || gi.height != want)
                 error(path, 0, "the grid is " + std::to_string(gi.width) + " x " + std::to_string(gi.height) + ", not " + std::to_string(want));
@@ -241,8 +267,116 @@ bool compileTerrain(const Source& src, WorldBinWriter& out) {
     t.bytes.insert(t.bytes.end(), channels.bytes.begin(), channels.bytes.end());
     out.addCompressed("terrain", t.bytes);
     for (const LayerSpec& l : layers) out.add(l.section, WSK_GRID, l.bytes);
+    gBaked.ok = true;
+    gBaked.res = (int)res;
+    gBaked.cell = (float)cell;
+    gBaked.originX = origin.x;
+    gBaked.originY = origin.y;
+    gBaked.heightUnit = (float)hUnit;
+    for (const auto& lv : levels) gBaked.levels.push_back((float)lv.second);
     printf("worldc: terrain %dx%d at %.0f m, %zu water levels, %u outlines, %u channels\n", (int)res, (int)res, cell, levels.size(), outlineCount, channelCount);
     return true;
+}
+
+// The kinds the world model reads in stage 1: the roads, the blocks and the buildings (with the library's plans, floor
+// layouts, facade styles and palettes), and the files they name
+bool modelKind(const std::string& k) {
+    return k == "world" || k == "district" || k == "roads" || k == "signal" || k == "transit" || k == "block" || k == "catalog" || k == "plan" ||
+           k == "layout" || k == "facade" || k == "palette" || k == "building";
+}
+
+// Those files through the world model: the roads compiled into the roads sections, and into `roads` and `decks` (per
+// edge, its stretches on structures) for the grading; the blocks (their ground and dressing, parcels and lots) into
+// `blocks`, which placeOnTerrain finishes. Moves the files' documents out.
+bool compileModel(std::vector<Source>& files, const std::vector<size_t>& which, WorldBinWriter& out, RoadNetwork& roads,
+                  std::vector<std::vector<vec2>>& decks, Hand::BlocksOut& blocks) {
+    const int errorsBefore = gErrors;
+    std::vector<Hand::File> parsed;
+    for (size_t i : which) {
+        Hand::File f;
+        f.path = files[i].path;
+        f.kind = files[i].doc.kind;
+        f.doc = std::move(files[i].doc);
+        f.valid = true;   // (load() reported every file with errors, and run() stops before this on any)
+        parsed.push_back(std::move(f));
+    }
+    Hand::Model model;
+    std::vector<Hand::Error> errs;
+    Hand::loadParsed(std::move(parsed), model, errs);
+    Hand::RoadIndex index;
+    Hand::compileRoads(model, roads, index, errs);
+    Hand::compileBlocks(model, blocks, errs);
+    const auto report = [&](const std::vector<Hand::Error>& found) {
+        for (const Hand::Error& e : found) {
+            const bool inFile = e.src.file >= 0 && e.src.file < (int)model.files.size();
+            error(inFile ? model.files[(size_t)e.src.file].path : gWorld, inFile ? e.src.line : 0, e.message + " [" + e.code + "]");
+        }
+    };
+    report(errs);
+    if (gErrors != errorsBefore) return false;
+    // the buildings: the library's plans as shells, the building files as placements of them (buildingsbin.h)
+    HandBuildings buildings;
+    std::vector<Hand::Error> found;
+    Hand::compileBuildings(model, buildings, found);
+    report(found);
+    if (gErrors != errorsBefore) return false;
+    if (!buildings.shells.empty() || !buildings.placements.empty()) {
+        // (and the interiors' plans: their rooms, inside walls, doors and stairs)
+        size_t rooms = 0, partitions = 0, doors = 0, stairs = 0;
+        for (const HandShell& s : buildings.shells) {
+            rooms += s.rooms.size();
+            partitions += s.partitions.size();
+            stairs += s.stairs.size();
+            for (const std::vector<HandShell::Wall>* list : {&s.walls, &s.partitions})
+                for (const HandShell::Wall& w : *list)
+                    for (const HandShell::Opening& o : w.openings) doors += o.door() ? 1u : 0u;
+        }
+        printf("worldc: library %zu looks, %zu shells (%zu rooms, %zu inside walls, %zu doors, %zu stairs); %zu buildings\n", buildings.looks.size(),
+               buildings.shells.size(), rooms, partitions, doors, stairs, buildings.placements.size());
+    }
+    writeBuildings(buildings, out);
+    if (!blocks.blocks.ground.empty() || !blocks.blocks.props.empty() || !blocks.blocks.lamps.empty())
+        printf("worldc: blocks %zu, %zu ground polygons, %zu props, %zu lamps, %zu graded parcels\n", model.blocks.size(), blocks.blocks.ground.size(),
+               blocks.blocks.props.size(), blocks.blocks.lamps.size(), blocks.pads.size());
+    // what the AI's graphs read from the blocks: the parcels, and the lots with their drive graphs, on the roads as
+    // the game will have them (each side's own widths)
+    const auto sections = [&]() {
+        std::vector<Hand::Error> found;
+        const bool ok = Hand::compileBlockSections(model, index, roads, blocks, found);
+        report(found);
+        size_t bays = 0, links = 0;
+        for (const HandLot& l : blocks.blocks.lots) {
+            bays += l.bays.size();
+            links += l.links.size();
+        }
+        size_t implied = 0;
+        for (const HandSpot& x : blocks.blocks.spots) implied += (x.flags & HandSpot::IMPLIED) != 0;
+        const HandBlocks& hb = blocks.blocks;
+        if (ok && (!hb.parcels.empty() || !hb.lots.empty() || !hb.paths.empty() || !hb.plazas.empty() || !hb.steps.empty() || !hb.spots.empty() ||
+                   !hb.colliders.empty()))
+            printf("worldc: %zu parcels, %zu lots (%zu bays on %zu links); walks: %zu paths, %zu plazas, %zu flights of steps; %zu spots (%zu implied); %zu "
+                   "colliders\n",
+                   hb.parcels.size(), hb.lots.size(), bays, links, hb.paths.size(), hb.plazas.size(), hb.steps.size(), hb.spots.size(), implied, hb.colliders.size());
+        return ok;
+    };
+    if (roads.nodes.empty() && roads.edges.empty()) return sections();
+    decks.assign(roads.edges.size(), {});
+    for (size_t i = 0; i < index.edgeOf.size(); i++)
+        for (const Hand::Deck& d : model.edges[(size_t)index.edgeOf[i]].decks) decks[i].push_back(vec2(d.from, d.to));
+    std::vector<std::string> nodeIds, edgeIds;
+    for (int mi : index.nodeOf) nodeIds.push_back(model.nodes[(size_t)mi].id);
+    for (int mi : index.edgeOf) edgeIds.push_back(model.edges[(size_t)mi].id);
+    writeRoads(roads, &nodeIds, &edgeIds, out);
+    RoadOverrides overrides;   // (what the lane graph reads beyond the network: roadoverrides.h)
+    Hand::compileRoadOverrides(model, index, roads, overrides);
+    writeRoadOverrides(overrides, out);
+    applyRoadSides(overrides, roads);   // (each side's own widths, as the game will have them: the blocks go on them)
+    int lights = 0;
+    for (const RoadNode& n : roads.nodes) lights += n.control == 2;
+    printf("worldc: roads %zu nodes, %zu edges, %d signalised; %zu districts, %zu signal plans, %zu transit lines\n", roads.nodes.size(), roads.edges.size(), lights,
+           model.districts.size(), model.signals.size(), model.transit.size());
+    printf("worldc: road overrides: %zu edges' widths and speeds, %zu node rules\n", overrides.edges.size(), overrides.nodes.size());
+    return sections();
 }
 
 std::vector<Source> discover() {
@@ -262,6 +396,94 @@ std::vector<Source> discover() {
     return files;
 }
 
+// --dump-ground: the compiled ground on a grid, as the game finds it in hand mode, for tools/author/street.py --ground
+// (docs/HANDBUILT_WORLD.md 5.3). Read back from the world.bin just written as hand mode reads it (handworld.cpp
+// loadHandTerrain's heights, readRoads, readRoadOverrides and applyRoadSides, readBlocks); at each point the graded
+// terrain, or the road, sidewalk or level ground over it as RoadNetwork::surfaceHeight answers in hand mode (the roads,
+// then the level ground: hand mode has no sites) from 3 m above the terrain, where that lies above 0.5 m under it.
+// Written as "grid x0= y0= step= nx= ny=" and ny rows of nx heights (south to north, west to east). The box is four
+// numbers, or a block's id for its parcels with 8 m around them, out to whole metres
+std::string gDumpGround, gGroundBox;
+float gGroundStep = 0.25f;
+
+bool dumpGround(const WorldBinView& bin) {
+    const auto failed = [](const std::string& why) {
+        fprintf(stderr, "worldc: --dump-ground: %s\n", why.c_str());
+        return false;
+    };
+    std::vector<u8> meta;
+    if (!bin.bytes("terrain", meta)) return failed("world.bin has no terrain record");
+    ByteReader r(meta.data(), meta.size());
+    r.getU32();   // (version, resolution, cell size, origin: compileTerrain wrote them)
+    r.getU32();
+    r.getF32();
+    r.getF32();
+    r.getF32();
+    const float unit = r.getF32();
+    if (r.bad || !(unit > 0.f)) return failed("the terrain record has no height unit");
+    std::vector<i16> height, grade;
+    GridInfo gi;
+    const WorldBinView::Section* hs = bin.find("terrain.height");
+    const auto grid16 = [&](const WorldBinView::Section* s, std::vector<i16>& v) {
+        return s->kind == WSK_GRID && decodeGrid(s->data, s->size, v, &gi) && gi.width == kHeightRes && gi.height == kHeightRes && gi.type == GRID_I16;
+    };
+    if (!hs || !grid16(hs, height)) return failed("world.bin's terrain.height is missing or damaged");
+    const WorldBinView::Section* gs = bin.find("terrain.grade");
+    if (gs && !grid16(gs, grade)) return failed("world.bin's terrain.grade is damaged");
+    static WorldMap map;   // (its heights only, as loadHandTerrain fills them: heightAt)
+    map.height.resize(height.size());
+    for (size_t i = 0; i < height.size(); i++) map.height[i] = gs ? (float)(height[i] + grade[i]) * unit : (float)height[i] * unit;
+    RoadNetwork roads;
+    std::string why;
+    if (bin.find("roads")) {
+        if (!readRoads(bin, roads, nullptr, nullptr, &why)) return failed(why);
+    } else {
+        roads.buildHash();
+    }
+    RoadOverrides overrides;
+    if (!readRoadOverrides(bin, roads, overrides, &why)) return failed(why);
+    applyRoadSides(overrides, roads);
+    HandBlocks blocks;
+    if (!readBlocks(bin, blocks, &why, (int)roads.edges.size())) return failed(why);
+    float x0 = 0.f, y0 = 0.f, x1 = 0.f, y1 = 0.f;
+    if (sscanf(gGroundBox.c_str(), "%f,%f,%f,%f", &x0, &y0, &x1, &y1) != 4) {
+        vec2 lo(1e30f), hi(-1e30f);
+        for (const HandParcel& p : blocks.parcels)
+            if (p.id.size() > gGroundBox.size() && p.id.compare(0, gGroundBox.size(), gGroundBox) == 0 && p.id[gGroundBox.size()] == '.')
+                for (vec2 q : p.poly) {
+                    lo = vmin(lo, q);
+                    hi = vmax(hi, q);
+                }
+        if (lo.x > hi.x) return failed("--ground-box: '" + gGroundBox + "' is neither x0,y0,x1,y1 nor a block with parcels");
+        x0 = floorf(lo.x - 8.f);
+        y0 = floorf(lo.y - 8.f);
+        x1 = ceilf(hi.x + 8.f);
+        y1 = ceilf(hi.y + 8.f);
+    }
+    const float st = gGroundStep;
+    if (!(st >= 0.05f) || !(x1 > x0) || !(y1 > y0) || ((x1 - x0) / st + 1.f) * ((y1 - y0) / st + 1.f) > 4e7f)
+        return failed("--ground-box or --ground-step: an empty grid, or more than 40 million points");
+    const int nx = (int)floorf((x1 - x0) / st + 0.5f) + 1, ny = (int)floorf((y1 - y0) / st + 0.5f) + 1;
+    std::string text = StrFormat("grid x0=%.3f y0=%.3f step=%.3f nx=%d ny=%d\n", x0, y0, st, nx, ny);
+    for (int j = 0; j < ny; j++) {
+        for (int i = 0; i < nx; i++) {
+            const vec2 p(x0 + st * (float)i, y0 + st * (float)j);
+            float g = map.heightAt(p.x, p.y), z = -1e9f, pz;
+            bool found = roads.roadSurfaceHeight(p, &z, g + 3.f);
+            if (blocks.padHeight(p, &pz, g + 3.f) && pz > z) {
+                z = pz;
+                found = true;
+            }
+            if (found && z > g - 0.5f) g = z;
+            text += StrFormat(i ? " %.3f" : "%.3f", g);
+        }
+        text += "\n";
+    }
+    if (!writeFile(gDumpGround, std::vector<u8>(text.begin(), text.end()))) return failed("cannot write " + gDumpGround);
+    printf("worldc: the ground on a %d by %d grid (%.2f m) from %.2f,%.2f -> %s\n", nx, ny, st, x0, y0, gDumpGround.c_str());
+    return true;
+}
+
 int run() {
     std::vector<Source> files = discover();
     for (Source& s : files) load(s);
@@ -272,18 +494,33 @@ int run() {
     WorldBinWriter out;
     int terrains = 0;
     std::string manifest = "world.bin manifest 1\n";
-    for (const Source& s : files) {
+    std::vector<size_t> modelFiles;
+    for (size_t i = 0; i < files.size(); i++) {
+        const Source& s = files[i];
         char line[512];
         snprintf(line, sizeof(line), "%s %s %016llx\n", s.rel.c_str(), s.doc.kind.c_str(), (unsigned long long)textHash(s.text));
         manifest += line;
         if (s.doc.kind == "terrain") {
             if (s.rel != "terrain/terrain.ntw") error(s.path, 0, "the terrain file is world/terrain/terrain.ntw");
             else if (compileTerrain(s, out)) terrains++;
+        } else if (modelKind(s.doc.kind)) {
+            modelFiles.push_back(i);
         } else {
-            error(s.path, 0, "no compiler for " + s.doc.kind + " files yet");
+            error(s.path, 0, "no compiler for " + s.doc.kind + " files yet (places, units, fit-outs and sets come with their compilers)");
         }
     }
     if (terrains != 1 && !gErrors) error(gWorld, 0, "no world/terrain/terrain.ntw");
+    if (!gErrors && !modelFiles.empty()) {
+        RoadNetwork roads;
+        std::vector<std::vector<vec2>> decks;
+        Hand::BlocksOut blocks;
+        if (compileModel(files, modelFiles, out, roads, decks, blocks)) {
+            // the terrain graded under the parcels and the roads, and the blocks on it (worldmodel.h)
+            std::string why, report;
+            if (!Hand::placeOnTerrain(gBaked, roads, decks, blocks, out, &why, &report)) error(gWorld, 0, why);
+            else if (!report.empty()) printf("%s\n", report.c_str());
+        }
+    }
     if (gErrors) {
         fprintf(stderr, "worldc: %d error(s); %s not written\n", gErrors, gOut.c_str());
         return 1;
@@ -311,7 +548,7 @@ int run() {
         return 1;
     }
     printf("worldc: %zu file(s) -> %s (%zu bytes, %zu sections) and %s\n", files.size(), gOut.c_str(), bin.size(), view.sections.size(), rcPath.c_str());
-    return 0;
+    return gDumpGround.empty() || dumpGround(view) ? 0 : 1;
 }
 
 int checkOne(const std::string& path) {
@@ -332,10 +569,18 @@ int main(int argc, char** argv) {
         if (a.rfind("--world=", 0) == 0) worldc::gWorld = a.substr(8);
         else if (a.rfind("--out=", 0) == 0) worldc::gOut = a.substr(6);
         else if (a.rfind("--check=", 0) == 0) check = a.substr(8);
+        else if (a.rfind("--dump-ground=", 0) == 0) worldc::gDumpGround = a.substr(14);
+        else if (a.rfind("--ground-box=", 0) == 0) worldc::gGroundBox = a.substr(13);
+        else if (a.rfind("--ground-step=", 0) == 0) worldc::gGroundStep = (float)atof(a.substr(14).c_str());
         else {
-            fprintf(stderr, "usage: worldc [--world=world] [--out=build/gen/world.bin] | worldc --check=<file.ntw>\n");
+            fprintf(stderr, "usage: worldc [--world=world] [--out=build/gen/world.bin] [--dump-ground=<file> --ground-box=<x0,y0,x1,y1 | block id> "
+                            "[--ground-step=0.25]] | worldc --check=<file.ntw>\n");
             return 2;
         }
+    }
+    if (!worldc::gDumpGround.empty() && worldc::gGroundBox.empty()) {
+        fprintf(stderr, "worldc: --dump-ground needs --ground-box\n");
+        return 2;
     }
     if (!check.empty()) return worldc::checkOne(check);
     return worldc::run();

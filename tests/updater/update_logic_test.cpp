@@ -1,6 +1,6 @@
 // Updater logic tests, natively without Windows: commits, JSON, GitHub's compare and commit-list answers, the pull
 // requests merged since a commit, toolchain choice, the build and unpack commands and their environment, archive and
-// exe checks, URLs and the records. The fixtures are GitHub's real answers for this repository (2026-10-20, with the
+// exe checks, URLs, the records, and the bundled compiler's footer, payload.txt and SHA-256. The fixtures are GitHub's real answers for this repository (2026-10-20, with the
 // commit trailers and the agent account's identity taken out): compare/<commit>...main?per_page=100&page=100 for a
 // build behind main (837b39c, ahead 2), at main (bcb8a71, identical), on another branch (c7b2d62, diverged), an unknown
 // commit (404), main...837b39c (behind), and commits?sha=main&per_page=6.
@@ -231,6 +231,20 @@ static void testToolchains() {
     std::vector<std::string> path = splitPathList("C:\\Windows\\system32;;\"C:\\Program Files\\Git\\cmd\"; C:\\w64devkit\\bin ;");
     EXPECT(path.size() == 3 && path[0] == "C:\\Windows\\system32" && path[1] == "C:\\Program Files\\Git\\cmd" && path[2] == "C:\\w64devkit\\bin");
     EXPECT(splitPathList("").empty());
+    // the bundled compiler: last, after every other one, or alone with --update-bundled
+    ToolchainProbe b;
+    b.bundled = "w64devkit 2.9.1";
+    t = pickToolchain(b);
+    EXPECT(t.kind == TC_BUNDLED && t.label == "bundled MinGW-w64 (w64devkit 2.9.1)" && t.pathPrefix.empty());
+    b.mingwDirs = {"C:\\w64devkit\\bin"};
+    EXPECT(pickToolchain(b).kind == TC_MINGW_DIR);
+    b.vsInstall = "C:\\VS";
+    b.vcvars = true;
+    EXPECT(pickToolchain(b).kind == TC_MSVC);
+    b.onlyBundled = true;
+    EXPECT(pickToolchain(b).kind == TC_BUNDLED);
+    b.bundled.clear();
+    EXPECT(pickToolchain(b).kind == TC_NONE);   // --update-bundled without one: no build
 }
 
 static void testCommands() {
@@ -264,6 +278,86 @@ static void testCommands() {
     EXPECT(e == want);
     e = buildEnvironment({"PATH=", "B=2"}, kHead, "D:\\mingw64\\bin");
     EXPECT(e.size() == 3 && e[2] == "PATH=D:\\mingw64\\bin");
+    // NT_MINGW: set for the bundled compiler, never inherited
+    e = buildEnvironment({"nt_mingw=C:\\old", "Path=C:\\Windows"}, kHead, "C:\\tc\\bin", "C:\\tc\\bin");
+    want = {std::string("NT_COMMIT=") + kHead, "NT_MINGW=C:\\tc\\bin", "Path=C:\\tc\\bin;C:\\Windows"};
+    EXPECT(e == want);
+    e = buildEnvironment({"NT_MINGW=C:\\old"}, kHead, "");
+    want = {std::string("NT_COMMIT=") + kHead};
+    EXPECT(e == want);
+}
+
+static std::string sha256Of(const std::string& s) {
+    PortableSha256 h;
+    h.add(s.data(), s.size());
+    return h.hex();
+}
+
+static void testPayload() {
+    // SHA-256: FIPS 180-4's examples, a million 'a' in uneven pieces, and a hasher used again after hex()
+    EXPECT(sha256Of("") == "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+    EXPECT(sha256Of("abc") == "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+    EXPECT(sha256Of("abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq") ==
+           "248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1");
+    PortableSha256 m;
+    std::string as(1000, 'a');
+    for (size_t done = 0, step = 1; done < 1000000; done += step, step = step % 997 + 1) m.add(as.data(), std::min(step, 1000000 - done));
+    EXPECT(m.hex() == "cdc76e5c9914fb9281a1c7e284d73e67f1809a48a497200e046d39ccc7112cd0");
+    m.add("abc", 3);
+    EXPECT(m.hex() == sha256Of("abc"));
+    for (size_t n : {55, 56, 63, 64, 65, 119, 120})   // the padding's edges
+        EXPECT(sha256Of(std::string(n, 'x')).size() == 64 && sha256Of(std::string(n, 'x')) != sha256Of(std::string(n + 1, 'x')));
+    EXPECT(sha256Of(std::string(56, 'a')) == "b35439a4ac6f0948b6d6f9e3c6af0f5f590ce20f1bde7090ef7970686ec6738a");
+    EXPECT(sha256Of(std::string(64, 'a')) == "ffe054fe7ae0cb6dc65c3af9b61d5209f439851db43d0ba5997337df154668eb");
+    // the footer at the end of an exe
+    Payload p;
+    p.size = 67108864;
+    p.sha256 = sha256Of("payload");
+    p.label = "w64devkit 2.9.1";
+    std::string f = payloadFooter(p);
+    EXPECT(f.size() == kPayloadFooterBytes && f.substr(88) == "NTPAYLD1" && (uint8_t)f[0] == 0x23 && (uint8_t)f[35] == 0x04);
+    std::string file = std::string(100, 'x') + f;   // the last bytes of a file
+    uint64_t fileSize = p.size + kPayloadFooterBytes + 16 * 1024 * 1024;
+    Payload q;
+    EXPECT(parsePayloadFooter((const uint8_t*)file.data(), file.size(), fileSize, q) && q.size == p.size && q.sha256 == p.sha256 &&
+           q.label == p.label);
+    EXPECT(parsePayloadFooter((const uint8_t*)f.data(), f.size(), p.size + kPayloadFooterBytes + kPayloadMinExeBytes, q));
+    EXPECT(!parsePayloadFooter((const uint8_t*)f.data(), f.size(), p.size + kPayloadFooterBytes + kPayloadMinExeBytes - 1, q) && q.size == 0);
+    EXPECT(!parsePayloadFooter((const uint8_t*)f.data(), f.size() - 1, fileSize, q));
+    std::string bad = f;
+    bad[95] = '2';   // another format
+    EXPECT(!parsePayloadFooter((const uint8_t*)bad.data(), bad.size(), fileSize, q));
+    bad = f;
+    bad[40 + 20] = 'x';   // text after the label's end
+    EXPECT(!parsePayloadFooter((const uint8_t*)bad.data(), bad.size(), fileSize, q));
+    bad = f;
+    for (int i = 32; i < 40; i++) bad[i] = 0;   // an empty payload
+    EXPECT(!parsePayloadFooter((const uint8_t*)bad.data(), bad.size(), fileSize, q));
+    bad = f;
+    bad[40] = 0;   // no label
+    EXPECT(!parsePayloadFooter((const uint8_t*)bad.data(), bad.size(), fileSize, q));
+    Payload l = p;
+    l.label = std::string(48, 'L');
+    std::string f48 = payloadFooter(l);
+    EXPECT(f48.size() == kPayloadFooterBytes && parsePayloadFooter((const uint8_t*)f48.data(), f48.size(), fileSize, q) && q.label == l.label);
+    l.label += "L";
+    EXPECT(payloadFooter(l).empty());
+    l.label = "caf\xc3\xa9";
+    EXPECT(payloadFooter(l).empty());
+    l = p;
+    l.sha256[3] = 'A';   // upper-case hex is not the form records use
+    EXPECT(payloadFooter(l).empty() && !isSha256Hex(l.sha256) && isSha256Hex(p.sha256));
+    // payload.txt and the unpack folder
+    std::string rec = payloadRecord(p);
+    EXPECT(rec == "sha256 " + p.sha256 + "\nsize 67108864\nlabel w64devkit 2.9.1\n");
+    EXPECT(parsePayloadRecord(rec, q) && q.size == p.size && q.sha256 == p.sha256 && q.label == p.label);
+    EXPECT(parsePayloadRecord("label w64devkit 2.9.1\r\nnote made by build.bat\r\nsize 12\r\nsha256 " + p.sha256 + "\r\n", q) && q.size == 12);
+    EXPECT(!parsePayloadRecord("sha256 " + p.sha256 + "\nlabel x\n", q) && q.label.empty());   // no size
+    EXPECT(!parsePayloadRecord("sha256 " + p.sha256 + "\nsize 0\nlabel x\n", q));
+    EXPECT(!parsePayloadRecord("sha256 " + p.sha256 + "\nsize -5\nlabel x\n", q));
+    EXPECT(!parsePayloadRecord("sha256 1234\nsize 5\nlabel x\n", q));
+    EXPECT(!parsePayloadRecord("sha256 " + p.sha256 + "\nsize 5\nlabel \n", q));
+    EXPECT(payloadFolder(p.sha256) == p.sha256.substr(0, 16) && payloadFolder(p.sha256).size() == 16 && payloadFolder("abc").empty());
 }
 
 static void testChecks() {
@@ -461,6 +555,7 @@ int main(int argc, char** argv) {
     testPe();
     testUrls();
     testRecords();
+    testPayload();
     for (const std::string& path : programs) {
         std::string data = readFile(path), why;
         bool ok = peImageValid((const uint8_t*)data.data(), std::min<size_t>(data.size(), 65536), data.size(), &why);

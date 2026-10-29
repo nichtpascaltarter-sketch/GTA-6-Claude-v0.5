@@ -1,0 +1,40 @@
+city: plan for row 3 (Avenida Flores to Calle Siete, b014-b019), dry runs only. Not started; it waits for your go. One design call sits in it, besides the casitas' that's already with the user.
+
+What today's street.py gives (seed 6, worldc --ground dumps, no new plans): 107 buildings, every parcel built.
+- Each block has two faces:
+  - Calle Siete, residential: 49 buildings, the houses and a corner shop at each end. Their centres stay below y 512, so they go into cell row 41, the busy cells.
+  - Avenida Flores, the first commercial parcels in the district: 58 buildings in cell row 42, which has no hand buildings yet.
+- Calle Siete's north side, with the one casita plan: 30 casitas, 24 of them in 6 runs of 3 or more (b015, b016 and b018 each have 5 in a row; b014 has 3; b017 has two runs of 3). So row 3's houses should follow the second narrow plan.
+- Avenida Flores: street.py doesn't look at use, so it would line the commercial avenue the way it lined Calle Luna: 21 shops with a flat over them, 25 three-storey walk-ups (flats) and 12 corner shops.
+
+The design call (for the user, with the casitas): Avenida Flores' commercial frontage.
+- a. Calle Luna's plans as they stand: no new work, and it reads as a second Calle Luna.
+- b. Commercial plans, which I'd pick.
+  - Two plans: a one-storey shop row (two or three storefronts under one parapet) and a two-storey building with shops below and offices above.
+  - street.py would then pick by the parcel's use: commercial gets those two, plus the corner shop at the corners.
+  - About 2 batches: each plan with its layouts, its facade and the harness. Row 4's south face is on Avenida Flores too, so they'd serve both rows.
+
+Batches, by face, since each face waits on its own design call. Each is the size of row 2's batches. Today's plans throughout; a twin of casita_d costs about what it does.
+- How I predict:
+  - Near build: batch 6's in-game rate, 0.15-0.16 ms per 1,000 triangles, rising with the cell's size.
+  - Upload: 88's measured 5.4-7.4 ms for a lone 54-90k cell, roads and ground included. A cell over 64k goes alone in its frame.
+- R3a: Calle Siete face of b014-b016, 27 buildings.
+  - Busiest cell 45,41: 52 to 68 placements, 56.2k to 71.8k triangles. Near build about 11-13 ms; upload about 76k triangles, about 7-8.5 ms alone.
+  - Also 44,41: 21 to 27 placements. 46,41: 63 to 68.
+- R3b: Calle Siete face of b017-b019, 22 buildings.
+  - Busiest cell 46,41: 68 to 81 placements, 63.6k to 76.7k triangles. Near build about 12-14 ms, under your ~15 ms line but near it; upload about 80k triangles, about 7-8.5 ms alone.
+  - Also 47,41: 39 to 48 placements, upload about 51k.
+- R3c: Avenida Flores face of b014-b016, 31 buildings with today's plans.
+  - Busiest 45,42: 20 placements, 25k triangles. Near build about 4 ms; upload under 30k.
+- R3d: Avenida Flores face of b017-b019, 27 buildings.
+  - Busiest 46,42: 21 placements, 20k triangles. Near build about 3 ms.
+- Order: the casita twin first, then R3a and R3b. Then the commercial plans if the user picks b, then R3c and R3d (they can come straight after R3b on a).
+
+What the busy cells mean for the engine:
+- After R3b the biggest near build is about 12-14 ms, still under ~15 ms, so (a) stays parked unless the measurement says otherwise.
+- Uploads: 45,41 and 46,41 pass 64k, so each goes alone. The uploads' max becomes the biggest single cell, about 7-8.5 ms, besides the request loop's spikes in 88's report.
+- Row 4 (b020-b025) fills cell row 42 the way row 2 filled row 41. If one cell's upload has to stay under ~10 ms after that, the lever is 88's (i): upload()'s CPU side moves to the worker. Not needed for row 3.
+
+Cost: R3a-R3d about 4 batches like row 2's, each with the lean checks (harness, a day face, a night face, an aerial, worldv, the census, both drives and the frame log). Add 1 batch for the casita twin and about 2 for the commercial plans if picked.
+
+UPDATE (from the lead): the user answered the Avenida Flores call "A". Avenida Flores keeps Calle Luna's plans as they stand. There are no commercial plans, and street.py stays as it is for that face. Row 3's order: the casita twin (in progress), R3a, R3b, then R3c and R3d straight after, one batch at a time with the lead's go. The casita question is still unanswered, so the default is being built: the twin with a flat roof behind a parapet, plus casita roof palettes.

@@ -123,6 +123,16 @@ struct FacadeGPU {
     u32 seed;
     float signIndex;
 };
+// FacadeGPU::flags (shaders/facade.hlsli): 1 a storefront ground floor, 2 a sign band, 4 neon trim, 8 blinds common,
+// 16 offices, 32 a parking garage's decks, lit all night (kFacadeParking), 64 a hand-built window (roomlight.h
+// kFacadeHandWindow) whose room's schedule class rides in bits 8-11 (handWindowFlags), in place of the shader's own
+// pick; 128 and bits 12-31 are free
+constexpr u32 kFacadeParking = 32u;
+
+// What a building is for where its style doesn't say. BS_GARAGE is the style of the parking garages and also of the back
+// buildings that gameplay leaves alone (blockstyle.cpp's infill: back houses, lock-up garages, sheds), so the parking
+// garages carry BU_PARKING (buildings.cpp), for the AI, and their facades kFacadeParking, for the night lighting.
+enum BuildingUse : u8 { BU_DEFAULT = 0, BU_PARKING };
 
 struct Building {
     vec2 c;          // footprint center
@@ -154,6 +164,12 @@ struct Building {
     u8 archFlags = 0;           // ABF_* (corner lot, mural wall side, ...)
     u32 roofTint = 0xffffffffu; // tile / shingle / metal roof colour of pitched archetype roofs
     int face = -1;              // street side the lot fronts (road edge * 2 + side), -1 for site buildings
+    u8 use = BU_DEFAULT;        // BuildingUse: BU_PARKING for a parking garage
+    // The street door that people step out of and walk into (game/ai.cpp aiBuildingDoorNear): doorAlong along ax from c,
+    // 0 (the street facade's middle) for the generated buildings; a hand-built building's is its plan's main entrance
+    // (world/handshells.cpp), and noStreetDoor leaves out one whose main entrance isn't on its front
+    float doorAlong = 0.f;
+    bool noStreetDoor = false;
 };
 
 enum ArchFlags : u8 { ABF_CORNER = 1, ABF_MURAL = 2, ABF_CORNER_LEFT = 4, ABF_OLD = 8, ABF_ACCENT = 16 };

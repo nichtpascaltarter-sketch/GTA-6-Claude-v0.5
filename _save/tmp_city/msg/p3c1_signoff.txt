@@ -1,0 +1,61 @@
+city snapshot-safe: 3c batch 1, block b006. Its 21 buildings stand on both of its faces and can all be walked into: the street wall of shops, walk-ups and corner shops on Calle Luna, and casitas, bungalows and corner shops on Paseo del Rio. There are two new plans, the corner shop and the casita, and the authoring script that placed them all. Base 79, my polish blobs (8 files) on 78 (278d2a7). FILECOUNT files: CHANGED changed on 79's blobs, NEWCOUNT new.
+
+FILES (path, base, new)
+FILELIST
+
+WHAT (player-facing)
+- Block b006, Calle Luna to the river between Avenida Palma and Avenida del Sol, has 21 buildings.
+  - Calle Luna's side is a street wall of 13: shops with flats over them and walk-ups in pairs, each pair's party walls touching.
+  - Each corner is a new corner shop. It has shop windows and a second door on the side street, and its flat has windows on both streets. This is the FOR LATER note: b005's corner walk-up shows a blank wall to its side street.
+  - Paseo del Rio's side has 8: casitas and bungalows in turn, each in the middle of its parcel, and a corner shop at each end. They turn 22 degrees with the street.
+- All 21 can be walked into from the sidewalk through their doors, up their stairs and into every room. The flats over the shops have their own street doors, and the shops' stores are behind their staff doors.
+- New in the library:
+  - lib.plan.shop.corner_c, 8.4 by 14 m: a shop on both streets with a flat over it. Mirrored, its side-street wall changes sides.
+  - lib.plan.house.casita_d, 9 by 10 m: a 1930s two-storey house under a tile roof, with its stair beside the hall and a garden door.
+  - lib.facade.calle_casita: stucco on a stone plinth, casements with fixed shutters.
+  - Four layouts for those two plans.
+- A door over a strip of lower ground at the wall's foot, however narrow, now gets its stoop.
+  - At s21 the flat's door had a 0.1 m crack at -0.48 m between the sidewalk and the threshold. A walk dropped into it and could not climb out.
+  - b005's stoops can come out 0.15 m shorter where the sidewalk lies that close.
+- Procedural mode is unchanged: the census is identical, and world.bin changes only in its hand sections (library, buildings, manifest).
+
+HOW
+- tools/author/street.py (new, Python, run with -I): HANDBUILT 5.3's street script.
+  - It reads the block's parcels, the district's streets and the library's plans and palettes.
+  - It writes one building file per placement, as b005's are. A re-run rewrites only the files that still carry its line.
+  - The rules:
+    - Street wall on an avenue, a house in the middle of each parcel on a street.
+    - A corner plan where another street runs by a parcel's end.
+    - Mirrors alternate, no palette twice side by side, no plan with the same palette twice within three, no house plan twice in neighbouring parcels.
+    - Every footprint corner inside its parcel. The front line steps back up to 0.9 m where a parcel's cut or a crooked front asks for it, as at p08's triangle.
+  - z: 0.01 m over the sidewalk in front, from the street's profile and kerb.
+    - With --ground, it also checks the ground under the footprint. That is a grid of the compiled ground, which I dumped from world.bin with a scratch host tool.
+  - Seed 6. A re-run gives the same files.
+- handshells.cpp:
+  - buildStoops' flush test reads the ground 0.05, 0.15 and 0.3 m out, not 0.15 m alone, and the landing's search starts at 0.15 m.
+  - buildHandBuildingsCell logs each cell it builds: placements, triangles, ms.
+- interiors_game.cpp: the "Interior ... built" line also gives the interiors resident, how many are hand-built, and their triangles.
+- docs: HANDBUILT_WORLD 5.3 (the script), 7.2 (the stoop's rule) and 7.4 (the 33 interiors, the logs).
+
+CHECKS
+CHECKS_TEXT
+
+THE NUMBERS ASKED FOR (cell build times, resident interiors)
+NUMBERS_TEXT
+
+FOUND, NOT FIXED (pre-existing; for you to decide)
+- Junction corners have no sidewalk in the ground query, in hand mode. This is the larger of the two.
+  - At a junction, the corner sidewalk squares between the approaches' sidewalks are drawn, but the ground query (roadnet.cpp roadSurfaceHeight) leaves them out. It drops an approach's sidewalk band inside the junction's cut-backs ("the corner sidewalks are the junction's own"), and the junction disc covers only its radius.
+  - So the query falls through to the terrain, which in hand mode is the natural ground, 0.45 m lower.
+  - Measured on the ground dump:
+    - At Calle Luna x Avenida Palma (cl.n0025, four ways), each of the four corners has a ~4 by 4 m patch at 3.21 under a sidewalk drawn at 3.66.
+    - At the T at cl.n0033, Calle Luna's south sidewalk is a hole from x 1731 to 1749.
+  - The walk drops into a patch and cannot climb its 0.45 m edge, so a pedestrian or the player rounding a corner on foot can be stuck until they jump.
+  - The procedural world has the same code, but its terrain is graded to road level there, so it sinks 0.15 m and doesn't trap.
+  - What I'd do, as one small hand-only slice: worldc grades the terrain under every junction's corner squares to the sidewalk's height, as it grades under the roads. world.bin's terrain delta changes; procedural mode, the census and the query code do not.
+  - The other way, giving the corners a surface in roadSurfaceHeight, changes the procedural census's road queries.
+  - Your call.
+- Parcels are not graded, so the yards lie 0.4-0.45 m below the sidewalks. This holds for b005 and b006 alike, since dress.py writes no grade=.
+  - Every door has its stoop, and every room is reached from the street.
+  - But stepping off the sidewalk into a side or back yard is a drop, and coming back needs a jump.
+  - What I'd do: dress.py gives the mixed and residential parcels grade= at their sidewalk's height, with a blend. That is a change to all 25 blocks' generated parts. It can come with the corner fix or later.

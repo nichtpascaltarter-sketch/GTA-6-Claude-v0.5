@@ -1,0 +1,125 @@
+city snapshot-safe: 3g R3c, the Avenida Flores face of b014-b016: 31 buildings on Calle Luna's plans as they stand (the user's "A"), the first hand content in cell row 42. Base 94b3785 (tree 165081d3, snapshot 91). 32 files: 1 changed on its blobs, 31 new. The Calle Siete files stay byte-identical.
+
+FILES (path, base, new)
+docs/HANDBUILT_WORLD.md d14512e3 c7be2ec9
+world/districts/cl/blocks/b014/m02.ntw new ceb77abb
+world/districts/cl/blocks/b014/m03.ntw new d0ea5b87
+world/districts/cl/blocks/b014/m04.ntw new 619d704a
+world/districts/cl/blocks/b014/m05.ntw new c8328857
+world/districts/cl/blocks/b014/m09.ntw new 9a4cd511
+world/districts/cl/blocks/b014/s01.ntw new 08592483
+world/districts/cl/blocks/b014/s06.ntw new 79fc15f6
+world/districts/cl/blocks/b014/s07.ntw new de2f8239
+world/districts/cl/blocks/b014/s08.ntw new 33fe0ab2
+world/districts/cl/blocks/b014/s10.ntw new 99ba1d6d
+world/districts/cl/blocks/b015/m02.ntw new d93ae804
+world/districts/cl/blocks/b015/m05.ntw new 93e46f27
+world/districts/cl/blocks/b015/m07.ntw new 6e881f50
+world/districts/cl/blocks/b015/m08.ntw new 14239810
+world/districts/cl/blocks/b015/m09.ntw new 84eb09da
+world/districts/cl/blocks/b015/s01.ntw new 74de7388
+world/districts/cl/blocks/b015/s03.ntw new 8a059cf8
+world/districts/cl/blocks/b015/s04.ntw new 4c372627
+world/districts/cl/blocks/b015/s06.ntw new 8b1ea0be
+world/districts/cl/blocks/b015/s10.ntw new 5edce770
+world/districts/cl/blocks/b015/s11.ntw new 43abd41d
+world/districts/cl/blocks/b016/m02.ntw new e2f4758b
+world/districts/cl/blocks/b016/m03.ntw new 350e8845
+world/districts/cl/blocks/b016/m04.ntw new eb20fc79
+world/districts/cl/blocks/b016/m05.ntw new 88ee0024
+world/districts/cl/blocks/b016/m08.ntw new fbe65262
+world/districts/cl/blocks/b016/m09.ntw new 5580c50a
+world/districts/cl/blocks/b016/s01.ntw new 01f40931
+world/districts/cl/blocks/b016/s06.ntw new 236e7d15
+world/districts/cl/blocks/b016/s07.ntw new fe4bf2c8
+world/districts/cl/blocks/b016/s10.ntw new c379bec0
+(also in /tmp/city/p3g_blobs.txt)
+
+WHAT (player-facing, hand world only)
+- Avenida Flores now has its south side built from Bougainvillea Boulevard to Avenida Coral.
+  - Each block has a corner shop at each end, with a flat over it and windows on both streets.
+  - Between the corners are three-storey walk-ups and shops with a flat over them.
+- The three blocks, west to east:
+  - b014 (Bougainvillea to Ceiba):
+    - Corners: s01 (coral, set in 0.3 m from Bougainvillea) and s10 (rose).
+    - Walk-ups: m02 (mint), m03 (sky), m04 (sand), m05 (rose) and m09 (lemon).
+    - Shops: s06 (sky), s07 (lemon) and s08 (coral).
+  - b015 (Ceiba to Paseo de los Heroes):
+    - Corners: s01 (coral) and s11 (rose).
+    - Walk-ups: m02 (mint), m05 (rose), m07 (sky), m08 (lemon) and m09 (coral).
+    - Shops: s03 (sky), s04 (sand), s06 (lemon) and s10 (lemon).
+  - b016 (Paseo de los Heroes to Coral):
+    - Corners: s01 (coral) and s10 (rose).
+    - Walk-ups: m02 (mint), m03 (sky), m04 (sand), m05 (rose), m08 (coral) and m09 (lemon).
+    - Shops: s06 (sky) and s07 (lemon).
+- With R3a, b014-b016 are now built on both faces.
+- All 31 can be walked into from the sidewalk and through every room (471 new rooms). There are no new plans or palettes.
+- As on Calle Luna, one plan can repeat side by side as a street wall, each building in its own colour.
+  - The longest run is four walk-ups (m02-m05 of b014 and of b016).
+  - No palette is twice side by side, and no plan has the same palette twice within three.
+  - The "no three alike" rule is for houses, and this face has none.
+- b017-b019's Avenida face (27) waits for R3d. Procedural mode is unchanged.
+
+HOW
+- As R3a and R3b: street.py as merged (seed 6, the twin rule, --ground from worldc --dump-ground) wrote b014-b016 into a scratch copy.
+- Its re-run changed no existing file. I took only its 31 files facing Avenida Flores, into the ids R3a left free, with no hand edits.
+- The Calle Siete files are byte-identical. b014-b016's 27 Calle Siete buildings and their 3 block files hash as in 165081d3, and so does every other file of that tree except the doc.
+- Docs: HANDBUILT 5.3 (the Avenida face of b014-b016; b017-b019's still waits) and 7.4 (the 280 hold 3,111 rooms in 1,599k).
+
+CHECKS
+- worldc: 0 warnings, 280 buildings from 335 files. world.bin changes only in buildings and manifest.
+- worldv: 0 errors and the same 4 warnings as before (335 files, 3,014 records).
+- CI's three tests pass with CI's flags. MinGW -Wall on main.cpp: 0 errors, 0 warnings (no C++ is touched).
+- The procedural census: 0 of 13,914 lines differ from 91's.
+- The exe nt_b25: 16,491,008 B, with 0 warnings.
+- The 31 new files are canonical (ntwfmt --check), with id = path and 5 lines each. The private scan is clean.
+- Harness: 3,111 of 3,111 rooms in the 280 interiors, 0 tour legs off the walk.
+- Shots, 0 fatal, in /tmp/city/b25smoke/shots/ (PNG). The face looks north, so the day shots are at 17:00, when the low western sun reaches it:
+  - r3c_b015_avenida_1700: Avenida Flores by day from Ceiba, looking east. b015's face is on the right: the coral corner s01, the mint walk-up m02, then the shops and walk-ups beyond. Row 4's empty blocks are on the left.
+  - r3c_b016_avenida_2030: b016's face by night from Coral, looking west. You see the rose corner s10, the lemon walk-up m09 under a street lamp, and lit shop windows beyond.
+  - r3c_aerial_1700: from over row 4, looking south. b014-b016's Avenida face runs along the avenue, with their yards and the Calle Siete face behind.
+- Hand drive, 0 fatal: every checkpoint is the same as on 91 (t=2.6, 11.5 and 21.5; the same peds and vehicles).
+- Procedural drive, 0 fatal: the same as on 91.
+
+MEASURED AGAINST THE PREDICTIONS (near build in the drive / in the shots game; each game started from load under 2.0)
+
+| Cell | Placements: predicted / measured | Triangles: predicted / measured | Near build: predicted / measured | Upload |
+|---|---|---|---|---|
+| 45,42 | 20 / 20 | 25,158 / 24,618 | ~4 ms / 2.8 and 3.2 ms | 27,123 (predicted ~27.7k, under 30k) |
+| 44,42 | 6 / 6 | 8,937 / 8,484 | not predicted / 0.6 ms in the shots (far only in the drive, 0.2 ms) | not among the five slowest |
+| 46,42 | 5 / 5 | 5,570 / 5,716 | not predicted / 0.5 and 0.4 ms | not among the five slowest |
+
+- The triangles are 2-5% off the projection, which uses per-plan averages: 45,42 is 2% under, 44,42 5% under and 46,42 3% over.
+- 45,42's upload shared its frame with 47,42's 2,434 triangles (no buildings there yet) and two empty cells, and that frame's streaming took 6.34 ms. But a frame with only empty far cells took 6.47 ms in the same drive, so that figure says little about the upload itself.
+
+Row 41 again, from the same runs (drive / shots):
+- 45,41 (68 placements, 70,552 triangles): near 10.3 / 9.3 ms; upload 74,875 alone, 6.88 ms.
+- 46,41 (81, 75,018): near 9.8 / 10.3 ms; upload 78,685 alone, 9.69 ms.
+- 47,41 (48, 46,594): near 5.7 / 6.9 ms; upload 50,434 with 45,40 (11,549), 6.09 ms.
+- 44,41 (27, 24,918): near 2.9 ms in the shots. In the drive it is far only (0.8 ms), since the drive never comes within 420 m of it.
+- These match R3b's figures within the spread. 91's own drive in this chain gave 9.0, 10.3 and 6.1 ms near, and uploads of 6.71, 9.19 and 6.32 ms.
+- The busiest near build in either run is 10.3 ms, under the ~15 ms line, so (a) stays parked.
+- Cell row 42 now holds 31 placements. The trigger for (i) and (ii) is row 4 filling it, which hasn't happened yet.
+
+Frame log, 91 against R3c, back to back (load at start 1.84 / 1.60):
+- Median: 7.0 / 7.0 ms.
+- Frames over 33 ms: 252 / 253.
+- Streaming max: 9.19 / 9.69 ms. Both are 46,41's upload alone at t=0.10.
+- Streaming p99: 1.22 / 2.41 ms.
+  - R3c adds four loads to the drive's first second: 45,42 near and far, 46,42 near and 44,42 far.
+  - So the p99 (the tenth-slowest of 900 frames) is now most likely one of those loads. I didn't log every frame to confirm this.
+- The first frames' p99 and max are the load: p99 1,764 / 1,831 ms, max 15,360 / 15,625 ms.
+- Interiors: up to 268 resident in R3c's drive (1,522,804 triangles), against 243 on 91; up to 248 in the shots game.
+- Memory: the hand drive used 3,037-3,078 MB on 91 and 2,999-3,075 MB on R3c.
+
+ONE THING FOR YOU TO DECIDE (I changed nothing)
+- The Avenida faces' colours repeat from block to block.
+  - b014, b015 and b016 each run coral, mint, sky, sand, rose from their west corner.
+  - b014's and b016's faces have the same ten colours in order, and the same plans for the first seven.
+- The cause: street.py draws every block from seed 6, and these faces come out of the same draws. Calle Luna's faces already do the same (b002 and b011 start alike).
+- A fix: give the palettes a seed of their own per block, from the block id. The palette draw is street.py's last use of the generator, so this would break the repeats without moving a building or changing a plan.
+- The catch: it would recolour every building street.py wrote in rows 1-3. So I've left it for you or the user.
+
+Next, on your go: R3d, b017-b019's Avenida face (27 buildings), the rest of row 3.
+- Busiest is 46,42: 5 to 21 placements, about 19.9k triangles, a near build of about 2.5 ms and an upload of about 22k.
+- Then 47,42: 0 to 11 placements, about 13.3k triangles, a near build of about 1.5 ms and an upload of about 16k.

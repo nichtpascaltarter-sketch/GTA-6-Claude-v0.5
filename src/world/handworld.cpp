@@ -1,4 +1,4 @@
-// The hand-built world at runtime (handworld.h). Stage 0: the baked terrain from world.bin.
+// The hand-built world at runtime (handworld.h): the baked terrain from world.bin, and its roads where it has them.
 #ifdef _WIN32
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
@@ -11,7 +11,11 @@
 #include "handworld.h"
 #include "gridcodec.h"
 #include "roads.h"
+#include "roadsbin.h"
+#include "blocksbin.h"
+#include "buildingsbin.h"
 #include "buildings.h"
+#include "interiors.h"
 #include "worldtypes.h"
 #include "../core/jobs.h"
 #include <cstdio>
@@ -171,6 +175,15 @@ bool loadHandTerrain(const WorldBinView& bin, WorldMap& map, std::string* error)
     map.smallIslands = islands;
     map.lakePoly = lake;
     map.channels = channels;
+    // the terrain graded under the roads (docs/HANDBUILT_WORLD.md section 3.3): worldc's delta on the bake, in the height
+    // layer's unit; the splat follows the graded heights
+    if (const WorldBinView::Section* g = bin.find("terrain.grade")) {
+        std::vector<i16> delta;
+        GridInfo gi;
+        if (g->kind != WSK_GRID || !decodeGrid(g->data, g->size, delta, &gi) || gi.width != kHeightRes || gi.height != kHeightRes || gi.type != GRID_I16)
+            return fail(error, "world.bin section terrain.grade is damaged");
+        for (size_t i = 0; i < n; i++) map.height[i] = (float)(layers[0].values[i] + delta[i]) * t.heightUnit;
+    }
     map.recomputeSplat();
     return true;
 }
@@ -193,16 +206,45 @@ bool loadHandWorld(const char* worldFile, WorldMap& map, RoadNetwork& roads, Bui
     if (!bin.open(data, size, error)) return false;
     if (!loadHandTerrain(bin, map, error)) return false;
     gMap = &map;
-    // stage 0 has no roads or buildings: empty sets with their lookup tables, so every query finds nothing
+    // the roads where the world has them (stage 1), else an empty network with its lookup table, so every query finds
+    // nothing
     roads = RoadNetwork();
-    roads.buildHash();
+    if (bin.find("roads")) {
+        if (!readRoads(bin, roads, nullptr, nullptr, error)) return false;
+    } else {
+        roads.buildHash();
+    }
     gRoads = &roads;
+    // what they author beyond the network, for the lane graph (roadoverrides.h): empty lists where there is none; and
+    // each side's own kerb line and sidewalk, which the mesher draws and the lane graph reads (RoadEdge::halfWidthSide)
+    static RoadOverrides overrides;
+    if (!readRoadOverrides(bin, roads, overrides, error)) return false;
+    applyRoadSides(overrides, roads);
+    gRoadOverrides = &overrides;
+    // the blocks' ground and dressing where the world has them, and what the AI's graphs read: parcels, lots, the walk
+    // graph's inputs and spots (blocksbin.h)
+    static HandBlocks blocks;
+    if (!readBlocks(bin, blocks, error, (int)roads.edges.size())) return false;
+    gHandBlocks = &blocks;
+    // the buildings: the library's shells and their placements (buildingsbin.h), drawn into the cells (handshells.cpp)
+    static HandBuildings handBuildings;
+    if (!readBuildings(bin, handBuildings, error)) return false;
+    gHandBuildings = &handBuildings;
+    // the building set, with its cell lists: the hand-built buildings' records (for the game's building queries) and
+    // their windows' facade entries
     buildings = BuildingSet();
     buildings.cellLists.assign((size_t)kCellsPerSide * kCellsPerSide, {});
     buildings.openCellLists.assign((size_t)kCellsPerSide * kCellsPerSide, {});
     gBuildings = &buildings;
-    LOG("Hand world: terrain from %s (%zu KB, %zu sections) in %.2f s", worldFile && *worldFile ? worldFile : "the exe", size / 1024,
-        bin.sections.size(), TimeSeconds() - t0);
+    // the placements' cells, their records in the building set and their windows' facade entries; and the interiors of
+    // those whose plans have rooms (interiorhand.cpp), which gInteriors then holds
+    prepareHandBuildings(handBuildings, buildings);
+    prepareHandInteriors(handBuildings, map);
+    LOG("Hand world: terrain, %zu road nodes, %zu edges (%zu with overrides), %zu ground polygons, %zu props, %zu lamps, %zu parcels, %zu lots, %zu paths, "
+        "%zu spots, %zu colliders and %zu buildings (%zu shells, %zu window facades) from %s (%zu KB, %zu sections) in %.2f s",
+        roads.nodes.size(), roads.edges.size(), overrides.edges.size(), blocks.ground.size(), blocks.props.size(), blocks.lamps.size(), blocks.parcels.size(),
+        blocks.lots.size(), blocks.paths.size(), blocks.spots.size(), blocks.colliders.size(), handBuildings.placements.size(), handBuildings.shells.size(),
+        buildings.facades.size(), worldFile && *worldFile ? worldFile : "the exe", size / 1024, bin.sections.size(), TimeSeconds() - t0);
     return true;
 }
 

@@ -1,7 +1,0 @@
-anim_test exit 0
-clips: worst loop seam 0.0014 (flee), fastest joint 54.3 rad/s (bat_overhead)
-lips: 12 faces, lower lip vs chin da* >= +3.4, db* <= -3.4, dL* <= -4.6 (light and medium skin); 40 years older da* at least 13% less
-ALL PASSED (0 failures)
-preview run 0
-carview run 0
-host checks h done 18:00:36

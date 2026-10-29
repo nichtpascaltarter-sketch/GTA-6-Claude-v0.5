@@ -1,0 +1,119 @@
+city snapshot-safe: 3c batch 4: b008 and b013, plus b004.h15. 35 buildings on Calle Luna and Calle Siete use street.py's three new rules, b004.h15 moves its 1 cm, and the autoplay gains the frame log for your frame-time check. Base fc8e416, snapshot 84 (tree efe67927). 42 files: 7 changed on its blobs, 35 new.
+
+FILES (path, base, new)
+README.md 620b96a5 667e69d7
+docs/HANDBUILT_WORLD.md 86fc1f43 cf5f6169
+src/game/app.cpp c2cbecf5 9b39bf41
+src/render/world_render.cpp 2de3ba98 6a62b6b2
+src/world/handshells.cpp db2ea991 3d14a090
+tools/author/street.py 2b44ab4d 1e0f2c37
+world/districts/cl/blocks/b004/h15.ntw fcaaff3c be85ebae
+world/districts/cl/blocks/b008/h13.ntw new 740b8d2f
+world/districts/cl/blocks/b008/h14.ntw new 1713d027
+world/districts/cl/blocks/b008/h15.ntw new 0dc0f34e
+world/districts/cl/blocks/b008/h16.ntw new 3aef516c
+world/districts/cl/blocks/b008/h17.ntw new 465fa16f
+world/districts/cl/blocks/b008/h18.ntw new 5fb1b24f
+world/districts/cl/blocks/b008/h19.ntw new 840e6092
+world/districts/cl/blocks/b008/m07.ntw new 3a233198
+world/districts/cl/blocks/b008/m08.ntw new 90255f67
+world/districts/cl/blocks/b008/m10.ntw new 21fc9811
+world/districts/cl/blocks/b008/s01.ntw new 523150b7
+world/districts/cl/blocks/b008/s02.ntw new 62ebb8f1
+world/districts/cl/blocks/b008/s03.ntw new ebd87fcc
+world/districts/cl/blocks/b008/s04.ntw new 0e93c065
+world/districts/cl/blocks/b008/s05.ntw new 77a21764
+world/districts/cl/blocks/b008/s06.ntw new fb92d39c
+world/districts/cl/blocks/b008/s09.ntw new 22770acc
+world/districts/cl/blocks/b008/s11.ntw new 64756a8e
+world/districts/cl/blocks/b008/s12.ntw new 2241ba04
+world/districts/cl/blocks/b008/s20.ntw new 673bae59
+world/districts/cl/blocks/b013/h10.ntw new 990bc07d
+world/districts/cl/blocks/b013/h11.ntw new d19242e0
+world/districts/cl/blocks/b013/h12.ntw new d15b3359
+world/districts/cl/blocks/b013/h13.ntw new 0d310815
+world/districts/cl/blocks/b013/h14.ntw new 9a37c784
+world/districts/cl/blocks/b013/m02.ntw new 1302a4f2
+world/districts/cl/blocks/b013/m07.ntw new 8fe8ab0f
+world/districts/cl/blocks/b013/s01.ntw new 69dc1f25
+world/districts/cl/blocks/b013/s03.ntw new f5431847
+world/districts/cl/blocks/b013/s04.ntw new 886528ae
+world/districts/cl/blocks/b013/s05.ntw new da75dd43
+world/districts/cl/blocks/b013/s06.ntw new 7e2d4791
+world/districts/cl/blocks/b013/s08.ntw new dad338dd
+world/districts/cl/blocks/b013/s09.ntw new 91c3ffd8
+world/districts/cl/blocks/b013/s15.ntw new f7840453
+(also in /tmp/city/p3c4_blobs.txt)
+
+WHAT (player-facing, hand world only)
+- b008 (Calle Siete to Calle Luna, Bougainvillea to Ceiba), 20 buildings:
+  - Calle Luna: a street wall of 11, with a corner shop at each end and walk-ups and shops with flats between them.
+  - Calle Siete: corner shops at both ends, 5 casitas and 2 bungalows.
+  - Three of the casitas stand on the 10.3-10.9 m lots with 1.0 m side yards (p08, p09, p11).
+- b013 (Sol to Este), 15 buildings:
+  - Calle Luna: 8, with a corner shop at each end.
+  - Calle Siete: corner shops at both ends, 4 casitas (two with 1.0 m yards, p06 and p09) and a bungalow.
+- Two Calle Siete corner shops stand further from their side streets, whose sidewalks reach further into those lots: b008.s12 at Bougainvillea by 1.2 m, b013.s09 at Sol by 0.6 m.
+- b004.h15 moved 1 cm, onto its parcel's outline as 82 fixed it.
+- All 35 can be walked into from the sidewalk and through every room. There are no new plans.
+- Procedural mode is unchanged: the census is identical, and world.bin changes only in hand sections (buildings, manifest).
+- To judge: b008's Calle Siete now has four casitas side by side (h13-h16). p10, between the narrow lots, takes only the casita too. Their palettes and mirrors alternate, but the aerial shows four orange roofs in a row. It's your call whether that earns a narrow plan later.
+
+HOW
+- tools/author/street.py, with the three rules you approved, seed 6, --ground from worldc --dump-ground --ground-box=<block> at 0.25 m:
+  - NARROW_GAP 1.0: where no house fits with 1.5 m side yards, a house that fits with 1.0 m ones (the casita) takes the lot.
+  - A parcel with no front= is skipped as "no street front".
+  - ASIDE: a corner plan that fails as placed is set in from its side street 0.3 m at a time, up to 2.1 m, with --ground only. Every footprint corner must still lie inside its parcel.
+  - The header lists the rules.
+- The frame log (new, test-only: logging at the end of an autoplay, nothing else changes):
+  - render/world_render.cpp: each update() records its time and the cells it uploaded ("cx,cy near|far N tris").
+  - game/app.cpp: every autoplay but the benchmark keeps each frame's time with the previous update's time and uploads.
+  - At the end the log gets "autoplay frames": median, p99 and max, the count over 33 ms, and the streaming's median, p99 and max. Then the 5 slowest frames and the 5 slowest updates, each with what it uploaded.
+  - README notes it.
+- Docs:
+  - HANDBUILT 5.3: the three rules, and b008's 20 and b013's 15.
+  - HANDBUILT 7.2: your ~8 ms rule and the frame log; (a), the parallel build, and (c), the stoops at load, as the next steps.
+  - HANDBUILT 7.4: 130 interiors.
+  - handshells.cpp: the same note in a comment.
+
+CHECKS
+- worldc: 0 warnings, 130 buildings from 182 files. world.bin changes only in buildings and manifest.
+- worldv: 0 errors and the 4 warnings as before (182 files, 2,693 records).
+- CI's three tests pass with CI's flags.
+- MinGW -Wall on main.cpp (app.cpp, world_render.cpp, handshells.cpp): 0 errors, 0 warnings.
+- street.py compiles.
+- The procedural census: 0 of 13,914 lines differ from 84's.
+- The exe nt_b18: 16,480,256 B, with 0 warnings. nt_b17i is 84 plus the frame log only: the frame times' "before".
+- The 35 new files are canonical.
+- The re-run, in a copy, with the new rules and worldc's dumps: b002, b003 and b007 rewrite nothing, and b004 rewrites h15 only. b005 and b006 stay as you said.
+- Harness (on 84's world code): 1,482 of 1,482 rooms in the 130 interiors, 0 tour legs off the walk.
+- Shots, 0 fatal, in /tmp/city/b18smoke/shots/ (PNG):
+  - b008's Calle Luna face by day from Ceiba;
+  - b013's face by night from Sol, its shops and flats lit;
+  - an aerial over b008 from the north;
+  - the set-in corner shop at Calle Siete and Bougainvillea;
+  - the 1.0 m side-yard casitas (h13-h15) from Calle Siete.
+- Procedural drive, 0 fatal: at t=17.5 it is at 1789.9, 130.6 with 93 peds, 63 vehicles and wanted 2, as on 84.
+- Hand drive, 0 fatal: the same path as on 84 (positions, speeds, vehicles at t=2.5, 11.5 and 21.5).
+  - At t=21.5 there are 82 peds against 81.
+  - The drive ends 75 m from b013, so most likely the population's use of the new buildings' doors (Building::doorAlong) puts one more pedestrian out there.
+
+THE NUMBERS
+- Frame time, hand drive, 84 + log against batch 4, back to back at load ~3. 900 frames each, --renderevery 4.
+  - Frames: median 6.6 and 6.7 ms; p99 1,785 and 1,781 ms; max 17,362 and 16,637 ms (both the first frame, t=0.03, uploading nothing).
+  - Frames over 33 ms: 254 and 253.
+  - On this machine a rendered frame takes about 1.8 s (Wine, a software GPU). So the p99, the max and the frames over 33 ms are the rendered frames, before and after.
+  - The streaming (the world's update with its uploads, on the main thread): median 0.05 and 0.04 ms, p99 1.95 and 2.73 ms, max 11.0 and 8.3 ms.
+  - Batch 4's heaviest updates: 8.3 ms at t=0.13 (uploading 45,41 near, 37.5k triangles with its roads and ground) and 7.9 ms at t=0.07 (47,41 near, 33.8k). 84's: 11.0 ms (four empty far cells) and 8.45 ms (four hand cells, 67k together).
+  - So a hand cell's upload costs about 2.2-2.5 ms per 10k triangles in the frame it lands in. The max didn't rise, and no frame over 33 ms came from a hand cell.
+- Cell builds in the game, near, ms (the drives at load ~3, and the shots again on the quiet machine):
+  - 45,41, 26 placements (19 before): 3.7 before, now 6.2 (drive) and 4.0 (quiet shots).
+  - 47,41, 32 placements (17 before): 2.2 before, now 4.5 (drive) and 6.1 (quiet shots). In the first shots run, at load 3.4-4.0, it took 8.1 near and 9.1 far; its next far build took 1.2 ms.
+  - 44,41, 21 placements (8 before): 2.6-2.9.
+  - 46,41, unchanged: 2.7 and 2.8.
+  - The rest 1.6 or less.
+  - By your ~8 ms rule: none passed it on the quiet machine. One reading of 47,41 did under load.
+  - Heads-up for batch 5: b012 brings 47,41 to about 36k triangles, about 7-7.5 ms at its quiet rate.
+- Interiors: 130 resident at most (757,602 triangles).
+- Memory: the hand drive used 2,984-2,987 MB on 84 and 2,993-3,001 MB on batch 4.
+- Follow-ups, as you said: (c) the stoops at load, not now; (a) the parallel cell build when a cell passes ~8 ms or the max rises because of a hand cell.

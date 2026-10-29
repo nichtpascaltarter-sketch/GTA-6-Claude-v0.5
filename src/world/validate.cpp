@@ -1,9 +1,12 @@
 // worldv's framework and its checks of ids, file paths and references (validate.h).
 #include "validate.h"
 #include "validate_layout.h"
+#include "validate_roads.h"
 #include "ntwschema.h"
+#include "worldmodel.h"
 #include <algorithm>
 #include <atomic>
+#include <cstdlib>
 #include <filesystem>
 #include <map>
 #include <memory>
@@ -21,7 +24,7 @@ namespace validate_detail {
 
 // The results cache is only reused by the validator that wrote it: any rebuild (new checks, schema or formatter) and any
 // change to the rules' version starts afresh. Raise the version when a check changes what it reports.
-const char* const kRulesVersion = "worldv rules 2";
+const char* const kRulesVersion = "worldv rules 3";
 const char* const kBuildStamp = __DATE__ " " __TIME__;
 
 const std::vector<CheckInfo> kChecks = {
@@ -35,6 +38,7 @@ const std::vector<CheckInfo> kChecks = {
     {"ref.form", "a field that names records doesn't have its shape (<edge>:<side>, a list of edges, ...)"},
     {"ref.missing", "a reference names nothing"},
     {"ref.kind", "a reference names a record of the wrong kind"},
+    {"piece.body", "a catalog piece's body= (its solid part) isn't WxDxH, or doesn't fit inside its size="},
     // inside a layout, unit or fit-out (docs/HANDBUILT_WORLD.md 9.1, and the kit's limits of 4.9)
     {"wall.cross", "two walls cross, or run along each other"},
     {"room.closed", "a room's polygon has an edge no wall closes, or no proper shape (outdoor rooms are open)"},
@@ -61,6 +65,27 @@ const std::vector<CheckInfo> kChecks = {
     {"floor.access", "a floor's hatch doesn't come up from a lower floor into one of its rooms"},
     {"door.height", "a door taller than its floor"},
     {"window.height", "a window whose top (sill + h) is above its floor's height"},
+    // the roads, their signal plans and transit, on the world model (validate_roads.h; docs/HANDBUILT_WORLD.md 9.1, 12.6)
+    {"value.form", "a compound value doesn't have its shape (lanes=F/B, median=W:barrier, shoulder=both:W, profile=s:z;..., wait=x,y:r, peds= 24 numbers)"},
+    {"road.loop", "an edge starts and ends at one node: a loop needs a node of its own along it"},
+    {"road.shape", "an edge's shape has fewer than 2 points or two in one place, or its ends miss its nodes by more than 2 cm"},
+    {"road.profile", "an edge's profile doesn't rise from 0 to its shape's length, or doesn't start and end at its nodes' heights"},
+    {"road.along", "a position or stretch along an edge (at=, from=, to=) is off the edge or runs backwards, or two lanes records of one direction overlap"},
+    {"road.overlap", "two carriageways lie on each other for more than 10 m outside the junctions, or cross at grade with no node"},
+    {"road.moves", "a moves record doesn't match the lanes arriving at its end, or a lane turns where no road with lanes leads"},
+    {"road.sector", "a junction or a signalled node has two legs in one compass sector (n, e, s, w) that its approaches= doesn't tell apart"},
+    {"road.legs", "a node's approaches=, stops= or yield=, or its junction's records, name an edge that doesn't meet it, or lanes it doesn't have there"},
+    {"road.connected", "a piece of the road network is joined to none of the rest (warning: a node with no edges)"},
+    {"signal.plan", "a signal plan's cycle isn't the sum of its phases, a movement or crossing is misnamed, or a walk outlasts its phase"},
+    {"signal.node", "a node's signal plan doesn't fit it: control= isn't signal, too few legs, approaches it doesn't have, or its offset (warning: legs it lacks)"},
+    {"parking.clash", "a parking bay overlaps a nostop, a curb cut or another bay on its side of the edge"},
+    {"busstop.kerb", "a bus stop on a highway or ramp, at a kerb no lanes run along, or with no sidewalk to wait on"},
+    {"transit.route", "a line's route edges don't meet, run against a one-way edge, or take a turn the junction doesn't allow"},
+    {"transit.stop", "a line stops at a bus stop off its route or on the far kerb (warning: routes= and the line's stops disagree)"},
+    // on the lane graph the game builds from the roads (validate_lanes.h)
+    {"road.lanes", "a lane leads nowhere at the node it runs into: no road with lanes goes on, or the junction's or the edge's records leave it no movement"},
+    {"signal.cover", "a signal plan never gives one of its node's movements a green, or one of its crossings a walk"},
+    {"signal.conflict", "a phase lets two movements whose paths meet go together with neither a permissive turn, or gives a walk across traffic that doesn't yield"},
 };
 
 // ---------------------------------------------------------------------------------------------------- small helpers
@@ -218,118 +243,8 @@ size_t countRecords(const std::vector<Ntw::Record>& recs) {
 
 // ------------------------------------------------------------------------------------------------ reference patterns
 
-// A pattern of the schema's reference table (ntwschema.h RefDef), parsed: alternatives, each a sequence of parts
-// that ':' separates in a value
-struct PatPart {
-    char kind = 'l';     // 'l' literal, '*' any one part, 'r' a reference
-    std::string text;    // the literal, or the reference's classes
-};
-struct PatAlt {
-    std::vector<PatPart> parts;
-    bool list = false;   // a list, each item these parts
-};
-struct Pattern {
-    std::string text;
-    std::vector<PatAlt> alts;
-};
-
-Pattern parsePattern(const char* text) {
-    Pattern pat;
-    pat.text = text;
-    std::vector<std::string> alts;
-    int depth = 0;
-    size_t from = 0;
-    for (size_t i = 0; i <= pat.text.size(); i++) {
-        const char c = i < pat.text.size() ? pat.text[i] : '|';
-        if (c == '<') depth++;
-        else if (c == '>') depth--;
-        else if (c == '|' && depth == 0) {
-            alts.push_back(pat.text.substr(from, i - from));
-            from = i + 1;
-        }
-    }
-    for (std::string a : alts) {
-        PatAlt alt;
-        if (endsWith(a, ",...")) {
-            alt.list = true;
-            a.resize(a.size() - 4);
-        }
-        for (const std::string& piece : split(a, ':')) {   // (classes hold no ':')
-            PatPart part;
-            if (piece == "*") part.kind = '*';
-            else if (piece.size() > 2 && piece.front() == '<' && piece.back() == '>') {
-                part.kind = 'r';
-                part.text = piece.substr(1, piece.size() - 2);
-            } else part.text = piece;
-            alt.parts.push_back(part);
-        }
-        pat.alts.push_back(alt);
-    }
-    return pat;
-}
-
-struct Named {   // a reference found in a value
-    std::string cls;
-    std::string id;
-};
-
-// An id, or a family of library ids (lib.unit.walkup.*)
-bool refText(const std::string& s) { return endsWith(s, ".*") ? Ntw::isId(s.substr(0, s.size() - 2)) : Ntw::isId(s); }
-
-bool matchItem(const PatAlt& alt, const std::string& item, std::vector<Named>& out) {
-    const std::vector<std::string> pieces = split(item, ':');
-    if (pieces.size() != alt.parts.size()) return false;
-    std::vector<Named> got;
-    for (size_t i = 0; i < pieces.size(); i++) {
-        const PatPart& p = alt.parts[i];
-        if (pieces[i].empty() || (p.kind == 'l' && pieces[i] != p.text)) return false;
-        if (p.kind == 'r') {
-            if (!refText(pieces[i])) return false;
-            got.push_back({p.text, pieces[i]});
-        }
-    }
-    out.insert(out.end(), got.begin(), got.end());
-    return true;
-}
-
-// The references in `value`, one group per list item; false when the value fits none of the alternatives
-bool matchPattern(const Pattern& pat, const std::string& value, std::vector<std::vector<Named>>& groups) {
-    for (const PatAlt& alt : pat.alts) {
-        std::vector<std::vector<Named>> got;
-        bool ok = true;
-        if (alt.list) {
-            std::vector<std::string> items;
-            ok = Ntw::toList(value, items);
-            for (size_t i = 0; ok && i < items.size(); i++) {
-                got.emplace_back();
-                ok = matchItem(alt, items[i], got.back());
-            }
-        } else {
-            got.emplace_back();
-            ok = matchItem(alt, value, got.back());
-        }
-        if (ok) {
-            groups = std::move(got);
-            return true;
-        }
-    }
-    return false;
-}
-
-struct RefRule {
-    const char* key;     // nullptr: the record's id
-    Pattern pattern;
-};
-
-// The schema's reference table, parsed once, by "<kind>/<type>"
-const std::unordered_map<std::string, std::vector<RefRule>>& refRules() {
-    static const std::unordered_map<std::string, std::vector<RefRule>> rules = [] {
-        std::unordered_map<std::string, std::vector<RefRule>> m;
-        for (const Ntw::RefDef& d : Ntw::schemaRefs()) m[std::string(d.kind) + "/" + d.type].push_back({d.key, parsePattern(d.pattern)});
-        return m;
-    }();
-    return rules;
-}
+// The schema's reference table, parsed (ntwschema.h refRules and matchRefs): the world model reads its references by the
+// same patterns, so worldv's reference checks and the model can't disagree
 
 bool isLocalClass(const std::string& cls) { return startsWith(cls, "."); }
 bool isFloorClass(const std::string& cls) { return startsWith(cls, "f.") || cls == "floor" || startsWith(cls, "floor|"); }
@@ -625,6 +540,24 @@ struct Scanner {
                 if (p.size() == 3 && p[0] == "lib" && p[1] == c && allParts(p)) cls = c;
             if (!cls) form(r, "a piece's id is lib.<kit|prop|veg|light|fence>.<name> (lib.kit.sofa_3seat)");
             def(r.id, cls ? cls : "piece", r.line);
+            // its solid part fits inside it
+            if (const Ntw::Field* b = r.field("body")) {
+                const auto dims = [](const std::string& t, float out[3]) {
+                    const std::vector<std::string> d = split(t, 'x');
+                    if (d.size() != 3) return false;
+                    for (int i = 0; i < 3; i++) {
+                        char* end = nullptr;
+                        out[i] = strtof(d[(size_t)i].c_str(), &end);
+                        if (d[(size_t)i].empty() || *end || !(out[i] > 0.f)) return false;
+                    }
+                    return true;
+                };
+                float bd[3] = {0.f, 0.f, 0.f}, sd[3] = {0.f, 0.f, 0.f};
+                const Ntw::Field* s = r.field("size");
+                if (!dims(b->value, bd)) error(b->line, "piece.body", "piece " + r.id + " body=" + b->value + ": not WxDxH, each over 0");
+                else if (s && dims(s->value, sd) && (bd[0] > sd[0] || bd[1] > sd[1] || bd[2] > sd[2]))
+                    error(b->line, "piece.body", "piece " + r.id + " body=" + b->value + ": doesn't fit inside its size=" + s->value);
+            }
         }
     }
 
@@ -659,7 +592,7 @@ struct Scanner {
         return std::string();
     }
 
-    void resolveLocal(const Named& n, const std::string& what, bool whole, int line) {
+    void resolveLocal(const Ntw::RefName& n, const std::string& what, bool whole, int line) {
         res.localRefs++;
         const std::vector<std::string> allowed = split(n.cls, '|');
         const auto it = local.find(n.id);
@@ -673,10 +606,9 @@ struct Scanner {
     }
 
     void applyRules(const Ntw::Record* r, const std::string& type, const std::vector<Ntw::Field>* fields, const std::string& id, int idLine) {
-        const auto& rules = refRules();
-        const auto found = rules.find(doc.kind + "/" + type);
-        if (found == rules.end()) return;
-        for (const RefRule& rule : found->second) {
+        const std::vector<Ntw::RefRule>* rules = Ntw::refRules(doc.kind, type);
+        if (!rules) return;
+        for (const Ntw::RefRule& rule : *rules) {
             std::string value, what;
             int line = idLine;
             if (!rule.key) {
@@ -692,14 +624,14 @@ struct Scanner {
                 line = f->line;
                 what = (r ? type + (id.empty() ? "" : " " + id) : std::string("the header's")) + " " + rule.key + "=" + value;
             }
-            std::vector<std::vector<Named>> groups;
-            if (!matchPattern(rule.pattern, value, groups)) {
+            std::vector<std::vector<Ntw::RefName>> groups;
+            if (!Ntw::matchRefs(rule.pattern, value, groups)) {
                 error(line, "ref.form", what + ": the value should have the shape " + rule.pattern.text);
                 continue;
             }
-            for (const std::vector<Named>& g : groups) {
+            for (const std::vector<Ntw::RefName>& g : groups) {
                 std::string building;   // a <building> earlier in the item gives the floor references after it their scope
-                for (const Named& n : g) {
+                for (const Ntw::RefName& n : g) {
                     const bool whole = n.id == value;
                     if (isLocalClass(n.cls)) {
                         resolveLocal(n, what, whole, line);
@@ -835,6 +767,30 @@ void checkCanonical(const std::string& text, const Ntw::Document& doc, FileResul
     }
 }
 
+// A file's kind, from its header line (after any comments and blank lines): enough to pick the files a pass types
+std::string headerKind(const std::string& text) {
+    size_t at = text.size() >= 3 && (unsigned char)text[0] == 0xEF && (unsigned char)text[1] == 0xBB && (unsigned char)text[2] == 0xBF ? 3 : 0;
+    while (at < text.size()) {
+        size_t end = text.find('\n', at);
+        if (end == std::string::npos) end = text.size();
+        const std::string line = text.substr(at, end - at);
+        at = end + 1;
+        const size_t first = line.find_first_not_of(" \t\r");
+        if (first == std::string::npos || line[first] == '#') continue;
+        std::vector<std::string> words;
+        size_t p = first;
+        while (p < line.size() && words.size() < 3) {
+            const size_t q = line.find_first_of(" \t\r", p);
+            words.push_back(line.substr(p, q == std::string::npos ? std::string::npos : q - p));
+            if (q == std::string::npos) break;
+            p = line.find_first_not_of(" \t\r", q);
+            if (p == std::string::npos) break;
+        }
+        return words.size() == 3 && words[0] == "ntw" ? words[2] : std::string();
+    }
+    return std::string();
+}
+
 // The checks of one file on its own. `deep`: all of them; otherwise only what the checks across files need (a file
 // outside --only). `inWorld`: the file has a place in a world, so its path is checked too.
 void checkFile(File& f, bool deep, bool inWorld) {
@@ -874,6 +830,20 @@ void checkFile(File& f, bool deep, bool inWorld) {
         // lift (the checks across files decide); a unit or fit-out has only its own doors
         if (noWayIn && inWorld && doc.kind == "layout") s.scoped("#noway", "noway", 1);
         else if (noWayIn) add(r.diags, 1, SEV_WARNING, "room.reach", "nothing leads into this " + doc.kind + ": no door out, no stair and no lift");
+    }
+    if (deep && fileModelKind(doc.kind)) {
+        // the file's records typed on their own, for the checks of roads, signal plans and transit that read one file
+        // (validate_roads.h); its references to other files stay unresolved there
+        std::vector<Hand::File> one(1);
+        one[0].path = f.path;
+        one[0].doc = std::move(doc);   // (the checks above are done with it)
+        one[0].valid = true;
+        Hand::Model m;
+        std::vector<Hand::Error> loading;
+        Hand::loadParsed(std::move(one), m, loading);
+        std::vector<ModelFinding> found;
+        checkFileModel(m, loading, found);
+        for (const ModelFinding& x : found) add(r.diags, x.src.line, x.severity, x.check, x.message);
     }
 }
 
@@ -1057,6 +1027,8 @@ struct WorldChecks {
     Index index;
     size_t refs = 0;
     std::set<std::string> reached;   // "<plan>/<floor>": floors that another floor's stairs or lifts name
+    RoadCounts counts;               // the roads pass's summary
+    bool roadsChecked = false;       // the world has roads, and the roads pass ran
 
     explicit WorldChecks(std::vector<File>& f) : files(f) {}
 
@@ -1171,6 +1143,31 @@ struct WorldChecks {
             }
         planPass();   // (first: relative stairs it resolves reach floors too)
         wayIn();
+        roads();
+    }
+
+    // The road network's checks read the world model (validate_roads.h): the world, district, roads, signal and transit
+    // files parsed again from the text this run read. The other files keep their places in it, untyped, so its file
+    // indices are this run's.
+    void roads() {
+        std::vector<Hand::File> mf(files.size());
+        bool any = false;
+        for (size_t i = 0; i < files.size(); i++) {
+            mf[i].path = files[i].path;
+            if (!files[i].readOk || !files[i].res.valid || !worldModelKind(headerKind(files[i].text))) continue;
+            std::vector<Ntw::Error> errs;
+            mf[i].valid = Ntw::parse(files[i].text.data(), files[i].text.size(), Ntw::schemaOpensBlock, mf[i].doc, errs);
+            any = any || (mf[i].valid && mf[i].doc.kind == "roads");
+        }
+        if (!any) return;   // (no roads: nothing to check, and no summary line)
+        Hand::Model m;
+        std::vector<Hand::Error> loading;   // (value.form and ref.form: each file's own checks report them)
+        Hand::loadParsed(std::move(mf), m, loading);
+        std::vector<ModelFinding> found;
+        checkWorldModel(m, found, counts);
+        roadsChecked = true;
+        for (const ModelFinding& x : found)
+            if (x.src.file >= 0 && x.src.file < (int)files.size()) add(files[(size_t)x.src.file].world, x.src.line, x.severity, x.check, x.message);
     }
 
     // The plan pass reads documents, not facts: every plan with the layouts of its floors, parsed again from the text
@@ -1270,24 +1267,17 @@ std::string absolutePath(const std::string& p) {
     return normalPath(ec ? p : a.generic_string());
 }
 
-// Every .ntw file under `dir`, sorted, as worldc finds them
+// Every .ntw file under `dir`, sorted, as worldc finds them: the world model's discover(), its errors as diagnostics
 void listTree(const std::string& dir, std::vector<std::string>& out, std::vector<Diagnostic>& problems) {
-    std::error_code ec;
-    std::vector<std::string> found;
-    std::filesystem::recursive_directory_iterator it(dir, ec), end;
-    while (!ec && it != end) {
-        std::error_code e2;
-        if (it->is_regular_file(e2) && it->path().extension() == ".ntw") found.push_back(it->path().generic_string());
-        it.increment(ec);
-    }
-    if (ec) {
+    std::vector<Hand::Error> errors;
+    const std::vector<std::string> found = Hand::discover(dir, errors);
+    for (const Hand::Error& e : errors) {
         Diagnostic d;
         d.file = dir;
-        d.check = "file.read";
-        d.message = "can't list it: " + ec.message();
+        d.check = e.code;
+        d.message = startsWith(e.message, dir + ": ") ? e.message.substr(dir.size() + 2) : e.message;
         problems.push_back(d);
     }
-    std::sort(found.begin(), found.end());
     out.insert(out.end(), found.begin(), found.end());
 }
 
@@ -1360,7 +1350,7 @@ void run(const Options& opt, std::vector<Diagnostic>& out, Summary& summary) {
     // the static tables, built once before the threads share them
     Ntw::schemaKinds();
     Ntw::schemaFormatRules().fieldOrder("terrain", "grid");
-    refRules();
+    Ntw::refRules("roads", "edge");
 
     forEach(files.size(), opt.jobs, [&](size_t i) {
         File& f = files[i];
@@ -1416,6 +1406,7 @@ void run(const Options& opt, std::vector<Diagnostic>& out, Summary& summary) {
     }
     summary.ids = wc.index.ids.size();
     summary.refs += wc.refs;
+    if (wc.roadsChecked) summary.roads = formatRoadCounts(wc.counts);
     out.insert(out.end(), problems.begin(), problems.end());
     std::sort(out.begin(), out.end(), lessDiag);
     for (const Diagnostic& d : out) (d.severity == SEV_ERROR ? summary.errors : summary.warnings)++;

@@ -1,8 +1,0 @@
-Embedded 40 shader files.
-In file included from src/main.cpp:70:
-src/game/app.cpp: In member function 'void Game::App::applyAutoplay(Game::Controls&, float)':
-src/game/app.cpp:5967: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
- 5967 |                     if (!o.used || i == pv || !o.persistent) continue;
-      | 
-src/game/app.cpp:5967: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
--rwxr-xr-x 1 root root 12998656 Oct 20 01:14 bin/loco_st16a.exe

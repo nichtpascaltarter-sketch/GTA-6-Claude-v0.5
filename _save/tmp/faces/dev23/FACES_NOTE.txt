@@ -1,1 +1,0 @@
-dev23 = 1a83e24 + batch 10 (face.cpp 29ae9767, anim_test 3067a353) - ear work

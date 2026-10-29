@@ -78,8 +78,9 @@ bool laneBehind(const AI::LaneGraph& G, vec2 p, vec2 fwd, float dist, int& outLa
 bool isCop(const Ped& p) { return p.used && p.faction == FAC_POLICE && p.health > 0.f; }
 
 // ---- the search once the suspect is lost: the places worth a look round the last-seen position - the corners of the
-// buildings (a peek along the far facade) and their doorways - handed out one per officer, nearest to them first and
-// away from what the others are checking, so the units on foot fan out instead of converging on one point
+// buildings (a peek along the far facade) and their doorways, and where there are few, the street corners - handed out
+// one per officer, nearest to them first and away from what the others are checking, so the units on foot fan out
+// instead of converging on one point
 struct SearchSpot {
     vec2 p;          // where to stand
     vec2 look;       // what to look along (the torch / the gun follows it)
@@ -101,10 +102,9 @@ void buildSearchPlan(const GameWorld& g, vec2 center, int wanted) {
     gS.wanted = wanted;
     gS.spots.clear();
     const World::BuildingSet* bs = g.buildings ? g.buildings : World::gBuildings;
-    if (!bs) return;
     float R = Min(searchRadiusFor(Max(wanted, 1)) * 0.5f, 75.f);
     std::vector<int> nb;
-    bs->buildingsNear(center, R, nb);
+    if (bs) bs->buildingsNear(center, R, nb);
     struct Cand {
         SearchSpot s;
         float d;
@@ -112,7 +112,7 @@ void buildSearchPlan(const GameWorld& g, vec2 center, int wanted) {
     std::vector<Cand> cands;
     auto ok = [&](vec2 p) {
         float d = length(p - center);
-        return d > 5.f && d < R && !bs->pointInBuilding(p, 0.35f) && !g.map->isWater(p.x, p.y);
+        return d > 5.f && d < R && !(bs && bs->pointInBuilding(p, 0.35f)) && !g.map->isWater(p.x, p.y);
     };
     for (int bi : nb) {
         const World::Building& b = bs->buildings[bi];
@@ -135,6 +135,25 @@ void buildSearchPlan(const GameWorld& g, vec2 center, int wanted) {
         vec2 door = b.c + b.front * (b.hy + 0.45f);
         vec2 p = door + b.front * 1.6f;
         if (ok(p)) cands.push_back({{p, -b.front}, length(p - center)});
+    }
+    // few buildings round there (the edge of town, a park - or none at all, as on the hand-built world's streets so far):
+    // the street corners and the sidewalks' ends round it as well, looking on along the way out. Without them the
+    // search went to random points in the area: in the water, in the fields, inside a wall
+    if (cands.size() < 8) {
+        const AI::LaneGraph& G = g.laneGraph;
+        std::vector<int> wl;
+        G.walksNear(center - vec2(R), center + vec2(R), wl);
+        for (int li : wl) {
+            const AI::WalkLink& L = G.walkLinks[li];
+            if (L.kind == AI::WL_CROSSWALK || L.kind == AI::WL_ZEBRA) continue;
+            for (int e = 0; e < 2; e++) {
+                const AI::WalkNode& n = G.walkNodes[e ? L.b : L.a];
+                const AI::WalkNode& o = G.walkNodes[e ? L.a : L.b];
+                const vec2 p = n.p.xy();
+                const vec2 look = normalize(p - o.p.xy() + vec2(1e-4f, 0.f));   // (on along the way it comes)
+                if (ok(p)) cands.push_back({{p, look}, length(p - center)});
+            }
+        }
     }
     std::sort(cands.begin(), cands.end(), [](const Cand& a, const Cand& b) { return a.d < b.d; });
     for (const Cand& c : cands) {
@@ -638,6 +657,7 @@ void escortStep(GameWorld& g, int id, float dt) {
     float turnR = ai_turn::ease(p.yaw, faceYaw, length(p.vel.xy()), p.aiming, 7.f, desired);   // (a walk's turn and pace: ai_turn)
     float dy = AI::wrapPi(faceYaw - p.yaw);
     p.yaw = AI::wrapPi(p.yaw + Clamp(dy, -turnR * dt, turnR * dt));
+    ai_pace::stairs(g, id, desired);   // (on a flight: a tread a step)
     g.movePed(p, desired, dt, false);
 }
 
@@ -835,6 +855,7 @@ void step(GameWorld& g, int id, float dt) {
     float turnR = ai_turn::ease(p.yaw, faceYaw, length(p.vel.xy()), p.aiming, 6.f, desired);   // (a walk's turn and pace: ai_turn)
     float dy = AI::wrapPi(faceYaw - p.yaw);
     p.yaw = AI::wrapPi(p.yaw + Clamp(dy, -turnR * dt, turnR * dt));
+    ai_pace::stairs(g, id, desired);   // (on a flight: a tread a step)
     g.movePed(p, desired, dt, false);
 }
 
@@ -1031,6 +1052,7 @@ void coverStep(GameWorld& g, int id, float dt) {
     float turnR = ai_turn::ease(p.yaw, faceYaw, length(p.vel.xy()), p.aiming, 6.f, desired);   // (a walk's turn and pace: ai_turn)
     float dy = AI::wrapPi(faceYaw - p.yaw);
     p.yaw = AI::wrapPi(p.yaw + Clamp(dy, -turnR * dt, turnR * dt));
+    ai_pace::stairs(g, id, desired);   // (on a flight: a tread a step)
     g.movePed(p, desired, dt, false);
 }
 
@@ -1161,6 +1183,7 @@ void step(GameWorld& g, int id, float dt) {
     float turnR = ai_turn::ease(p.yaw, faceYaw, length(p.vel.xy()), p.aiming, 6.f, desired);   // (a walk's turn and pace: ai_turn)
     float dy = AI::wrapPi(faceYaw - p.yaw);
     p.yaw = AI::wrapPi(p.yaw + Clamp(dy, -turnR * dt, turnR * dt));
+    ai_pace::stairs(g, id, desired);   // (on a flight: a tread a step)
     g.movePed(p, desired, dt, false);
 }
 
@@ -1460,6 +1483,7 @@ void step(GameWorld& g, int id, float dt) {
     float turnR = ai_turn::ease(p.yaw, faceYaw, length(p.vel.xy()), p.aiming, 6.f, desired);   // (a walk's turn and pace: ai_turn)
     float dy = AI::wrapPi(faceYaw - p.yaw);
     p.yaw = AI::wrapPi(p.yaw + Clamp(dy, -turnR * dt, turnR * dt));
+    ai_pace::stairs(g, id, desired);   // (on a flight: a tread a step)
     g.movePed(p, desired, dt, false);
 }
 
@@ -3456,6 +3480,7 @@ void GameWorld::aiPoliceBrain(int id, float dt) {
         float turnR = ai_turn::ease(p.yaw, faceYaw, length(p.vel.xy()), p.aiming, 8.f, desired);   // (a walk's turn and pace: ai_turn)
         float d = AI::wrapPi(faceYaw - p.yaw);
         p.yaw = AI::wrapPi(p.yaw + Clamp(d, -turnR * dt, turnR * dt));
+        ai_pace::stairs(*this, id, desired);   // (on a flight: a tread a step)
         movePed(p, desired, dt, false);
         return;
     }
@@ -3498,6 +3523,7 @@ void GameWorld::aiPoliceBrain(int id, float dt) {
         float turnR = ai_turn::ease(p.yaw, faceYaw, length(p.vel.xy()), p.aiming, 9.f, desired);   // (a walk's turn and pace: ai_turn)
         float d = AI::wrapPi(faceYaw - p.yaw);
         p.yaw = AI::wrapPi(p.yaw + Clamp(d, -turnR * dt, turnR * dt));
+        ai_pace::stairs(*this, id, desired);   // (on a flight: a tread a step)
         movePed(p, desired, dt, false);
         return;
     }
@@ -3583,6 +3609,7 @@ void GameWorld::aiPoliceBrain(int id, float dt) {
         float turnR = ai_turn::ease(p.yaw, faceYaw, length(p.vel.xy()), p.aiming, 9.f, desired);   // (a walk's turn and pace: ai_turn)
         float dyaw = AI::wrapPi(faceYaw - p.yaw);
         p.yaw = AI::wrapPi(p.yaw + Clamp(dyaw, -turnR * dt, turnR * dt));
+        ai_pace::stairs(*this, id, desired);   // (on a flight: a tread a step)
         movePed(p, desired, dt, false);
         return;
     }
@@ -3912,6 +3939,7 @@ void GameWorld::aiPoliceBrain(int id, float dt) {
     float turnR = ai_turn::ease(p.yaw, faceYaw, length(p.vel.xy()), p.aiming, 9.f, desired);   // (a walk's turn and pace: ai_turn)
     float dy = AI::wrapPi(faceYaw - p.yaw);
     p.yaw = AI::wrapPi(p.yaw + Clamp(dy, -turnR * dt, turnR * dt));
+    ai_pace::stairs(*this, id, desired);   // (on a flight: a tread a step)
     movePed(p, desired, dt, false);
     (void)pl;
     (void)stance;

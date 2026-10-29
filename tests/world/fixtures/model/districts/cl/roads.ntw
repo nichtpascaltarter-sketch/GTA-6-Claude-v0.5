@@ -22,7 +22,7 @@ edge cl.e0003 from=cl.n0001 to=cl.n0004 class=street name="NW 12th Ave" lanes=1/
   lanes from=0.00 to=40.00 dir=bwd count=2 add=left taper=10.00
   lane dir=fwd index=right use=bike
   noswitch dir=bwd from=0.00 to=30.00
-  moves at=n0 lanes=l,sr
+  moves at=n0 lanes=l,r
 end
 edge cl.e0004 from=cl.n0005 to=cl.n0001 class=lane lanes=1/0 sidewalk=left:1.80 shape=200.00,0.00;200.00,150.00
 end

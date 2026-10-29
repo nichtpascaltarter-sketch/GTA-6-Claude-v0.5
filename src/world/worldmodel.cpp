@@ -3,6 +3,7 @@
 #include "ntwschema.h"
 #include <algorithm>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <filesystem>
 #include <system_error>
@@ -463,6 +464,7 @@ struct Loader {
         if (std::string(r.value("stops", "")) == "all") n.stopsAll = true;
         else n.stops = refs(r, "stops");
         n.yields = refs(r, "yield");
+        n.noRedTurn = refs(r, "noredturn");
         if (const Ntw::Field* f = r.field("bulb"))
             if (!toFloat(f->value, &n.bulb) || n.bulb <= 0.f) {
                 badValue(*f, "node " + n.id, "a radius in metres");
@@ -723,6 +725,38 @@ struct Loader {
                     if (it[0].parts[1] == "left") p.frontSide = SIDE_LEFT;
                     else if (it[0].parts[1] != "right") badValue(*r.field("front"), "parcel " + p.id, "<edge>:left or <edge>:right");
                 }
+                p.graded = r.has("grade");
+                p.grade = num(r, "grade");
+                p.blend = num(r, "blend");
+                p.ground = text(r, "ground");
+                for (const Ntw::Record& c : r.children) {
+                    if (c.type == "paint") {
+                        GroundPaint g;
+                        g.src = at(c.line);
+                        g.kind = text(c, "kind");
+                        g.poly = points(c, "poly");
+                        p.paints.push_back(g);
+                    } else if (c.type == "pad") {
+                        Pad g;
+                        g.src = at(c.line);
+                        g.poly = points(c, "poly");
+                        g.z = num(c, "z");
+                        g.kind = text(c, "kind");
+                        p.pads.push_back(g);
+                    } else if (c.type == "fence") {
+                        Fence g;
+                        g.src = at(c.line);
+                        g.kind = ref(c, "kind");
+                        g.line = points(c, "line");
+                        if (const Ntw::Field* f = c.field("gate")) {
+                            const std::vector<std::string> parts = splitAt(f->value, ':');
+                            float a = 0.f, w = 0.f;
+                            if (parts.size() == 2 && toFloat(parts[0], &a) && toFloat(parts[1], &w)) g.gates.push_back(vec2(a, w));
+                            else badValue(*f, "fence", "<at>:<width>");
+                        }
+                        p.fences.push_back(g);
+                    }
+                }
                 define(p.id, "parcel", (int)m.parcels.size());
                 b.parcels.push_back((int)m.parcels.size());
                 m.parcels.push_back(p);
@@ -732,11 +766,136 @@ struct Loader {
                 l.src = at(r.line);
                 l.block = bi;
                 l.levels = integer(r, "levels", 1);
+                // entry= and exit=: <edge>:<at>:<side>
+                const auto cut = [&](const char* key, LotCut& c) {
+                    const std::vector<Item> it = items(r, key);
+                    if (it.size() != 1) return false;
+                    const Ntw::Field* f = r.field(key);
+                    if (it[0].parts.size() != 3 || !toFloat(it[0].parts[1], &c.at) || (it[0].parts[2] != "left" && it[0].parts[2] != "right")) {
+                        badValue(*f, "lot " + l.id, "<edge>:<at>:left or <edge>:<at>:right");
+                        return false;
+                    }
+                    c.edge = it[0].ref;
+                    c.side = it[0].parts[2] == "left" ? SIDE_LEFT : SIDE_RIGHT;
+                    return true;
+                };
+                l.hasEntry = cut("entry", l.entry);
+                l.hasExit = cut("exit", l.exit);
+                for (const Ntw::Record& c : r.children) {
+                    if (c.type == "row") {
+                        LotRow w;
+                        w.src = at(c.line);
+                        w.line = points(c, "line");
+                        w.bays = integer(c, "bays");
+                        if (c.has("w")) w.w = num(c, "w");
+                        if (c.has("len")) w.len = num(c, "len");
+                        w.hasYaw = c.has("yaw");
+                        w.yaw = num(c, "yaw");
+                        w.level = integer(c, "level");
+                        w.aisle = points(c, "aisle");
+                        l.rows.push_back(w);
+                    } else if (c.type == "ramp") {
+                        LotRamp a;
+                        a.src = at(c.line);
+                        a.from = integer(c, "from");
+                        a.to = integer(c, "to");
+                        a.line = points(c, "line");
+                        l.ramps.push_back(a);
+                    }
+                }
                 define(l.id, "lot", (int)m.lots.size());
                 b.lots.push_back((int)m.lots.size());
                 m.lots.push_back(l);
-            } else if (r.type == "path" || r.type == "plaza" || r.type == "spot") {
-                define(r.id, r.type == "path" ? "path" : r.type == "plaza" ? "plaza" : "spot", -1);
+            } else if (r.type == "plaza") {
+                Plaza z;
+                z.id = r.id;
+                z.src = at(r.line);
+                z.block = bi;
+                z.poly = points(r, "poly");
+                z.ground = text(r, "ground");
+                z.tags = list(r, "tags");
+                define(z.id, "plaza", (int)m.plazas.size());
+                b.plazas.push_back((int)m.plazas.size());
+                m.plazas.push_back(z);
+            } else if (r.type == "tree" || r.type == "plant" || r.type == "prop" || r.type == "light") {
+                Dress d;
+                d.what = r.type == "tree" ? Dress::DRESS_TREE : r.type == "plant" ? Dress::DRESS_PLANT : r.type == "prop" ? Dress::DRESS_PROP : Dress::DRESS_LIGHT;
+                d.src = at(r.line);
+                d.block = bi;
+                d.kind = ref(r, "kind");
+                d.hasYaw = r.has("yaw");
+                d.yaw = num(r, "yaw");
+                if (d.what == Dress::DRESS_LIGHT) {
+                    // at=x,y on the ground, or x,y,z
+                    const Ntw::Field* f = r.field("at");
+                    vec3 p3(0.f);
+                    if (f && Ntw::toPoint3(f->value, &p3)) {
+                        d.at = p3.xy();
+                        d.hasZ = true;
+                        d.z = p3.z;
+                    } else if (f && !Ntw::toPoint(f->value, &d.at)) {
+                        badValue(*f, "light", "x,y or x,y,z");
+                    }
+                    d.sched = text(r, "sched");
+                } else {
+                    d.at = point(r, "at");
+                }
+                if (d.what == Dress::DRESS_TREE) {
+                    d.h = num(r, "h");
+                    d.canopy = num(r, "canopy");
+                } else if (d.what == Dress::DRESS_PLANT) {
+                    d.scale = num(r, "scale", 1.f);
+                } else if (d.what == Dress::DRESS_PROP) {
+                    d.hasZ = r.has("z");
+                    d.z = num(r, "z");
+                    d.look = integer(r, "look");
+                }
+                b.dressing.push_back((int)m.dressing.size());
+                m.dressing.push_back(d);
+            } else if (r.type == "path") {
+                Path a;
+                a.id = r.id;
+                a.src = at(r.line);
+                a.block = bi;
+                a.line = points(r, "line");
+                a.w = num(r, "w");
+                a.kind = text(r, "kind");
+                a.profile = pairs(r, "profile", "path " + a.id);
+                define(a.id, "path", (int)m.paths.size());
+                b.paths.push_back((int)m.paths.size());
+                m.paths.push_back(a);
+            } else if (r.type == "steps") {
+                Steps a;
+                a.src = at(r.line);
+                a.block = bi;
+                a.line = points(r, "line");
+                a.w = num(r, "w");
+                a.treads = integer(r, "treads");
+                a.rise = num(r, "rise");
+                b.steps.push_back((int)m.steps.size());
+                m.steps.push_back(a);
+            } else if (r.type == "spot") {
+                Spot a;
+                a.id = r.id;
+                a.src = at(r.line);
+                a.block = bi;
+                a.kind = text(r, "kind");
+                a.hasAt = r.has("at");
+                a.at = point(r, "at");
+                a.hasYaw = r.has("yaw");
+                a.yaw = num(r, "yaw");
+                a.line = points(r, "line");
+                a.cap = integer(r, "cap");
+                a.hours = text(r, "hours");
+                a.cover = integer(r, "cover");
+                a.roles = list(r, "roles");
+                a.ages = text(r, "ages");
+                a.prop = ref(r, "prop");
+                a.pose = text(r, "pose");
+                a.target = text(r, "for");
+                define(a.id, "spot", (int)m.spots.size());
+                b.spots.push_back((int)m.spots.size());
+                m.spots.push_back(a);
             }
         }
         m.blocks.push_back(b);
@@ -749,8 +908,16 @@ struct Loader {
         b.file = file;
         b.block = headerRef("block");
         b.parcel = headerRef("parcel");
-        bool placed = false;
+        bool placed = false, configured = false;
         for (const Ntw::Record& r : doc->records) {
+            if (r.type == "config" && !configured) {
+                configured = true;
+                b.palette = ref(r, "palette");
+                b.roof = ref(r, "roof");
+                b.facade = ref(r, "facade");
+                for (const Ntw::Field& f : r.fields)
+                    if (f.key != "palette" && f.key != "roof" && f.key != "facade") b.options.emplace_back(f.key, f.value);
+            }
             if (r.type != "place" || placed) continue;
             placed = true;
             b.plan = ref(r, "plan");
@@ -780,7 +947,18 @@ struct Loader {
             const Ntw::Field* fam = doc->headerField("family");
             for (size_t i = 0; i < doc->records.size(); i++) {
                 const Ntw::Record& r = doc->records[i];
-                if (r.type == "palette" && !r.id.empty()) libItem("lib.palette." + std::string(fam ? fam->value : "") + "." + r.id, "palette", r.line, (int)i);
+                if (r.type != "palette" || r.id.empty()) continue;
+                libItem("lib.palette." + std::string(fam ? fam->value : "") + "." + r.id, "palette", r.line, (int)i);
+                PaletteDef pd;
+                pd.id = m.library.back().id;
+                pd.src = at(r.line);
+                pd.wall = color(r, "wall");
+                pd.trim = color(r, "trim");
+                pd.door = color(r, "door");
+                pd.accent = color(r, "accent");
+                pd.roof = color(r, "roof");
+                m.library.back().table = (int)m.palettes.size();
+                m.palettes.push_back(pd);
             }
         } else if (k == "catalog") {
             static const char* const kCategories[] = {"kit", "prop", "veg", "light", "fence"};
@@ -792,10 +970,177 @@ struct Loader {
                 for (const char* c : kCategories)
                     if (p.size() == 3 && p[0] == "lib" && p[1] == c) cls = c;
                 libItem(r.id, cls, r.line, (int)i);
+                LibItem& it = m.library.back();
+                it.code = text(r, "code");
+                it.variants = integer(r, "variants");
+                it.collide = text(r, "collide");
+                for (const char* key : {"size", "body"})
+                    if (const Ntw::Field* f = r.field(key)) {   // WxDxH
+                        vec3& v = key[0] == 's' ? it.size : it.body;
+                        const std::vector<std::string> d = splitAt(f->value, 'x');
+                        if (d.size() != 3 || !toFloat(d[0], &v.x) || !toFloat(d[1], &v.y) || !toFloat(d[2], &v.z)) {
+                            badValue(*f, "piece " + r.id, "WxDxH");
+                            v = vec3(0.f);
+                        }
+                    }
             }
         } else if (const Ntw::Field* h = doc->headerField("id")) {
             libItem(h->value, k.c_str(), 1, -1);
+            if (k == "plan") plan(h->value);
+            else if (k == "layout") layout(h->value);
+            else if (k == "facade") facadeStyle(h->value);
         }
+    }
+
+    // #rrggbb as rgb8 packs it (red in the low byte); ~0 where the field isn't written (the schema checked its form)
+    u32 color(const Ntw::Record& r, const char* key) const {
+        const Ntw::Field* f = r.field(key);
+        if (!f || f->value.size() != 7 || f->value[0] != '#') return ~0u;
+        const unsigned long v = strtoul(f->value.c_str() + 1, nullptr, 16);
+        return (u32)(((v >> 16) & 255u) | (v & 0xff00u) | ((v & 255u) << 16));
+    }
+
+    void plan(const std::string& id) {
+        Plan pl;
+        pl.id = id;
+        pl.src = at(1);
+        for (const Ntw::Record& r : doc->records) {
+            if (r.type == "meta") {
+                pl.cls = text(r, "class");
+                pl.family = text(r, "family");
+                pl.floorCount = integer(r, "floors");
+                if (const Ntw::Field* f = r.field("size")) {   // WxD
+                    const std::vector<std::string> d = splitAt(f->value, 'x');
+                    if (d.size() != 2 || !toFloat(d[0], &pl.size.x) || !toFloat(d[1], &pl.size.y)) badValue(*f, "plan " + id, "WxD");
+                }
+            } else if (r.type == "footprint") {
+                pl.footprint = points(r, "poly");
+            } else if (r.type == "floor") {
+                PlanFloor fl;
+                fl.id = r.id;
+                fl.src = at(r.line);
+                fl.layout = ref(r, "layout");
+                fl.z = num(r, "z");
+                fl.h = num(r, "h");
+                pl.floors.push_back(fl);
+            } else if (r.type == "roof") {
+                pl.roofForm = text(r, "form");
+                pl.pitch = num(r, "pitch");
+                pl.overhang = num(r, "overhang");
+                pl.roofMaterial = ref(r, "material");
+            } else if (r.type == "facade") {
+                pl.facade = ref(r, "style");
+                pl.palette = ref(r, "palette");
+            } else if (r.type == "entrance") {
+                PlanEntrance e;
+                e.id = r.id;
+                const std::string door = text(r, "door");
+                const size_t dot = door.find('.');
+                e.floor = dot == std::string::npos ? std::string() : door.substr(0, dot);
+                e.door = dot == std::string::npos ? door : door.substr(dot + 1);
+                e.kind = text(r, "kind");
+                pl.entrances.push_back(e);
+            } else if (r.type == "option") {
+                PlanOption o;
+                o.id = r.id;
+                o.choices = splitAt(text(r, "choices"), ',');
+                o.fallback = text(r, "default");
+                pl.options.push_back(o);
+            }
+        }
+        m.library.back().table = (int)m.plans.size();
+        m.plans.push_back(pl);
+    }
+
+    void layout(const std::string& id) {
+        Layout l;
+        l.id = id;
+        l.src = at(1);
+        for (const Ntw::Record& r : doc->records) {
+            if (r.type == "wall") {
+                LayoutWall w;
+                w.id = r.id;
+                w.src = at(r.line);
+                w.a = point(r, "a");
+                w.b = point(r, "b");
+                w.t = num(r, "t");
+                w.ext = text(r, "ext");
+                l.walls.push_back(w);
+            } else if (r.type == "door" || r.type == "window") {
+                LayoutOpening o;
+                o.id = r.id;
+                o.src = at(r.line);
+                o.door = r.type == "door";
+                o.wall = text(r, "wall");
+                o.at = num(r, "at");
+                o.w = num(r, "w");
+                o.h = num(r, "h");
+                o.sill = num(r, "sill");
+                o.kind = text(r, "kind");
+                o.room = text(r, "room");
+                o.leads = text(r, "leads");
+                o.hinge = text(r, "hinge");
+                o.swing = text(r, "swing");
+                l.openings.push_back(o);
+            } else if (r.type == "room") {
+                LayoutRoom rm;
+                rm.id = r.id;
+                rm.src = at(r.line);
+                rm.type = text(r, "type");
+                rm.sched = text(r, "sched");
+                rm.lux = integer(r, "lux");
+                rm.poly = points(r, "poly");
+                l.rooms.push_back(rm);
+            } else if (r.type == "stair") {
+                LayoutStair s;
+                s.id = r.id;
+                s.src = at(r.line);
+                s.from = text(r, "from");
+                s.to = text(r, "to");
+                s.run = points(r, "run");
+                s.w = num(r, "w");
+                s.kind = text(r, "kind");
+                s.treads = integer(r, "treads");
+                s.rise = num(r, "rise");
+                s.landing = num(r, "landing", -1.f);
+                s.walk = num(r, "walk", -1.f);
+                l.stairs.push_back(s);
+            }
+        }
+        m.library.back().table = (int)m.layouts.size();
+        m.layouts.push_back(l);
+    }
+
+    void facadeStyle(const std::string& id) {
+        FacadeStyle fs;
+        fs.id = id;
+        fs.src = at(1);
+        for (const Ntw::Record& r : doc->records) {
+            if (r.type == "wall") {
+                fs.wallMaterial = ref(r, "material");
+                fs.wallColor = text(r, "color");
+            } else if (r.type == "trim") {
+                FacadeTrim t;
+                t.kind = text(r, "kind");
+                t.material = ref(r, "material");
+                t.color = text(r, "color");
+                t.h = num(r, "h");
+                fs.trims.push_back(t);
+            } else if (r.type == "window") {
+                fs.windowKind = text(r, "kind");
+                fs.windowFrame = ref(r, "frame");
+                fs.windowColor = text(r, "color");
+                fs.shutters = text(r, "shutters");
+            } else if (r.type == "door") {
+                fs.doorStyle = ref(r, "style");
+                fs.doorColor = text(r, "color");
+            } else if (r.type == "base") {
+                fs.baseH = num(r, "h");
+                fs.baseMaterial = ref(r, "material");
+            }
+        }
+        m.library.back().table = (int)m.facadeStyles.size();
+        m.facadeStyles.push_back(fs);
     }
 
     void type(int fi) {
@@ -850,6 +1195,7 @@ struct Loader {
             for (auto& a : n.approaches) resolve(a.second);
             for (Ref& r : n.stops) resolve(r);
             for (Ref& r : n.yields) resolve(r);
+            for (Ref& r : n.noRedTurn) resolve(r);
         }
         for (size_t i = 0; i < m.edges.size(); i++) {
             Edge& e = m.edges[i];
@@ -888,8 +1234,33 @@ struct Loader {
             resolve(a.edge);
         }
         for (Block& b : m.blocks) resolve(b.district);
-        for (Parcel& p : m.parcels) resolve(p.front);
+        for (Parcel& p : m.parcels) {
+            resolve(p.front);
+            for (Fence& f : p.fences) resolve(f.kind);
+        }
+        for (Dress& d : m.dressing) resolve(d.kind);
+        for (Lot& l : m.lots) {
+            resolve(l.entry.edge);
+            resolve(l.exit.edge);
+        }
+        for (Spot& x : m.spots) resolve(x.prop);
+        for (Plan& pl : m.plans) {
+            for (PlanFloor& f : pl.floors) resolve(f.layout);
+            resolve(pl.roofMaterial);
+            resolve(pl.facade);
+            resolve(pl.palette);
+        }
+        for (FacadeStyle& fs : m.facadeStyles) {
+            resolve(fs.wallMaterial);
+            for (FacadeTrim& t : fs.trims) resolve(t.material);
+            resolve(fs.windowFrame);
+            resolve(fs.doorStyle);
+            resolve(fs.baseMaterial);
+        }
         for (Building& b : m.buildings) {
+            resolve(b.palette);
+            resolve(b.roof);
+            resolve(b.facade);
             resolve(b.block);
             resolve(b.parcel);
             resolve(b.plan);

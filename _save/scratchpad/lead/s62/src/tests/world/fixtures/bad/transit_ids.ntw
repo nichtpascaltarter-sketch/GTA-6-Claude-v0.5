@@ -1,3 +1,0 @@
-ntw 1 transit line=tram.8 kind=bus # expect id.form
-stop s1 busstop=cl.bus.08
-stop s1 busstop=cl.bus.09 # expect id.unique

@@ -1,9 +1,0 @@
-In file included from src/game/../game/game_all.cpp:61,
-                 from src/game/app.cpp:14,
-                 from src/main.cpp:75:
-src/game/../game/gameworld.cpp: In member function 'void Game::GameWorld::updatePostFx(float)':
-src/game/../game/gameworld.cpp:350: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
-  350 |     if (Phys::waterSurface(cp.x, cp.y, wz) && cp.z < wz - 0.05f) fx.underwater = 1.f;
-      | 
-src/game/../game/gameworld.cpp:350: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
--rwxr-xr-x 1 root root 15878656 Oct 20 12:39 bin/loco_st21k.exe

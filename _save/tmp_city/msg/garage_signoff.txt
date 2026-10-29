@@ -1,0 +1,31 @@
+city snapshot-safe: parking garages get a use (procedural world), and their decks stay lit all night. 3 files, each on fd07783's (72 doesn't touch them).
+
+FILES (3)
+- src/shaders/facade.hlsli 222a6b70 on 43f8e7bb
+- src/world/buildings.cpp 5c35d131 on 4ef3fdb1
+- src/world/buildings.h 1638b728 on fda7b1f3
+
+WHAT (player-facing)
+- At night the procedural world's 22 parking garages stay evenly lit, deck by deck, all night: 19 downtown and 3 site garages (2 at the airport, 1 at 2042.6,3507.1). Until now their windows followed a household's evening, as the night agent's 68 note said, so most decks went dark by midnight and a few stayed lit like night owls.
+- Night shots, before | after (nt_b4s3 | the new exe), of the 8-deck garage at (2730.5, 582.2), from 60 m west and 40 m up:
+  - 23:00, /tmp/city/garsmoke/pair_gar_2300.png: before, a few of its bays lit like flats; after, every deck lit;
+  - 03:00, /tmp/city/garsmoke/pair_gar_0300.png: before, all dark; after, every deck lit. Another garage further down the street lights up the same way.
+  - The decks still show the interior and the warm lamps the shader gives a home's windows. A parking deck's own look (cool even light, no rooms) would be a shader change, so I've left it for the night agent if they want it.
+- Nothing else changes, day or night: the garages' looks, every other building, and gameplay.
+
+HOW
+- buildings.h:
+  - Building::use, a BuildingUse: BU_DEFAULT (as its style says) or BU_PARKING. This is needed because BS_GARAGE is also the style of blockstyle.cpp's 3,450 back buildings (back houses, lock-up garages, sheds), which use it so that gameplay leaves them alone. The AI can now tell a parking garage by b.use == BU_PARKING.
+  - kFacadeParking = 32, a new FacadeGPU flag bit, with the bits documented.
+- buildings.cpp: both BS_GARAGE facade builders (the street generator's, and addSiteBuilding's for the site garages) set b.use = BU_PARKING and flags |= kFacadeParking. The back buildings build their own facades in blockstyle.cpp, so they stay unflagged.
+- facade.hlsli: facadeRoomSchedule() takes the flag and returns kRoomAlways for a garage. That is the existing all-night class of stairwells and lobbies, which is never vacant (the litFrac draw skips kRoomAlways). This is 3 code lines: no new schedule, and no roomlight.h or table change.
+
+CHECKS (72's tree + the 3 files)
+- The procedural census (rfcheck4: rfcheck2 with each building's arch, use, facade flags and lit fraction on its line): 22 of 55,081 record lines differ, the 22 garages, in their use (0 to 1) and facade flags (0 to 32) alone. With those two fields stripped, 0 lines differ.
+- meshcensus3: 0 of 13,913 cell and query lines differ from fd07783's (mesh effcf391d20a40f2): the flag changes no geometry.
+- CI's tests with CI's flags (-Wall -Wextra -Werror, UBSan): worldmodel_test (with the roomLight vectors), world_format_test and worldv_test all pass. MinGW -Wall on main.cpp with the exe build's flags: 0 errors, 0 warnings.
+- The exe built with 0 warnings: /tmp/city/nt_b5g.exe, 16,228,352 bytes (72's tree + the 3 files).
+- --gfxselftest: 0 failures. --roomlighttest (run in the after shots' game): 5,594,400 sweep inputs (1,743,432 lit), 0 differ between the GPU and the C++; 114 test vectors, 0 differ; PASS.
+- Drives with it, 0 fatal each, both exactly as before:
+  - procedural, 24 s first person: 6268 nodes, 9547 edges, ends at t=17.5 at 1789.9,130.6 with 93 peds and 63 vehicles;
+  - hand, 30 s: ends at t=21.5 at 1911.9,282.8 with 82 peds and 56 vehicles.

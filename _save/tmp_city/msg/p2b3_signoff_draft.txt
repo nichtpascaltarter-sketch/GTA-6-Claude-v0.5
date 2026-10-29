@@ -1,0 +1,21 @@
+city snapshot-safe: 2b slice 3 of the Calle Luna pilot, the props' colliders with the catalog's body=, and the pilot's real lot (the boatyard's). That completes 2b. On fd07783 + slices 1 and 2.
+
+FILES (@N@)
+@FILES@
+
+WHAT (player-facing)
+- In hand mode, walkers, turning circles and stands now keep clear of the pilot's props as they do of the sites' structures: World::siteColliderNear answers the blocks' 1,077 colliders (301 street light poles, 401 tree trunks, 375 street furniture). The physics already had its own per-type colliders and doesn't change.
+  - @LANES@
+- The boatyard on the Paseo del Rio (cl.b005.p05) has its lot, cl.b005.lot1, 100 bays in world.bin's blocks.lots:
+  - 60 car bays both sides of a middle aisle (x 1655, 90 m); 40 boat-trailer bays (4 x 10 m) both sides of a west aisle (x 1632); the aisles joined at their south ends;
+  - in one way from the Paseo del Rio (cl.e0040 at 45.13, its north side), out one way to the alley behind (cl.e0042 at 45.00, its south side), eastbound like the alley;
+  - 6 nodes and 5 links, every node on a way from the entry to the exit. Nothing is drawn for it yet (bay paint comes with the AI's parked cars).
+
+HOW
+- Catalog: an optional piece field body=WxDxH, the solid part the collider takes where that isn't the whole piece; size= where it isn't written. The pilot catalog gives it to its 5 trees (0.52 m, the physics' trunk), the street light (0.34 m, the physics' pole) and the café umbrella (its 0.10 m pole; the physics has no umbrella collider). worldv checks that body= is WxDxH and fits inside size= (piece.body, with a bad fixture).
+- "blocks.colliders": per collider its kind (box, cylinder), prop (an index into "blocks"' props), centre, bottom and top z, half extents and the box's width axis. A prop gets one when its piece has collide=box or cylinder: body= or else size=, times the prop's scale; a box turned with the prop; from the prop's base up. readBlocks refuses one naming a prop the blocks don't have.
+- HandBlocks::colliderNear(p, margin, height), inline, by cell: siteColliderNear asks it first in hand mode. The procedural world has no hand blocks, so nothing changes there.
+- Tests: worldmodel_test testColliders (a tree's trunk scaled with the tree, a bench's box turned with it, a bollard at its size, none for a shrub, the pole; on the props' bases; the queries' margins and heights; the round trip; damaged sections and missing props refused); worldv_test's bad fixture catalog_body.ntw.
+
+CHECKS
+@CHECKS@

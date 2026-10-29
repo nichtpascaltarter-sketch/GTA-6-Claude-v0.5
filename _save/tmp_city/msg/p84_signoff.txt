@@ -1,0 +1,86 @@
+city snapshot-safe: snapshot 84 makes hand cells build faster with the level ground's tile index and quad packing, and adds worldc --dump-ground. Nothing the game draws or does changes: every hand placement, every hand and procedural cell, and every ground answer on the pilot came out identical against 83. Base fe872e1, snapshot 83 (tree 48348aa4). 8 files, all changed on its blobs.
+
+FILES (path, base, new)
+docs/HANDBUILT_WORLD.md 907a61ff 86fc1f43
+src/render/mesh.h 843fa821 a7da106c
+src/world/blocksbin.cpp e1c16a8a 90e7a89c
+src/world/blocksbin.h 45c50e97 9bab64bf
+src/world/handshells.cpp 08a2f8fb db2ea991
+tests/world/worldmodel_test.cpp 2096cff7 1e68f3f3
+tools/author/street.py 65d1141c 2b44ab4d
+tools/worldc.cpp 484f0546 2df99da7
+(also in /tmp/city/p84_blobs.txt)
+
+WHAT (player-facing)
+- Nothing visible: the same world, built faster.
+- A hand cell's near build takes about 40% less time, and a far build about 60% less (numbers below).
+- Every ground query in hand mode (the walk, vehicles, peds, the stoops) tests the level polygons of one 8 m tile instead of the whole 256 m cell.
+
+HOW
+- (a) blocksbin.h and .cpp: HandBlocks::padHeight looks the level ground up by 8 m tile.
+  - The index: a grid of 8 m tiles over the box of all level polygons, with a metre to spare. It is 104 by 78 tiles on the pilot, with 9,225 entries. A tile grows past 8 m only where the level ground spans more than 4 km.
+  - A polygon is listed in every tile its outline's box reaches, 0.05 m past its edges, in the polygons' order, as the old 256 m cell lists were built. 810 of the 1,188 level polygons span more than one tile, the largest 150.
+  - The query tests that tile's polygons in that order with the old rule unchanged: skip a polygon above maxZ or not above the best so far, and the highest polygon containing the point wins. So the order couldn't change the answer anyway.
+  - A point outside the grid finds nothing, as before, since the grid covers every polygon's box.
+  - The old cell lists (levelByCell) are gone: padHeight was their only user. It is built at load from world.bin: no format or data change.
+  - worldmodel_test's cell-edge pad test now checks the tile index, and a long low pad's middle, its far corner and past it.
+- (b) render/mesh.h: MeshData::quad packs its normal and tangent once for its four corners, through addVertexPacked.
+  - quad takes no normals: it computes one normal and one tangent and always gave all four corners the same ones. packNormalOct is a pure function of its input, so packing once can't change a bit.
+  - Only quad changed. addVertex still packs per vertex for its other callers.
+- tools/worldc.cpp: --dump-ground=<file> --ground-box=<x0,y0,x1,y1 | block id> [--ground-step=0.25].
+  - After writing world.bin, worldc reads it back as hand mode does: the graded heights as loadHandTerrain forms them, readRoads with the overrides and each side's widths, and readBlocks.
+  - At each grid point it takes the terrain, or the road, sidewalk or level ground over it, as RoadNetwork::surfaceHeight answers in hand mode (the roads, then the level ground; hand mode has no sites), within 3 m above the terrain and down to 0.5 m under it. That is the scratch dumper's formula.
+  - A block's id boxes its parcels with 8 m around them. The world.bin it writes is byte for byte 83's.
+- tools/author/street.py (comments only): --ground names worldc --dump-ground as its input. street.py reads it unchanged.
+- handshells.cpp (a comment) and HANDBUILT 7.2 note your (c) for later: when a cell passes ~5 ms in the game, each placement's stoops can be worked out once at load.
+- Docs: HANDBUILT 5.3 and 6.1 (--dump-ground), the level ground passage (the 8 m tile), and 7.2 (the build times, and why there's no per-plan cache).
+
+CHECKS
+- (a) The old padHeight (83's index and query, copied verbatim into a scratch check) against the new one, on 83's world.bin: 61,679,539 probes, 0 differences, in both found and the height bit for bit. 30,652,562 of the probes land on level ground.
+  - A 0.1 m grid over the level ground's box plus 2 m: 51,947,982 probes.
+  - Every vertex, and 0.1 mm, 1 mm and 1 cm off it in 8 directions, each with no limit and at the polygon's own height: 287,392.
+  - Along every edge every 0.05 m, on it and 1 mm either side: 2,999,430.
+  - The tile borders and the cell borders (108 lines in x, 81 in y), on them and 0.1 mm either side, every 0.1 m: 4,044,735.
+  - Random: 1M points with no limit, 1M under a random limit of 2-8 m, and 200k at and just under a polygon's own height: 2,400,000.
+- (b) Every procedural cell built on the host as the game builds it (generateCell, after generating the world as the game does), all 6,400 cells near and far, hashed against 83: the opaque and decal meshes' vertices and indices, the props, the lights and the collision.
+  - 12,800 builds, 3,951 of them with geometry (114,018,095 vertices, 89,783,636 triangles): all identical.
+- 95/95 placements and 16/16 cells (8 cells, near and far) hash-identical against 83: vertices, indices and colliders.
+- worldc --dump-ground against the scratch dumps:
+  - b002, b003 and b007: byte for byte the files batch 3 and batch 2 used.
+  - b004: byte for byte the scratch tool's dump of the same world (83). Against batch 2's file, made on 81's world, 16 of 382,041 samples are 0.02 m higher, all inside b004.p11: 82's fix of its outline.
+- street.py --ground reads it, and a re-run with seed 6 on b002-b007 (in a copy) gives:
+  - b002, b003 and b007: no file rewritten.
+  - b004: h15 would move 1 cm (1535.58 to 1535.59). 82's fix of p11's outline came after batch 2 wrote h15, and the re-run gives the same with batch 2's own dump.
+  - b006: its 21 files predate the ground slice. Under today's rules 20 would move by 0.04-0.44 m (the same plans, palettes, mirrors and floor heights), and s21 would be left over.
+  - b005: built by hand. street.py keeps its 5 same-named files and would add 3 buildings (m02, s01, s06).
+- The usual:
+  - CI's three tests pass with CI's flags.
+  - MinGW -Wall: main.cpp (blocksbin, mesh.h, handshells) 0 errors and 0 warnings; tools/worldc.cpp with -Wextra 0/0; worldc on the host with -Wall -Wextra, 0 warnings.
+  - worldv: 0 errors and the 4 warnings as before (147 files, 2,623 records).
+  - The procedural census: 0 of 13,914 lines differ.
+  - world.bin is byte for byte 83's. The exe nt_b17: 16,472,064 B, with 0 warnings.
+  - The harness rebuilt on 84's code: 1,116 of 1,116 rooms, 0 tour legs off the walk. Its whole report (487 lines) is 83's but for the timings.
+- In the game:
+  - Hand drive, 0 fatal: at t=21.5 it is at 1919.8, 285.4 with 81 peds and 51 vehicles, as on 83.
+  - Procedural drive, 0 fatal: at t=17.5 it is at 1789.9, 130.6 with 93 peds, 63 vehicles and wanted 2, as on 83.
+  - Shots: two of the three are pixel-identical to 83's. The aerial differs as much between two runs of 83's own exe (its clouds' seed is the clock), so it shows nothing either way.
+
+THE NUMBERS (in the game on the quiet machine, 83 and 84 run back to back: the shots, then the hand drives)
+- Each hand cell's near build, ms, 83 then 84 (shots / drive):
+  - 46,41, 26 placements: 4.9 / 4.2, now 2.9 / 2.4.
+  - 45,41, 19 placements: 4.9 / 6.3, now 3.9 / 3.5.
+  - 47,41, 17 placements: 3.7 / 3.2, now 2.3 / 2.1.
+  - 44,41, 8 placements: 2.2, now 1.1.
+  - 45,40, 13 placements: 1.8 / 2.5, now 1.3 / 1.4.
+  - 46,40, 8 placements: 0.9 / 0.9, now 0.6 / 0.5.
+  - 44,40, 3 placements: 0.3, now 0.3.
+  - 47,40, 1 placement: 0.2 / 0.2, now 0.2 / 0.1.
+- Far builds: 45,41 1.5 to 0.6, 47,41 1.9 to 0.8, 45,40 0.7 to 0.4, 44,41 0.4 to 0.2.
+- On the host (min of 30): 46,41 near 2.92 to 1.40 ms, far 1.79 to 0.42 ms.
+- Load time (the log's "Hand world ... in"): 0.41 / 0.45 s on 83, 0.46 / 0.42 s on 84. The index's build doesn't show.
+- Memory, hand drive: 83 2,980-2,983 MB, 84 2,963-2,966 MB. That is within the runs' noise. The index is about 0.25 MB (8,112 tiles, 9,225 entries), against about 0.16 MB for the old cell lists.
+- Row 2's busiest cell (46,41 at 55-60 placements) should build in about 5-6 ms in the game: my "about 3 ms" was the host's. So (c), the stoops at load, comes due with row 2's b011 and b012, by your ~5 ms rule.
+
+Your call:
+1. b004.h15's 1 cm: fix it with row 2 (a re-run of street.py on b004), or leave it?
+2. b006: bring it onto today's street.py rules in a batch of its own, with its shots and the harness, or leave it as batch 1 wrote it?

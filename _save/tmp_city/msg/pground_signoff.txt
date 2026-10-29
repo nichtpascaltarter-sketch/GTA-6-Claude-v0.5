@@ -1,0 +1,95 @@
+city snapshot-safe: the ground slice, after 3c batch 1. Every junction corner's sidewalk in the hand world now carries a walk at the height it is drawn, every yard is a kerb's step down from its sidewalk, and the perch search has its pre-filter. Base f6a8558, snapshot 80 (tree f08eaf19). 34 files, all changed on its blobs, none new.
+
+FILES (path, base, new)
+docs/HANDBUILT_WORLD.md de936e7b 05b582ee
+docs/NTW_FORMAT.md a4b2ecc7 0c522d5a
+src/game/wildlife.cpp 269a9edd a84f0654
+src/world/worldmodel.h ed9efede 1a93bfd7
+src/world/worldmodel_blocks.cpp 8284f2be 99902a2b
+world/districts/cl/blocks/b001/block.ntw 2f82094e 80130bd7
+world/districts/cl/blocks/b002/block.ntw 8645c9c7 c93325c1
+world/districts/cl/blocks/b003/block.ntw 75351fba 1e3b7577
+world/districts/cl/blocks/b004/block.ntw f522eda2 dc9a0879
+world/districts/cl/blocks/b005/block.ntw 8c602d10 cda225ad
+world/districts/cl/blocks/b005/h09.ntw af3a3119 f2f7bffb
+world/districts/cl/blocks/b005/h10.ntw a4fd96f3 5de9907f
+world/districts/cl/blocks/b005/h11.ntw cda68f15 fd14364c
+world/districts/cl/blocks/b005/h12.ntw 01460120 9b4b8b74
+world/districts/cl/blocks/b006/block.ntw e272175a 07d00e0c
+world/districts/cl/blocks/b007/block.ntw 1da1ef2f b0766966
+world/districts/cl/blocks/b008/block.ntw 66d1f877 8d97dc8d
+world/districts/cl/blocks/b009/block.ntw 0f1b8823 e8e3857a
+world/districts/cl/blocks/b010/block.ntw 937d73f4 c90ac1cf
+world/districts/cl/blocks/b011/block.ntw 0fc2cf54 798ff1d9
+world/districts/cl/blocks/b012/block.ntw 8ff8e9f7 b87467d7
+world/districts/cl/blocks/b013/block.ntw f650c301 877aa60e
+world/districts/cl/blocks/b014/block.ntw 37075b0e 566fce00
+world/districts/cl/blocks/b015/block.ntw 6d946846 73fed6a2
+world/districts/cl/blocks/b016/block.ntw 4bf87943 078b24eb
+world/districts/cl/blocks/b017/block.ntw 6046b890 23e884e7
+world/districts/cl/blocks/b018/block.ntw e29add83 b6150ad7
+world/districts/cl/blocks/b019/block.ntw 66a42b53 66f06915
+world/districts/cl/blocks/b020/block.ntw 003d12af dfc1640d
+world/districts/cl/blocks/b021/block.ntw aa998ca9 c21208ee
+world/districts/cl/blocks/b022/block.ntw 0eedcacd 7dbdf1be
+world/districts/cl/blocks/b023/block.ntw 789af7e4 8136a019
+world/districts/cl/blocks/b024/block.ntw b5aaed7a 085e69b4
+world/districts/cl/blocks/b025/block.ntw 9fbae990 c80f4a76
+(also in /tmp/city/pground_blobs.txt)
+
+WHAT (player-facing, hand world only)
+- Junction corners: the corner sidewalk drawn between two streets' sidewalks is solid underfoot at its drawn height, at all 47 junctions (720 slab pieces under their 129 drawn corners). Before, inside the junction's cut-backs, a walk stood on the junction's road within its radius, 0.15 m under the drawn sidewalk, and on the terrain beyond it, 0.45 m under, sunk in the sidewalk. A car's wheel dropped as much.
+  - At cl.n0025 (Calle Luna x Avenida Coral) that was about 9 m² at each of its four corners. At the T at cl.n0033 (Avenida Palma on Calle Luna) it was Calle Luna's south sidewalk across the T's mouth, x 1731 to 1749.
+- Yards: all 326 generated parcels are level, 0.2 m under the lowest sidewalk along them. Their ground lies 0.03 m over that, so stepping into a yard is a 0.17 m step down where its sidewalk is lowest, and 0.30 m at most where the sidewalk climbs along it. Before, the yards lay 0.45 m under the sidewalks, cut with the roads. The one exception is b001's west end, which stands under Bougainvillea Boulevard's ramp as under a wall.
+  - The promenade along the river (b001): where the Paseo del Rio climbs, its strips are cut into level terraces with steps of 0.15 m or less between them. That makes 9 parcels where there were 7.
+  - Each yard's ground runs 0.5 m in under the sidewalk along it, or under an alley that stands higher. The block outlines came from a 0.5 m raster, and left slots of up to a metre that showed the terrain the roads cut, once the yards were up.
+  - Trees, plants, props, lamps, the boatyard's car park and the benches' spots stand on their parcel's grade.
+  - b005's four back bungalows (h09-h12) rise 0.17 m, so that each floor stands a step (0.2 m) over its levelled yard, as over the old ground. Otherwise they would have sat 3 cm over it.
+- Birds: the perch search is cheaper near hand-built shells, with the same perches as before.
+- Procedural mode is unchanged: the census is identical, and world.bin changes only in hand sections (buildings, terrain.grade, blocks, blocks.parcels, blocks.lots, blocks.spots, blocks.colliders, manifest).
+
+HOW
+- worldmodel_blocks.cpp (worldc):
+  - junctionCorners(): a level slab under each piece of every drawn corner sidewalk. It follows roadmesh.cpp's corner (the approaches' kerbs at their cut-backs, the curve through the kerb lines' meeting point, out by the narrower sidewalk), 5 cm in from its kerb and outer edge, 2 cm under its drawn top. There are six pieces on a curve and four on a straight one, each level at its lower end, so a sloping corner steps by a centimetre or two. The ground query takes the slabs as level ground (padHeight), and they are drawn out of sight under the sidewalk.
+  - You asked for the terrain to be raised there. It can't be: its grid is 8 m, so raising it under a 2.5 m corner would lift the road's edge and the next sidewalk with it. The slabs are what the terrain would have been, only where the corner is.
+  - A levelled parcel whose ground covers it now grades the terrain 0.3 m under its grade (BlockPad.covered, worldmodel.h), as the roads do. Otherwise the 8 m terrain between two parcels levelled at different heights rises through the lower one's ground.
+  - groundAt (the height worldc puts records on) takes a levelled parcel's grade where one covers the point, since the terrain under it is now lower, and the roads' grading cuts it under the parcel's front anyway.
+- The data, from my authoring script dress.py (scratch, as before; its output is the data):
+  - It gives each parcel grade = (lowest sidewalk top along its outline) - 0.2. A sidewalk more than 0.1 m over the front street's highest does not count: Bougainvillea Boulevard's ramp past b001's west end.
+  - It moves each vertex within 1.3 m of a street's edge 0.5 m in under it. A vertex at a junction, by two streets, goes to the two offset lines' meeting point, at the narrower sidewalk, since the corner is drawn that wide. A vertex of one parcel that lies on another's side is first added to that side, so that neighbours still meet when they move.
+  - It cuts the promenade strips where the Paseo climbs more than 0.12 m, by its 4 m samples.
+  - Only the generated parts of the 25 block files change: grade= on every parcel, the moved outlines, and b001's terraces. The dressing (trees, props, lights) is exactly as before.
+  - h09-h12: z 3.50, 3.49, 3.47, 3.44 become 3.67, 3.65, 3.63, 3.61.
+- wildlife.cpp findPerches: covered() now looks only at the boxes in its point's cell of a grid. The grid holds the boxes among the colliders near the anchor, over their extent, at most 48 by 48 cells of 4 m or more, built once per call. The test is the same, so the perches are the same.
+- docs: NTW_FORMAT (a levelled parcel's terrain, and records on its grade), HANDBUILT_WORLD (the blocks bullet: the corner slabs, the levelled parcels).
+
+CHECKS
+- Builds and data:
+  - CI's three tests pass with CI's flags.
+  - worldc: 0 warnings. 326 graded parcels of 327, 1,191 ground polygons (720 of them the corner slabs), and the terrain graded at 6,838 texels, by up to 0.47 m.
+  - worldv: 0 errors and the 4 warnings as before (85 files, 2,499 records: b001's two more parcels).
+  - MinGW -Wall: 0 errors and 0 warnings on main.cpp and on worldc.cpp. Host syntax of the tools: 0 errors.
+  - The procedural census: 0 of 13,914 lines differ from batch 1's.
+  - The exe nt_b14: 16,465,408 B, with 0 warnings.
+- Host checks (scratch tools on the compiled world.bin):
+  - The ground across every parcel's outline, 0.4 m each side, every metre. Before, 324 of 325 parcels had a step of more than 0.35 m up out of them. Now 1 of 327 does, b001's west end, under Bougainvillea's ramp, as above.
+  - The props: none stands under the ground at its foot.
+  - All 33 buildings' floors stand 0.19-0.22 m over their yards. The game's loader puts the terrain under the floors 0.42 m down or more (0.17 m on batch 1).
+  - The hand interiors harness: all 348 rooms are reached from the street, and no tour leg leaves the walk.
+- In the game (nt_b14, hand world), walking with --interiortest --interiorpath. The heights are the player's feet over the nearby interior's floor:
+  - cl.n0025's south-east corner, from Calle Luna round onto Avenida Coral and back (7 points): all reached, the feet within 0.02 m of the sidewalk's height all the way round.
+  - cl.n0033: Calle Luna's south sidewalk across the T's mouth and back (6 points), then its north-east corner round onto Avenida Palma and back (7 points). All reached, the feet 0.02-0.06 m under the shop's floor throughout, as the sidewalk falls along Calle Luna.
+    - On batch 1's exe, the same walk across the T's mouth sank to 0.48-0.49 m under the floor at its middle points and climbed out at each end.
+  - Yards, in and out, all points reached:
+    - b005.p01, paved, from Avenida Coral's sidewalk into the yard between the shops' backs and the bungalow h09: 0.22 m down and back up. On batch 1's exe it was 0.33-0.44 m down onto the ungraded ground, and back up.
+    - b011.p07, a lawn, from Avenida Coral: 0.21 m down and back up.
+    - b006, the side yard between the casita h15 and the bungalow h16, from the Paseo del Rio: 0.17 m down and back up.
+  - Shots of what looks different, 0 fatal, in /tmp/city/b14smoke/shots/ and shots2/ (PNG): b005's paved yards behind the shops seen from Avenida Coral, a step down from the sidewalk, with the bungalows' new stoops; a row of lawns on Calle Siete; the promenade's terraces along the Paseo del Rio.
+  - Hand drive, 0 fatal. It is no longer batch 1's run: from t=2.5 its traffic differs by a vehicle (62 against 61), and at t=21.5 the car is at 1919.8, 285.4 (1911.9, 282.8 on batch 1), with 81 peds and 51 vehicles. The ground under the hand world's spawns and parked cars changed (the yards, the corners, the boatyard's bays), so its traffic comes out differently.
+  - Procedural drive, 0 fatal: at t=17.5 it is at 1789.9, 130.6 with 93 peds, 63 vehicles and wanted 2, the same as on batch 1. That covers the perch pre-filter too.
+- The container restarted at ~03:30, during the yard walks. Everything it cut off re-ran.
+
+KNOWN, NOT FIXED
+- Where an alley without sidewalks meets a street, roadmesh draws no corner sidewalk, so the street's sidewalk just stops at the cut-back. A patch of bare ground lies there, 0.45 m under the sidewalk, at 32 such corners, as before. Now it lies 0.28 m under the yard beside it, whose side shows. A walk climbs out of it onto the yard. The fix belongs in roadmesh (a corner the street's sidewalk wide), and that is a procedural change.
+- A correction to how I first named these two problems: a walk climbs out of either one. The ground probe takes a step of up to 0.55 m (peds.cpp kStepUp), and only a collider's top is held to 0.35 m. So the corners sank a walk 0.45 m into the drawn sidewalk, and the yards were a knee-high step, but neither trapped anyone. The walks on batch 1's exe above show it: across the T's mouth the feet sank to 0.48 m and climbed out, and b005.p01's yard was a 0.33-0.44 m step down and back up.
+- dress.py is still my scratch script, as when it wrote the pilot's blocks. Do you want it in tools/author/, beside street.py?

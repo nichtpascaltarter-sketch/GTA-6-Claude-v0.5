@@ -1,2 +1,0 @@
-probe.hlsl psLocal ps_5_1
-probe2.hlsl psRet ps_5_1

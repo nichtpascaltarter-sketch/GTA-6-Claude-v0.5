@@ -1,0 +1,4 @@
+ntw 1 building id=cl.b005.s08 block=cl.b005 parcel=cl.b005.p04
+# the shop on the corner of the side street, facing Calle Luna
+place plan=lib.plan.shop.flats_a at=1691.00,339.30 z=3.60 yaw=180.0
+config palette=lib.palette.calle.coral

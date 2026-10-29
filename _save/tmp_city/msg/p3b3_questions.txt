@@ -1,0 +1,19 @@
+QUESTIONS (yours to decide; 3b-3 doesn't depend on them)
+1. A bug in main: no generator interior collides.
+   - interiors_game.cpp's colKeyFor gives every interior a negative collision key, and CollisionWorld stores the key as Collider::owner.
+   - ground(), capsuleOverlap(), raycast() and boxContacts() skip owner < 0, which means freed. So none of the generator's interiors' colliders or door leaves has ever collided, since the interiors pipeline (5b5c080).
+   - Their walls, furniture and leaves are walk-through, and the warehouse mezzanine's stairs can't be climbed. Only the hollow shells, which are in the cell collision, hold.
+   - 3b-3 fixes this for IK_HAND only: positive keys from 2000000. The one-line fix for all interiors would change procedural play: walls, furniture, leaves and the mezzanine would become solid for the player, the NPCs and the vehicles.
+   - With it, camera.cpp's new ceiling rule (below) should apply to every interior. A separate slice by me, or the interiors/physics owner's?
+2. The camera, which 3b-3 changes in hand mode only.
+   - The on-foot camera lifts itself to the ground probe + 0.35. The probe finds collider tops up to 1.05 m over the camera.
+   - With solid slabs, a camera near a ceiling (pitch below about -7 degrees) popped through to the floor above or onto the roof.
+   - Inside a hand-built building, it no longer lifts through a collider's underside. Outside them, and in procedural mode, the code path is the old one.
+3. Locks and hours: the plans' lock= (resident, staff, key) and the shop's hours= aren't compiled or enforced, so every door opens for anyone. OK for 3b, or wanted before 3c?
+4. The light budget:
+   - the renderer keeps 32 ambient volumes, so around b005 only the nearest 1-3 buildings' lamps light (a walk-up has 21 rooms);
+   - the windows still show their light state from the street;
+   - raising kMaxInteriorVolumes is a renderer change, if wanted.
+5. Follow-ups (yours, not started):
+   - AI: peds use the doors and go inside; a per-floor nav;
+   - animation: stair locomotion (on the ramp the feet sit up to 6 cm off the treads), and the other door kinds.

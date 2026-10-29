@@ -538,15 +538,15 @@ void GameWorld::driveVehicleAI(int vi, float dt) {
                 u32 hp = hash32(v.uid * 131u + (u32)(time * 0.1));
                 const AI::Lane& L = laneGraph.lanes[d->path];
                 bool street = L.cls == World::RC_STREET || L.cls == World::RC_AVENUE || L.cls == World::RC_LANE;
-                const World::RoadClassInfo& info = World::roadInfo((World::RoadClass)L.cls);
+                const float parkW = laneGraph.parkWidth(d->path);   // (the class's shoulder, or that side's parking as authored)
                 bool tryHere = hashToFloat(hp) < 0.2f * ai.lifeBoost && time - ai.lastParkArrive > 20.0 / Max(ai.lifeBoost, 0.1f) && plD > 40.f &&
-                               plD < 160.f && street && L.right < 0 && info.shoulder >= 1.8f && !(L.flags & (AI::LF_DIRT | AI::LF_HIGHWAY | AI::LF_RAMP));
+                               plD < 160.f && street && L.right < 0 && parkW >= 1.8f && !(L.flags & (AI::LF_DIRT | AI::LF_HIGHWAY | AI::LF_RAMP));
                 // the first free gap in the parking strip a little way ahead (a driver looking for a space)
                 for (int cand = 0; cand < 3 && tryHere && va.parking == 0; cand++) {
                     float spotU = d->u + d->info.frontLen + 30.f + cand * 13.f;   // front bumper of the parked car
                     if (spotU < L.u1 - 14.f &&
                         dot(laneGraph.laneTangent(d->path, d->u), laneGraph.laneTangent(d->path, spotU)) > 0.97f) {
-                        float plat = L.width * 0.5f + info.shoulder * 0.5f;
+                        float plat = laneGraph.parkLat(d->path);
                         vec3 spot = laneGraph.lanePos(d->path, spotU - spec.boxHalf.y, plat);
                         bool ok = !World::roadWorkZoneAt(spot.xy());
                         for (float bs : L.busStops)
@@ -566,7 +566,7 @@ void GameWorld::driveVehicleAI(int vi, float dt) {
                                 vec2 rl = ob.pos - base.xy();
                                 float al = dot(rl, t0), lt = dot(rl, r0);
                                 if (al > Max(3.f, span - 16.f - spec.boxHalf.y * 2.f - ob.halfLen) && al < span + 3.f + ob.halfLen && lt > L.width * 0.5f - 0.4f &&
-                                    lt < L.width * 0.5f + info.shoulder + 1.f)
+                                    lt < plat + parkW * 0.5f + 1.f)
                                     ok = false;
                             });
                         }

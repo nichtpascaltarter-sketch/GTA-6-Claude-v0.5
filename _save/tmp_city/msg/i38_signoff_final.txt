@@ -1,0 +1,48 @@
+city snapshot-safe: AI set 20 item 2, the I-38 gore median. Where only the expressway and its ramps meet, the median barrier now follows the lanes' curve through the node. On 41c3ca0 (66).
+
+FILES (blob written)
+- src/world/roadmesh.cpp ae20850a on 0c6aef3c (66's).
+  - All the checks below ran on eac131ff. After them I corrected one code comment, so ae20850a is eac131ff plus that comment and nothing else. The old comment quoted the AI's 0.16-0.37 m at the Bayshore Boulevard ramps; the new one gives the measured worst case below.
+
+WHAT (player-facing)
+- At a ramp-only node, the concrete median barrier and its two yellow lines used to run in two straight pieces: cut point, node centre, cut point. Where the expressway bends at the node, the fast lanes' curve and the barrier drifted apart. At the Sol Expressway's Flamingo Boulevard Exit (1237,661, a 1.2 degree bend) the barrier stood 3 cm into the fast lane.
+- Now the barrier, its collision and the lines follow the same curve the lanes take through the node. The fast lanes keep the median's 0.30 m to the barrier through the node, as they already did along the edges.
+- Nothing else changes: the network, the lanes and the edges' own barriers stay as they were. The hand-built world has no expressway, so the change doesn't reach it.
+
+HOW
+- roadmesh.cpp, the ramp-only node block: the run between the two cut points is now the lane graph's connector curve. That is lanes.cpp addConn's cubic Bezier on each edge's direction at its cut point, with the direction blended near a vertex the way laneTangent blends it. The curve is cut into 1 m pieces (6 to 48 of them), and each piece's sides use the mean of its two neighbours' directions so the quads meet without gaps.
+- The barrier's top and side texture coordinates now run along the curve's length, so the concrete doesn't restart at every piece.
+
+MEASURED
+- I used a scratch traffic_sim option. It checks the barrier's collision boxes (0.6 m wide) against the median-side edges of the fast lanes and connectors.
+- All 50 ramp-only nodes:
+  - On 66, the worst is -0.033 m at node 74 (above). Six nodes are under 0.25 m: 74 at -0.033, 28 at 0.197, 36 at 0.216, 25 at 0.229, 64 at 0.240 and 35 at 0.242.
+  - With the change, every node measures 0.299-0.300 m along the curve.
+- The AI's gore is I-38 by the Bayshore Boulevard Exit and Entrance (2480-2492 / 3668-3776, nodes 15 and 17).
+  - There, 66 already measures 0.295 m, and the change makes it 0.299-0.300 m.
+  - I couldn't reproduce 0.16-0.37 m there: I-38 bends only 0.04-0.05 degrees at those nodes. The tight places are the bent nodes listed above.
+- Along the edges the clearance is 0.300 m by construction: the 1.2 m median is a 0.6 m barrier with 0.3 m on each side. More room than that would need a wider expressway median, which moves every I-38 cell and interchange. Say if you want it.
+
+CENSUS (procedural)
+- The generator doesn't change, so the road network, buildings and places are as on 66: roadmesh.cpp only meshes the network.
+- meshcensus2 against 66 (every road cell at both levels of detail: meshes, props, lights, collision and the road surface queries):
+  - 76 cell lines differ. That is 38 cells at both levels of detail, and they are exactly the 38 cells that hold the 50 ramp-only nodes. No other cell changes.
+  - Road queries: 0 of 9,547 edge lines differ.
+  - Road vertices: 11,348,722 -> 11,384,050, from the curve's pieces.
+
+CHECKS
+- CI's tests: roadmesh.cpp is in none of them (world_format_test, worldv_test, worldmodel_test and worldv don't include it), so they are 66's.
+- worldv and worldc: they don't use the mesher, and the hand world's files don't change.
+- MinGW, main.cpp with the exe build's own warning flags (-Wall and the build's exclusions), on 66's tree with the file: 0 errors, 0 warnings.
+- The exe built with 0 warnings: /tmp/city/nt_i38.exe, 16,052,736 bytes.
+  - Its tree has 66's src/world plus the change, but its game files are from just before 66: they lack the AI's sets 21-22, the start menu and the night work.
+  - The mesher is the same in both, and the "before" shots come from the matching exe without the change.
+- Shots, before (the same tree without the change) and after, 1280x720:
+  - At node 74: an aerial, the deck seen from the street, and a top view.
+  - At the AI's gore: an aerial.
+  - The top view at node 74 shows the barrier and its lines on the lanes' curve, with no bend at the node centre. At 1.2 degrees the difference is slight. In the other three it is too small to see: at the gore I-38 is almost straight.
+  - The after run: 0 fatal errors, and the network has 66's 6,260 nodes and 9,547 edges.
+  - Files: /tmp/city/i38smoke/pair_*.png (before | after), and the full-size after BMPs in /tmp/city/i38smoke/i38/.
+- Drives with that exe, 0 fatal errors each:
+  - Procedural (first person, 24 s): rc 0, the network at 6,260 nodes and 9,547 edges, a clean shutdown. At t=17.5 s: (1806.7,268.0), 87 peds, 66 vehicles.
+  - Hand mode (30 s): rc 0. At t=21.5 s: (1852.4,257.9), 88 peds, 63 vehicles. That is exactly the same tree's drive without the change, as it should be: the pilot has no expressway.

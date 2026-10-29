@@ -1,6 +1,7 @@
 #include "renderer.h"
 #include "../world/worldmap.h"
 #include "../world/handworld.h"
+#include "../world/roomlight.h"
 #include "../platform/platform.h"
 
 namespace Render {
@@ -101,6 +102,7 @@ struct SkySystem {
 #include "fxdemo.cpp"
 #include "grass.cpp"
 #include "skin.cpp"
+#include "roomlight_test.cpp"
 
 namespace UI { gfx::Texture buildSignAtlas(const std::vector<std::string>& names); }
 
@@ -215,6 +217,8 @@ bool Renderer::init(int w, int h) {
         debugView = atoi(ds);
         debugSplit = 0.5f;
     }
+    // the facade's HLSL roomLight() against the C++ copy (docs/HANDBUILT_WORLD.md 7.8): logged, the game carries on
+    if (Platform::hasArg("roomlighttest")) roomLightSelfTest();
     return true;
 }
 
@@ -322,6 +326,12 @@ void Renderer::computeSunAndSky(const Environment& env) {
     }
     nightFactor = SmoothStep(-2.f, -9.f, sunElev);
     sunElevation = sunElev;
+    // How dark it is outside for the room lights (world/roomlight.h roomLight's `night`, docs/HANDBUILT_WORLD.md 7.8):
+    // one integer a frame, read by the CPU (resident rooms, spill lights) and the facade shader alike. Each room
+    // switches on at its own threshold (48..111), so homes light up between about +2 and -0.4 degrees of sun; heavy
+    // cloud and rain bring it on sooner.
+    float dusk = Saturate((4.f - sunElev) / 10.f + 0.25f * Saturate((env.cloudCover - 0.6f) / 0.4f) + 0.2f * Saturate(env.rain));
+    roomNightLevel = (u32)(dusk * 255.f + 0.5f);
 }
 
 bool Renderer::cameraInInterior() const {
@@ -429,6 +439,11 @@ void Renderer::updateFrameConstants(const Camera& cam, const Environment& env, f
     gfx::ctx->prepareBindlessRead(materials->normalArr.res);
     gfx::ctx->prepareBindlessRead(props->foliageArr.res);
     world->bindlessFrame(f.bindlessFacade);
+    // The room lights' clock: the facade windows' roomLight() takes the same three integers as the CPU's copy
+    f.roomClock[0] = env.gameDay;
+    f.roomClock[1] = World::roomMinute(env.timeOfDay);
+    f.roomClock[2] = roomNightLevel;
+    f.roomClock[3] = 0u;
     frameCB.data = f;
     frameCB.upload();
 }

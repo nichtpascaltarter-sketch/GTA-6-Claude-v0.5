@@ -1,2 +1,0 @@
-ntw 1 district district=c-l # expect id.form
-zone cl.audio.main kind=audio poly=0.00,0.00;1.00,0.00;1.00,1.00 # expect id.form

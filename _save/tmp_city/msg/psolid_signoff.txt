@@ -1,0 +1,82 @@
+city snapshot-safe: interiors solid. Every interior's walls, furniture, floors, stairs and door leaves now collide: the generator's 29 and the hand-built 12. Base 77 (53b5b34, tree c12a6f25). 6 files, all on 77's blobs.
+
+FILES (path, base, new)
+docs/HANDBUILT_WORLD.md cde382d1 08b26366
+src/game/camera.cpp a227e174 192e0e0a
+src/game/interiors_game.cpp 013ea78e 04312634
+src/world/interiorhomes.cpp 377150aa f32bef8c
+src/world/interiorindustrial.cpp 08d65b46 9cbb555a
+src/world/interiorshops.cpp 462eb06a e744f0b8
+
+WHAT (player-facing)
+- Inside every interior, the player, the NPCs and the vehicles now stop at walls, counters, shelves, furniture, closed door leaves and roll-ups.
+  - Before, only the generator's hollow shells collided, and everything inside was walk-through.
+  - Doors still open for anyone who walks up to them, and roll-ups for the player's car.
+- Several street doors can now be walked into without a jump. Their layouts' entry steps were never solid before. This holds for Sunrise Food Mart, Northside Quick Stop, Flats Food & Fuel, Grove Pantry, both gun shops, Threads, Rook's Garage, Dex's Trailer, Key Coral Villa, the car wash and the Downtown Penthouse lobby.
+  - I checked Sunrise in the game: on 77's exe the walk-in stops in the gutter at the door, and on this one it walks in.
+- The warehouse mezzanine can be climbed, and its office reached.
+- Inside every interior, the third-person camera stays under the ceilings. It no longer pops up to the floor above or onto the roof when pitched down near a ceiling.
+- Three content fixes keep features working with solid furniture:
+  - Gun shops (Palmetto Arms, Northside Arms): the buy marker was behind the counter and the clerks stood in front of it. They are swapped.
+    - With a solid counter, the shop could not have been reached.
+    - Now the player walks up to the counter and the shop menu opens, with the clerk behind it.
+  - Dex's Trailer, a safehouse: the lounge (sofa, table, TV, and the window over the sofa) moves 0.45 m along the front wall. The sofa stood in front of the bedroom door, which hid the bed (save) and the wardrobe.
+  - Port Isle Warehouse: the mezzanine stair collides as a ramp, three thin colliders to a tread, as 3b-3's stairs do. Two of its 0.18 m risers make 0.36 m, more than the walk's 0.35 m step.
+- Nothing else changes in procedural mode: world.bin is identical, and both drives are identical to 77's.
+
+HOW
+- interiors_game.cpp colKeyFor: every interior gets positive keys (2000000 + def*256 + sub). The collision world takes a negative owner for a freed collider. 3b-3 did this for IK_HAND only.
+- camera.cpp: inside any interior (Interiors::isInside), the camera's lift above the ground no longer passes up through a collider's underside. A colliders-only raycast up checks this. 3b-3's insideHandBuilt goes, and outside interiors the code path is the old one.
+- Content fixes:
+  - interiorshops.cpp: the marker and the clerks' points (2 lines);
+  - interiorhomes.cpp: the lounge's x and its window;
+  - interiorindustrial.cpp: the ramp.
+- The test: --interiortest now takes --interiorpath "x,y[,z];..." (model space).
+  - It holds the player on the first point until the interior and its cell collide there, then walks the points.
+  - It logs each point reached or not, and where the walk ended.
+  - Without a path, it logs where the player is after 12 s.
+- Docs: HANDBUILT_WORLD 7.2's sentence on collision.
+
+CHECKS
+- CI's three tests pass with CI's flags. worldc: 0 warnings, and world.bin is byte-identical to 77's. worldv: 0 errors, 4 warnings, as on 77. MinGW -Wall: main.cpp 0 errors, 0 warnings; worldc.cpp 0 and 0. Host syntax of traffic_sim, worldcheck and terrainbake: 0 errors.
+- Procedural census: 0 of 13,914 C/Q/F lines differ from 77.
+- exe: 16,439,808 B, 0 warning or error lines.
+- A host harness (scratch) builds every generator interior with the game's own collision, its cells' and its own. It walks the game's capsule (0.3 m radius, 0.35 m step) through today's collision and through the solid one.
+  - From the entry with solid colliders, every room is reached in all 29 interiors except:
+    - the gun shops' staff side behind the counter, by design;
+    - the rooms named below.
+  - Today's collision reached nothing beyond those.
+  - Every marker the player walks to is reached: counters, beds, wardrobes, mirrors, the elevator, the service lift. The one exception is Threads' mirror (below).
+  - Mari's Apartment's entry marker sits on a 0.8 m piece of furniture 0.6 m inside the door. The way in passes beside it, and only --interiortest walks to it.
+  - 63 of the 195 NPC points lie inside a collider. 62 are seated in their seats (booths, stools, sofas, chairs) and are pinned there; one is Threads' clerk.
+- In the game on the final exe, each walking with no teleport:
+  - Sunrise Food Mart: from the street, through its sliding door, inside after 12 s.
+  - Port Isle Warehouse: across the floor, up the mezzanine stair, onto the deck at 3.60 m.
+  - Dex's Trailer: from the door, round the lounge, through the bedroom door to the bed (0.44 m from its marker).
+  - Mari's Apartment: from the entry to the bed (0.42 m).
+  - Sol Beach Condo, 31.5 m up its tower: from the entry to the bed (0.36 m).
+  - Palmetto Arms: up to the counter, where the shop menu opened.
+- On the same build, before a fix to the test's own code:
+  - the Tide Customs Calle Luna drive-in: in through the roll-up, onto the lift, the menu, a $500 paint job, and back out to the street;
+  - the elevator test: the Solaris One lobby to the penthouse;
+  - the hold-up test at TideStop Mart: the bag taken, the clerk phoned it in, 2 stars;
+  - the 9 missions staged inside interiors all passed: repo_man, pressure, collateral, blueprints, solaris_one, wake, box_numbers, king_tide and series. Their times match the last full regression, except wake at 33 s against 42.
+- Hand drive: identical to 77's (90/61, 90/62, 82/56). Procedural drive: identical (t=17.5 at 1789.9,130.6, 93 peds, 63 vehicles, wanted 2). 0 fatal everywhere.
+
+NAMED, NOT FIXED (what I'd do; each is small)
+- Pre-existing, the same on 77:
+  - 10 street doors sit over the 0.46-0.48 m gutter, so walking in from the street needs a jump. I checked one on 77's exe: --interiortest TideStop stopped in the gutter.
+    - The doors: Mari's Apartment, Mama Lucha's, Police HQ, TideStop, Bodega La Luna, Canvas Corner, Palm Motors, both Tide Customs, and the Sol Beach Condo lobby.
+    - What I'd do: stoops at those doors, as 3b-3's buildStoops does for the hand-built shells.
+  - The Tide Customs Sol Beach drive-in stops at its roll-up door, 8.8 m from the lift, on 77's exe as on this one. I'd look at that door's threshold with the vehicle physics.
+- Content that now collides badly. These are reachable today by walking through furniture:
+  - Mama Lucha's kitchen: a cabinet and a box stand in front of both kitchen doors. I'd move each 0.4-0.5 m.
+  - Rook's Garage office: a desk stands just inside its door. I'd move it 0.5 m.
+  - Both condos' bathrooms (Sol Beach Condo, Downtown Penthouse): the bed's head is against the bathroom door. I'd move the bath door to the corner and drop that side's nightstand.
+  - Threads: a floor clerk's point is inside a fold table, so it jumps out of it when it panics. I'd move it 1 m. Its mirror marker is in the building's solid rear, out of reach today too; I'd move it into the shop.
+- By design, or not reached in play:
+  - The car wash's waiting car fills its bay.
+  - The warehouse has crates 2.5 m inside its left roll-up and a pallet by the middle one. No mission drives in.
+- AI (yours to log): NPCs that move inside interiors, such as panicked customers, now need the doors, and interiors have no nav.
+
+Next: the 3c batch 1 plan follows in a separate message, as you asked. I won't start it before your go.

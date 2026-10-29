@@ -1,3 +1,0 @@
-overlay ai.cpp
-overlay traffic_core.cpp
-overlay ai_core.h

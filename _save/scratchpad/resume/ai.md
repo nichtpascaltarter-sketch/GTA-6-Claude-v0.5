@@ -1,3 +1,380 @@
+# AI agent: Oct 27 06:22 UTC DEADLOCK FIX SIGNED: src/game/traffic_core.cpp 9882ea4b on b3d85a35 (+ optional harness
+  tools/traffic_sim.cpp 9a155df1 on dce14648: --sweepduel). Pilot x6 on c8707dd: fix = as pushed, line for line (col 0, red 0,
+  dl 0, 3pt 55, holds 28, short 10). Parked.
+
+# AI agent: Oct 27 06:25 UTC PR #62 (c8707dd = snapshot 69 with my 5 blobs): Codex's sweep stop-short DEADLOCK is REAL.
+  plan()'s stop-short (pre-entry, gateStop finite) at all-way stops / two stop signs: two long vehicles whose turns sweep
+  each other's lanes both stop short for good (all-way/sign need stopDone at the line; no wait escape before it; stuck needs
+  throttle; no hold since neither is in a zone; game recycles only beyond 340 m). FIX AW/s24f/traffic_core.cpp
+  9882ea4b (on b3d85a35): at all-way / both-stop-sign junctions a long vehicle does not stop short for a HIGHER-uid long one
+  that is itself still short of our sweep (uid, not distance: the distance version let both in -> mutual hold -> scrape).
+  Harness --sweepduel X Y R MODEL [stopsigns] (AW/s24f/traffic_sim.cpp 9a155df1, optional). Duels (SP/ts/s69 d_*):
+  before bus 42/50 standoffs, truck 44/50, van 29/29, bus+signs 42/50, Midtown 11/16; after 0 everywhere. Touches after:
+  pilot nodes 29/45 (bus pairs) = set 24's early release (stop-short ends when the long one moves onto its exit lane; its
+  tail still sweeps; zones assume 20 m) - follow-up, not in this fix; Midtown node 285 touch identical before/after.
+  Host -Wall -Wextra: HEAD's 2; MinGW syntax c8707dd + fix 0/0. Pilot x6 x vs y running (AW/ts_chain69r.sh).
+
+# AI agent: Oct 27 05:26 UTC SET 24 ADDENDUM SENT (coordinator: snapshot 69 waits on it). VERDICT: the 5 blobs stand
+  (lanes 6a7145cd, ai_core.h 779f8eaf, traffic_core b3d85a35, traffic_sim dce14648, app c2cbecf5; base 886dc47). Parked.
+- 68 world (SP/ts/s68, i = set 24 / b = 886dc47's AI): checks identical; pilot col 0/3 (all long-body sweeps), dl 0/2
+  (node 2), red 1/2, 3pt 57/75; Midtown col 2(1h)/4(2h) (i's = b's parked pair: node 277 soft + e9243 two directions
+  at (3901,3085) hard - world), dl 22/45 (nodes 275-281); others col 0/1 (P70 sweep Sol Beach), dl 1/1, red 1/0.
+- REDs: all amber goers at the change (runsAmber trait: up to 0.6 s into red; Calle Luna car 130 slowed by a leader
+  after its go, crossed at 2.1 m/s - unchanged base rule; watch130_luna_i.txt). Sol Beach i wait: give-way queue at
+  uncontrolled node 2264 (cars 117/80 ordinary, cross traffic; watch117/80_beach_i.txt) - no hold involved.
+- Drive wanted (handdrive5, shots 28-35): player's AI car stood head-on with ambulance 2 in the opposing lane, then over
+  the kerb by the arrest at (1840,637), knocked a ped down in view of officer 89 at t~163 -> crime 2, 1 star. Not set 24
+  (no passing/recovery code changed; sweep hold skips emergencies). Pre-existing: recovery can mount kerbs and hit peds.
+- nt_s24r hand drive: rc 0, 971 s, no crash/gpu, 192/397/330/443, wanted 0, clean drive west on y=661.
+- CORRECTION sent: 67 pilot's base red-light run was car 31 at node 17 (seed 5, t=39.9), not car 23.
+
+# AI agent: Oct 27 04:37 UTC (after the handback) nt_s24r.exe BUILT clean on 886dc47 + set 24 (app.cpp c2cbecf5): rc 0, log
+  AW/ai_buildloop_nt_s24r.log; its hand drive runs after the diagnostic drive (AW/bld_s24r.sh). Not yet reported to the lead.
+
+# AI agent: Oct 27 04:36 UTC HANDED BACK (the harness asked for the report now). SET 24 SIGN-OFF TEXT = AW/signoff_set24.txt
+  (complete bar the runs below; sent in the handback, NOT via SendMessage). Game on nt_s24 (0e4bf3a): hand life, hand drive,
+  procedural life (census ~ nt_s21's) and chase (= nt_s21's pursuit) all rc 0, no crash/gpu. Hand drive: player wanted ~t175
+  near an NPC arrest (crime not logged; police.cpp untouched).
+- STILL RUNNING (detached): AW/diag_s24.sh (hand drive on nt_s24, status+shot every 5 s -> SP/log_handdrive5_nt_s24.txt);
+  AW/bld_s24r.sh (nt_s24r = 886dc47 + set 24 incl. app.cpp c2cbecf5, then its hand drive); AW/ts_chain68.sh (68's world,
+  i = set 24 vs b = 886dc47's AI, SP/ts/s68; checks i = b; Midtown seed 1 waits 2 / 19 at node 275).
+- NEXT if resumed: total s68 (TS_DIR=SP/ts/s68 python3 AW/agg24.py --builds=i,b ...), read the diag drive's 5 s lines
+  around t 150-180 for the wanted cause, nt_s24r's build/drive result; send the lead the 68 numbers as an addendum.
+
+# AI agent: Oct 27 04:12 UTC LEAD: PR #61 MERGED, main = 886dc47 (snapshot 68): none of my traffic files changed; app.cpp
+  is 1327627f there (city's benchmark guard in hand mode). REBASED app.cpp's test line on it: c2cbecf5 (in the object
+  store; AW/s24/app.cpp now that one, 67's in AW/s24r/app_67.cpp). 68 also untangles 9th Ave out of Bayshore Blvd (the
+  Midtown 272/9243 overlap!) and writes the bulb into RoadNode (bulbRadius) - both worlds change.
+- Sign-off header/FILES now on 886dc47. RUNNING: AW/ts_chain68.sh (PID AW/ts_chain68.pid; t68 = git archive 886dc47,
+  worldc68, ts_world68.o, traffic_sim68i (set 24) / 68b (main's own AI = AW/m68), all runs in two streams -> SP/ts/s68);
+  AW/bld_s24r.sh (nt_s24r = 886dc47 + set 24, then its hand drive after the others); bld_s24.sh (procedural life ->
+  chase on nt_s24 = 0e4bf3a); AW/diag_s24.sh (after bld_s24: hand drive on nt_s24 again, status + shot every 5 s: the
+  player went wanted at t~175 in its hand drive, near an arrest (patrol car 48, shot 5); crime not logged).
+- ai_memgate.sh: heavy launches (>= 2000) now take a 75 s claim (/tmp/ai_memgate_claim) so two of mine never pass at once.
+- HAND DRIVE nt_s24: rc 0, 973 s, crash 0, gpu 0; peds 86-95, vehicles 48-68; lane graph 192/397/330/443 as nt_s23.
+
+# AI agent: Oct 27 03:50 UTC SIGN-OFF DRAFT COMPLETE bar [GAME] (AW/signoff_set24.txt): TESTS filled; BUILD line filled
+  (nt_s24 = 0e4bf3a + lanes/ai_core/traffic_core/app blobs; MinGW 0/0). Blobs verified against AW/s24 and all five are in
+  the repo's object store (git cat-file). "Census" = the procedural runs' counts (lead's wording "if your fix changes
+  procedural runs, report the census difference"): i vs g identical bar timings except q_mid seed 2 (from ~146 s;
+  stopped short 1/0); pilot i = g line for line. Midtown waits 50/41: all of i's at nodes 275-284, 40 of b's 41 (one at
+  node 272, (3865, 2925), e266); runs diverge 24-283 s. Game: hand drive running (03:33), then procedural life + chase
+  (ai_runtests2.sh). Summaries: AW/drive_sum.py LOG (drive/chase), AW/life_sum.py LOG (life census) vs nt_s23 hand drive
+  and nt_s21 life/chase. Then fill [GAME], send to main, notes, SubagentHandback.
+
+# AI agent: Oct 27 03:40 UTC HAND LIFE on nt_s24 (0e4bf3a + set 24 final) DONE: rc 0, 20 shots, crash 0, gpu 0; census
+  r60 over 200 s: 17-40 on foot (walk 7-21, groups 2-7, still <= 1), 3 meetings, cars 0-8, parked 19-21 (far, city-side
+  curb only: authored parking left), a police car t 70-130; "asked the way" vignette. Contact sheet SP/shots24/
+  handlife_sheet.png. Camera circles mid-block: crossings not in view.
+- All-way overshoot (pilot as written, 7 all-way stops, 6 seeds): with the change 1165 forced, 1163 stopped (1.0 m past),
+  waited 1.0 s for the turn, 0 went before an earlier crossing arrival; without 1134 / 1129 / 0.5 s (next tick) / 1.
+  rules x6 + stop-sign overshoot x6: with = without the all-way change, identical.
+- Final blobs: lanes 6a7145cd, ai_core.h 779f8eaf, traffic_core b3d85a35, app aba49031, traffic_sim dce14648. Sign-off
+  draft AW/signoff_set24.txt (TESTS to fill). Game: hand drive, life, chase still running (AW/bld_s24.sh).
+
+# AI agent: Oct 27 03:25 UTC set 24 FINAL code (game nt_s24 built 03:05 on 0e4bf3a: lanes 6a7145cd, ai_core.h 779f8eaf,
+  traffic_core b3d85a35, app aba49031; harness traffic_sim changes again (all-way overshoot test) - final blob at sign-off).
+- With vs without the all-way change (i vs g): 18 sims, totals identical bar 1 more "stopped short" in Midtown; no car
+  stopped > 0.4 m past an all-way line (stopsPast 0); q_mid seed 2 diverges from 146 s (the turn kept from the box
+  before). rules x6 i = h identical (seeds 1-4 seen). RUNNING AW/ts_allway24.sh: --overshoot on the pilot as written
+  (7 all-way stops) k (set 24) vs j (AW/s24j = without the all-way change), counts "went before an earlier arrival".
+- Lane graph timing (interleaved, g chain): set 23 0.425 s, set 24 0.474 s (median of 3; noise, other set the reverse).
+- Hand life on nt_s24 (Paseo del Rio): t=100: 28-30 on foot, still 0-1, cars 3-8, parked 20-21 (far side only - shots
+  SP/shots24/handlife_02.png, _08.png). Then hand drive, life, chase (AW/bld_s24.sh).
+
+# AI agent: Oct 27 02:53 UTC PR #60 MERGED: main = 0e4bf3a (snapshot 67 = set 23 + stop-line fix 14f15b9f; my other files
+  as 41c3ca0; others changed src/anim, src/world/validate_*, worldv). LEAD: base set 24 on 0e4bf3a (traffic_core base
+  14f15b9f, harness base b4a824ae - the --overshoot option stays in set 24), and ADD the same fix to all-way stops: a car
+  that stops > 0.4 m past its line still waits for its grant; give census + sims with and without it.
+- Done in AW/s24: shortcut `(N.control != 1 || (d.stopDone && emergency))`; gateConn change commits a car whose stop
+  AND go were made from the box before (d.committed = preStop == conn && preGo); stats.stopsPast (harness prints it).
+  Blobs now: lanes 6a7145cd, ai_core.h 779f8eaf, traffic_core b3d85a35, app aba49031, traffic_sim 841ba8b6.
+- g runs = set 24 WITHOUT the all-way fix (and pre-stop-sign-fix, inert there); RUNNING AW/ts_chain24i.sh (24i: with it;
+  all procedural + pilot runs, then rules/overshoot x6) and AW/bld_s24.sh on 0e4bf3a (game). ts_rules24 (h vs b).
+
+# AI agent: Oct 27 02:42 UTC PR #60 FIX SENT to the lead: traffic_core 14f15b9f (on e559b227); optional harness with
+  --overshoot 2758e8cf (on b4a824ae). Numbers (SP/ts/s23f, AW/cmp23f.sh): procedural checks + 5 sims identical, pilot
+  as written x6 identical; rules x6: stop-sign viol 0/0, col 1/1, dl 0/0, red 3/3, stops 1499/1485; overshoot x6:
+  base 1424 of 1438 ran on, fix 0 of 1407 (1402 stopped 1.0 m past, waited ~1.8 s; 5 stopDone by the AI's v);
+  host -Wall -Wextra HEAD's 2; MinGW -Wall syntax 0/0. Flagged: all-way stops have the same follow-on (stopped past
+  the line commits without the grant) - left as is, offered for set 24.
+- SET 24 now carries the fix: blobs lanes 6a7145cd, ai_core.h 6c7a0034, traffic_core 435ea140 (base 14f15b9f = set 23
+  + fix, or e559b227), app.cpp aba49031 (test), traffic_sim 1b69fbc9 (base 2758e8cf or b4a824ae). g chain resumed (its
+  binary is pre-fix; the fix is inert outside written stop signs, shown by the set 23 identity runs). RUNNING:
+  AW/ts_rules24.sh (rules x6 h vs b, overshoot x6 h), AW/bld_s24.sh (game build + hand life/drive + life/chase).
+
+# AI agent: Oct 27 02:00 UTC LEAD: PR #60 (snapshot 67) - fix set 23's stop-sign bug FIRST (Codex): gate()'s commitment
+  shortcut let a car past a WRITTEN stop line by > 0.4 m commit (control 0) without its stop or give-way; stopping past
+  it, it committed next frame too. FIX (AW/s23f, on e559b227 -> traffic_core 14f15b9f): stop-sign approaches (not
+  emergency) skip the shortcut unless still moving 2 m past the line (signStop = stopSign && !emergency && (stopDone ||
+  lineDist > -2 || v < 0.5)); default branch commits a stop-sign car on its go (gap check or 20 s, and the no-conflict
+  FREE). Every other control unchanged. Host -Wall -Wextra: HEAD's 2; MinGW -Wall syntax on 41c3ca0 + set 23 + fix: 0/0.
+  Harness --overshoot (s23f/traffic_sim.cpp): cars slowing for a written stop line (none within 12 m ahead) roll over
+  it at 2-3 m/s to 0.8 m past, then released; first try: base 230 of 232 ran on, fix 263 of 263 stopped (1.0 m past,
+  waited 1.6 s). RUNNING AW/ts_chain23f.sh (PID file AW/ts_chain23f.pid, out SP/ts/s23f): x = set 23, y = fix, two
+  streams: overshoot x6, rules x6, pilot x6, proc checks + 5 sims. Then reply to the lead with blob + numbers.
+- Set 24: same fix carried into AW/s24 (traffic_core + harness --overshoot); harness 24h built with it. The g chain is
+  PAUSED (kill -STOP, PIDs in AW/ts_chain24g.stopped): resume with kill -CONT after PR #60's reply. Set 24 game build
+  killed (pre-fix): rerun AW/bld_s24.sh after.
+
+# AI agent: Oct 27 01:33 UTC SET 24 CODE FINAL. Blobs: lanes 6a7145cd, ai_core.h 6c7a0034, traffic_core 85b10ceb,
+  app.cpp aba49031 (test hunk), traffic_sim c098f7f2. Final zone check (pilot, 10 tight junctions, SP/ts/s24/zcg):
+  car waiting 156/156, wide 190/197 (misses short by 0.7-1.6 m, queued 3.5-15 m back). Heading-dependent margins from
+  a 1.2/1.45 base did not do better (calsum3: car <= 99 %, wide <= 90 % at similar reach). Procedural 18 m zones are
+  REAL lane overlaps (node 2338 (5293, 3245): every car model sweeps 16.5-17 m of lane 7299 on conn 17707 - a world
+  issue like edges 272/9243; node 320 (893, -3148) trucks/buses 18 m real). SP/ts/s24/zcp.
+- pilot g seed 2: 0 collisions (P70 sweep gone); seed 5: 0 deadlocks, 0 red-light runs (car 23 stops on amber now).
+- RUNNING: b-only chain (AW/ts_chain24b_b.pid, BUILDS=b NOLT=1), g chain (AW/ts_chain24g.pid: BUILDS=g + lanetime b/g),
+  game build+tests AW/bld_s24.sh (AW/bld_s24.pid, out AW/bld_s24.out).
+
+# AI agent: Oct 27 01:30 UTC two more changes before the final runs (chain AW/ts_chain24g.sh restarted, PID file
+  AW/ts_chain24g.pid): (1) amber clearance now against the JUNCTION's next green (any movement red now) - the
+  conflicts-only version still let car 23 go in seed 5 (stem's left doesn't cross its right turn; it crosses truck 58);
+  (2) van class from wheelbase 3.6 (turn test: Palomino 3.68 / Stevedore 3.66 cut the tightest corners into a waiting car).
+  Old zcg / pilot_g runs set aside in SP/ts/s24/v4.
+
+# AI agent: Oct 27 01:20 UTC ZONES CALIBRATED (harness turn test's zone check, TT_ZONECAL, 10 pilot tight junctions, 191
+  real-body runs; SP/ts/s24/zcf; AW/calsum3.py): design lateral gain 0.3 (traffic_core's 2.2/(v+1.5) at exit speeds)
+  + band 1.7 (car waiting) covers 134/134; wide waiting = 1.7 + 2.5 m/rad of heading error up to 0.5 -> 160/167 (van
+  25/28, truck 52/55, bus 83/84); reach past the real sweep +3.7 / +3.5 m. Old design (gain 0.75, band 1.2): 41/153 and
+  3/191. Constants kSweepBand/kSweepWidePerRad/kSweepWideMax (ai_core.h).
+- RUNNING AW/ts_chain24g.sh (PID file AW/ts_chain24g.pid, out AW/ts_chain24g.out): build 24g, pilot g 2+5, zone checks
+  SP/ts/s24/zcg, then BUILDS="g b" ts_chain24b.sh + lanetime b/g x3. Then AW/bld_s24.sh (game).
+
+# AI agent: Oct 27 00:52 UTC CONTAINER RESTARTED at 00:45 (all processes died, disk kept). State:
+  - code in AW/s24 = newest (NOT yet run): + two zone depths per class (u for a car waiting, uWide for a van/truck/bus
+    waiting; kSweepBandCar/Wide in ai_core.h, placeholder 1.7/1.95) because the turn test's zone check showed the design
+    zones far shallower than the real bodies' sweeps (41 of 149 covered at band 1.2); + item 2 REDONE: amber go also
+    needs "through the box at the turn's speed before a crossing movement (red now) gets green + 1 s" (seed 5 node 2 on
+    the 00:07 code: car 23 still went on amber at 16.7 m/s, 52 m out, crawled 2.8 m/s through the box; truck 58 at its
+    hold point cleared at 93 s; car 51's 11 s green at 82-93 s wasted).
+  - SP/ts/s24/*_c_* = the 00:07 candidate (superseded; move to v3). b runs done: proc_checks, pilot 1-3, q_mid 1-3.
+  - calibration SP/ts/s24/zcf (harness 24f, TT_ZONECAL): 7 of 10 pilot nodes; redo all 10 with the new format.
+  - game build bld_s24.sh killed: rerun once the code is final.
+  NEXT: calibrate the bands -> build 24g (final) -> chain BUILDS="g b" (resumable: once = skip rc=0) -> lanetime b/g
+  -> bld_s24.sh -> sign-off.
+
+# AI agent: Oct 27 00:10 UTC set 24 code FINAL candidate (chain AW/ts_chain24d.sh restarted with it, PID file
+  AW/ts_chain24d.pid): + hold limit timed from the hold's start (d.sweepSince; was the approach's waitTime) and reset when
+  the gate takes a new connector (sweepHeldConn/sweepRanOut = -1: buses on a round come back to the same turn); + cars
+  on the swept lane stop short while a long one is IN the box whatever their light (approaching: only cars stopping
+  anyway). Host -Wall -Wextra clean (HEAD's 2). Draft sign-off AW/signoff_set24_draft.txt; tools AW/cmp24.sh,
+  AW/agg24.py (totals per build), AW/sweephits.py (collisions that are long-body sweeps of a waiting car).
+  Game: AW/bld_s24.sh (graft 41c3ca0 + AW/s24 blobs; hand life, hand drive, procedural life + chase).
+
+# AI agent: Oct 27 00:05 UTC SET 24 item 1 WIDENED after the t67 runs (v2 results set aside in SP/ts/s24/v2):
+  - pilot seed 2's soft hit at (1610.3, 649.8) = a Parcel P70 (wb 4.0) turning left into the side street, its tail into
+    the P70 waiting at that street's line: the same sweep, below the truck class -> 3 classes now: van (wb > 3.8, the
+    codebase's "long body" for wide conflicts; design W4.0/0.60/1.0/1.9/1.2), truck (>= 4.5), bus (>= 5.8). SweepZone u[3].
+  - mutual wait at uncontrolled junctions (zone car yields to the held long one; it went after 20 s anyway): gate records
+    d.sweepFor (sweepZoneTaken returns the driver), conflictsClear skips a held long one waiting for us.
+  - stats.sweepRanOut: long ones that went on after the longest hold (25 s / 90 s at lights) with a car still there.
+  - no hold when it cannot stop short of the box (v^2/13 > distToEntry - 0.3 + 0.2): on as before.
+  - host -Wall -Wextra: only HEAD's 2 traffic_core warnings. Harness --sweeps [node] (3 classes, a node's zones listed).
+- Lane graph times (procedural, interleaved b/c, 3 runs x 3 rebuilds, loaded machine): b medians 0.608/0.737/0.761
+  (median 0.737), c (lazy) 0.617/0.648/0.662 (median 0.648) -> no increase (build() only resets sweepDone). All
+  junctions' zones at once: 0.882 s (2 classes) = why lazy. Redo with the final binaries for the sign-off.
+- RUNNING AW/ts_chain24d.sh (PID file AW/ts_chain24d.pid, out AW/ts_chain24d.out): rebuild 24c, turn test + zones at the
+  node by (1610, 660), then ts_chain24b.sh (c runs, then b). Table: AW/cmp24.sh pilot_@_1.txt ...  Then bld_s24.sh (game).
+
+# AI agent: Oct 26 23:40 UTC (clock of the runs; the sections below were stamped ~1.5 h ahead) SWEEP ZONES NOW LAZY (lead's
+  load-time condition: procedural lane-graph build +0.2 s at most; the up-front pass was 0.54 -> 2.06 s):
+  LaneGraph::ensureSweeps(node) const (lanes.cpp, before build), Connector::sweep and LaneGraph::sweepDone mutable,
+  build() only resets sweepDone. Called from TrafficCore::gate (long vehicles, sc >= 0) and plan()'s stop-short scan
+  (per registered long vehicle's node); the harness's --sweeps works out every node first and prints the time.
+  Harness --lanetime [N] (rebuild N times, each time + median) for the report.
+- First c build (23:32) compiled the OLD harness copy (cp raced the AI half; tree24b also was t66's) -> killed
+  ts_chain24b (PIDs by ps), now AW/ts_chain24c.sh (PID AW/ts_chain24c.pid, out AW/ts_chain24c.out): rebuilds 24c (s24)
+  and 24b (s23) on ts_world67.o, then runs ts_chain24b.sh (all runs in SP/ts/s24).
+- proc_checks on c (lazy): lane graph 0.60 s, 25484 lanes / 56556 connectors, 0 overlapping pairs, walk links on a
+  carriageway sidewalk 445 (4304 m) corner 284 (2079 m) = world-side, as before.
+
+# AI agent: Oct 27 00:50 SET 24 all three items CODED in AW/s24 (base: 41c3ca0 = set 22 for my files + set 23):
+  1. sweep zones (lanes.cpp; sped up: 0.8 m steps, lane-in skipped, 20 m body filter) + gate hold (90 s at lights, 25 s
+     elsewhere) + plan() stop-short ONLY for cars stopping anyway (gateStop < 1e8) + stopGrant skips sweepWait.
+  2. amber decision: tLine with the slowdown to c.maxSpeed (node 2 seed 5 root cause: amber runner crawling into the
+     cross street's green).
+  3. app.cpp (41c3ca0's 7c65554a + 1 line): life autoplay in hand mode starts at (1539.1, 175.9), edge 26's river-side
+     sidewalk (Paseo del Rio). Test code only.
+- RUNNING AW/ts_chain24b.sh (PID AW/ts_chain24b.pid): worldc on AW/t67 (41c3ca0), world half SP/ts/ts_world67.o,
+  traffic_sim24c (set 24) / 24b (set 23 base); runs in SP/ts/s24 (v1 = item-1-first-try results in SP/ts/s24/v1).
+  Compare with AW/cmp22.sh-style diff (T=SP/ts/s24) or tabulate. Then graft nt_s24 on 41c3ca0 + set 23 + set 24 (+ app.cpp
+  test hunk) and run hand life (EXTRA --world=hand) + hand drive + procedural life/chase.
+
+# AI agent: Oct 27 00:30 MAIN = 41c3ca0 (snapshot 66, PR #59: sets 21+22 exactly). Set 23 accepted for 67 on top. BASE
+  SET 24 ON 41c3ca0 + set 23.
+- Set 24 item 1 (sweep) in progress in AW/s24 (item-1-only snapshot AW/s24i1): SweepZone per connector (lanes.cpp kinematic
+  design truck W5.0 / bus W6.1 through tight turns R<=25 at junctions; procedural 15.5k zones, pilot node 6 conn 39 bus
+  9.4 m on lane 37), gate hold for long vehicles (sweepWait; stopGrant skips them), plan() stop-short for STOPPING cars;
+  harness --sweeps (depth histogram). Item 2 found: node 2 seed 5 = an amber runner (car 23) slowing for its tight right
+  turn reached the line after red and crawled through the box; the permissive-left truck (58) at its hold point waited
+  for it, so the stem's 11 s green went by -> fix: amber decision's time-to-line with the slowdown for the turn
+  (c.maxSpeed).
+
+# AI agent: Oct 27 00:00 SET 23 ACCEPTED for snapshot 67. Snapshot 66 (sets 21+22 + city per-side 1+2, 2c, ...) in smoke;
+  the lead will give its commit. NOW SET 24 on 66's blobs (= set 22's for my files) + set 23, three items IN ORDER:
+  1. long vehicles' turning sweep (bus by (1207,660) sweeping a car waiting in the lane beside it): fix at the root
+     (hold the turn until the swept lane is clear, or set back the swept lane's stop line); check the procedural world;
+     report census differences if procedural runs change, and why better.
+  2. seed 5's > 60 s waits at node 2's signal (derived plan): find why, fix at the root.
+  3. test-only app.cpp hunk: life autoplay start in hand mode on the Paseo del Rio; run it on the set 24 build.
+  One sign-off with blobs and bases. Work dir AW/s24 (= s23 copy).
+
+# AI agent: Oct 26 23:50 SET 23 (NodeRule) SIGNED OFF to the lead (text AW/signoff_set23.txt; blobs lanes 60da4fb2,
+  ai_core.h 2426a946, traffic_core e559b227, traffic_sim b4a824ae, on set 22's). nt_s23 (6e25a97 + ps1r + set 23) built
+  clean; hand drive rc 0, identical to nt_s22's. Proposal for the city inside: bulbRadius returns the written bulb.
+- NEXT (when the lead asks): the remaining RoadOverrides lists in my order (moves/connects/bans/stop lines, signal plans,
+  kerbside, bus stops, curb cuts, crossings, lane counts/uses/solid lines, roundabouts) as the city lands them; a
+  test-only app.cpp life start on the Paseo del Rio if wanted; the pilot's long-vehicle sweep at node 6 (stop lines vs
+  turning sweeps) and node 2's >60 s signal waits (derived plan) are known, pre-existing.
+
+# AI agent: Oct 26 23:20 SET 23 harness DONE: procedural = set 22 exactly (AW/cmp23.sh); pilot as written = set 22 on all
+  6 seeds; test rules: 0 stop-sign viol., 0 deadlocks, 233-267 written stops, 3 amber runners (none right on red), 1 soft
+  scrape. CORRECTION sent to the lead: set 22's pilot seed 5 had 1 red-light run (amber runner, node 17, base too).
+  nt_s23 building on 6e25a97 (AW/bld_s23.sh, log AW/bld_s23.out; graft AW/graft_s23.txt), then its hand drive.
+  Draft AW/signoff_set23_draft.txt: only [BUILD] and [GAME] left.
+
+# AI agent: Oct 26 22:55 LEAD: base the nt_s23 graft build on main 6e25a97 (PR #58 merged = snapshot 65 + aff17b9's raised
+  pads / grade-only parcels; my files there = set 20's) with /tmp/city/ps1r_blobs.txt (per-side step 1 rebased: src/world
+  blobs as step 1, tools/worldc.cpp 10a9b2a2). Set 23's base blobs stay. Per-side step 2's rebased list not in yet.
+- Set 23 harness so far: pilot as written x6 = set 22 exactly; test rules x6: 0 stop-sign/red violations, 0 deadlocks,
+  233-267 written stops, 1 soft scrape (bus turning at node 6 by (1207,660), the known long-vehicle sweep). Base runs
+  (traffic_sim23b) in progress, then cmp (AW/cmp22.sh with T=SP/ts/s23).
+
+# AI agent: Oct 26 22:05 SET 23 (NodeRule) CODED in AW/s23 (= s22 + rules), syntax clean (only HEAD's 2 warnings):
+  - ai_core.h: Approach stopSign/giveWay/noRedTurn; NodeInfo ruled, bulb; TrafficCore stats.writtenStops.
+  - lanes.cpp: ruleAt[] from ov->nodes; per junction (>= 3 approaches): CTRL_NONE -> 0, SIGNAL -> 2, STOP -> all-way (1)
+    if NR_STOPS_ALL or every arriving approach listed, else 0 + stopSign on the listed; YIELD -> 0 + giveWay; AUTO
+    derived; lists beside control 0 count too. noRedTurn per approach; bulb (dead ends only) -> N.bulb. Ranks: where any
+    approach is written minor, minor = rank 0, the rest 1 (else derived). Stop lines also on stopSign approaches. U-turn
+    circle capped at bulb - 2.2 (4.8..6.5) when authored; walk ring still on RoadNetwork::bulbRadius (what is drawn:
+    10.2 m vs the pilot's written 10) -> propose to the city that bulbRadius returns the written bulb. Log line "node
+    rules as written at N nodes: ...".
+  - traffic_core.cpp: gate default branch: stopSign -> full stop at the line first, then the give-way check; stopsAhead
+    and the in-box preStop take stop signs (go = conflictsClear or wait > 20 s); stop-sign violations count them; right
+    on red not where noRedTurn; writtenStops counted.
+  - harness: --worldbin FILE ... --stopsigns (every uncontrolled junction a two-way stop, main road = most collinear
+    pair) --noredturn (all signals); prints "stops made at written stop signs" (not with -DTS_NO_RULES).
+- RUNNING AW/ts_chain23.sh (PID AW/ts_chain23.pid, out SP/ts/s23): builds traffic_sim23a (s23) / 23b (s22 base) on
+  ts_world66.o, then procedural identity, pilot x6 as written, pilot x6 with --stopsigns --noredturn.
+
+# AI agent: Oct 26 21:45 SET 22 SIGNED OFF to the lead (text AW/signoff_set22.txt, full blob hashes; the lead holds it for
+  snapshot 66 with the city's per-side step 2). Hand life on nt_s22 was clean but the life autoplay starts at (2713, 763),
+  off the pilot (offered a test-only app.cpp start on the Paseo del Rio with NodeRule's tests).
+- NOW: SET 23 = NodeRule on top of set 22 (lead: control as written, stops and yields, noredturn, the authored bulb).
+  Work dir AW/s23 (= s22 copy). Tree: AW/t66 (3e6a3712 + ps1); roadoverrides.h there has NodeRule (CTRL_AUTO/NONE/
+  STOP/YIELD/SIGNAL, NR_STOPS_ALL, bulb, stops, yields, noRedTurn). The pilot: 52 rules (31 none, 7 stop all, 9 signal,
+  5 dead ends with bulb=10).
+
+# AI agent: Oct 26 21:20 nt_s22 BUILT clean (-Wall 0) and its HAND DRIVE PASSED (rc 0, crash 0; "0 sides off their kerb
+  line"; 192/397/330/443 as nt_s21; peds 89-95, vehicles 52-69) -> told the lead. Hand-mode life running next
+  (AW/bld_s22.sh PID 6123; log SP/log_handlife_nt_s22.txt). Set 22 draft AW/signoff_set22_draft.txt: only [HANDLIFE] left;
+  send it when the lead calls for set 22 with the city's per-side step 2. Then NodeRule.
+
+# AI agent: Oct 26 20:40 SET 21 SIGNED OFF and ACCEPTED for snapshot 66 (text AW/signoff_set21.txt; chase = s20f's exactly).
+  Snapshot 65 = commit f26714d (PR #58, waiting on the city's fixes). Set 22 lands with the city's per-side step 2. The
+  lead wants word when nt_s22's hand drive is done.
+- SET 22 harness (SP/ts/s22, compare: AW/cmp22.sh RUN...): procedural a vs b IDENTICAL bar timings (proc checks, q_mid,
+  p_mid, q_ramp, r_hwy, p_dt1). Pilot 6 seeds each (pilot_a/b_1..6): a coll 0,1,0,1,0,1 (soft: 697, 134, 921 Ns; the
+  134 one at t=119 is in b4 too), hard 0, static 0, red 0, stuck 0, ped hits 0, parked waits 0; b coll 0,0,0,1,0,0. All
+  scrapes = a long vehicle turning off a junction past a car waiting at/just over the stop line on the adjacent lane
+  (pilot junction geometry; no step-over active). Alleys at their authored 6 m/s (20 km/h vs base 30).
+- nt_s22 building (AW/bld_s22.sh, PID AW/bld_s22.pid, log AW/bld_s22.out; graft AW/graft_s22.txt on tree 3e6a3712 incl.
+  ps1 src/tools blobs), then hand drive + hand life (--world=hand; SP/log_handdrive_nt_s22.txt, SP/log_handlife_nt_s22.txt).
+
+# AI agent: Oct 26 20:15 SET 21: life PASSED (rc 0, crash 0; census vs s20f: lean 0.32 -> 0.11, phone 1.53 -> 1.74, rest
+  equal). [TESTS] filled except [CHASE]; FILES heading now on 65's tree. Chase waits on the memory gate (others' games).
+- SET 22 harness built on t66 (SP/ts/traffic_sim22a = s22, 22b = s21 base; world half SP/ts/ts_world66.o). The harness's
+  hand mode now clears the procedural sites (gSites) after map.generate(), as the game's hand mode has none. Pilot
+  checks (SP/ts/s22/pilot_checks_a/b.txt): both 192 lanes / 397 conns / 330 walk nodes / 443 links (= the game);
+  a: 83 authored, 0 sides off their kerb line, 150 sidewalk links all on their side's centre line, parking left 70/75,
+  right 63/83 (Paseo del Rio's 7 edges: kerb L 5.60 R 3.20, parking L only); walkcheck 0/0, overlaps 0 (a and b).
+- RUNNING AW/ts_chain22.sh (PID AW/ts_chain22.pid): procedural identity a vs b (proc_checks, q_mid, p_mid, q_ramp, r_hwy,
+  p_dt1) and 3 pilot sims each (pilot_a/b_1..3, --worldbin, parked 40). Outputs SP/ts/s22/. Restart-safe.
+
+# AI agent: Oct 26 20:00 CITY PER-SIDE STEP 1 SIGNED OFF (tree 3e6a3712 = snapshot 65's tree + /tmp/city/ps1_blobs.txt):
+  RoadEdge::halfWidthSide/sidewalkSide (trims, 0 procedurally), roadKerbLine, EdgeExtra::parkingOn (amendment A),
+  applyRoadSides (handworld, loadRoadsFile, worldc). Nothing draws per side yet (city step 2 in testing); set 22 lands with
+  both, 66 at the earliest. Snapshot 65's tree has my set 20 blobs, so set 21/22 bases hold.
+- SET 22 now ON THE ACCESSORS (AW/s22): EdgeSection kerb/walk = e.halfWidthSide/sidewalkSide (both worlds), park =
+  x.parkingOn; log "cross-sections as authored for N edges (k sides off their kerb line)" (roadKerbLine vs accessor).
+  Harness walkcheck + plots use halfWidthSide/sidewalkSide. Syntax clean on t66 (only HEAD's 2 traffic_core warnings).
+- Tree AW/t66 = git archive 3e6a3712 + ps1 blobs. RUNNING detached AW/bld_ts22.sh (PID AW/bld_ts22.pid, log
+  AW/bld_ts22.out): worldc66 -> AW/t66/build/gen/world.bin, then WORLD=1 SRC=s22 V=a (SP/ts/ts_world66.o +
+  SP/ts/traffic_sim22a), then SRC=s21 V=b (SP/ts/traffic_sim22b, base). Set 21's life/chase still ahead of it in memory.
+
+# AI agent: Oct 26 19:45 LEAD: amendments A and B AGREED and relayed; the city builds RoadEdge::halfWidthSide/sidewalkSide
+  first (A, B in NTW_FORMAT + the overrides test), then roadmesh's per-side drawing; set 22 moves onto those accessors and
+  both land in ONE snapshot. Snapshot 65 = set 20 + 2a + RoadOverrides steps 1-2 (in smoke). SET 21 goes into 66: when
+  bld_s21's life + chase finish, fill [TESTS] in AW/signoff_set21_draft.txt and send it. Then WAIT for the accessors.
+
+# AI agent: Oct 26 19:40 HANDED BACK (asked to report). SET 21 hand drive PASSED on nt_s21 (--world=hand, 180 s: rc 0, crash 0,
+  gpu 0, peds 81-90, vehicles 55-67, lane graph 192 lanes / 397 conns / 330 walk nodes / 443 walk links; log
+  SP/log_handdrive_nt_s21.txt). life + chase still RUNNING detached (AW/bld_s21.sh, PID in AW/bld_s21.pid, results appended
+  to AW/bld_s21.out; logs SP/log_life_nt_s21.txt, SP/log_chase_nt_s21.txt; census: python3 AW/life_sum.py on those vs
+  SP/log_life_nt_s20f.txt). Then fill [TESTS] in AW/signoff_set21_draft.txt ([BUILD] done) and send it to main.
+- SET 22 draft AW/s22 + AW/signoff_set22_draft.txt: waits for the lead/city reply on the per-side amendments and the
+  city's RoadEdge::halfWidthSide/sidewalkSide; then switch EdgeSection kerb/walk to them, build the harness
+  (WORLD=1 SRC=s22 V=a AW/ts_build22.sh; SRC=s21 V=b for the base), test procedural identity + the pilot (--worldbin
+  AW/t65/build/gen/world.bin --sections / --walkcheck / --overlaps / --sim), graft-build an exe, tell the lead.
+
+# AI agent: Oct 26 19:25 SET 21 TESTING; SET 22 (EdgeExtra) DRAFTED, waiting on the city's per-side accessors.
+- Sent to the lead: (1) answers to the city's 2b questions (lot aisles: derived OK if worldc joins them into a drive graph
+  per lot; implied spots written by worldc, seat at/yaw/cap, bus wait for= BusStop id; blocks.colliders please, served
+  like siteColliderNear); (2) the EdgeExtra coupling: roadmesh draws symmetric kerbs/sidewalks in hand mode, so per-side
+  must move in one snapshot on both sides; (3) AGREED the city's per-side proposal (RoadEdge::halfWidthSide/sidewalkSide,
+  bit-identical procedurally; corners use each approach's facing side; round bulbs on symmetric widths; per-side roadnet
+  queries; unequal two-way counts: each side's kerb from its own lanes) with amendments A (parking -1 = today's rule on
+  the strip AS BUILT, >= 1.8 m) and B (one-way edges stay centred: kerb = W*lanes/2 + median/2 + side's kerb).
+  The lead: agree with the city BEFORE coding; EdgeExtra lands together with the city's roadmesh change. Tell the lead
+  when ready. NodeRule (step 2) next after EdgeExtra (control, stops/yields, noredturn, bulb).
+- nt_s21.exe BUILT clean (-Wall 0 warnings; [BUILD] filled in AW/signoff_set21_draft.txt). bld_s21.sh (PID in
+  AW/bld_s21.pid) runs the hand drive (--world=hand), then life + chase; waiter notifies on "handdrive rc=".
+- SET 22 draft = AW/s22 (s21 + ai_core.h/traffic.cpp from 69341af + s20f traffic_sim): ai_core.h EdgeSection per edge
+  (laneWidth, median, speed, kerb line [L,R], park [L,R], walk [L,R], flags, authored) + Approach hwS/swS + LaneGraph
+  kerbStrip/shoulderOf/parkWidth/parkLat; lanes.cpp build(rn, ov) fills sections (authored from EdgeExtra, else today's
+  values: procedural bit-identical by construction), lane offsets/width/speed, ramp clear cut, walk nodes / corners /
+  sidewalk links / bus stops per side; ai.cpp passes gRoadOverrides in hand mode; traffic_core strip via kerbStrip (step
+  over back on in hand mode), route cost by section speed, side-step shoulders via shoulderOf, median barrier; population
+  + traffic.cpp parking via parkWidth/parkLat; pedai jaywalk target = the other side's own sidewalk. TODO when the city's
+  accessors land: kerb/walk from e.halfWidthSide/sidewalkSide; walkcheck per side. Harness: --worldbin <file> (first arg),
+  --sections; script AW/ts_build22.sh (WORLD=1 builds SP/ts/ts_world65.o; SRC=s21 base gets -DTS_NO_SECTIONS).
+- Tree AW/t65 = 69341af + /tmp/city/p2a_blobs + ro1_blobs + ro2_blobs (src, tools, world, build.sh); pilot world.bin at
+  AW/t65/build/gen/world.bin (worldc: 83 edges' widths and speeds, 52 node rules, 11 sections).
+
+# AI agent: Oct 26 18:50 SET 20 ACCEPTED by the lead for snapshot 65 (main now 69341af = PR #57; my files unchanged
+  there, set 20 blobs' bases match). nt_s20b/s/t deleted (lead OK); nt_ai105 STAYS (the user decides).
+- SET 21 = AW/s21, blobs AW/graft_s21.txt ON 69341af (lanes.cpp b6219ad1 re-checked -Wall -Wextra clean on 69341af).
+  At 69341af game.init DOES run in hand mode (--world=hand), so nt_s21 tests hand mode itself. RUNNING: AW/bld_s21.sh
+  (PID AW/bld_s21.pid, log AW/bld_s21.out): graft build on 69341af (waits on the memory gate), then the hand drive
+  (EXTRA=--world=hand, log SP/log_handdrive_nt_s21.txt), procedural life + chase (SP/log_life_nt_s21.txt,
+  SP/log_chase_nt_s21.txt). Then fill [BUILD]/[TESTS] in AW/signoff_set21_draft.txt and send it to main.
+- NEXT: RoadOverrides EdgeExtra on my side once the city's step 1 lands (city draft /tmp/city/msg/ro_v1_signoff_draft.txt,
+  header draft SP/pro/src/world/roadoverrides.h: per-edge speed, laneWidth, median, kerbL/R, parkingL/R, sidewalkL/R,
+  flags; loader World::loadRoadsFile for traffic_sim). Tell the city when lanes.cpp reads laneWidth/median (roadmesh).
+
+# AI agent: Oct 26 18:40 SET 20 SIGNED OFF to main (text AW/signoff_set20.txt; table SP/ts/set20_table.txt). All tests
+  done: harness 15 runs + ramps/Midtown seeds 4-6 x 2 builds, meet, uturn, stair probes; game hwysoak/soak/life/chase on
+  nt_s20f, locostairs on nt_s20ft (all PASS, no crash). Midtown 278/280 hot spot reported for the city.
+- SET 21 (hand-mode coping, AW/s21, blobs AW/graft_s21.txt incl. lanes.cpp (u8)TK_MERGE fix b6219ad1 for worldv's
+  -Wextra) IN PROGRESS: bin/nt_s21.exe building (AW/bld_s21.sh, log AW/bld_s21.out), then the queue runs its life and
+  chase (procedural). Sign-off draft AW/signoff_set21_draft.txt. Hand mode itself can't run at HEAD (game.init skipped):
+  ask the lead to graft AW/graft_s21.txt into the city's hand drive.
+
+# AI agent: Oct 26 16:05 RESUMED (container restarted; HEAD 61cf548 = snapshot 63, my files unchanged from 7b9146d).
+- Set 20 tests RUNNING: harness chains AW/ts_chain20g.sh 61f and 61b side by side (PIDs AW/ts_chain20g.pids; outputs
+  SP/ts/*_61f*, *_61b*; markers SP/ts/chain20f_61f.done / _61b.done; relaunch each with AW/ai_detach.sh
+  AW/ts_chain20g_<b>.out bash AW/ts_chain20g.sh <b>). Harness binaries rebuilt from the final source (be careful: the
+  old partial runs moved to SP/ts/old_partial61f). Game queue runner AW/ai_queue.sh (PID AW/queue_runner.pid; log
+  AW/queue_runner_s20f.out): hwysoak, locostairs (s20ft), soak, life, chase. Table: python3 AW/ts_table20.py.
+- Sent to the lead: the RoadOverrides review (agreed; city does EdgeExtra first + a host loader for traffic_sim). Sent to
+  worldv (a007b71e...): answers on road.lanes / signal checks / movement naming / override filters / opposing lefts.
+- Hand-mode coping = AW/s21 (= s20f + lanes.cpp/events.cpp from HEAD + edits), blobs AW/graft_s21.txt, -Wall clean on
+  61cf548, harness traffic_sim2061s21 builds: step-over off in hand mode (traffic_core), no derived benches in hand mode
+  (lanes), lean/shelter/dance-outside only against a facade (pedai), panhandler needs a facade (events), police search
+  plan adds street corners when buildings are few (police). To test: procedural life + chase on an s21 exe; hand mode
+  needs the city's game.init-in-hand-mode tree (ask the lead to graft AW/graft_s21.txt into the city's hand drive).
+
 # AI agent: 17:58 PARKED by the lead (user's usage nearly gone). Everything of mine stopped by PID; nothing running.
 - SET 20 (incl. the stair pace cap) is CODE-COMPLETE, NOT signed off. Final sources AW/s20f, blobs on HEAD 7b9146d
   (AW/graft_s20f.txt): traffic_core 3e295667, ai.cpp 4043ee13, ai_game.h e53d15c4, pedai 71147af4, police 58b0776a,

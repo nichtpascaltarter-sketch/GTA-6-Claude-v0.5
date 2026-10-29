@@ -1,7 +1,0 @@
-In file included from src/main.cpp:70:
-src/game/app.cpp: In member function 'bool Game::App::handleMenuAction(const UI::MenuAction&)':
-src/game/app.cpp:6739:17: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
- 6739 |                 if (game.saveGame(a.slot, game.storyTitle)) game.notify("GAME SAVED", StrFormat("Slot %d", a.slot + 1));
-      |                 ^~
-src/game/app.cpp:6739:17: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
--rwxr-xr-x 1 root root 13278720 Oct 13 05:33 bin/nt_ai100.exe

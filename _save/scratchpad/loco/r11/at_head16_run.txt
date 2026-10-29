@@ -1,2 +1,0 @@
-anim_test head16 rc 0
-ALL PASSED (0 failures)

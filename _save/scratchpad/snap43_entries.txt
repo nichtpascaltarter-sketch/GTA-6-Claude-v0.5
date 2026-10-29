@@ -1,4 +1,0 @@
-100644 fda7b1f3b156af2ca92f480fca4baba5b0375e69	src/world/buildings.h
-100644 4ef3fdb15650249491094be705ad0031fa00828d	src/world/buildings.cpp
-100644 70616389162c453b66c16804b22b30ad5f74baae	src/world/buildmesh.cpp
-100644 bfb494a14f3a55257ab0d8f75967cec07dd5da35	src/world/blockstyle.cpp

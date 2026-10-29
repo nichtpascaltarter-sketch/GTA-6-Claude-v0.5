@@ -1,0 +1,125 @@
+city snapshot-safe: AI set 20 item 1, Bayshore Boulevard 272 / 9th Avenue 9243, the kerb lanes laid over each other. Round 1. On 0e4bf3a, where roads.cpp is still 66's.
+
+FILES (blob written)
+- src/world/roads.cpp 72679617 on f4479069 (66's, unchanged in 0e4bf3a).
+- Round 2's blob is dff0a9d9 on the same base, if you'd rather have it (see DECISION).
+
+WHAT (player-facing, the procedural world)
+- At the target, 9th Avenue ran along Bayshore Boulevard with its kerb lanes over Bayshore's: centrelines 16 m apart, lanes overlapping by up to 2.0 m for 18 m. Cars on the two roads collided there: 33 collisions near it in 14 simulated runs on main.
+  - 9th Avenue now turns into Bayshore at a new junction (3880.3,3110.3), with lights. That is how the road fix already treats a road laid inside another's carriageway.
+  - N 32nd Street's 15 m stub inside Bayshore is gone.
+- The same rule found three more places, and the pass's existing tidying handled each:
+  - Bougainvillea Boulevard's last 122 m ran down beside Bayshore, 32 m apart at the top and closing to nothing where it joined Bayshore at (3600,-1472.5). Its lanes were over Bayshore's by up to 11.7 m for 44 m.
+    - Bougainvillea now ends at its junction with S 14th Street at (3600,-1350). That junction becomes a T with stop signs.
+    - The other S 14th Street (at y = -1450) now runs on to Bayshore.
+    - Bayshore has no junction at (3600,-1472.5) any more.
+  - Almeria Boulevard, a lane, ran on top of Levee Road for 360 m. It started at a junction 8 m from Levee's at the south end (-2960,2802) and ended at Levee's own junction at the north end (-2947,3162), with its lanes over Levee's by up to 3.7 m there.
+    - That stretch is gone, so Levee Road's frontage gets a rural road's sparser houses.
+  - Laurel Street's last 10 m ran with its lanes over County Road 830's (by up to 3.4 m) into the six-way junction at (4799,7872).
+    - It now joins County Road 830 25 m south, at (4800,7846.5). The six-way becomes five legs, with a T 25 m away.
+- lanecheck (lanes over another road's by 1 m or more, outside junctions): 28 stretches on 66 -> 24.
+  - The 5 above are gone.
+  - One new 8 m pair is Bayshore's own two pieces at its bend at (3602,-1467), where the Bougainvillea junction was. That is one road continuing through a node of its own, which the rule leaves alone on purpose.
+  - The other 23 are as on 66:
+    - about 16 county-road junction approaches;
+    - 10th and 11th Avenue's lanes beside Bayshore's, overlapping by 0.6 m or less, under the 1 m threshold;
+    - 9th Avenue's piece in Bayshore's path (FOR LATER below).
+
+HOW
+- roads.cpp, the "roads laid along each other" pass: a lower road's stretch now also counts as laid inside the higher road when their lanes overlap by 1 m or more. Each road's lane reach is measured from its centreline as the lane graph lays the lanes out. Before, only a centreline inside the higher road's carriageway counted.
+  - The exception is two pieces of one road continuing through a degree-2 node of their own (a road narrowing as it goes on).
+- Everything after that is the pass's existing machinery: the cut, the join at about 65 degrees, tidying the ends, keeping every edge's slot and seed, and filler splits for the freed slots.
+
+DECISION: round 1
+- Round 2 added a second rule: a join the pass makes gives way (no lights), where the next junction on the bigger road is under 60 m away. Here that is 9th Avenue's join, 40 m short of N 32nd Street.
+- At the target both rounds do the job, and the difference between them is within the noise (numbers below).
+  - Collisions near the target, over 14 runs: main 33, round 1 5, round 2 5.
+  - Waits over 60 s near the target: main 105, round 1 24, round 2 18.
+  - Midtown's district waits: round 2 26, round 1 40, main 40.
+- But round 2 also turns four of main's own joins, from the road fix, from lights to give-way, and its numbers there are mixed. Over seeds 1-3 at those four, district waits go 384 -> 356 but collisions go 26 -> 34. Near the joins: waits 59 -> 57, collisions 11 -> 11.
+- So round 1 is the smaller change with the same result where it matters, and it leaves the rest of 66 alone.
+
+CENSUS (rfcheck2, the procedural world, 66 against round 1)
+- Run on 66's own tree with the file, rfcheck2 gives the same census as round 1 on 65's tree, to the line: 0 of 55,080 differ.
+- 216 record lines differ: 111 on 66, 105 with the change. The count goes from 55,086 to 55,080 (5 nodes more, 11 buildings fewer).
+- Network:
+  - 6,260 -> 6,265 nodes. The 5 new ones are 9th Avenue's join, Laurel's, and the 3 filler splits (below).
+  - The nodes the road fix appended after the generator's (6224 on) move up by 1 to 5 places, unchanged otherwise.
+  - 2 nodes are left without edges (119 and 280). 66 already has 305 such nodes.
+  - 9,547 edges, as on 66, and 22 slots change:
+    - 12 hold the new or shortened pieces of the places above, and 12 of 66's records are gone;
+    - 10 hold main's own road-fix pieces, moved from other free slots and unchanged (same ends, seed and lanes): Old Cutler Road x2, Levee Road x3, Harlow Road, Seabreeze Street, Guava Main Street x2, and Bayshore by N 34th Street.
+    - They move because the pass fills free slots in index order, and the new cuts free lower ones.
+  - Signals: 1,679 -> 1,677.
+    - Lost: Bayshore at (3600,-1472.5), and Bougainvillea at S 14th Street (3600,-1450), now gone.
+    - Changed: (3600,-1350) goes from lights to stop signs.
+    - Added: 9th Avenue's join.
+- Filler splits. When fewer pieces come back than edges went, the pass splits the road nearest each freed slot's edge just short of its far junction. Main has 27 of these; round 1 adds 3:
+  - S 14th Street at (3561.8,-1450);
+  - Coral Drive at (-2932.4,2802.1);
+  - N 38th Street at (3927.3,3850).
+- Buildings: 39,049 -> 39,038 (2 changed, 36 removed, 25 added, each matched by position), in 5 places:
+  - Levee Road (-2986..-2880, 2740..3126): Almeria Boulevard's frontage, 20 houses and 2 garages, goes. Levee's rural frontage gets 10 houses and a garage. One house's height changes (-2923.7,2739.5: 5.9 -> 2.9 m) because its Levee Road piece moved slot (a building's variant hashes its edge's slot).
+  - Harlow Road (-2637.7,5050.2): one house's height, 5.9 -> 3.0 m, for the same reason (its Harlow Road piece moved slot).
+  - Bayshore and 9th Avenue (3822..3920, 3084..3215): 7 removed, 8 added: the frontage of 9th Avenue's cut stretch and Bayshore's new piece, laid again.
+  - N 38th Street (3926..4030, 3873..3918): 6 removed, 6 added. The filler split shortened N 38th, so its lots and its neighbours' (which check against them) were laid again.
+  - S 14th Street: the 117.6 m tower at (3543.5,-1478.3) is gone (next section).
+- Bus stops: one renamed, at the same place, on the same routes. Bus 12's first stop (3612.1,-1518.6) was "Bayshore Blvd & Bougainvillea Blvd" and is now "Bayshore Blvd & S 16th St": Bougainvillea no longer meets Bayshore there. The four bus routes' legs are unchanged.
+- The 52 story places, 15 site places and 29 interiors are unchanged.
+- Terrain: the heights and splat change where the grading follows the changed roads. Water is unchanged.
+- traffic_sim --overlaps --deadends: 0 overlapping pairs on both, and the same 1,255 dead ends at the same places.
+
+THE LOST TOWER, AND WHETHER A FILLER CAN GO ELSEWHERE
+- Why it's lost:
+  - With the old junction gone, S 14th Street's 8923 runs on through it to Bayshore (3500 -> 3605.9). The filler split it 44.1 m short of Bayshore's junction (its radius / 0.45 + 1 m), so that junction keeps its full cut-back on the new short piece.
+  - 8923 keeps its slot and seed, but its lots now stop 4 m before the split, 57.8 m along, where before they ran on to the old junction's cut-back.
+  - The tower's lot was the last on that side, and it no longer fits. The block keeps its 97.3 m tower at (3528.2,-1411.9).
+  - The boug_aerial pair shows it (shots below).
+- Can a filler go elsewhere? Not without a cost somewhere:
+  - Any split of a street with lots near its far end shortens that street's lots by about 1.22 r + 1 m. Lots come after the roads, so the pass can't see which split costs nothing.
+  - Here, the other S 14th Street (y = -1350) is exactly as near (50 m), and its far junction is just as big.
+  - The roads with no lots that the pass could prefer are dirt tracks. That was bay2: the tower comes back, but main's 27 older fillers move too. Downtown (3652,-667) gains towers of 246, 219 and 116 m and loses 118 and 143 m ones, and 8 other places change.
+  - A rule only for this round's new slots would keep the rest of 66, but it writes the passes' history into the generator. I don't recommend it.
+- My recommendation: accept the loss, one tower of about 350.
+- If you want it back: (a) bay2's rule, with its wider census; or (b) a later round that teaches the filler to skip pieces whose last stretch has lots, by the lot rules. (b) is more code in roads.cpp.
+
+SIMULATIONS
+- Setup: traffic_sim, 140 cars and 120 pedestrians, 6 simulated minutes, districts of 450 m. "Deadlocks" = waits over 60 s. "Near" = within 60 m of the changed spot.
+- The sims use 65's traffic_sim. The AI's sets 21-22 in 66 keep the procedural traffic identical to set 20's, by the AI's own checks, so 65's sims stand for 66's.
+- Each line gives deadlocks / collisions, district (near).
+- Bayshore and 9th, (3880,3110), seeds 1-6: main 101 / 20 (70 / 17); round 1 64 / 6 (11 / 1); round 2 66 / 10 (13 / 4).
+  - On main, the near ones are at N 32nd Street's junction 278 and node 280, where 9th Avenue's overlapping lanes end.
+  - With the change, the few left are on 9th Avenue just before the join.
+- Midtown, (3600,3200), seeds 1-8: main 40 / 18 (35 / 16); round 1 40 / 4 (13 / 4); round 2 26 / 1 (5 / 1).
+  - Round 1's seed 1 has 16 waits behind a pedestrian stuck on the crosswalk at 275 (Bayshore at Saltmarsh Boulevard).
+- Bougainvillea, (3600,-1420), seeds 1-3: main 65 / 12 (52 / 8); round 1 35 / 6 (0 / 1).
+- Laurel, (4800,7850), seeds 1-6: main 215 / 29; round 1 207 / 27. At the six-way: 11 / 1 -> 0 / 0.
+- Levee, (-2950,2980), seeds 1-6: main 535 / 34 (250 / 18); round 1 446 / 43 (169 / 23).
+  - The extra collisions are mostly at the south end. Almeria's remaining 138 m (edge 1872, still beside Levee Road from (-2953,2670)) now runs into Levee's all-way stop through Coral Drive's 8 m link, where before it ran straight on.
+  - A candidate for later: that piece too (FOR LATER).
+- Round 2 is the same as round 1 in Bougainvillea, Laurel and Levee: none of its give-way joins is there.
+- Round 2's other four joins, seeds 1-3. Round 1 is main there. Deadlocks / collisions, round 1 -> round 2:
+  - 10th Avenue on Bayshore (3816,1986): 76 / 8 -> 71 / 10;
+  - Caribe Drive at Old Cutler Road (2874,-2488): 76 / 4 -> 60 / 6;
+  - County Road 830 at Guava Main Street (4790,7257): 200 / 6 -> 198 / 9;
+  - a farm track at Guava Main Street (4391,8349): 32 / 8 -> 27 / 9.
+
+CHECKS
+- CI's tests: roads.cpp is in none of them, so they are 66's.
+- worldv and worldc: the hand world doesn't use the generator, so its files and world.bin are 66's.
+- MinGW, main.cpp with the exe build's own -Wall flags, with the file: 0 errors, 0 warnings, on 66's tree and on 0e4bf3a's.
+- The exe built with 0 warnings: /tmp/city/nt_bay.exe, 16,009,728 bytes. It is 65's tree (main 6e25a97) with this roads.cpp; the generator is the same on 66 (rfcheck2 66 vs 65: 0 lines).
+- Shots, main (nt_fx: 65) and round 1 (nt_bay), 1280x720, pairs in /tmp/city/baysmoke/pairs/ (main | round 1):
+  - bay9_aerial, bay9_top and bay9_street at the target;
+  - boug_aerial: the tower;
+  - alm_aerial: Levee and Almeria;
+  - laurel_aerial;
+  - n38_aerial.
+  - Every run: 0 fatal errors. Round 1's network: 6,265 nodes and 9,547 edges.
+- Drives with nt_bay, 0 fatal errors each:
+  - hand mode: rc 0, exactly 65's main (t=21.5 s at (1853.3,258.2), 88 peds, 63 vehicles);
+  - procedural: rc 0, t=17.5 s at (1806.7,257.2), 87 peds, 67 vehicles. Main's was at (1806.7,268.0) with 66 vehicles: the traffic differs with the network.
+
+FOR LATER (found, not touched)
+- Bayshore Boulevard has a 25 m piece named 9th Avenue (edge 282, 2/2 lanes) between (3900,3425) and (3901.5,3450). It sits between Bayshore's 3/3 edges 281 and 285 at the degree-2 node 287: a 3 -> 2 -> 3 lane drop on Bayshore. It is on main as well.
+- Almeria Boulevard's remaining 138 m beside Levee Road (above).

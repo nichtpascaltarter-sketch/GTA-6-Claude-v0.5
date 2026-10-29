@@ -1,0 +1,33 @@
+city snapshot-safe: 3b-3, b005's 12 hand-built buildings are enterable. In hand mode the player walks in through their real doors, climbs their stairs and reaches every room. Base 76 (0f9236d, tree 6f90e0ad). 13 files: 12 on 76's blobs and 1 new. The Codex P2 fix (stairEnd resolves ±1 by height, with its test) is in this sign-off.
+
+FILES (path, base, new)
+@FILES@
+
+WHAT (player-facing)
+- In hand mode, each of b005's 12 buildings has an interior:
+  - 6 shops with a flat over each, 2 three-storey walk-ups and 4 bungalows;
+  - 120 rooms on 22 floors, 90 doors whose leaves swing, and 10 stairs;
+  - no furniture or people yet.
+- The player walks in through the plans' real doors:
+  - the shop's glass pair door, and the flat's own street door beside it;
+  - the walk-up's street door;
+  - the bungalow's front door and its kitchen's side door.
+- Inside, the walls, floors, stairs and door leaves are solid. A leaf swings away from whoever walks up to it, as in the generator's interiors.
+- Where the ground outside is lower than the floor, a ground-floor door has a concrete stoop:
+  - the 0.3-0.5 m gutter between the sidewalk and the facades;
+  - a landing level with the floor, or a landing with steps down.
+- The stairs climb on a ramp of thin colliders, three to a tread, as the warehouse mezzanine was meant to. The player walks up and down them, and the treads are drawn as boxes.
+  - The shops' flights are straight and wooden.
+  - The walk-ups' flights are terrazzo doglegs with landings, and their wells have balustrades.
+- The tour walks into every room, as CHECKS shows.
+- Lights:
+  - each room has a fixture by its type (a pendant, downlight or troffer);
+  - its lamps and ambient follow its windows' light state, from the same function as the facade shader, so a window lit from the street is a lit room inside and goes dark at the same minute.
+- Party walls (m01|s02, s03|s04, s05|m06, s07|s08): the higher building's shared wall shows only above the lower one's roof, and so do its trims. Before this fix, the walk-up's facade showed inside the shop.
+- Nothing changes in procedural mode. world.bin is byte-identical to 75's.
+
+HOW
+@HOW@
+
+CHECKS (all on this tree)
+@CHECKS@

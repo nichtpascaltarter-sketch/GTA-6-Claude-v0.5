@@ -1,0 +1,65 @@
+city snapshot-safe: dead ends' turning bulbs, the mesh fix you asked for. The bulb's sidewalk ring and kerb no longer cross the street's mouth, and the street's sidewalks, kerbs, skirts, rails and paint stop where they meet the bulb. Both worlds. On 0e4bf3a with my three accepted for 68; the three files sit on I-38's roadmesh.cpp and the written bulbs' roadnet.cpp and worldmodel_test.cpp.
+
+FILES (3, all written)
+- src/world/roadmesh.cpp d8eb2d57 on ae20850a (I-38's, accepted for 68; 0e4bf3a has 0c6aef3c)
+- src/world/roadnet.cpp b33a8b7e on 4328ee2e (the written bulbs', accepted for 68; 0e4bf3a has fb25270e)
+- tests/world/worldmodel_test.cpp bbdc2bd3 on 1f6ab292 (the written bulbs', accepted for 68; 0e4bf3a has bde87a90)
+
+WHAT (player-facing)
+- Every dead end with a turning bulb: the procedural world's 1,124 (two-way lanes, streets and rural roads), and the pilot's 5.
+  - Before, the street was drawn all the way to the node, sidewalks, kerbs, skirts, rails and centre line included, and the bulb's disc and full sidewalk ring were drawn on top. So a 0.15 m kerb ring ran across the street's mouth, and the street's two sidewalks ran on inside the turning circle as raised strips.
+  - Now the ring is open across the mouth, and its two ends meet the street's two sidewalks: the keyhole shape a cul-de-sac has. The street's kerbs, sidewalks, skirts and rails stop where they meet the ring, and its paint stops at the disc's edge.
+- The ground the game stands people and cars on agrees (roadnet.cpp roadSurfaceHeight):
+  - across the mouth it is the street's carriageway, not the ring's 0.15 m;
+  - inside the disc the street's sidewalks no longer count.
+  - The lane graph's walk ring already stopped the walk at the ring.
+
+HOW
+- roadmesh.cpp:
+  - bulbCross(): where one of the street's lines leaves a circle round the dead end's node, measured on the same sections the edge's quads are drawn on. Both the edge and the node use it, so their meeting points are the same to the bit.
+  - The edge: per end and side, the kerb line's meeting point with the disc (radius r) and the outer line's (the sidewalk's, else the kerb line) with the ring's outer edge (r + the ring's sidewalk).
+    - A quad wholly on the street's side of those is drawn exactly as before.
+    - The quads they cut get the curb face and skirt along their lines' stretches, and the sidewalk top clipped by the line between the two meeting points.
+    - Shoulder skirts stop at the kerb line's meeting point.
+    - Rail sub-spans inside the ring are left out, and the paint stops at the disc.
+  - The node: the ring runs from one side's two meeting points round the far side to the other's, at the street's height at its ends. When a street is as wide as its bulb, there are no meeting points, and the ring is drawn all round as before.
+- roadnet.cpp: inside a bulb's disc, an edge's sidewalk band doesn't count. The ring's 0.15 m doesn't apply within the dead-end street's carriageway (inCarriageway).
+- Test (worldmodel_test), on the written 8 m bulb of the test fixture's dead end:
+  - the mouth at 9.25 m is road, not +0.15 (66: +0.16);
+  - a point on the street's sidewalk band inside the disc is road (66: +0.15);
+  - the ring beside the mouth is still +0.15.
+  - The test fails on 66 and passes with the change.
+
+CENSUS (both worlds, 66 + my two (I-38, written bulbs) against the change; every dead-end cell, and nothing else)
+- Hand world: meshcensus_hand loads world.bin as the game does (terrain, roads, overrides with each side's widths) and hashes every road cell at both levels of detail, plus the road queries across every edge.
+  - 10 of 40 cell lines differ: the 5 cells that hold the 5 bulbs, at both levels.
+  - 5 of 83 edge query lines differ: the 5 dead-end streets.
+  - Nothing else changes, and world.bin is byte-identical.
+- The procedural world (meshcensus3: meshcensus2 with each line marked when a dead-end bulb is among its roads):
+  - 1,132 of 4,366 cell lines differ: 566 cells at both levels of detail.
+    - 551 hold one of the 1,124 dead ends; the other 15 are next to one, where a dead-end street's cut stretch or paint is drawn in the neighbouring cell.
+    - No cell without a dead end near it changed.
+  - 1,017 of 9,547 edge query lines differ.
+    - 957 are dead-end streets.
+    - The other 60 are roads within 26 m of a dead end's node: their sampled band (out to their sidewalk + 2 m) reaches into its bulb.
+  - Road vertices: 11,384,050 -> 11,320,666.
+  - rfcheck2: 0 of 55,086 record lines differ. Buildings, places, bus stops and terrain are 66's: the generator's few users of the road queries are untouched.
+- Pictures of the meshes from the census tool (top views, 40 m across), before | after:
+  - the pilot's cl.n0001: /tmp/city/dedump/hand80_pair.png;
+  - the procedural 31st Avenue at (1700,900): /tmp/city/dedump/proc80_pair.png.
+
+CHECKS
+- Run on 0e4bf3a + my 68 (I-38, written bulbs, Bayshore round 1) + the change, and before that on 66 + my two + the change:
+  - CI's tests with CI's flags (-Wall -Wextra -Werror, UBSan): worldmodel_test (with the new test), world_format_test and worldv_test all passed.
+  - worldv on world/: 0 errors and the 4 agreed warnings.
+  - MinGW with -Wall: main.cpp with the exe build's flags 0 errors, 0 warnings; worldmodel_test.cpp with -Wall -Wextra 0 and 0.
+- worldc: world.bin byte-identical with my 68's.
+- The exe built with 0 warnings: /tmp/city/nt_de.exe, 16,112,128 bytes. It is 66 + my two + the change; it lacks 67's AI work and Bayshore round 1, which don't touch the mesh or these queries.
+- Shots in the game, 1280x720, before | after side by side (before: nt_bulb.exe, 66 + the written bulbs; the I-38 change doesn't reach dead ends). 0 fatal in all four games.
+  - The procedural 31st Avenue at (1700,900), from above and from the street looking into the bulb: /tmp/city/desmoke/pairs/de_p_top.png and /tmp/city/desmoke/pairs/de_p_mouth.png.
+    - Before: the ring's kerb runs across the mouth, the street's sidewalks run on inside the circle as raised strips, and there is a centre-line dash at the node.
+    - After: the keyhole, and the paint stops at the disc's edge.
+  - The pilot's cl.n0001 (Calle del Muelle at 1150,66), from above and low from the south: /tmp/city/desmoke/pairs/de_h_top.png and /tmp/city/desmoke/pairs/de_h_side.png.
+- Drives with nt_de.exe, 0 fatal each:
+  - hand, 30 s autoplay drive: ends at t=21.5 at 1911.9,282.8 with 77 peds and 53 vehicles, exactly 66's (the bench exe without its hook) and the written bulbs' drive;
+  - procedural, 24 s first person: 6260 nodes, 9547 edges; ends at t=17.5 at 1806.7,268.0 with 87 peds and 66 vehicles, exactly the I-38 and bench guard drives.

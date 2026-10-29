@@ -1,2 +1,0 @@
-ntw 1 facade id=lib.facade.a.b # expect id.form
-wall material=lib.kit.mat_siding

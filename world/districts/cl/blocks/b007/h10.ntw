@@ -1,0 +1,5 @@
+ntw 1 building id=cl.b007.h10 block=cl.b007 parcel=cl.b007.p07
+# a bungalow, facing Paseo del Rio
+# written by tools/author/street.py (seed 6): a re-run rewrites this file, unless this line goes
+place plan=lib.plan.house.bungalow_c at=1884.61,285.62 z=3.39 yaw=18.4 mirror=1
+config palette=lib.palette.bungalow.butter

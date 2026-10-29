@@ -1,0 +1,95 @@
+city snapshot-safe: 3j slice (ii), the request loop's batch submit (Jobs::submitBatch). Base bc54221 (tree d796ee24, snapshot 94). 4 files, all changed on their blobs, none new. No data changes.
+
+FILES (path, base, new)
+docs/HANDBUILT_WORLD.md 562e718e 0d54bd95
+src/core/jobs.cpp 64a4caee bc76379c
+src/core/jobs.h 376075e0 2a1f1e31
+src/render/world_render.cpp 999b668e 740229ad
+(also in /tmp/city/p3j_blobs.txt)
+
+WHAT (player-facing)
+- In the hand world, the request-loop spikes leave the streaming frame times, both while it loads and when a drive brings new cells into the rings.
+- The five slowest streaming frames of the hand drive are now all uploads. On 94, two of the five were bursts that streamed only empty far cells (6.44 and 4.57 ms).
+- Nothing else changes: the same cells load with the same bytes.
+
+HOW
+- src/core/jobs.h and jobs.cpp: a new Jobs::submitBatch(fns, prio).
+  - It pushes the jobs in their order under one lock, and counts g_lowCount per job, which pendingLow() reads.
+  - Then it wakes min(N, workers) workers, one notify_one each, and leaves fns empty.
+  - With no workers it runs the jobs inline, in order, as submit() does.
+- src/render/world_render.cpp:
+  - requestCell() pushes each new cell's job onto a member, requestBatch, instead of submitting it. inFlight is counted there, at request time, as before.
+  - update() hands the whole batch to Jobs::submitBatch(requestBatch, kJobLow) on the line right after the request loop. The loop is the only caller and has no other way out, so every job counted in inFlight is queued before anything else in the frame runs.
+- So a frame admits at most maxInFlight minus inFlight cells. Nothing else is touched: not maxInFlight, the rings, the upload budget, or the upload order.
+- HANDBUILT's streaming list gets the line "A frame's new cells go to the job queue together, under one lock and with at most one wake per worker (`Jobs::submitBatch`), with up to 6 cells in flight."
+- Size: jobs.cpp +19 lines, jobs.h +3, world_render.cpp +6 and -2.
+
+CHECKS
+- CI's GCC job, every step with CI's flags (-Wall -Wextra -Werror, UBSan), all pass:
+  - bit_scan_test (12,146 masks);
+  - update_logic_test (286 checks);
+  - payload and payload_test.sh (16 checks);
+  - world_format_test, worldv_test and worldmodel_test.
+- MinGW -Wall on main.cpp, the unity build that compiles core/jobs.cpp and render/world_render.cpp: 0 errors, 0 warnings.
+- No data changes:
+  - worldc's world.bin is the same bytes as 94's.
+  - worldv: 0 errors and the same 4 warnings as before.
+  - The procedural census: 0 of 13,914 lines differ.
+  - The harness: line for line the same as 94's once the timings are stripped (3,462 of 3,462 rooms).
+- The exe nt_b28: 16,493,568 B, with 0 warnings.
+- The private scan is clean.
+
+THE BAR: byte-identical streaming results, proved as for 88
+- Two scratch exes, 94 and (ii), each with 88's cell log and a request-phase timer, ran the hand drive and the procedural drive. Each game started from load under 2.0, with no showcase running.
+- Procedural drive: the same in every respect.
+  - The same 317 uploads (309 distinct cells and hashes), in the same order.
+  - The same 21 evictions, in the same order.
+  - The same 296 cells resident at the end.
+  - No cell's first upload moved, and the far ring filled at the same update (89).
+- Hand drive:
+  - Every cell with content has the same bytes, and the same 294 cells are resident at the end.
+  - The evictions are the same cells in the same order, but for one, below. Some eviction frames move by a few updates; eviction keys on 1.5 s of wall time.
+  - The one difference is an empty far cell, 39,34 (0 triangles), at the ring's far south-west edge.
+    - 94 admitted it in its first-second burst. It waited for the upload budget, was uploaded empty at update 77, and was evicted in that same update because the camera had moved on.
+    - (ii) admits 6 a frame in distance order, so it would have reached 39,34 last. By then 39,34 had left the ring, so it was never requested.
+    - That is the only distinct upload (321 of 322 in both) and the only eviction (27 of 28) not in both.
+  - Twelve first uploads moved by one update: 11 empty cells (5 earlier, 6 later) and one cell with content.
+    - The one with content is 45,41's far level of detail (17,533 triangles): update 596 instead of 597, ready in the update it was uploaded in both runs.
+    - It is a ring threshold crossed as the frames fell: the camera passes 45,41's far-ring distance at the drive's east end, and the update it does so in moves by one with frame timing. The empty ones move by one both ways for the same reason.
+- The far ring takes the same frames to fill, before and after. Nothing was pending any more at update 77 on 94 (290 cells, 293 uploads) and update 76 on (ii) (290 cells, 292 uploads).
+  - The fill is bound by the upload budget, 4 cells a frame with the empty ones counting, in both. Admitting 6 a frame stays ahead of that.
+  - My proposal's "70 frames instead of 10" was wrong for that reason.
+- Checkpoints:
+  - Hand drive: the first moves one frame earlier, from t=2.6 (pos 1763.7 219.3, speed 8.3) to t=2.5 (pos 1763.5 219.1, speed 8.1). It fires on the first frame after 1.5 s with nothing pending, and (ii) got there one upload sooner without 39,34.
+  - Hand drive: t=11.5 and t=21.5 are identical, with the same peds and vehicles.
+  - Procedural drive: all three are identical (t=3.0, 9.5, 17.5).
+
+REQUEST-PHASE TIME (the scratch exes: the loop, plus the batch on (ii); 94 / (ii))
+- Hand drive:
+  - Over 3 ms: 3 / 1.
+  - Max: 4.62 ms (41 new cells) / 3.21 ms (6 new).
+  - Over 1 ms: 7 / 4.
+  - On (ii) every phase over 1 ms is one batch of 6, or 1 cell.
+- Procedural drive:
+  - Over 3 ms: 0 / 0.
+  - Max: 1.61 / 2.93 ms.
+  - Over 1 ms: 2 / 7, all batches of 6 (or 3), most of them in the first second.
+  - So it reads a little worse here, where the loop was already cap-bound: one batch now wakes up to three workers together, where before they were woken one at a time. That is my guess, from one run each. None passes 3 ms, and the real exes' procedural streaming didn't get worse (below).
+
+FRAME LOG, quiet back-to-back pairs of the real exes, 94 / (ii)
+- Hand drive (load at start 1.97 / 1.90):
+  - Median: 7.0 / 6.8 ms.
+  - Frames over 33 ms: 253 / 253.
+  - Streaming max: 9.90 / 9.68 ms, 46,41's upload alone in both.
+  - Streaming p99: 1.52 / 1.00 ms.
+  - 94's five slowest streaming frames include two request-loop bursts of empty far cells (6.44 ms at t=1.03, 4.57 ms at t=0.70). (ii)'s five are all uploads.
+- Procedural drive (load at start 1.54 / 1.55):
+  - Median: 6.0 / 6.1 ms.
+  - Frames over 33 ms: 159 / 158.
+  - Streaming max: 9.89 / 8.41 ms.
+  - Streaming p99: 6.49 / 5.87 ms.
+- The first frames' p99 and max are the load: hand p99 1,770 / 1,801 ms, max 15,125 / 15,472 ms.
+- Interiors: up to 295 resident in both. Memory: the hand drive used 2,998-3,095 MB on 94 and 3,019-3,099 MB on (ii).
+- Near builds: 46,41 took 10.3 / 9.6 ms in the real drives and 9.9 / 11.0 ms in the scratch ones. None passed ~15 ms, so that's no second run for (a).
+
+Next: R4a is written on (ii)'s tree (both touch HANDBUILT_WORLD.md) and its checks are running now. Its sign-off follows.

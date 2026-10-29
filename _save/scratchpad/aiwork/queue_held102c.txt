@@ -1,4 +1,0 @@
-bin/nt_ai102c.exe crossing:90:12:60:960x540
-bin/nt_ai102c.exe crowded:90:12:60
-bin/nt_ai102c.exe copreturn:110:12:60:960x540
-bin/nt_ai102c.exe walkby:150:12:60

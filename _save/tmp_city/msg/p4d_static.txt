@@ -1,0 +1,42 @@
+WHAT (player-facing, hand world only)
+- Calle Nueve's south side is now built from Coral to Este as well, so it's built along its whole length, and row 4 (b020-b025) is complete. Across Calle Nueve the ground stays bare until the park edge (1b): its plan follows this sign-off.
+- The three new faces, west to east (each runs corner, houses, corner):
+  - b023 (Coral to Palma):
+    - Corners: s11 (rose) and s18 (coral).
+    - Gable casitas: h12 (sky) and h13 (lemon).
+    - Twins: h15 (coral) and h16 (rose).
+    - Bungalows: h14 (butter) and h17 (seafoam).
+  - b024 (Palma to Sol):
+    - Corners: s09 (lemon) and s14 (sky).
+    - Gable casitas: h11 (rose) and h12 (sky).
+    - Twins: h10 (sand) and h13 (mint).
+  - b025 (Sol to Este):
+    - Corners: s09 (rose) and s14 (lemon).
+    - Gable casita: h12 (rose).
+    - Twins: h10 (sky) and h13 (mint).
+    - Bungalow: h11 (peach).
+- In all: 6 corner shops with a flat over them, 5 gable casitas, 6 flat-roofed twins and 3 bungalows. The plan's count was 11 casitas, 3 bungalows and 6 corners.
+- All 20 can be walked into from the sidewalk and through every room (171 new rooms). There are no new plans or palettes.
+- Two corners stand further in from Sol, where its sidewalk reaches into their parcels: b024.s14 and b025.s09, by 0.6 m each.
+- The face rules hold:
+  - No palette is twice side by side, and no plan has the same palette twice within three.
+  - No three casitas alike stand side by side. b024's four houses are all casitas: twin, gable, gable, twin.
+  - The longest run of one plan is 2: b023's gable casitas h12-h13 and its twins h15-h16, and b024's gable casitas h11-h12.
+- Procedural mode is unchanged.
+
+HOW
+- As R4c: street.py as merged (seed 6, the palettes' own seed, the twin rule, --ground) wrote b023-b025 into a scratch copy of R4c's tree.
+- Its re-run changed no existing file. I took only its 20 files facing Calle Nueve, with no hand edits.
+- Docs:
+  - HANDBUILT 5.3: "...then the Calle Nueve face of b020-b022 (26) and of b023-b025 (20), which completes row 4".
+  - HANDBUILT 7.4: "...and with b023-b025's 20 the 412 hold 4,635 rooms in 2,371k".
+
+CHECKS
+- worldc: 0 warnings, 412 buildings from 467 files. world.bin changes only in buildings and manifest.
+- worldv: 0 errors and the same 4 warnings as before (467 files, 3,278 records).
+- CI's three world tests pass with CI's flags (-Wall -Wextra -Werror and UBSan). MinGW -Wall on main.cpp: 0 errors, 0 warnings.
+- The procedural census: 0 of 13,914 lines differ from R4c's.
+- The exe nt_b32: 16,497,664 B, with 0 warnings.
+- The 20 new files are canonical (ntwfmt --check, 49 files in b023-b025), with id = path and 5 lines each. The private scan is clean.
+- Against 98's tree a5f557f8, the work tree differs in exactly these 21 files: of its 965 tracked files only the doc changed, and the 20 are new.
+- Harness: 4,635 of 4,635 rooms in the 412 interiors, 0 tour legs off the walk.

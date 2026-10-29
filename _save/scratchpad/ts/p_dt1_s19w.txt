@@ -1,2 +1,0 @@
-07:18:38 start: --sim 2700 760 450 --cars 140 --peds 120 --parked 140 --minutes 6 -v
-binary traffic_sim19w

@@ -1,0 +1,87 @@
+city snapshot-safe: 3c batch 3, blocks b002 and b003. Their 35 buildings stand on Calle Luna and the Paseo del Rio with batch 2's plans and rules, so Calle Luna's river side is now built from Bougainvillea to Este. Base 843d1f4, snapshot 82 (tree 014a0a05). 36 files: 1 changed on its blobs, 35 new.
+
+FILES (path, base, new)
+docs/HANDBUILT_WORLD.md 25639e7a 907a61ff
+world/districts/cl/blocks/b002/h13.ntw new f6de25b0
+world/districts/cl/blocks/b002/h14.ntw new 057f3390
+world/districts/cl/blocks/b002/h15.ntw new cfeab9f1
+world/districts/cl/blocks/b002/h16.ntw new d6e8113d
+world/districts/cl/blocks/b002/h17.ntw new 97ce28ab
+world/districts/cl/blocks/b002/m02.ntw new 97dc269c
+world/districts/cl/blocks/b002/m03.ntw new a33d9a95
+world/districts/cl/blocks/b002/m07.ntw new ffb44f80
+world/districts/cl/blocks/b002/m08.ntw new 9a700ba5
+world/districts/cl/blocks/b002/m10.ntw new c500b07a
+world/districts/cl/blocks/b002/s01.ntw new ce7730a7
+world/districts/cl/blocks/b002/s04.ntw new 1d44d01d
+world/districts/cl/blocks/b002/s05.ntw new 2fdcd9ea
+world/districts/cl/blocks/b002/s06.ntw new fcafae8d
+world/districts/cl/blocks/b002/s09.ntw new dbedda00
+world/districts/cl/blocks/b002/s11.ntw new 26381922
+world/districts/cl/blocks/b002/s12.ntw new 7e7ba589
+world/districts/cl/blocks/b002/s18.ntw new 13551feb
+world/districts/cl/blocks/b003/h12.ntw new fbad97ae
+world/districts/cl/blocks/b003/h13.ntw new 0f301d55
+world/districts/cl/blocks/b003/h14.ntw new e2da295c
+world/districts/cl/blocks/b003/h15.ntw new c8115b95
+world/districts/cl/blocks/b003/h16.ntw new 7b73e8a0
+world/districts/cl/blocks/b003/m04.ntw new d2bd68f1
+world/districts/cl/blocks/b003/m05.ntw new 55980553
+world/districts/cl/blocks/b003/m06.ntw new d1af917e
+world/districts/cl/blocks/b003/m08.ntw new 4ed83688
+world/districts/cl/blocks/b003/m09.ntw new cbdafc4c
+world/districts/cl/blocks/b003/s01.ntw new 41a497e9
+world/districts/cl/blocks/b003/s02.ntw new fd0d84aa
+world/districts/cl/blocks/b003/s03.ntw new 9fb8dd79
+world/districts/cl/blocks/b003/s07.ntw new e54ae399
+world/districts/cl/blocks/b003/s10.ntw new 18324a08
+world/districts/cl/blocks/b003/s11.ntw new 7176dd2a
+world/districts/cl/blocks/b003/s17.ntw new 7b81b5d5
+(also in /tmp/city/p3c3_blobs.txt)
+
+WHAT (player-facing, hand world only)
+- b002 (Calle Luna to the river, Bougainvillea to Ceiba) has 18 buildings:
+  - Calle Luna's side is a street wall of 11, with a corner shop at each end and walk-ups and shops with flats between them.
+  - The Paseo del Rio's side has a corner shop at each end and five bungalows and casitas between them.
+- b003 (Ceiba to the Heroes) has 17 buildings: 10 on Calle Luna and 7 on the Paseo, laid out the same way.
+- Every parcel of the two blocks has a building. The river side's six blocks (b002 to b007) now hold 95 buildings.
+- All 35 can be walked into from the sidewalk and through every room. There are no new plans, so there is no new walk through one.
+- Procedural mode is unchanged: the census is identical, and world.bin changes only in hand sections (buildings, manifest).
+
+HOW
+- tools/author/street.py, unchanged, as in batch 2: seed 6, with --ground on 82's ground at 0.25 m (scratch dumps, as you said). Its output is the 35 files as written, with no hand edits.
+- The ground check moved one building. b002.s12, the corner shop where the Paseo meets Bougainvillea, stands 0.9 m further back than its front line, the most the rule allows:
+  - the two streets meet askew there, and the sidewalk's corner reaches more than 1.3 m into the parcel, against 0.5 m along the rest of its front;
+  - on the front line, its footprint's corner would have stood on the sidewalk (4.24) instead of the yard's level ground (4.07).
+- No code, no library items, no block file changes: b002's and b003's block.ntw are as 82 has them.
+- Docs: HANDBUILT 5.3 (the blocks street.py wrote) and 7.4 (the 95 interiors).
+
+CHECKS
+- Builds and data:
+  - worldc: 0 warnings, 95 buildings from 147 files. world.bin changes only in buildings and manifest.
+  - worldv: 0 errors and the 4 warnings as before (147 files, 2,623 records).
+  - CI's three tests pass with CI's flags.
+  - MinGW -Wall gives 0 errors and 0 warnings on main.cpp. No code changed.
+  - The procedural census: 0 of 13,914 lines differ from 82's.
+  - The exe nt_b16: 16,468,480 B, with 0 warnings.
+  - The 35 new files are in the format's canonical form, and b002's and b003's block files are unchanged.
+- Host harness (scratch), hand interiors with the game's walk rules and all colliders solid: from outside each main entrance it reaches all 1,116 rooms of the 95 interiors, and no leg of the tour leaves the walk.
+- In the game (hand world):
+  - Shots, 0 fatal, in /tmp/city/b16smoke/shots/ (PNG):
+    - b003's Calle Luna face by day from the Heroes: the corner shop's side windows face the Heroes, then the street wall runs towards Ceiba;
+    - b002's Calle Luna face by night from Ceiba, its shop windows and flats lit;
+    - an aerial over both blocks from the river: the Paseo's corner shops and houses, tile roofs alternating with grey ones, and their yards whole.
+  - Hand drive, 0 fatal: at t=21.5 it is at 1919.8, 285.4 with 81 peds and 51 vehicles, the same as on 82.
+  - Procedural drive, 0 fatal: at t=17.5 it is at 1789.9, 130.6 with 93 peds, 63 vehicles and wanted 2, the same as on 82.
+
+THE NUMBERS (cell build times, resident interiors, memory)
+- I measured these again on a quieter machine (cq168): cq167's games ran during the showcase render, with the load at ~3.8, and there 46,41 (unchanged) took 14.8 ms once.
+- Hand cells: the 95 buildings fall in 8 cells.
+  - 46,41: 26 placements (unchanged), 4.2-6.0 ms (4.1 ms on 82 in the same run).
+  - 45,41: 19 placements (5 before), 25,960 triangles, 4.6-4.9 ms.
+  - 47,41: 17 placements, 3.1-3.2 ms.
+  - 45,40: 13 placements (3 before), 1.7 ms.
+  - The other four take 1.2 ms or less.
+- Interiors: all 95 hand-built interiors are resident at once, in the shots and in the hand drive: 568,640 triangles (82: 60 and 355,660). The slowest builds in 4.0 ms.
+- Memory: I ran the hand drive on 82 and on batch 3 back to back. 82 used 2,934-2,937 MB, batch 3 2,973-2,976 MB: batch 3 adds about 40 MB (I had expected 70-90).
+- So the 480 m radius stays, and no cell is near 10 ms.

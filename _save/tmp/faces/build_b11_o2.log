@@ -1,8 +1,0 @@
-In file included from src/main.cpp:70:
-src/game/app.cpp: In member function 'void Game::App::prepareMenuData()':
-src/game/app.cpp:6274: note: '-Wmisleading-indentation' is disabled from this point onwards, since column-tracking was disabled due to the size of the code/headers
- 6274 |         for (auto& b : game.missionBlips) menu.mapBlips.push_back(b);
-      | 
-src/game/app.cpp:6274: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
--rwxr-xr-x 1 root root 12909568 Oct 19 23:25 /tmp/faces/nt_b11_o2.exe
-build exit 0 23:25:12

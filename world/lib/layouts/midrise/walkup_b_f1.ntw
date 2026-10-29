@@ -1,0 +1,33 @@
+ntw 1 layout id=lib.layout.midrise.walkup_b_f1
+# the first floor: the corridor from the stair to the flat's door, and the flat as below
+wall w1 a=0.00,0.00 b=10.00,0.00 t=0.25 ext=front
+wall w2 a=10.00,0.00 b=10.00,14.00 t=0.25 ext=right
+wall w3 a=10.00,14.00 b=0.00,14.00 t=0.25 ext=back
+wall w4 a=0.00,14.00 b=0.00,0.00 t=0.25 ext=left
+wall w5 a=2.60,0.00 b=2.60,14.00 t=0.15
+wall w6 a=0.00,8.40 b=2.60,8.40 t=0.12
+wall w7 a=2.60,6.00 b=10.00,6.00 t=0.12
+wall w8 a=2.60,9.00 b=10.00,9.00 t=0.12
+wall w9 a=2.60,10.20 b=10.00,10.20 t=0.12
+wall w10 a=7.00,10.20 b=7.00,14.00 t=0.12
+room corr type=corridor poly=0.00,0.00;2.60,0.00;2.60,8.40;0.00,8.40 cap=4
+room stair type=stair poly=0.00,8.40;2.60,8.40;2.60,14.00;0.00,14.00 cap=6
+room living type=living poly=2.60,0.00;10.00,0.00;10.00,6.00;2.60,6.00 cap=4
+room kitchen type=kitchen poly=2.60,6.00;10.00,6.00;10.00,9.00;2.60,9.00 cap=3
+room hall type=hall poly=2.60,9.00;10.00,9.00;10.00,10.20;2.60,10.20 cap=2
+room bed type=bed poly=2.60,10.20;7.00,10.20;7.00,14.00;2.60,14.00 cap=2
+room bath type=bath poly=7.00,10.20;10.00,10.20;10.00,14.00;7.00,14.00 cap=1
+door d2 wall=w6 at=1.30 w=0.90 h=2.10 kind=hinged hinge=right swing=out leads=corr:stair
+door d3 wall=w5 at=4.00 w=0.90 h=2.10 kind=hinged hinge=left swing=in leads=corr:living lock=resident
+door d4 wall=w7 at=3.70 w=0.90 h=2.10 kind=opening leads=living:kitchen
+door d5 wall=w8 at=3.70 w=0.90 h=2.10 kind=opening leads=kitchen:hall
+door d6 wall=w9 at=2.20 w=0.90 h=2.10 kind=hinged hinge=right swing=in leads=hall:bed
+door d7 wall=w9 at=5.90 w=0.90 h=2.10 kind=hinged hinge=left swing=in leads=hall:bath lock=key
+window n0 wall=w1 at=1.30 w=1.00 h=1.40 sill=0.90 kind=fixed room=corr
+window n1 wall=w1 at=4.60 w=1.20 h=1.50 sill=0.90 kind=casement room=living
+window n2 wall=w1 at=8.00 w=1.20 h=1.50 sill=0.90 kind=casement room=living
+window n3 wall=w3 at=1.50 w=0.60 h=0.80 sill=1.50 kind=jalousie room=bath
+window n4 wall=w3 at=5.20 w=1.20 h=1.40 sill=0.90 kind=casement room=bed
+window n5 wall=w3 at=8.70 w=0.80 h=1.20 sill=1.40 kind=fixed room=stair
+stair st1 from=f1.stair to=f2.stair run=0.70,10.37;0.70,13.30;1.90,13.30;1.90,10.37 w=1.10 kind=dogleg treads=17
+  rise=0.18 landing=1.10

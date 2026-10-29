@@ -1,9 +1,0 @@
-{
-  "id": "54",
-  "subject": "Snapshot 61: worldv 5 + AI 19 + anim c12-c14 + night + road fix + 4.1 + world model v0",
-  "description": "Merged as PR #54 (c7a63ae) after the Codex P2 fix 5acba43; grafted into the shared tree.",
-  "activeForm": "Landing snapshot 61",
-  "status": "completed",
-  "blocks": [],
-  "blockedBy": []
-}

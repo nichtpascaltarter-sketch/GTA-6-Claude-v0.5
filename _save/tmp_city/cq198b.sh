@@ -1,0 +1,72 @@
+#!/bin/bash
+# 3r V1 on S2, street.py's per-face draw and Calle Nueve (row 4) on S2's tree ($S/b36): $S/b37. The builds, at nice 19: worldc
+# (sections vs S2's bin), worldv, CI x3, MinGW main.cpp, street.py's py_compile, the census vs S2's, the exe nt_b37 and
+# the harness.
+S=/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad
+L=/tmp/wine_city/drive_c/users/root/AppData/Local/NeonTide/log.txt
+st() { echo "$1 $(date)" >> /tmp/city/cq80.status; }
+wmem() { while [ "$(sh /home/user/GTA-6-Claude-v0.5/tools/memfree.sh)" -lt $1 ]; do sleep 15; done; }
+wload() { local end=$((SECONDS + 1200)); while [ "$(awk '{print ($1 < 2.0) ? 0 : 1}' /proc/loadavg)" = 1 ] && [ $SECONDS -lt $end ]; do sleep 20; done; }
+fatal() { local n; n=$(grep -cE 'Unhandled|FATAL' "$1" 2>/dev/null); echo "${n:-0}"; }
+CI="-std=c++17 -O2 -Wall -Wextra -Werror -fsanitize=undefined -fno-sanitize-recover=undefined"
+W="-std=c++17 -fsyntax-only -march=x86-64-v2 -mfpmath=sse -fno-strict-aliasing -Wall -Wno-unused-function -Wno-unused-variable -Wno-missing-braces -Wno-unused-but-set-variable -Wno-class-memaccess"
+game() {   # name exe timeout args...
+  local N=$1 E=$2 T=$3; shift 3
+  rm -f $L
+  wmem 3300
+  TIMEOUT=$T EXE=$E WINEPREFIX=/tmp/wine_city nice -n 6 tools/run.sh "$@" > /tmp/city/$N.out 2>&1
+  local rc=$?
+  cp $L /tmp/city/${N}_log.txt 2>/dev/null
+  rm -f $L
+  return $rc
+}
+nums() {   # name
+  st "$1: load $(cut -d' ' -f1-3 /proc/loadavg); cells $(grep -hoE 'Hand buildings: cell [0-9,]+ \((near|far)\): [0-9]+ placements, [0-9]+ triangles, [0-9.]+ ms' /tmp/city/${1}_log.txt | sed -E 's/Hand buildings: cell ([0-9,]+) \((near|far)\): ([0-9]+) placements, ([0-9]+) triangles, ([0-9.]+) ms/\1\2:\3p:\4t:\5/' | tr '\n' ' '); resident at most $(grep -hoE 'resident [0-9]+ \([0-9]+ hand-built\), [0-9]+ triangles' /tmp/city/${1}_log.txt | sed -E 's/resident ([0-9]+) \(([0-9]+) hand-built\), ([0-9]+) triangles/\2 \1 \3/' | sort -g | tail -1); mem by t $(grep -oE 'autoplay t=[0-9.]+ .*mem [0-9]+ MB' /tmp/city/${1}_log.txt | sed -E 's/autoplay t=([0-9.]+) .*mem ([0-9]+) MB/\1:\2/' | tr '\n' ' '); $(grep -oE 'autoplay frames .*' /tmp/city/${1}_log.txt | head -1); $(fatal /tmp/city/${1}_log.txt) fatal"
+}
+pts() {   # name: the checkpoints
+  grep -oE 'autoplay t=[0-9.]+ pos [-0-9.]+ [-0-9.]+ [-0-9.]+ state [0-9]+ health [0-9]+ veh [-0-9]+ speed [-0-9.]+ \| peds [0-9]+ vehicles [0-9]+ wanted [0-9]+' /tmp/city/${1}_log.txt | sed -E 's/autoplay //; s/ state [0-9]+ health [0-9]+ veh [-0-9]+//; s/\| //' | tr '\n' ';'
+}
+st "--- cq198b (3r V1 on S2: worldc, worldv, CI, MinGW, census, exe, harness; nice 19)"
+cd $S/b37
+wmem 2800
+nice -n 19 g++ -std=c++17 -O2 -Wall -Wextra -I. tools/worldc.cpp -o /tmp/city/c198_worldc > /tmp/city/c198_worldc_build.log 2>&1; b=$?
+/tmp/city/c198_worldc --world=world --out=/tmp/city/c198_world_b37.bin > /tmp/city/c198_worldc.log 2>&1; r=$?
+$S/b2w/binsec_b4 /tmp/city/c198_world_b37.bin > /tmp/city/c198_sections_b37.txt 2>&1
+$S/b2w/binsec_b4 /tmp/city/c197_world_b36.bin > /tmp/city/c198_sections_b36.txt 2>&1
+st "b37 worldc build rc=$b ($(grep -c warning /tmp/city/c198_worldc_build.log) warnings) run rc=$r: $(grep -E 'library|buildings|file' /tmp/city/c198_worldc.log | tr '\n' ' ' | cut -c1-300); sections vs S2: $(diff <(grep kind /tmp/city/c198_sections_b36.txt) <(grep kind /tmp/city/c198_sections_b37.txt) | grep '^>' | awk '{print $2}' | tr '\n' ' ')"
+rm -f /tmp/city/c198_worldc
+wmem 2800
+nice -n 19 g++ -std=c++17 -O2 -Wall -Wextra -Werror -I. tools/worldv.cpp -o /tmp/city/c198_worldv > /tmp/city/c198_worldv_build.log 2>&1; b=$?
+/tmp/city/c198_worldv --world=world --no-cache > /tmp/city/c198_worldv.log 2>&1; r=$?
+st "b37 worldv build rc=$b run rc=$r: $(tail -1 /tmp/city/c198_worldv.log | cut -c1-160)"
+rm -f /tmp/city/c198_worldv
+for T in world_format_test worldv_test worldmodel_test; do
+  wmem 2800
+  nice -n 19 g++ $CI tests/world/$T.cpp -o /tmp/city/c198_$T > /tmp/city/c198_${T}_build.log 2>&1; b=$?
+  /tmp/city/c198_$T > /tmp/city/c198_${T}_run.log 2>&1; r=$?
+  st "b37 CI $T build rc=$b run rc=$r: $(tail -1 /tmp/city/c198_${T}_run.log | cut -c1-100)"
+  rm -f /tmp/city/c198_$T
+done
+mkdir -p build/gen
+./build/embed_shaders src/shaders build/gen/shaders_embedded.h > /tmp/city/c198_embed.log 2>&1
+wmem 2800
+nice -n 19 x86_64-w64-mingw32-g++-posix $W -Ibuild/gen src/main.cpp > /tmp/city/c198_mingw_main.log 2>&1; r=$?
+st "b37 MinGW -Wall main.cpp rc=$r errors $(grep -c 'error' /tmp/city/c198_mingw_main.log) warnings $(grep -c 'warning' /tmp/city/c198_mingw_main.log)"
+python3 -I -c "import py_compile; py_compile.compile('tools/author/street.py', cfile='/tmp/city/c3/pvar/street.pyc', doraise=True)" && st "b37 street.py py_compile OK" || st "b37 street.py py_compile FAILED"
+wmem 2800
+nice -n 19 g++ -O2 -std=c++17 -DPS_SIDES -I. -I src $S/wm2/meshcensus4.cpp -o /tmp/city/c198_mc4_b37 -lpthread > /tmp/city/c198_mc4_b37_build.log 2>&1; b=$?
+wmem 2000
+nice -n 19 /tmp/city/c198_mc4_b37 > /tmp/city/c198_mc4_b37.txt 2> /tmp/city/c198_mc4_b37_err.txt; r=$?
+st "procedural census S2 vs b37: build rc=$b run rc=$r: $(diff <(grep '^[CQTF] ' /tmp/city/c197_mc4_b36.txt) <(grep '^[CQTF] ' /tmp/city/c198_mc4_b37.txt) | grep -c '^[<>]') of $(grep -c '^[CQF] ' /tmp/city/c198_mc4_b37.txt) C/Q/F lines differ"
+rm -f /tmp/city/c198_mc4_b37
+wmem 2800
+rm -f /tmp/city/nt_b37.exe build/gen/world_res.o build/gen/world.bin
+OUT=/tmp/city/nt_b37.exe nice -n 19 ./build.sh > /tmp/city/build_b37.log 2>&1; rc=$?
+st "nt_b37.exe build rc=$rc: $(ls -la /tmp/city/nt_b37.exe 2>/dev/null | awk '{print $5}') bytes; $(grep -cE 'warning|error' /tmp/city/build_b37.log) warning/error lines"
+mkdir -p /tmp/city/hs37
+wmem 2800
+nice -n 19 $S/hs17/hs17 /tmp/city/c198_world_b37.bin /tmp/city/hs37 > /tmp/city/hs37/all.txt 2>&1; r=$?
+find /tmp/city/hs37 -type f ! -name 'all.txt' -delete
+st "b37 harness run rc=$r: $(grep -E '^[0-9]+ interiors' /tmp/city/hs37/all.txt | cut -c1-120); rooms $(grep -oE 'reaches [0-9]+ of [0-9]+ rooms' /tmp/city/hs37/all.txt | awk '{a+=$2; b+=$4} END {print a"/"b}'); tour legs off the walk $(grep -c 'leaves the walk' /tmp/city/hs37/all.txt); not all rooms: $(grep -E 'reaches' /tmp/city/hs37/all.txt | grep -vE 'reaches ([0-9]+) of \1 rooms' | head -3 | tr '\n' ' ')"
+touch /tmp/city/cq198a_done
+st "cq198b done"

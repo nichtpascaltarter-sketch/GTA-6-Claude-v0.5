@@ -1,9 +1,0 @@
-snapshot 56 tree 1272adfdc01b7ec1d6da8fdf702c2297c267f57b on 10982b3 at 21:47
-Embedded 40 shader files.
-150 shaders, 0 failed
-[ 468.503] autoplay t=9.5 pos 1806.7 201.1 4.6 state 2 health 200 veh 1 speed 11.1 | peds 88 vehicles 63 wanted 0 | cpu ms player 0.21 ai 0.66 veh 0.97 peds 1.3
-[ 608.237] autoplay t=17.5 pos 1806.7 270.6 3.5 state 2 health 200 veh 1 speed 17.6 | peds 85 vehicles 65 wanted 0 | cpu ms player 0.05 ai 0.59 veh 0.51 peds 1.
-[ 483.074] autoplay t=13.5 pos 1791.3 160.9 6.5 state 0 health 188 veh -1 speed 0.0 | peds 97 vehicles 64 wanted 1 | cpu ms player 0.17 ai 0.61 veh 0.97 peds 1.
-4e48029 Lips are rose instead of coral, and aviation warning lights flash in step with their red lamps
-branch 'claude/neon-tide' set up to track 'origin/claude/neon-tide'.
-COMMITTED 1272adfdc01b7ec1d6da8fdf702c2297c267f57b

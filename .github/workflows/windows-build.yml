@@ -35,7 +35,13 @@ jobs:
           call tests\ui\build.bat || exit /b 1
       - name: Build game
         shell: cmd
-        run: call build.bat
+        run: |
+          call build.bat || exit /b 1
+          rem (build.bat builds without the hand-built world where worldc.exe will not start; here it must)
+          if not exist build\gen\world.res (
+            echo build.bat built the exe without the hand-built world: build\worldc.exe did not run
+            exit /b 1
+          )
       - name: Check that the exe carries its commit (the updater compares it with main)
         shell: pwsh
         run: |
@@ -78,6 +84,10 @@ jobs:
         run: |
           g++ -std=c++17 -O2 -Wall -Wextra -Werror -fsanitize=undefined -fno-sanitize-recover=undefined tests/updater/update_logic_test.cpp -o /tmp/neontide-update-logic-test
           /tmp/neontide-update-logic-test
+      - name: Test the bundled compiler's payload tool (payload.txt, the cache check, appending to an exe)
+        run: |
+          g++ -std=c++17 -O2 -Wall -Wextra -Werror -fsanitize=undefined -fno-sanitize-recover=undefined tools/payload.cpp -o /tmp/neontide-payload
+          sh tests/updater/payload_test.sh /tmp/neontide-payload
       - name: Test world file formats (NTG grids, NTW parser, formatter and schema, LZ, world.bin)
         run: |
           g++ -std=c++17 -O2 -Wall -Wextra -Werror -fsanitize=undefined -fno-sanitize-recover=undefined tests/world/world_format_test.cpp -o /tmp/neontide-world-format-test

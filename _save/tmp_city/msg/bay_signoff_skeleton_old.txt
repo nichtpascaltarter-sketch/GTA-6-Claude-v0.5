@@ -1,0 +1,30 @@
+city snapshot-safe: AI set 20 item 1, Bayshore Boulevard 272 / 9th Avenue 9243 (kerb lanes over each other). @ROUND@ On 41c3ca0 (66).
+
+FILES (blob written)
+- src/world/roads.cpp @BLOB@ on f4479069 (66's).
+
+WHAT (player-facing, procedural world)
+- Where 9th Avenue ran along Bayshore Boulevard with its kerb lanes over Bayshore's (centrelines 16 m apart, their lanes overlapping by 2 m for 18 m), 9th Avenue now turns into Bayshore at a new junction (3880.3,3110.3), as the road fix already does where carriageways overlap.
+- The same rule found four more such places, and the pass's existing tidying handled each one:
+  - Bougainvillea Boulevard's last 122 m ran down beside Bayshore, 32 m apart at the top and closing to nothing where it joined Bayshore at (3600,-1472.5), with its lanes over Bayshore's by up to 11.7 m for 44 m. Bougainvillea now ends at its junction with S 14th Street at (3600,-1350), which becomes a T with stop signs. The other S 14th Street, at y = -1450, now runs on to Bayshore, and Bayshore has no junction at (3600,-1472.5) any more.
+  - Almeria Boulevard, a lane, ran on top of Levee Road for its whole 360 m: from a junction 8 m from Levee's at the south end (-2960,2802) to Levee's own junction at the north end (-2947,3162), with its lanes over Levee's by up to 3.7 m there. Almeria is gone, so Levee Road's frontage gets a rural road's sparser houses.
+  - Laurel Street ran into County Road 830 for its last 25 m before the six-way junction at (4799,7872). It now joins County Road 830 25 m south of it: five legs there, plus a Y.
+  - N 32nd Street's 15 m stub inside Bayshore by the target is gone too.
+@DECISION@
+
+HOW
+- roads.cpp, the "roads laid along each other" pass: a lower road's stretch also counts as laid inside the higher road when their lanes overlap by 1 m or more (each road's lane reach from its centreline as the lane graph lays the lanes out), not only when the centreline is inside the higher road's carriageway.
+  - Not where the two are one road continuing through a degree-2 node of its own (a road narrowing as it goes on).
+  - Everything after that is the pass's existing machinery: the cut, the join at about 65 degrees, tidying the ends, keeping every slot and seed, and filler splits for the freed slots.
+@HOW2@
+
+CENSUS, the procedural world, 66 against the change (rfcheck2, 55,086 record lines)
+@CENSUS@
+
+SIMULATIONS (traffic_sim, 140 cars, 120 pedestrians, 6 simulated minutes, districts of 450 m; deadlocks = waits over 60 s)
+@SIMS@
+
+CHECKS
+@CHECKS@
+
+FOR LATER (found, not touched): Bayshore Boulevard has a 25 m piece named 9th Avenue (edge 282, 2/2 lanes) between (3900,3425) and (3901.5,3450), between Bayshore's 3/3 edges 281 and 285 at the degree-2 node 287: a 3 -> 2 -> 3 lane drop on Bayshore. It is on main as well. A candidate for a later round.

@@ -1,5 +1,6 @@
 // Save games: versioned binary files in %LOCALAPPDATA%\NeonTide\saves\slotN.sav
 #include "gameworld.h"
+#include "../world/handworld.h"
 
 namespace Game {
 
@@ -93,6 +94,7 @@ float GameWorld::completion() const {
 }
 
 bool GameWorld::saveGame(int slot, const std::string& title) {
+    if (World::isHandWorld()) return false;   // (saves don't record their world yet: docs/HANDBUILT_WORLD.md 10.2)
     Ped* pl = playerPed();
     if (!pl) return false;
     Writer w;
@@ -203,10 +205,54 @@ bool GameWorld::readSlotInfo(int slot, UI::SaveSlotInfo& info) const {
     r.str(info.timestamp);
     r.str(info.detail);
     info.used = r.ok;
+    if (r.ok) {
+        // past the header, read as loadGame reads it: where it was saved and the play time (the main menu's line under
+        // Continue). Both stay unknown when the body is cut short.
+        Reader b = r;
+        float f = 0.f;
+        int day = 0;
+        dvec3 pos;
+        b.pod(f);   // time of day
+        b.pod(day);
+        b.pod(f);   // cloud cover
+        b.pod(f);   // rain
+        b.pod(pos);
+        b.pod(f);   // yaw
+        b.pod(f);   // health
+        b.pod(f);   // armor
+        for (int i = 0; i < WPN_COUNT; i++) {
+            u8 has = 0;
+            int ammo = 0, clip = 0;
+            b.pod(has);
+            b.pod(ammo);
+            b.pod(clip);
+        }
+        u8 wpn = 0;
+        b.pod(wpn);
+        PlayerInfo pi;
+        b.pod(pi.money);
+        b.pod(pi.distanceWalked);
+        b.pod(pi.distanceDriven);
+        b.pod(pi.kills);
+        b.pod(pi.copsKilled);
+        b.pod(pi.vehiclesStolen);
+        b.pod(pi.headshots);
+        b.pod(pi.shotsFired);
+        b.pod(pi.shotsHit);
+        b.pod(pi.deaths);
+        b.pod(pi.arrests);
+        b.pod(pi.maxWanted);
+        b.pod(pi.playTime);
+        if (b.ok && std::isfinite(pos.x) && std::isfinite(pos.y) && std::isfinite(pi.playTime) && pi.playTime >= 0.0) {
+            info.playSeconds = pi.playTime;
+            info.savedAt = vec2((float)pos.x, (float)pos.y);
+        }
+    }
     return r.ok;
 }
 
 bool GameWorld::loadGame(int slot) {
+    if (World::isHandWorld()) return false;   // (nor can a procedural save load into the hand-built world)
     std::vector<u8> data;
     if (!readFile(slotPath(slot), data)) return false;
     Reader r{data.data(), data.data() + data.size() - 4};

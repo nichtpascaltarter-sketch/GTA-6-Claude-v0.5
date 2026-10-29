@@ -1,0 +1,162 @@
+city snapshot-safe: 3r V1 (snapshot 102): street.py's per-face draw and Calle Nueve (row 4), as you GO'd it, on S2's tree. Base 06e3b24 (tree d81cf8a9, snapshot 101 = S + S2). 38 files, all changed on their blobs, none new.
+
+FILES (path, base, new)
+docs/HANDBUILT_WORLD.md f8bb5cc1 98f6a435
+tools/author/street.py 363c193a 7c8e8776
+world/districts/cl/blocks/b020/h13.ntw 565cdd1e c529d55b
+world/districts/cl/blocks/b020/h14.ntw 2ae793e8 8ae49277
+world/districts/cl/blocks/b020/h15.ntw 181c22b1 dd43b471
+world/districts/cl/blocks/b020/h16.ntw 9f18f7ad f46caed8
+world/districts/cl/blocks/b020/h17.ntw 2344aeb2 903aec90
+world/districts/cl/blocks/b020/h18.ntw 8227f185 6bfdffd4
+world/districts/cl/blocks/b021/h13.ntw 9f33eebf d31eb68f
+world/districts/cl/blocks/b021/h14.ntw 7fda1beb 8116d1e5
+world/districts/cl/blocks/b021/h15.ntw 5bfb2f2e 7ebd4d4d
+world/districts/cl/blocks/b021/h16.ntw 7820b8ea a9e9aff6
+world/districts/cl/blocks/b021/h17.ntw 41c7697b 16126188
+world/districts/cl/blocks/b021/h18.ntw 30e4c1ce 5c077e94
+world/districts/cl/blocks/b021/h19.ntw 7aa268f8 283a7b41
+world/districts/cl/blocks/b022/h13.ntw b12e7573 d9e42b28
+world/districts/cl/blocks/b022/h14.ntw a05286d6 cb786c94
+world/districts/cl/blocks/b022/h15.ntw 13221619 0c2bd215
+world/districts/cl/blocks/b022/h16.ntw 9bb122f9 177363ce
+world/districts/cl/blocks/b022/h17.ntw bf7966fa 0efe881d
+world/districts/cl/blocks/b022/h18.ntw c2c14631 6e0167a7
+world/districts/cl/blocks/b022/h19.ntw 24349bc3 2abf812b
+world/districts/cl/blocks/b023/block.ntw 90acd554 e9927422
+world/districts/cl/blocks/b023/h12.ntw 5a2d3643 8991f8b9
+world/districts/cl/blocks/b023/h13.ntw 3634c3e3 36376287
+world/districts/cl/blocks/b023/h14.ntw 95fdcdaf 1bfb49ca
+world/districts/cl/blocks/b023/h15.ntw 6fade7c5 04cc575c
+world/districts/cl/blocks/b023/h16.ntw 2e167bc9 8772b10d
+world/districts/cl/blocks/b023/h17.ntw 6a7fd9bd c11f719b
+world/districts/cl/blocks/b023/s18.ntw 6bd6bdb3 63a999e7
+world/districts/cl/blocks/b024/h10.ntw 61be30d6 380de26e
+world/districts/cl/blocks/b024/h11.ntw 298e035a 484b0f71
+world/districts/cl/blocks/b024/h12.ntw 1d600566 411b34e8
+world/districts/cl/blocks/b024/h13.ntw 24ffbc54 170e8593
+world/districts/cl/blocks/b025/h10.ntw 4db30a52 d4ee931f
+world/districts/cl/blocks/b025/h11.ntw 6135090b 7cb21b6d
+world/districts/cl/blocks/b025/h12.ntw a69e4f6c 1db61362
+world/districts/cl/blocks/b025/h13.ntw 4bdf91da eafc31d5
+(also in /tmp/city/pv1_blobs.txt; pasted from it)
+
+THE BUNGALOW SHARE (your call 1): it holds within your 10% only with the most bungalows the lots allow
+- Today's houses already hold the most bungalows their lots allow under "no two bungalows side by side": 39 of a possible 40 (only b023 held 2 of its 3). In 20 of the 23 faces, that most comes in one arrangement only.
+- So any draw that skips a bungalow where one fits loses share. In the all-rows dry run, odds of 0.75-0.95 a lot gave 27-35 bungalows of 130, 10-31% under today's 39. At 0.96-0.99 it gave 37-38, but one face broke rule (a).
+- So the draw keeps, in each face, the most bungalows its lots allow, and varies everything else:
+  - the arrangement, where several hold the most (b006's face has 4, b020's 3 and b011's 2);
+  - the first house, by rule (a);
+  - every casita's gable or twin.
+- Row 4 as written: 8 to 9 bungalows (b023 gets its third). The district: 39 to 40 of 130 houses (+2.6%).
+- The all-rows dry run (rows 1-3 are not written): 38 of 130 (-2.6%), with no face breaking a rule.
+- What it means for V2. Paseo del Rio's lots are wide, so its faces would stay mostly alternating bungalow and casita: b002 would draw today's BTBGB again (the rules compare faces with each other, not with their past), b004 BTBTB and b006 BTGBTB. Rule (a) breaks the pattern only at b003 (GTBGB) and b007 (T). Breaking it further costs share there: a face like b003 or b004 drops from 3 bungalows to 2. Your call when you decide V2.
+
+WHAT (player-facing, hand world only)
+- Calle Nueve's south side (b020-b025): the houses now differ block to block. Before, b020-b023 all started at their west corner with a gable casita, and b020-b022 all with gable, bungalow, twin.
+- Each face's houses, west to east, before and after (G gable casita, T twin casita with the flat roof, B bungalow; the corner shops at the ends stay as they are):
+  - b020: GBTBTT to TBTBTG
+  - b021: GBTTGTG to GBGGTTG
+  - b022: GBTTBGG to TBTTBTG
+  - b023: GGBTTB to BGBTGB
+  - b024: TGGT to GGTG
+  - b025: TBGT to TBGG
+- Casitas and bungalows per face, before and after: b020 4+2 and 4+2; b021 6+1 and 6+1; b022 5+2 and 5+2; b023 4+2 and 3+3; b024 4+0 and 4+0; b025 3+1 and 3+1. Row 4: 26+8 to 25+9.
+- 16 houses change:
+  - 12 casitas swap their roofs (5 gables become twins, 7 twins become gables), and keep their colour except b023.h16.
+  - b023.h12, a gable casita, becomes a bungalow.
+  - 3 houses change only their colour (b023.h13, h15 and h17), and so does one corner shop (b023.s18): b023's colours redraw from h12 on.
+- The other 18 houses keep their plan, place and colour; their files change only in the line that says how they were written.
+- One shrub moves. b023.h12's bungalow is wider than the casita was, so dress.py (S2's) moves its shrub further back in the side yard (1646.62,650.50 to 1647.28,647.70, both at scale 0.25). b023 still keeps 0, moves 13 and drops 2, as on S2.
+- No road, ground, lamp or other building changes. Procedural mode is unchanged.
+
+PER FILE (place and z unchanged unless noted)
+- b020.h13 gable to twin (rose); b020.h18 twin to gable (mint).
+- b021.h15 twin to gable (mint); b021.h16 twin to gable (sky); b021.h17 gable to twin (lemon).
+- b022.h13 gable to twin (sand); b022.h18 gable to twin (coral).
+- b023.h12 gable casita (sky) to bungalow (seafoam), its origin 1645.12,651.30 to 1646.42,651.30 (centred on its lot), z 3.46 as before.
+- b023.h13 gable, lemon to sand; b023.h15 twin, coral to rose; b023.h16 twin (rose) to gable (mint); b023.h17 bungalow, seafoam to white; b023.s18 corner shop, coral to sand.
+- b024.h10 twin to gable (sand); b024.h12 gable to twin (sky); b024.h13 twin to gable (mint).
+- b025.h13 twin to gable (mint).
+
+HOW
+- Without --classic, street.py draws each house face with a generator of its own, seeded with the text "cl.b020 cl.e0013 6" (block, front edge, seed):
+  - First, which lots take a bungalow. Of the ways that give each lot a plan that fits it, it takes those with no two bungalows side by side and no bungalow first where the west neighbour's first house is one; of those, the ones with the most bungalows. It draws one of them.
+  - Then each casita's gable or twin, at even odds, never three alike side by side, and the first not the west neighbour's first.
+  - It keeps the draw if it meets (a), (b), (c) and the guard. Else it draws again, up to 50 times, then keeps the draw that breaks the fewest rules and prints what it breaks: that's (d).
+  - "No house plan twice in neighbouring parcels" goes, as you said; "no two bungalows side by side" replaces it.
+- The corners, shops and walk-ups are placed as before. The palettes are drawn as before, in order, so a face recolours from its first changed plan (b023's from h12). The gable or twin is settled after the palettes, as before, so a roof swap keeps its colour.
+- The rules read the other faces from the files as they stand. (a) and (b) compare with the face to the west on the same side, and (b) also with the face across where that one was drawn per face. (c) compares with every face of the street. A house drawn this way says "(seed 6, per face)" in its file; a corner keeps "(seed 6)".
+- --guard 45,42=62639 predicts the cell's near upload from per-plan triangle counts (from R4c's and R4d's cells) and redraws a face that would reach 64,000.
+- --classic keeps today's draws exactly.
+- The write, on S2's tree (d81cf8a9): b020 to b025, west to east, with --guard chained from 62,639 on b020-b022 (45,42's blocks). Then S2's dress.py re-placed the shrubs (only b023's block file changes), and ntwfmt. The 35 building files are byte for byte the ones I wrote on S's tree before the re-base.
+- Docs: HANDBUILT 5.3's paragraph on street.py says how the houses are now drawn, with --guard and --classic. Its history adds "then its per-face draw rewrote Calle Nueve's 34 houses (b020-b025), whose sequences now differ block to block".
+
+THE FIRST-THREE RULE (your call 3), as written
+- (a): the first houses from the west are T, G, T, B, G, T (b020 to b025); each differs from its west neighbour's. b020 has none on Calle Nueve.
+- (b): the first threes are TBT, GBG, TBT, BGB, GGT and TBG; each differs from its west neighbour's. No face lies across: across Calle Nueve is the park edge. b020 and b022 share TBT, which the rule allows, since they aren't neighbours.
+- (c): the six sequences all differ.
+- (d): no fallback. Every face kept its first draw, and none breaks a rule.
+- The all-rows dry run also met every rule in all 23 faces. All but two kept their first draw; b002 and b004 kept their second.
+
+THE CHECKS YOU KEPT
+- The --classic control: on S2's world, V1's street.py with --classic rewrites the street.py files of 22 blocks (379 files) byte for byte.
+  - b006's 21 files differ, as they did before V1. They date from street.py's first batch, before the twin and the palettes' own seed ("b005 and b006 keep theirs", in HANDBUILT's history). Today's street.py also places them differently: its 4 corners by up to 1.8 m (s21) and its walk-ups by 0.2 m.
+  - So my plan's "all 400 files" was wrong by those 21. For V2: drawing row 1 would rewrite all of b006, not just its houses, unless V2 keeps b006's other files. Your call then.
+- The rule checker (/tmp/city/c3/pvar/rulecheck.py, a scratch script; I can add it to tools/author if you want):
+  - It checks every face for the kept rules (no palette twice side by side, no plan with the same palette twice within three, no three casitas alike side by side, no two bungalows side by side, the corners where they were), checks the per-face faces for (a), (b) and (c), and counts each face's casitas and bungalows against the base.
+  - Over all 400 street.py files of V1's tree: 0 problems.
+  - Over the all-rows dry run it flags only b006's 4 corners (the batch-1 places above).
+- The guard on 45,42: predicted 62,783 (+144: three twins become gables and two gables twins), under 64,000. The other cells: 46,42 57,932 to 57,524 (-408), 47,42 37,856 to 38,000 (+144), 44,42 -144. The drive measured 45,42's upload at exactly 62,783 and 46,42's at exactly 57,524 (below).
+- The re-run: street.py and dress.py, re-run on a copy of V1's tree, rewrite it byte for byte.
+
+CHECKS
+- worldc: 0 warnings, 412 buildings from 468 files. Against S2, world.bin changes in buildings, blocks (the one shrub) and manifest only.
+- worldv: 0 errors and the same 4 warnings (468 files, 3,429 records, as on S2).
+- CI's three world tests pass with CI's flags (-Wall -Wextra -Werror and UBSan). MinGW -Wall on main.cpp: 0 errors, 0 warnings. street.py compiles (py_compile).
+- The procedural census: 0 of 13,914 lines differ from S2's.
+- The canopy check (S2's): all 152 shrubs keep clear, 0 vertices in a footprint or on a way.
+- The exe nt_b37: 16,502,784 B, with 0 warnings.
+- Harness: 4,632 of 4,632 rooms in the 412 interiors; 0 tour legs off the walk.
+  - The 3 fewer rooms are b023.h12's: the casita had 9, and the bungalow has 6 (all 6 walked).
+  - The other totals move with it: triangles 2,370,888 to 2,370,048 (-840), colliders 42,774 to 42,704 (-70), door leaves +1, lights -4.
+  - Gable and twin share their rooms, so the 12 roof swaps change none.
+- The world is canonical (ntwfmt --check). The private scan of the 310 added lines is clean.
+- Against S2's tree d81cf8a9, the work tree differs in exactly these 38 files.
+
+SHOTS (R4c's cameras at 17:00; before: S2's nt_b36; after: nt_b37. PNG in /tmp/city/b37smoke/before and /tmp/city/b37smoke/after; 0 fatal)
+- r4c_aerial_1700, row 4 from over the park edge. Before, b020-b022 each start with a tile-roofed gable at the west corner. After:
+  - b020 and b022 start with a flat-roofed twin.
+  - b021's gables stand 1st, 3rd, 4th and 7th from the west.
+  - b020 gets a gable at its east end.
+- r4c_b020_calle_nueve_1700, Calle Nueve from Bougainvillea, looking east. Before, the first house past the corner shop is b020.h13, a pink gable casita with an orange tile roof. After, it's a pink twin with a flat roof, in the same rose. The bungalow and the yellow twin follow it as before.
+
+THE FRAME LOG (the pair back to back in your quiet window: nt_b33, snapshot 100, the same-window baseline, from a load of 1.91, then nt_b37 from 1.54; nt_b33 first, nt_b37 second in each pair below)
+- Median frame: 8.1 / 8.2 ms.
+- Frames over 33 ms: 253 / 252.
+- Streaming max: 9.36 / 10.68 ms. nt_b37's is 46,41's upload; nt_b33's is the batch that brings 46,42.
+- Streaming p99: 1.43 / 2.01 ms.
+- The first frames' p99 and max are the load: p99 2,242 / 2,281 ms, max 18,639 / 19,896 ms.
+- Near builds: 0.1-11.5 / 0.1-13.8 ms.
+  - The busiest: 46,41 11.5 / 10.1, 45,41 11.1 / 13.8, 46,42 8.4 / 13.4, 45,42 6.9 / 9.7.
+  - Both stay under ~15 ms, so (a) stays parked by your rule.
+- Interiors: up to 388 resident in both (2,229,396 / 2,228,556 triangles: -840, b023.h12's).
+- Memory: 3,031-3,165 / 3,011-3,157 MB.
+
+UPLOADS (measured on nt_b37)
+- 45,42: 62,783 (predicted 62,783). 46,42: 57,524 (predicted 57,524).
+- Unchanged: 46,41 78,685; 45,41 74,875; 47,41 50,434; 45,40 11,549.
+- The near placements' triangles move as predicted: 45,42 60,024 to 60,168 (+144), 46,42 55,536 to 55,128 (-408), 47,42 35,340 to 35,484 (+144).
+
+DRIVES (0 fatal, 05:27-05:49, each from a load under 2.0 with no showcase)
+- Hand drive on nt_b37: every checkpoint is as on 100 (nt_b33's, in the same window, too).
+  - t=2.6: pos 1763.7 219.3 3.3, speed 8.3, peds 90, vehicles 62, wanted 0.
+  - t=11.5: pos 1821.2 244.2 3.2, speed 5.9, peds 90, vehicles 63, wanted 0.
+  - t=21.5: pos 1919.8 285.4 3.0, speed 8.7, peds 82, vehicles 51, wanted 0.
+- Procedural drive on nt_b37: every checkpoint is as on 100.
+  - t=3.0: pos 1783.7 157.8 6.5, speed 4.5, peds 88, vehicles 58, wanted 0.
+  - t=9.5: pos 1786.9 151.9 6.4, speed 2.4, peds 90, vehicles 60, wanted 1.
+  - t=17.5: pos 1789.9 130.6 6.4, speed 12.4, peds 93, vehicles 63, wanted 2.
+
+NEXT
+- After V1 merges, V2-V4 are yours to decide. For V2 (Paseo del Rio), two things above: the share keeps its alternation, and b006's files come from batch 1. The follow-up for a narrow side-yard plant is in my list, not built.

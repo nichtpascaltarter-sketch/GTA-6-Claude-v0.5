@@ -138,7 +138,18 @@ struct App {
     float autoShotEvery = 4.f;
     float autoDuration = 30.f;
     int doorShot = 0;   // --autoplay cardoor: the next of its shots
-    float menuCamT = 0.f;
+    // autoplay's frame log (every autoplay but the benchmark): each frame's time, its world update's (the streaming and
+    // its uploads, render/world_render.cpp) and what that uploaded, summed up when the run ends (autoplayFrameReport)
+    struct AutoFrame {
+        float t, ms, streamMs;
+        std::string uploads;
+    };
+    std::vector<AutoFrame> autoFrames;
+    // the main menu's camera (updateMenuCamera)
+    enum MenuPhase { MP_WAIT = 0, MP_FADE_IN, MP_SHOW, MP_FADE_OUT };
+    int menuDrift = 0, menuPhase = MP_WAIT, menuSettled = 0;
+    float menuDriftT = 0.f, menuPhaseT = 0.f;
+    bool menuFirstFade = true, menuCityUp = false;
 
     bool init() {
         int w = Platform::argValue("width") ? atoi(Platform::argValue("width")) : 1600;
@@ -232,7 +243,8 @@ struct App {
         }
         if (const char* ff = Platform::argValue("fog")) env.fogDensity = (float)atof(ff);
 #ifdef HAVE_GAMEPLAY
-        if (!World::isHandWorld()) game.init(&renderer, &env, &map, &roads, &buildings);   // (stage 0's hand world has nothing to play)
+        // (the hand-built world plays once it has streets, stage 1's pilot; its terrain alone has nothing to play)
+        if (!World::isHandWorld() || !roads.edges.empty()) game.init(&renderer, &env, &map, &roads, &buildings);
         game.rig.footFirstPerson = Platform::hasArg("firstperson");   // start in the on-foot first-person view (tests)
         if (const char* ws = Platform::argValue("weaponshowcase")) {   // --weaponshowcase x,y,z (test render of every gun)
             double x = 0, y = 0, z = 0;
@@ -260,7 +272,13 @@ struct App {
         if (!shots.empty() || Platform::argValue("viewer")) {
             showDebug = !autotest || Platform::hasArg("debugtext");
         } else if (World::isHandWorld()) {
-            LOG("Hand world: stage 0 holds the terrain only; free camera, no menu and no game");
+            // the hand-built world never opens the main menu, whose saves don't tell the two worlds apart yet
+            // (docs/HANDBUILT_WORLD.md 10.2): --play or --autoplay starts a new game on its streets, else the free camera
+#ifdef HAVE_GAMEPLAY
+            if (!roads.edges.empty() && (Platform::hasArg("play") || !autoplay.empty())) startNewGame();
+            else
+#endif
+                LOG("Hand world: %s; free camera, no menu", roads.edges.empty() ? "no streets yet, so no game" : "--play starts a game on its streets");
         } else {
 #ifdef HAVE_GAMEPLAY
             if (Platform::hasArg("play") || !autoplay.empty()) startNewGame();
@@ -271,12 +289,26 @@ struct App {
 
     void openMainMenu() {
         state = AS_MENU;
-        menuCamT = 0.f;
-        env.timeOfDay = 18.4f;
+        startMenuCamera();
 #ifdef HAVE_GAME_UI
-        menu.screen = UI::MENU_MAIN;
-        menu.cursor = 0;
-        menu.canContinue = newestSlot() >= 0;
+        // the very first start sets the game up before the main menu (leaving the page saves settings.ini, so it shows
+        // once); test runs go straight to the main menu
+        menu.screen = firstStart && !Updater::isAutomatedRun() ? UI::MENU_SETUP : UI::MENU_MAIN;
+        firstStart = false;
+        menu.cursor = 0;   // (Continue when there is a save)
+        int newest = newestSlot();
+        menu.canContinue = newest >= 0;
+        menu.newestSave = UI::SaveSlotInfo();   // the line under Continue
+#ifdef HAVE_GAMEPLAY
+        if (newest >= 0) game.readSlotInfo(newest, menu.newestSave);
+#endif
+        Updater::Installed installed;   // the first start after an update says once what it brought
+        if (Updater::takeInstalled(installed)) {
+            menu.updated = UI::UpdatedNotice();
+            menu.updated.commit = installed.commit;
+            menu.updated.pulls = installed.pulls;
+            menu.updated.commits = installed.commits;
+        }
 #endif
 #ifdef HAVE_AUDIO
         Audio::setPaused(true);
@@ -371,18 +403,160 @@ struct App {
         if (env.timeOfDay < 0.f) env.timeOfDay += 24.f;
     }
 
-    // Slow cinematic flight over the city behind the main menu
-    void updateMenuCamera(float dt) {
-        menuCamT += dt;
-        float t = menuCamT * 0.018f;
-        vec2 c(2400.f, 1500.f);
-        float r = 1500.f;
-        vec2 p = c + vec2(cosf(t), sinf(t)) * r;
-        cam.pos = dvec3(p.x, p.y, 260.0 + 40.0 * sin(t * 2.3));
-        vec2 look = c - p;
-        cam.yaw = atan2f(-look.x, look.y) + 0.35f;
-        cam.pitch = -0.2f;
-        cam.fovY = 55.f * kDegToRad;
+    // The city behind the main menu: slow drifts over hand-picked places of the procedural world, each at its own hour,
+    // that fade into one another about every 20 s under the main menu's cover (menu.sceneCover). A drift fades up only
+    // once the cells round its whole path have streamed in, and the next drift's stream in while the current one plays.
+    // While the city is covered only its cells stream (the frame is not rendered), up to the few frames before it fades
+    // up. The drifts move on only while the main menu shows: behind its other pages the camera holds still.
+    struct MenuDrift {
+        double x, y, z;
+        float yaw, pitch, hour;   // degrees (as --shot takes them) and the hour
+        float fwd, side, rise;    // m/s: along the view (level), to its right and up
+        float turn;               // degrees per second, positive to the left
+    };
+    static const MenuDrift* menuDrifts(int& count) {
+        static const MenuDrift kDrifts[] = {
+            {2886.54, -730.50, 326.39, -30.f, -30.f, 22.0f, 1.0f, 3.0f, 0.f, 0.25f},   // Porto Sol's downtown at night
+            {4601.40, 1372.03, 264.22, -75.f, -28.f, 18.8f, 3.0f, 0.f, -0.4f, 0.f},    // Sol Beach at sunset
+            {5078.76, 1502.16, 3.48, -7.26f, 8.f, 19.1f, 0.6f, -0.3f, 0.f, 0.f},      // an Ocean Drive street at dusk
+            {1668.58, 75.61, 237.26, -20.f, -38.f, 19.0f, 2.2f, 0.8f, 0.f, -0.1f},    // Calle Luna from above, at dusk
+        };
+        count = (int)(sizeof(kDrifts) / sizeof(kDrifts[0]));
+        return kDrifts;
+    }
+    static constexpr float kMenuDriftSeconds = 20.f;   // from a drift's fade-up to its fade-out (which waits for the next)
+
+    static void menuDriftPose(const MenuDrift& d, float t, Render::Camera& c) {
+        float yaw = d.yaw * kDegToRad;
+        vec3 move = vec3(-sinf(yaw), cosf(yaw), 0.f) * (d.fwd * t) + vec3(cosf(yaw), sinf(yaw), 0.f) * (d.side * t) + vec3(0.f, 0.f, d.rise * t);
+        c.pos = dvec3(d.x + move.x, d.y + move.y, d.z + move.z);
+        c.yaw = yaw + d.turn * kDegToRad * t;
+        c.pitch = d.pitch * kDegToRad;
+        c.roll = 0.f;
+        c.fovY = 60.f * kDegToRad;   // (the --shot camera's, which framed them)
+    }
+
+    // openMainMenu: the first drift (--menudrift N in tests), covered until its cells are in
+    void startMenuCamera() {
+        int count = 0;
+        const MenuDrift* drifts = menuDrifts(count);
+        const char* md = Platform::argValue("menudrift");
+        menuDrift = md ? Clamp(atoi(md), 0, count - 1) : 0;
+        menuPhase = MP_WAIT;
+        menuDriftT = menuPhaseT = 0.f;
+        menuSettled = 0;
+        menuFirstFade = true;
+        menuCityUp = false;
+        env.timeOfDay = drifts[menuDrift].hour;
+        menuDriftPose(drifts[menuDrift], 0.f, cam);
+        renderer.cameraCut = true;
+#ifdef HAVE_GAME_UI
+        menu.sceneCover = 1.f;
+#endif
+    }
+
+    // Every menu frame: poses the camera, streams the cells and sets the main menu's cover. False when the city is
+    // covered and only streams this frame (nothing to render).
+    bool updateMenuCamera(float dt) {
+        int count = 0;
+        const MenuDrift* drifts = menuDrifts(count);
+        bool mainShows = false;
+#ifdef HAVE_GAME_UI
+        mainShows = menu.screen == UI::MENU_MAIN || menu.screen == UI::MENU_CONFIRM_QUIT;
+#endif
+        float step = mainShows ? dt : 0.f;
+        bool streamed = renderer.world->pendingCount() == 0;   // (every cell asked for so far is in)
+        // (a machine too slow to stream them all shows the city anyway after a while; automated runs always wait)
+        float patience = autotest ? 600.f : 20.f;
+        bool render = true;
+        float cover = 0.f;
+        switch (menuPhase) {
+        case MP_WAIT:
+            cover = 1.f;
+            if (!mainShows) {   // other pages show the city behind their own blur
+                menuSettled = 0;
+                break;
+            }
+            menuPhaseT += dt;
+            if (!streamed && menuPhaseT < patience) {
+                menuSettled = 0;
+                render = false;
+            } else if (menuSettled < 3) {   // a few frames rendered under the cover first (exposure, anti-aliasing)
+                menuSettled++;
+            } else {
+                if (!streamed) LOG("Menu: %d cells still streaming after %.0f s: the city shows anyway", renderer.world->pendingCount(), menuPhaseT);
+                menuPhase = MP_FADE_IN;
+                menuPhaseT = 0.f;
+                menuCityUp = true;
+            }
+            break;
+        case MP_FADE_IN: {
+            float len = menuFirstFade ? 0.6f : 1.f;   // the menu's intro, then the cross-fades
+            menuPhaseT += step;
+            menuDriftT += step;
+            float k = Saturate(menuPhaseT / len);
+            cover = 1.f - k * k * (3.f - 2.f * k);
+            if (menuPhaseT >= len) {
+                menuPhase = MP_SHOW;
+                menuFirstFade = false;
+            }
+            break;
+        }
+        case MP_SHOW:
+            menuDriftT += step;
+            if (mainShows && menuDriftT >= kMenuDriftSeconds && (streamed || menuDriftT >= kMenuDriftSeconds + patience)) {
+                menuPhase = MP_FADE_OUT;
+                menuPhaseT = 0.f;
+            }
+            break;
+        case MP_FADE_OUT: {
+            menuPhaseT += step;
+            menuDriftT += step;
+            float k = Saturate(menuPhaseT / 0.75f);
+            cover = k * k * (3.f - 2.f * k);
+            if (menuPhaseT >= 0.75f) {   // the cut to the next drift, under the cover
+                menuDrift = (menuDrift + 1) % count;
+                menuPhase = MP_WAIT;
+                menuDriftT = menuPhaseT = 0.f;
+                menuSettled = 0;
+                env.timeOfDay = drifts[menuDrift].hour;
+                renderer.cameraCut = true;
+                cover = 1.f;
+            }
+            break;
+        }
+        default: break;
+        }
+        menuDriftPose(drifts[menuDrift], menuDriftT, cam);
+#ifdef HAVE_GAME_UI
+        menu.sceneCover = cover;
+#endif
+        // The camera's cells first: an update drops the cells it has not seen asked for in 1.5 s. Then, while frames
+        // come quickly, the cells round the end of this drift and, from 6 s before it ends, the next drift's.
+        double now = TimeSeconds();
+        renderer.world->update(cam.pos, now);
+        if (rawFrameSec < 1.0) {
+            Render::Camera ahead;
+            menuDriftPose(drifts[menuDrift], kMenuDriftSeconds + 2.f, ahead);
+            renderer.world->update(ahead.pos, now);
+            if ((menuPhase == MP_SHOW && menuDriftT > kMenuDriftSeconds - 6.f) || menuPhase == MP_FADE_OUT) {
+                const MenuDrift& next = drifts[(menuDrift + 1) % count];
+                menuDriftPose(next, 0.f, ahead);
+                renderer.world->update(ahead.pos, now);
+                menuDriftPose(next, kMenuDriftSeconds + 2.f, ahead);
+                renderer.world->update(ahead.pos, now);
+            }
+        }
+        return render;
+    }
+
+    // The main menu's city is covered: the frame is only cleared for the menu to draw over (its cells stream)
+    void streamCoveredMenu() {
+        gfx::RTV rtv = gfx::backbufferRTV();
+        float clearColor[4] = {0.01f, 0.012f, 0.03f, 1.f};
+        gfx::ctx->setRenderTargets(1, &rtv, nullptr);
+        gfx::ctx->clearRTV(rtv, clearColor);
+        gfx::setViewport((float)gfx::backbufferWidth(), (float)gfx::backbufferHeight());
     }
 
     void drawLoadingScreen(float dt) {
@@ -794,6 +968,7 @@ struct App {
                 // nothing forced - what happens round the player, counted
                 autoDuration = 200.5f;
                 vec2 q(2713.f, 763.f);
+                if (World::isHandWorld()) q = vec2(1539.1f, 175.9f);   // (the hand-built pilot: the Paseo del Rio's river-side sidewalk)
                 p.pos = dvec3(q.x, q.y, game.groundHeight(q.x, q.y, 20.f));
                 env.timeOfDay = 16.f;
             } else if (autoplay == "copbreak") {
@@ -6518,6 +6693,36 @@ struct App {
         }
     }
 
+    // The autoplay's frames: their time's median, p99 and max, how many took over 33 ms, the streaming's share (its
+    // world updates with their uploads), and the slowest frames and slowest updates with what they uploaded
+    void autoplayFrameReport() {
+        if (autoFrames.size() < 2) return;
+        std::vector<float> ms, sm;
+        size_t over = 0;
+        for (const AutoFrame& f : autoFrames) {
+            ms.push_back(f.ms);
+            sm.push_back(f.streamMs);
+            over += f.ms > 33.f;
+        }
+        std::sort(ms.begin(), ms.end());
+        std::sort(sm.begin(), sm.end());
+        const auto pct = [](const std::vector<float>& v, float q) { return v[Min((size_t)(q * (float)(v.size() - 1) + 0.5f), v.size() - 1)]; };
+        LOG("autoplay frames %zu: %.1f ms median, p99 %.1f, max %.1f; %zu over 33 ms; streaming %.2f ms median, p99 %.2f, max %.2f", autoFrames.size(),
+            pct(ms, 0.5f), pct(ms, 0.99f), ms.back(), over, pct(sm, 0.5f), pct(sm, 0.99f), sm.back());
+        std::vector<size_t> order(autoFrames.size());
+        for (size_t i = 0; i < order.size(); i++) order[i] = i;
+        for (int pass = 0; pass < 2; pass++) {
+            std::sort(order.begin(), order.end(), [&](size_t a, size_t b) {
+                return pass == 0 ? autoFrames[a].ms > autoFrames[b].ms : autoFrames[a].streamMs > autoFrames[b].streamMs;
+            });
+            for (size_t k = 0; k < Min(order.size(), (size_t)5); k++) {
+                const AutoFrame& f = autoFrames[order[k]];
+                LOG("autoplay %s %d: %.1f ms at t=%.2f, streaming %.2f ms, uploaded %s", pass == 0 ? "slowest frame" : "slowest streaming", (int)k + 1, f.ms, f.t,
+                    f.streamMs, f.uploads.empty() ? "nothing" : f.uploads.c_str());
+            }
+        }
+    }
+
     void benchFinishScene(const char* name) {
         std::vector<float> f = benchFrameMs;
         if (f.empty()) return;
@@ -6613,6 +6818,10 @@ struct App {
             float dt = (float)Min(now - lastTime, 0.1);
             rawFrameSec = now - lastTime;
             lastTime = now;
+#ifdef HAVE_GAMEPLAY
+            if (!autoplay.empty() && autoplay != "benchmark" && state == AS_PLAYING && renderer.world)   // (the frame just ended)
+                autoFrames.push_back({autoTime, (float)(rawFrameSec * 1000.0), (float)renderer.world->lastUpdateMs, renderer.world->lastUploads});
+#endif
             frameMs = Lerp(frameMs, dt * 1000.f, 0.05f);
             fps = frameMs > 0 ? 1000.f / frameMs : 0;
             if (state == AS_LOADING) {
@@ -6652,10 +6861,11 @@ struct App {
             }
 #ifdef HAVE_GAMEPLAY
             else if (state == AS_MENU) {
-                updateMenuCamera(dt);
+                bool showCity = updateMenuCamera(dt);
                 env.gameSeconds += dt;
                 weather.update(env, dt, cam.pos);
-                renderer.render(cam, env, dt);
+                if (showCity) renderer.render(cam, env, dt);
+                else streamCoveredMenu();
             } else if (state == AS_PLAYING) {
                 bool menuOpen = false;
 #ifdef HAVE_GAME_UI
@@ -6698,6 +6908,7 @@ struct App {
                         env.timeOfDay -= 24.f;
                         game.gameDay++;
                     }
+                    env.gameDay = (u32)game.gameDay;   // room light schedules (world/roomlight.h, the renderer's facades)
                     env.gameSeconds += simDt * game.timeScale;
                     WeatherKind wxBefore = weather.cur;
                     if (mu::gWeatherRequest >= 0 && mu::gWeatherRequest < WX_COUNT) {   // story missions (the Act 4 storm, dawn fog)
@@ -6882,17 +7093,25 @@ struct App {
                     }
                     autoShot++;
                 }
-                if (autoTime > autoDuration) break;
+                if (autoTime > autoDuration) {
+                    autoplayFrameReport();
+                    break;
+                }
             }
 #endif
-            // --menushot N: screenshot of the front end after N frames (automated menu test)
+            // --menushot N: screenshot of the front end after N frames (automated menu test). With --menuup the frames
+            // count from the one where the main menu's city starts to fade up (its first drift streamed in).
             if (state == AS_MENU && autotest) {
                 static int menuFrames = 0;
                 const char* ms = Platform::argValue("menushot");
-                if (ms && ++menuFrames == atoi(ms)) {
+                if (ms && (menuCityUp || !Platform::hasArg("menuup")) && ++menuFrames == atoi(ms)) {
                     std::string path = shotPath("menu_main");
                     gfx::saveScreenshotBMP(path.c_str());
+#ifdef HAVE_GAME_UI
+                    LOG("Saved %s (menu open %.2f s, drift %d at %.2f s, city cover %.2f)", path.c_str(), menu.anim, menuDrift, menuDriftT, menu.sceneCover);
+#else
                     LOG("Saved %s", path.c_str());
+#endif
                     quit = true;
                 }
             }
@@ -7099,6 +7318,16 @@ struct App {
 #endif
                 break;
             case UI::MA_QUIT_TO_MENU:
+                if (World::isHandWorld()) {   // (the hand-built world has no main menu, see init: the free camera, F9 plays on)
+                    menu.screen = UI::MENU_NONE;
+                    game.paused = false;
+#ifdef HAVE_AUDIO
+                    Audio::setPaused(false);
+#endif
+                    state = AS_FREECAM;
+                    cam = game.rig.cam;
+                    break;
+                }
                 openMainMenu();
                 break;
             case UI::MA_QUIT_GAME:
@@ -7117,6 +7346,18 @@ struct App {
                 game.gpsRoute.clear();
                 break;
             case UI::MA_RUN_BENCHMARK:   // from the settings menu: run the scenes, show the results, back to the main menu
+                if (World::isHandWorld()) {
+                    // its five scenes are places in the procedural city, and the hand-built world has no main menu to come
+                    // back to (see MA_QUIT_TO_MENU): say so and go back to the game
+                    menu.screen = UI::MENU_NONE;
+                    game.paused = false;
+                    Platform::setMouseCaptured(Platform::hasFocus() && !autotest);
+#ifdef HAVE_AUDIO
+                    Audio::setPaused(false);
+#endif
+                    game.notify("BENCHMARK", "Its scenes are in the procedural city: start the game without --world=hand to run it");
+                    break;
+                }
                 benchFromMenu = true;
                 autoplay = "benchmark";
                 startNewGame();
@@ -7168,6 +7409,7 @@ struct App {
         UI::applyUiSettings(s);   // subtitle size/backing/speaker colours, HUD scale, reticle, reduced HUD flashing, UI colour-blind matrix
     }
 
+    bool firstStart = false;   // no settings.ini when the game started: the main menu opens on the setup page first
     // %LOCALAPPDATA%\NeonTide\settings.ini: readable key=value text; unknown or missing keys keep their defaults
     std::string settingsPath() { return Platform::userDataDir() + "settings.ini"; }
     void saveSettings() {
@@ -7179,6 +7421,7 @@ struct App {
     }
     void loadSettings() {
         FILE* f = fopen(settingsPath().c_str(), "rb");
+        firstStart = !f;
         if (f) {
             std::string text;
             char buf[4096];

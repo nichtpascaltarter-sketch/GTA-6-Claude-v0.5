@@ -1,4 +1,0 @@
-#!/bin/bash
-# AI agent: nt_ai90a (sets 14-16 exactly, on 61a3b7b), then nt_ai90 (the main tree's AI files: sets 14-17), one at a time
-/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/aiwork/ai_buildgraft.sh 61a3b7b /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/aiwork/graft90a.txt bin/nt_ai90a.exe > /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/aiwork/build_nt_ai90a.out 2>&1
-/tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/aiwork/ai_buildgraft.sh 61a3b7b /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/aiwork/graft90.txt bin/nt_ai90.exe > /tmp/claude-0/-home-user-GTA-6-Claude-v0-5/cc7ce613-fe8a-5fa0-8160-c9078e8be173/scratchpad/aiwork/build_nt_ai90.out 2>&1

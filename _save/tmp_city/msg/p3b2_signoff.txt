@@ -1,0 +1,57 @@
+city snapshot-safe: 3b-2, the interiors' plans compiled into the library (v4). Nothing in the game changes yet. Base 74 (b5dc690, tree 3b85ea49). 9 files, all on 74's blobs:
+
+FILES (path, base, new)
+docs/HANDBUILT_WORLD.md 31bbc502 d0097858
+docs/NTW_FORMAT.md 1b5d12f4 8802024a
+src/world/buildingsbin.cpp e486e3b1 ec56d9c3
+src/world/buildingsbin.h 3b094f0e 4280cf64
+src/world/worldmodel.cpp f9e74f72 5f19b992
+src/world/worldmodel.h 48d1e62e ed9efede
+src/world/worldmodel_buildings.cpp da094873 9f171426
+tests/world/worldmodel_test.cpp 7da9cfbe 510a58fb
+tools/worldc.cpp 6f00f714 484f0546
+
+WHAT (player-facing)
+- Nothing yet. The game reads the new data, and both drives are identical to 74's.
+- For authors, worldc's summary now counts the interiors' plans: "library 3 looks, 3 shells (36 rooms, 30 inside walls, 35 doors, 3 stairs)". 3b-3 builds the interiors from this data.
+
+HOW
+- worldmodel now reads what the interiors need from the layouts: the doors' hinge and swing, the rooms' lux, and the stair records (from, to, run, w, kind, treads, rise, landing, walk).
+- The compiler (worldmodel_buildings.cpp) adds to each shell:
+  - each floor's rooms, in its layout's order: type, light schedule (as its windows get it), lux and polygon;
+  - the inside walls, with their doors;
+  - every door's leaf, exterior doors included: the end its hinges are at (toward the wall's a or b), the side it opens to, and the rooms each side of its wall, found from the room polygons (outside: none);
+  - the stairs: each floor's layout's, with their ends resolved on the plan's floors (f1.hall, or relative 0:, +1: and -1:). treads and rise are derived from the floors as worldv derives them, and landing defaults to w.
+- What a door's words mean (now in NTW_FORMAT 9.8):
+  - swing=in opens into the building through an exterior wall, and into the room leads names second between two rooms; out is the other way;
+  - hinge= is seen from the side the door is pushed from;
+  - the defaults are in and left, and a mirrored placement swaps the sides.
+- "library" v4 carries all this; buildingsbin.h documents the layout. The reader refuses:
+  - a window in an inside wall;
+  - an opening or stair naming a room its floor lacks, or a stair from or to a floor past the shell's;
+  - a kind past its list.
+  - Bounds: 88 bytes a shell, 44 a room (with its 3 points), 28 an inside wall, 44 a door, 60 a stair.
+- Docs: NTW_FORMAT 9.8 (door leaves) and 9.10 (what the compiler reads), HANDBUILT_WORLD 6.1.
+- Two changes from the plan, for you to OK:
+  - The InteriorDefs and gInteriors move to 3b-3, which builds and installs them together with their geometry. Installing them now would stream empty interiors and add their doors' colliders and their rooms' ambient volumes before anything is drawn.
+  - In 3b-3, Building::interior stays -1 on the hand-built records. game/ai.cpp skips buildings with an interior as door sources, which would undo 3b-1's real doors. The hand-built set maps placement to interior itself, and it doesn't go through planInteriors or pickBuilding (your note on the unguarded bs.facades[b.facade]).
+
+CHECKS (all on this tree)
+- CI's three tests with CI's flags pass. worldmodel_test now also checks:
+  - the test shop's 4 rooms (types, schedules, lux) and its 2 inside walls with their doors;
+  - a door with hinge=right swing=out: its sides, swing and hinge;
+  - the flat's door with the defaults;
+  - the stair from the store up to the flat's kitchen: 20 risers from its rise=, landing = w;
+  - a relative stair that would climb past the top floor, left out; the cottage has none;
+  - the round trip exact, 5 damaged plans refused, and 4 more smallest-records cases.
+  - Six mutations of the reader each fail the test: each new bound raised by 1 byte, and the window-in-an-inside-wall refusal removed.
+- worldc: 0 warnings, 2,757,904 B (+1,072), 17 sections. Against 74 only "library" differs: v4, LZ size 2067 B, hash 0d61f9d4f5c14cd8.
+- A scratch dump of the compiled plans, checked by hand against the three layouts:
+  - every door's sides, swing and hinge. For example, the walk-up's stair door (hinge=right swing=out leads=lobby:stair) opens into the lobby with its hinges at x 0.85, and the bungalow's kitchen door (swing=out) opens outward;
+  - the stairs: the walk-up's two doglegs of 17 x 0.18 m = 3.06 m (landing 1.10 m), and the shop's straight flight of 20 x 0.18 m = 3.60 m.
+- worldv: 0 errors, 4 warnings, as on 74. MinGW: main.cpp 0 errors, 0 warnings; worldc.cpp 0 and 0. Tools' host syntax: 0 errors.
+- Procedural census: 0 of 13,914 C/Q/F lines differ from 74.
+- exe: 16,348,672 B, 0 warning or error lines.
+- Hand drive: identical to 74's (all three autoplay lines). The only other log difference is the exe's world.bin, 2693 KB against 2692. Procedural drive: as on 74.
+
+Next: 3b-3, the IK_HAND interiors, is under way. That means floors, walls and stairs drawn and collided, the doors' leaves, the lights, the shell's doorways opened, and a --handtour walk through every room.

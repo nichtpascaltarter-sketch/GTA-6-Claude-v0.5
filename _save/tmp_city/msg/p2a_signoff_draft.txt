@@ -1,0 +1,60 @@
+city snapshot-safe: part 2a of the Calle Luna pilot, the blocks' ground and dressing, with Domino Park as the first block. On main 69341af: every base is 69341af's blob.
+
+Blobs: /tmp/city/p2a_blobs.txt, 22 files, all written. 7 are new and 15 sit on 69341af's blobs, the grading fix's included: terrainops.cpp on 0ffcd9db, worldmap.h on 5fa756c0, worldmodel_test.cpp on 1e2c1f34.
+
+What it does:
+- The world model types the block records:
+  - a parcel's grade=, blend= and ground=, and its paint, pad and fence children (fence gates as <at>:<width>);
+  - plazas;
+  - trees, plants, props and lights (a light's at= is x,y on the ground or x,y,z);
+  - the catalog pieces' code=, size=WxDxH, variants= and collide=.
+- compileBlocks (worldmodel_blocks.cpp, declared in worldmodel.h).
+  - The ground: each parcel's ground= over its polygon, then its paint, level on its grade= where it has one, else draped on the terrain. Then its pads, as level slabs above the grade (or above the terrain under their centre), and the plazas.
+  - The dressing: each piece becomes a prop of its code=, a PropType's name (catalogcodes.h). Trees are scaled to h= by the piece's size= height, and plants by scale=. Trees and plants without yaw= turn, and pick among the piece's variants, by their position, so a row never repeats.
+  - Lights: each is the fixture's prop plus its lamp (catalogcodes.h lampSpec). The street light is the one roads draw today; porch, wall flood and garden lamps are lamps alone. sched= maps to roomlight.h's classes: dusk (photocell), evening (RS_PORCH), always; never leaves the fixture dark.
+  - Findings: block.shape, block.kind and block.size.
+- world.bin "blocks" v1 (blocksbin.h/.cpp). readBlocks never leaves half the blocks, and indexes each cell's share.
+- worldc:
+  - block and catalog files go through the world model.
+  - The parcels' grades are graded first (WorldMap::flattenPoly, in terrainops.cpp), then today's road grading, so the roads' cut still wins at the kerb.
+  - Every prop and lamp goes on the graded ground, or on a sidewalk's surface where one runs: roadSurfaceHeight is split out of surfaceHeight in roadnet.cpp, without the sites' pads.
+- The game in hand mode: handworld reads "blocks", and generateCell adds each cell's share.
+  - The ground is triangulated at every LOD. Draped polygons are split to 4 m in detail cells, so they follow the terrain.
+  - Props and lamps go in detail cells, as today's do.
+- gHandBlocks is an inline variable, so the tools that build cells (traffic_sim, worldcheck, terrainbake, my census) link without blocksbin.cpp.
+- Content:
+  - world/lib/catalog.ntw: 22 pieces, each naming today's enum.
+  - world/districts/cl/blocks/b010/block.ntw, Domino Park at Calle Luna and the Paseo de los Heroes: lawn and paving, 4 royal palms, 3 live oaks, shrubs, 5 benches, 2 umbrellas, bins, 4 garden lights, and on Calle Luna's north sidewalk 2 cobra street lights, a hydrant and a news box: 24 props and 6 lamps.
+- Docs: NTW_FORMAT section 1 and "What the blocks compiler reads"; HANDBUILT_WORLD 6.1.
+- Tests (worldmodel_test):
+  - the samples' block typing;
+  - testBlocks: the ground's kinds and heights, the props' types, scales and yaws, the lamps' heads and schedules, the findings, the section's round trip, damaged sections, the by-cell index, and a parcel's levelling.
+- Two bugs that the first run caught: the loader didn't resolve the dressing's and fences' kind= references, and the samples test then checked a resolved class the samples' catalog can't give.
+
+Lamps: the renderer still lights them by type at night. lampSched holds each lamp's roomlight class for when night switches lamps by schedule.
+
+Checks:
+- On the 69341af-based tree:
+  - CI's worldmodel_test, with CI's flags: all passed, including testBlocks and the grading fix's testDeckEnds.
+  - worldc on world/: blocks 1, 3 ground polygons, 24 props, 6 lamps; roads 52/83/9; grade 5319 texels, by up to 0.45 m.
+  - MinGW on main.cpp: 0 errors, 0 warnings.
+- On 64's tree (41ae188d), before the fix landed:
+  - CI's world_format_test, worldv_test and worldmodel_test: all passed.
+  - worldv on world/: 0 errors and the 4 agreed signal.node warnings.
+  - The exe built.
+  - Hand mode: Domino Park by day, by night and from Calle Luna. 0 fatal errors; the lane graph is 192 lanes and 397 connectors; the log reads "Hand world: terrain, 52 road nodes, 83 edges, 3 ground polygons, 24 props and 6 lamps".
+  - A hand --play drive: rc 0, 0 fatal errors, 76 peds and 59 vehicles at t=21.5.
+  - The procedural drive: rc 0, 0 fatal errors, 6260 nodes and 9547 edges, 89 peds and 67 vehicles. That is the same as part 1's.
+- On 63 plus part 1 (the first round):
+  - the procedural census, s62 vs 2a: 0 of 55,086 lines differ, with equal height, water and splat hashes;
+  - worldc on the pilot's world/ without blocks gives the same world.bin as before 2a;
+  - rbcheck: IDENTICAL;
+  - MinGW on worldc and worldmodel_test: 0/0.
+- Shots to look at:
+  - /tmp/city/p2smoke/p2_domino_day.png, p2_domino_street.png, p2_domino_night.png and p2_heroes_junction.png;
+  - /tmp/city/b64smoke/b64_domino_night.bmp.
+
+Next:
+- RoadOverrides step 1, EdgeExtra, with the host loader. It is signed off right after this, with the 2b section layouts for the AI agent.
+- Then step 2 (NodeRule, the legs and plans API, noredturn=). It is built and tested, and its hand-mode shot is running.
+- Then 2c, the pilot's 25 blocks. They are generated, worldv is clean, and worldc gives 471 ground polygons, 1282 props and 362 lamps. The exe and the in-game shots are next.

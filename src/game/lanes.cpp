@@ -3,6 +3,8 @@
 // protected left arrows, bus stops, and the pedestrian sidewalk graph (sidewalks, corners, crosswalks).
 #include "ai_core.h"
 #include "../world/buildings.h"
+#include "../world/handworld.h"
+#include "../world/roadoverrides.h"
 
 namespace AI {
 
@@ -286,6 +288,37 @@ int LaneGraph::laneOf(int edge, int dir, int index) const {
     return groupFirst[grp] + index;
 }
 
+float LaneGraph::kerbStrip(int lane, int s) const {
+    if (lane < 0 || lane >= (int)lanes.size()) return 0.f;
+    const Lane& L = lanes[lane];
+    if (L.edge < 0 || L.edge >= (int)sections.size()) return 0.f;
+    const int sd = s * L.dir;   // (that side in the edge's frame: + right of n0 -> n1, where the offsets are measured)
+    return sections[L.edge].kerb[sd > 0 ? 1 : 0] - (float)sd * L.offset - L.width * 0.5f;
+}
+
+float LaneGraph::shoulderOf(int lane, int s) const {
+    if (lane < 0 || lane >= (int)lanes.size()) return 0.f;
+    const Lane& L = lanes[lane];
+    if (L.edge >= 0 && L.edge < (int)sections.size() && sections[L.edge].authored) return Max(kerbStrip(lane, s), 0.f);
+    return World::roadInfo((World::RoadClass)L.cls).shoulder;
+}
+
+float LaneGraph::parkWidth(int lane) const {
+    if (lane < 0 || lane >= (int)lanes.size()) return 0.f;
+    const Lane& L = lanes[lane];
+    if (L.edge < 0 || L.edge >= (int)sections.size() || !sections[L.edge].authored) return World::roadInfo((World::RoadClass)L.cls).shoulder;
+    const float strip = Max(kerbStrip(lane), 0.f), park = sections[L.edge].park[L.dir > 0 ? 1 : 0];
+    return park >= 0.f ? Min(park, strip) : 0.f;
+}
+
+float LaneGraph::parkLat(int lane) const {
+    if (lane < 0 || lane >= (int)lanes.size()) return 0.f;
+    const Lane& L = lanes[lane];
+    const float pw = parkWidth(lane);
+    if (L.edge < 0 || L.edge >= (int)sections.size() || !sections[L.edge].authored) return L.width * 0.5f + pw * 0.5f;
+    return L.width * 0.5f + Max(kerbStrip(lane), 0.f) - pw * 0.5f;   // (along the kerb: any shoulder lies between it and the lane)
+}
+
 void LaneGraph::lanesNear(vec2 mn, vec2 mx, std::vector<int>& out) const {
     out.clear();
     const float C = World::RoadNetwork::kHashCell;
@@ -529,9 +562,151 @@ int LaneGraph::nearestWalk(vec2 p, float maxDist, float* xOut, float* latOut) co
     return best;
 }
 
+// Where long vehicles sweep waiting cars at a junction (SweepZone), worked out on first use - a long vehicle coming up to
+// it (traffic_core.cpp) - rather than with the graph, which is on the game's load path. A design van, truck and bus
+// are driven through each tight turn at walking pace: a bicycle model whose front axle tracks the path within its steering
+// lock (as traffic_core's Stanley steering does for long wheelbases), from the lane in to 20 m into the lane out. Where
+// its body crosses the end of another approach's lane, within a waiting car's width of its middle and behind that
+// lane's line, a car waiting there would be hit (the harness's turn test at the pilot's node 6: a bus 2.4 m into the
+// opposing lane on a right turn into a narrow street; a step van's tail cutting the corner of a left turn into the car
+// at the side street's line, pilot seed 2). traffic_core holds the long vehicle at its line while a car stands there,
+// and stops cars still coming short of it while the long vehicle turns
+void LaneGraph::ensureSweeps(int ni) const {
+    if (ni < 0 || ni >= (int)nodes.size() || ni >= (int)sweepDone.size() || sweepDone[ni]) return;
+    sweepDone[ni] = 1;
+    const NodeInfo& N = nodes[ni];
+    if (N.approaches.size() < 3 || N.gradeSeparated) return;
+    struct Design {
+        float W, maxSteer, fOver, rOver, hw;
+    };
+    // (wheelbase, steering lock, front and rear overhang, half width: a step van, a box truck, a city bus - each a little
+    //  over the vehicles of its sweepClass)
+    const Design kDesign[3] = {{4.0f, 0.60f, 1.0f, 1.9f, 1.2f}, {5.0f, 0.58f, 1.6f, 2.3f, 1.25f}, {6.1f, 0.60f, 2.7f, 3.8f, 1.30f}};
+    // (the band round the waiting lane's middle the body must keep out of: kSweepBand, ai_core.h)
+    // the min u of a quad (lane-end frame: x = u, y = lat) within |lat| <= m, 1e9 when it lies outside
+    auto clipMinU = [](const vec2* q, float m) -> float {
+        vec2 a[12], b[12];
+        int na = 4;
+        for (int i = 0; i < 4; i++) a[i] = q[i];
+        for (int side = 0; side < 2; side++) {
+            const float sg = side == 0 ? 1.f : -1.f;
+            int nb = 0;
+            for (int i = 0; i < na; i++) {
+                const vec2 pa = a[i], pb = a[(i + 1) % na];
+                const float da = sg * pa.y - m, db = sg * pb.y - m;
+                if (da <= 0.f) b[nb++] = pa;
+                if ((da <= 0.f) != (db <= 0.f)) b[nb++] = pa + (pb - pa) * (da / (da - db));
+            }
+            na = nb;
+            if (na == 0) return 1e9f;
+            for (int i = 0; i < na; i++) a[i] = b[i];
+        }
+        float mn = 1e9f;
+        for (int i = 0; i < na; i++) mn = Min(mn, a[i].x);
+        return mn;
+    };
+    struct Cand {
+        int lane;
+        vec2 p1, t1, r1;
+        float u1, wait;
+        float minU[3], minUW[3];
+    };
+    std::vector<Cand> cands;
+    std::vector<vec2> poly;
+    for (int ci = N.firstConn; ci < N.firstConn + N.connCount; ci++) {
+        const Connector& c = conns[ci];
+        if ((c.turn != TK_LEFT && c.turn != TK_RIGHT) || c.minRadius > 25.f || (lanes[c.from].flags & (LF_HIGHWAY | LF_RAMP))) continue;
+        // the lanes whose end the body might reach: the other approaches' arriving lanes, ending near the turn
+        cands.clear();
+        const vec2 cMid = c.pts[c.pts.size() / 2].xy();
+        for (int ai = 0; ai < (int)N.approaches.size(); ai++) {
+            if (ai == c.approach) continue;
+            for (int l : N.approaches[ai].inLanes) {
+                const Lane& L = lanes[l];
+                if (length2(lanePos(l, L.u1).xy() - cMid) > 35.f * 35.f) continue;
+                Cand k;
+                k.lane = l;
+                k.p1 = lanePos(l, L.u1).xy();
+                k.t1 = laneTangent(l, L.u1);
+                k.r1 = rightOf(k.t1);
+                k.u1 = L.u1;
+                k.wait = L.stopU >= 0.f ? L.stopU : L.u1 - 0.6f;
+                for (int q = 0; q < 3; q++) k.minU[q] = k.minUW[q] = 1e9f;
+                cands.push_back(k);
+            }
+        }
+        if (cands.empty()) continue;
+        // the path: the last 10 m of the lane in, the connector, the first 20 m of the lane out
+        poly.clear();
+        const Lane& Lin = lanes[c.from];
+        const Lane& Lout = lanes[c.to];
+        for (float u = Max(Lin.u0, Lin.u1 - 10.f); u < Lin.u1 - 0.25f; u += 0.5f) poly.push_back(lanePos(c.from, u).xy());
+        const size_t laneInEnd = poly.size();
+        for (const vec3& q : c.pts) poly.push_back(q.xy());
+        for (float u = Lout.u0 + 0.5f; u <= Min(Lout.u1, Lout.u0 + 20.f); u += 0.5f) poly.push_back(lanePos(c.to, u).xy());
+        if (poly.size() < 4 || length2(poly[1] - poly[0]) < 1e-6f) continue;
+        for (int k = 0; k < 3; k++) {
+            const Design& D = kDesign[k];
+            vec2 h0 = normalize(poly[1] - poly[0]);
+            vec2 R = poly[0];
+            float th = atan2f(h0.y, h0.x);
+            size_t idx = 0;
+            for (int step = 0; step < 300; step++) {
+                const vec2 hd(cosf(th), sinf(th));
+                const vec2 F = R + hd * D.W;
+                float best = 1e18f;
+                size_t bi = idx;
+                for (size_t j = idx; j + 1 < poly.size() && j < idx + 10; j++) {
+                    float dd = distPointSegment2D(F, poly[j], poly[j + 1]);
+                    if (dd < best) {
+                        best = dd;
+                        bi = j;
+                    }
+                }
+                idx = bi;
+                if (idx + 2 >= poly.size()) break;
+                const vec2 tp = normalize(poly[idx + 1] - poly[idx] + vec2(1e-6f, 0.f));
+                const float e = cross(tp, F - poly[idx]);   // + = front left of the path
+                const float psi = wrapPi(atan2f(tp.y, tp.x) - th);
+                // (the lateral gain traffic_core's steering has at a turn's exit speeds, 2.2 / (v + 1.5) at 5-6 m/s: the real
+                //  bodies come back onto their line that slowly)
+                const float delta = Clamp(psi - atanf(0.3f * e), -D.maxSteer, D.maxSteer);
+                // the body now, in each candidate lane's end frame (once the front axle is past the lane in's end)
+                const vec2 n(-hd.y, hd.x);
+                const vec2 fb = R + hd * (D.W + D.fOver), rb = R - hd * D.rOver;
+                const vec2 body[4] = {fb + n * D.hw, fb - n * D.hw, rb - n * D.hw, rb + n * D.hw};
+                for (size_t ci2 = idx + 1 < laneInEnd ? cands.size() : 0; ci2 < cands.size(); ci2++) {
+                    Cand& cd = cands[ci2];
+                    if (length2((fb + rb) * 0.5f - cd.p1) > 400.f) continue;
+                    vec2 q[4];
+                    for (int i = 0; i < 4; i++) {
+                        const vec2 dq = body[i] - cd.p1;
+                        q[i] = vec2(cd.u1 + dot(dq, cd.t1), dot(dq, cd.r1));
+                    }
+                    const float mu = clipMinU(q, kSweepBand), muW = clipMinU(q, kSweepBand + Clamp(fabsf(psi) * kSweepWidePerRad, 0.f, kSweepWideMax));
+                    if (mu < cd.wait + 0.3f) cd.minU[k] = Min(cd.minU[k], Max(mu, cd.wait - 18.f));
+                    if (muW < cd.wait + 0.3f) cd.minUW[k] = Min(cd.minUW[k], Max(muW, cd.wait - 18.f));
+                }
+                R += hd * 0.8f;
+                th += 0.8f * tanf(delta) / D.W;
+            }
+        }
+        for (const Cand& cd : cands) {
+            if (cd.minUW[0] > 1e8f && cd.minUW[1] > 1e8f && cd.minUW[2] > 1e8f) continue;   // (the wide band holds the narrow one)
+            SweepZone z;
+            z.lane = cd.lane;
+            for (int k = 0; k < 3; k++) {
+                z.u[k] = cd.minU[k];
+                z.uWide[k] = cd.minUW[k];
+            }
+            c.sweep.push_back(z);
+        }
+    }
+}
+
 // ---------------------------------------------------------------------------------------------------------------------
 // Build
-void LaneGraph::build(const World::RoadNetwork& rn) {
+void LaneGraph::build(const World::RoadNetwork& rn, const World::RoadOverrides* ov) {
     double t0 = TimeSeconds();
     roads = &rn;
     const int NE = (int)rn.edges.size(), NN = (int)rn.nodes.size();
@@ -544,6 +719,51 @@ void LaneGraph::build(const World::RoadNetwork& rn) {
     edgeCurv.assign(NE, {});
     walkNodes.clear();
     walkLinks.clear();
+    sweepDone.assign(NN, 0);   // (long vehicles' sweep zones: per junction on first use, ensureSweeps)
+
+    // ---- each edge's cross-section. The kerb lines and sidewalks are the edge's own per side (RoadEdge::halfWidthSide and
+    //      sidewalkSide: what the mesher draws, the symmetric halfWidth and sidewalk in the procedural world). The lane
+    //      width, median, limit and parking are as authored where the world has RoadOverrides' EdgeExtra (one per edge:
+    //      the hand-built world), else the class's, as always
+    const bool authored = ov && !ov->edges.empty() && (int)ov->edges.size() == NE;
+    if (ov && !ov->edges.empty() && !authored) LOG("Lane graph: the road overrides hold %zu edges for %d - not used", ov->edges.size(), NE);
+    sections.assign(NE, EdgeSection());
+    int offSide = 0;   // (sides whose kerb line is not what their overrides make it: the network's sides never applied)
+    for (int ei = 0; ei < NE; ei++) {
+        const World::RoadEdge& e = rn.edges[ei];
+        const World::RoadClassInfo& ri = World::roadInfo(e.cls);
+        EdgeSection& S = sections[ei];
+        const bool twoWay = e.lanesF > 0 && e.lanesB > 0, noWalk = (e.flags & World::RF_NOSIDEWALK) != 0;
+        for (int k = 0; k < 2; k++) {
+            S.kerb[k] = e.halfWidthSide(k ? 1 : -1);
+            S.walk[k] = noWalk ? 0.f : e.sidewalkSide(k ? 1 : -1);
+        }
+        if (authored) {
+            const World::RoadOverrides::EdgeExtra& x = ov->edges[ei];
+            S.authored = true;
+            S.laneWidth = x.laneWidth > 0.5f ? x.laneWidth : ri.laneWidth;
+            S.median = Max(x.median, 0.f);
+            S.speed = x.speed > 0.5f ? x.speed : ri.speed;
+            for (int k = 0; k < 2; k++) {
+                S.park[k] = x.parkingOn(k ? 1 : -1);   // (as written; unwritten, the whole strip if it is 1.8 m or more)
+                const float line = World::roadKerbLine(x.laneWidth, x.median, e.lanesF, e.lanesB, k ? x.kerbR : x.kerbL, k ? 1 : -1);
+                offSide += fabsf(line - S.kerb[k]) > 0.05f;
+            }
+            S.flags = (u8)(((x.flags & World::RoadOverrides::EX_MEDIAN_BARRIER) ? EdgeSection::ES_MEDIAN_BARRIER : 0) |
+                           ((x.flags & World::RoadOverrides::EX_TUNNEL) ? EdgeSection::ES_TUNNEL : 0));
+        } else {
+            S.laneWidth = ri.laneWidth;
+            S.median = twoWay && ri.median > 0.f ? ri.median : 0.f;
+            S.speed = ri.speed;
+        }
+    }
+    if (authored) LOG("Lane graph: cross-sections as authored for %d edges (%d sides off their kerb line)", NE, offSide);
+    // ---- the nodes' rules as the world writes them (RoadOverrides' NodeRule, the hand-built world): by node
+    std::vector<int> ruleAt(NN, -1);
+    if (ov)
+        for (int r = 0; r < (int)ov->nodes.size(); r++)
+            if (ov->nodes[r].node >= 0 && ov->nodes[r].node < NN) ruleAt[ov->nodes[r].node] = r;
+    int rulesUsed = 0, rulesIgnored = 0, ruleAllWay = 0, ruleSignals = 0, ruleStops = 0, ruleYields = 0, ruleNoRed = 0, ruleBulbs = 0;
 
     // ---- smoothed edge geometry
     for (int ei = 0; ei < NE; ei++) {
@@ -597,10 +817,63 @@ void LaneGraph::build(const World::RoadNetwork& rn) {
             A.ang = atan2f(A.dir.y, A.dir.x);
             A.hw = e.halfWidth;
             A.sw = (e.flags & World::RF_NOSIDEWALK) ? 0.f : e.sidewalk;
+            for (int side = -1; side <= 1; side += 2) {
+                // (the walk graph's sides of an approach: -1 clockwise, +1 counter-clockwise looking out along it - for
+                // an outgoing edge the counter-clockwise side is the edge's left)
+                const int es = (side > 0) == outgoing ? 0 : 1;
+                A.hwS[side > 0] = sections[ei].kerb[es];
+                A.swS[side > 0] = sections[ei].walk[es];
+            }
             N.approaches.push_back(A);
         }
         std::sort(N.approaches.begin(), N.approaches.end(), [](const Approach& a, const Approach& b) { return a.ang < b.ang; });
         N.control = N.approaches.size() >= 3 ? rnode.control : 0;
+        if (ruleAt[ni] >= 0) {
+            // as written, over what is derived: the control (none, stop, yield, signal; auto keeps the derived one); a stop
+            // at every approach arriving is an all-way stop, a stop or yield list at an otherwise uncontrolled junction
+            // makes those approaches the minor road (stop at the line and give way / give way); no right on red; the dead
+            // end's turning circle
+            using RO = World::RoadOverrides;
+            const RO::NodeRule& R = ov->nodes[ruleAt[ni]];
+            auto listed = [](const std::vector<int>& v, int e) { return std::find(v.begin(), v.end(), e) != v.end(); };
+            const bool junction = N.approaches.size() >= 3;
+            rulesUsed++;
+            N.ruled = R.control != RO::CTRL_AUTO;
+            for (Approach& A : N.approaches) {
+                A.noRedTurn = listed(R.noRedTurn, A.edge);
+                ruleNoRed += A.noRedTurn;
+            }
+            if (R.bulb > 0.f && N.approaches.size() == 1) {
+                N.bulb = R.bulb;
+                ruleBulbs++;
+            }
+            if (junction) {
+                if (R.control == RO::CTRL_NONE) N.control = 0;
+                else if (R.control == RO::CTRL_SIGNAL) N.control = 2;
+                else if (R.control == RO::CTRL_STOP) {
+                    bool all = (R.flags & RO::NR_STOPS_ALL) != 0;
+                    if (!all) {
+                        all = true;
+                        for (const Approach& A : N.approaches) {
+                            const World::RoadEdge& e = rn.edges[A.edge];
+                            if ((A.outgoing ? e.lanesB > 0 : e.lanesF > 0) && !listed(R.stops, A.edge)) all = false;
+                        }
+                    }
+                    N.control = all ? 1 : 0;
+                } else if (R.control == RO::CTRL_YIELD) N.control = 0;
+                if (N.control == 0)
+                    for (Approach& A : N.approaches) {
+                        A.stopSign = listed(R.stops, A.edge);
+                        A.giveWay = !A.stopSign && listed(R.yields, A.edge);
+                        ruleStops += A.stopSign;
+                        ruleYields += A.giveWay;
+                    }
+                ruleAllWay += N.control == 1;
+                ruleSignals += N.control == 2;
+            } else if (R.control == RO::CTRL_STOP || R.control == RO::CTRL_YIELD || R.control == RO::CTRL_SIGNAL) {
+                rulesIgnored++;   // (a control at a bend or a dead end: nothing to give way to)
+            }
+        }
         N.deadEnd = N.approaches.size() == 1;
         int nh = 0;
         for (auto& a : N.approaches) nh += rn.edges[a.edge].cls == World::RC_HIGHWAY;
@@ -609,16 +882,17 @@ void LaneGraph::build(const World::RoadNetwork& rn) {
 
     // ---- lane end cut-backs per edge end (0 = n0 end, 1 = n1 end)
     std::vector<float> laneCut((size_t)NE * 2, 0.f);
-    auto laneOffsetsOf = [&](const World::RoadEdge& e, int dir, std::vector<float>& offs) {
-        const World::RoadClassInfo& ri = World::roadInfo(e.cls);
+    auto laneOffsetsOf = [&](int ei, int dir, std::vector<float>& offs) {
+        const World::RoadEdge& e = rn.edges[ei];
+        const EdgeSection& S = sections[ei];
         offs.clear();
         int cnt = dir > 0 ? e.lanesF : e.lanesB;
         bool twoWay = e.lanesF > 0 && e.lanesB > 0;
-        float W = ri.laneWidth;
+        float W = S.laneWidth;
         for (int k = 0; k < cnt; k++) {
             float off;
             if (twoWay) {
-                float laneStart = ri.median > 0.f ? ri.median * 0.5f : 0.f;
+                float laneStart = S.median > 0.f ? S.median * 0.5f : 0.f;
                 off = (float)dir * (laneStart + (k + 0.5f) * W);
             } else {
                 off = -W * cnt * 0.5f + (k + 0.5f) * W;
@@ -630,19 +904,20 @@ void LaneGraph::build(const World::RoadNetwork& rn) {
     // an on/off-ramp meets the motorway on the motorway's centre line, its taper crossing the outer lanes: the ramp's lane
     // ends (starts) where its line clears the motorway's lanes, so the merge (diverge) connector runs down the taper
     // alongside the outer lane - instead of ramp traffic stopping to give way inside the lanes it is about to join
-    auto rampClearCut = [&](const World::RoadEdge& e, int end, int ni) -> float {
+    auto rampClearCut = [&](int ei, int end, int ni) -> float {
+        const World::RoadEdge& e = rn.edges[ei];
         float clear = 0.f;
         std::vector<int> hwys;
         for (int oe : rn.nodes[ni].edges) {
             const World::RoadEdge& o = rn.edges[oe];
             if (o.cls != World::RC_HIGHWAY) continue;
-            const World::RoadClassInfo& oi = World::roadInfo(o.cls);
-            float laneStart = o.lanesF > 0 && o.lanesB > 0 && oi.median > 0.f ? oi.median * 0.5f : 0.f;
-            clear = Max(clear, laneStart + (float)Max(o.lanesF, o.lanesB) * oi.laneWidth);
+            const EdgeSection& OS = sections[oe];
+            float laneStart = o.lanesF > 0 && o.lanesB > 0 && OS.median > 0.f ? OS.median * 0.5f : 0.f;
+            clear = Max(clear, laneStart + (float)Max(o.lanesF, o.lanesB) * OS.laneWidth);
             hwys.push_back(oe);
         }
         if (hwys.empty()) return 0.f;
-        clear += World::roadInfo(e.cls).laneWidth * 0.5f + 0.3f;
+        clear += sections[ei].laneWidth * 0.5f + 0.3f;
         for (float s = 0.f; s < e.length * 0.6f; s += 1.f) {
             vec2 p = e.posAt(end == 0 ? s : e.length - s).xy();
             float dmin = 1e9f;
@@ -666,7 +941,7 @@ void LaneGraph::build(const World::RoadNetwork& rn) {
             int deg = degree[ni];
             if (deg >= 3 && rnode.radius > 0.f) {
                 laneCut[ei * 2 + end] = cut;
-                if (e.cls == World::RC_RAMP) laneCut[ei * 2 + end] = Max(cut, rampClearCut(e, end, ni));
+                if (e.cls == World::RC_RAMP) laneCut[ei * 2 + end] = Max(cut, rampClearCut(ei, end, ni));
             } else if (deg == 1) {
                 laneCut[ei * 2 + end] = Min(9.f, e.length * 0.3f);
             } else if (deg == 2) {
@@ -674,8 +949,8 @@ void LaneGraph::build(const World::RoadNetwork& rn) {
                 int other = rnode.edges[0] == ei ? rnode.edges[1] : rnode.edges[0];
                 const World::RoadEdge& o = rn.edges[other];
                 std::vector<float> a, b;
-                laneOffsetsOf(e, 1, a);
-                laneOffsetsOf(o, 1, b);
+                laneOffsetsOf(ei, 1, a);
+                laneOffsetsOf(other, 1, b);
                 float shift = 0.f;
                 size_t m = Max(a.size(), b.size());
                 for (size_t k = 0; k < m && !a.empty() && !b.empty(); k++)
@@ -701,12 +976,12 @@ void LaneGraph::build(const World::RoadNetwork& rn) {
     for (int ei = 0; ei < NE; ei++) {
         const World::RoadEdge& e = rn.edges[ei];
         if (e.pts.size() < 2 || e.length < 0.5f) continue;
-        const World::RoadClassInfo& ri = World::roadInfo(e.cls);
+        const EdgeSection& S = sections[ei];
         for (int dir = 1; dir >= -1; dir -= 2) {
             int cnt = dir > 0 ? e.lanesF : e.lanesB;
             if (cnt <= 0) continue;
             std::vector<float> offs;
-            laneOffsetsOf(e, dir, offs);
+            laneOffsetsOf(ei, dir, offs);
             int grp = ei * 2 + (dir < 0 ? 1 : 0);
             groupFirst[grp] = (int)lanes.size();
             groupCount[grp] = (u8)cnt;
@@ -718,14 +993,14 @@ void LaneGraph::build(const World::RoadNetwork& rn) {
                 L.count = (u8)cnt;
                 L.cls = e.cls;
                 L.offset = offs[k];
-                L.width = ri.laneWidth;
+                L.width = S.laneWidth;
                 L.fromNode = dir > 0 ? e.n0 : e.n1;
                 L.toNode = dir > 0 ? e.n1 : e.n0;
                 float cutStart = dir > 0 ? laneCut[ei * 2] : laneCut[ei * 2 + 1];
                 float cutEnd = dir > 0 ? laneCut[ei * 2 + 1] : laneCut[ei * 2];
                 L.u0 = cutStart;
                 L.u1 = Max(e.length - cutEnd, cutStart + 0.5f);
-                L.speed = ri.speed;
+                L.speed = S.speed;
                 if (e.cls == World::RC_HIGHWAY) L.flags |= LF_HIGHWAY;
                 if (e.cls == World::RC_RAMP) L.flags |= LF_RAMP;
                 if (e.cls == World::RC_DIRT || (e.flags & World::RF_UNPAVED)) L.flags |= LF_DIRT;
@@ -762,8 +1037,9 @@ void LaneGraph::build(const World::RoadNetwork& rn) {
             bool hwy = e.cls == World::RC_HIGHWAY || e.cls == World::RC_RAMP;
             A.crosswalk = N.control >= 1 && !hwy && na >= 3;
             A.crossS = A.cut + (A.crosswalk ? 2.3f : 1.2f);
-            // stop line for controlled approaches (matches the painted stop line 4.4-4.85 m behind the cut)
-            if (N.control >= 1 && na >= 3 && !hwy)
+            // stop line for controlled approaches (matches the painted stop line 4.4-4.85 m behind the cut), and for those with
+            // a stop sign as written at an otherwise uncontrolled junction
+            if (((N.control >= 1 && na >= 3) || A.stopSign) && !hwy)
                 for (int l : A.inLanes) lanes[l].stopU = Max(lanes[l].u0, lanes[l].u1 - 5.1f);
         }
         if (na < 2) continue;
@@ -791,7 +1067,13 @@ void LaneGraph::build(const World::RoadNetwork& rn) {
                 }
             }
         }
-        for (int i = 0; i < na; i++) N.approaches[i].rank = (i == bi || i == bj) ? 1 : 0;
+        // (where the world writes which approaches stop or give way, the rest are the main road)
+        bool minorWritten = false;
+        for (const Approach& A : N.approaches) minorWritten |= A.stopSign || A.giveWay;
+        for (int i = 0; i < na; i++) {
+            const Approach& A = N.approaches[i];
+            N.approaches[i].rank = minorWritten ? ((A.stopSign || A.giveWay) ? 0 : 1) : ((i == bi || i == bj) ? 1 : 0);
+        }
         // signal axes
         if (N.control == 2) {
             std::vector<int> axisOf(na, -1);
@@ -847,7 +1129,9 @@ void LaneGraph::build(const World::RoadNetwork& rn) {
                 // turning circle around the node: swing right to the circle, half a turn to the left, back to the lane
                 // (pulled back toward the street / tightened when something stands in the way, see the dead-end code)
                 vec2 c0 = rnode.p - t0 * uturnBack;
-                float R = Clamp(fabsf(Lin.offset) + 3.4f, 4.8f, 6.5f) * uturnScale;
+                // (inside a turning circle as written: its car path 2.2 m in from the kerb, as far as cars can follow it)
+                const float rMax = N.bulb > 0.f ? Clamp(N.bulb - 2.2f, 4.8f, 6.5f) : 6.5f;
+                float R = Clamp(fabsf(Lin.offset) + 3.4f, 4.8f, rMax) * uturnScale;
                 vec2 rt = rightOf(t0), lf = -rt;
                 float zc = (p0.z + p3.z) * 0.5f;
                 vec3 b1(c0 + rt * R, zc), b2(c0 + lf * R, zc);
@@ -1085,7 +1369,7 @@ void LaneGraph::build(const World::RoadNetwork& rn) {
                     const Approach& B = N.approaches[pick->aj];
                     int Lout = (int)B.outLanes.size();
                     int ko = pick->turn == TK_RIGHT ? Lout - 1 : (pick->turn == TK_LEFT ? 0 : Min(k, Lout - 1));
-                    addConn(ai, A.inLanes[k], pick->aj, B.outLanes[ko], pick->turn == TK_STRAIGHT ? TK_MERGE : pick->turn);
+                    addConn(ai, A.inLanes[k], pick->aj, B.outLanes[ko], pick->turn == TK_STRAIGHT ? (u8)TK_MERGE : pick->turn);
                 } else {
                     // no legal exit (e.g. every other road is one-way against us): U-turn if the road is two-way
                     if (!A.outLanes.empty()) addConn(ai, A.inLanes[k], ai, A.outLanes[Min((size_t)k, A.outLanes.size() - 1)], TK_UTURN);
@@ -1269,7 +1553,11 @@ void LaneGraph::build(const World::RoadNetwork& rn) {
             ScenarioPoint sp;
             sp.edge = ei;
             sp.face = -rv * (float)side;   // toward the street
+            // (this side's sidewalk: as authored - a narrow one gets no stop - else the edge's, as the furniture has it)
+            const int es = side > 0 ? 1 : 0;
+            const float swSide = sections[ei].authored ? sections[ei].walk[es] : e.sidewalk;
             if (r < 0.08f) {
+                if (!(swSide > 2.f)) continue;
                 int dir = side;
                 int grp = ei * 2 + (dir < 0 ? 1 : 0);
                 if (groupFirst[grp] < 0) continue;
@@ -1279,8 +1567,11 @@ void LaneGraph::build(const World::RoadNetwork& rn) {
                 sp.kind = SP_BUS_STOP;
                 sp.lane = lane;
                 sp.u = u;
-                sp.pos = c + vec3(rv * ((float)side * (e.halfWidth + e.sidewalk * 0.45f)), 0.15f);
+                sp.pos = c + vec3(rv * ((float)side * (sections[ei].kerb[es] + swSide * 0.45f)), 0.15f);
             } else {
+                // (benches stand where the road dressing put them - none in hand mode yet, where block files will author
+                // them: a bench spot there sat its peds down on nothing)
+                if (World::isHandWorld()) continue;
                 sp.kind = SP_BENCH;
                 // the bench stands 0.9 m from the curb; a sitting ped is placed on its seat, facing the street
                 sp.pos = c + vec3(rv * ((float)side * (e.halfWidth + 0.9f + 0.3f)), 0.15f);
@@ -1294,10 +1585,11 @@ void LaneGraph::build(const World::RoadNetwork& rn) {
     {
         // a dead end's sidewalks run on until they meet the sidewalk ring round its turning bulb (roads.cpp bulbRadius):
         // how far short of the node that is (no bulb: 2 m)
-        auto deadEndBack = [&](int ni, float hw, float sw, float len) {
+        // (lat: that side's sidewalk centre line off the edge's; sw: the ring's sidewalk, the wider side's)
+        auto deadEndBack = [&](int ni, float lat, float sw, float len) {
             float br = rn.bulbRadius(rn.nodes[ni]);
             if (br <= 0.f) return Min(2.f, len * 0.3f);
-            float R = br + sw * 0.5f, lat = hw + sw * 0.5f;
+            float R = br + sw * 0.5f;
             return Min(sqrtf(Max(R * R - lat * lat, 4.f)), len * 0.3f);
         };
         // walk nodes per (road node, approach, side)
@@ -1311,12 +1603,14 @@ void LaneGraph::build(const World::RoadNetwork& rn) {
                 const Approach& A = N.approaches[ai];
                 if (A.sw <= 0.5f) continue;
                 const World::RoadEdge& e = rn.edges[A.edge];
-                float d = N.deadEnd ? deadEndBack(ni, A.hw, A.sw, e.length) : Min(Max(A.crossS, A.cut + 1.f), e.length * 0.45f);
-                float s = A.outgoing ? d : e.length - d;
                 for (int side = -1; side <= 1; side += 2) {
+                    const float latC = A.hwS[side > 0] + A.swS[side > 0] * 0.5f;   // (this side's sidewalk centre line)
+                    if (A.swS[side > 0] <= 0.5f) continue;                       // (none this side: authored one-sided)
+                    float d = N.deadEnd ? deadEndBack(ni, latC, A.sw, e.length) : Min(Max(A.crossS, A.cut + 1.f), e.length * 0.45f);
+                    float s = A.outgoing ? d : e.length - d;
                     // CCW side (left of the outward direction) in edge frame: outgoing -> -N, incoming -> +N
                     float latSign = (side > 0) == A.outgoing ? -1.f : 1.f;
-                    float lat = latSign * (A.hw + A.sw * 0.5f);
+                    float lat = latSign * latC;
                     size_t n = e.pts.size();
                     size_t i = std::upper_bound(e.dist.begin(), e.dist.end(), Clamp(s, 0.f, e.length)) - e.dist.begin();
                     if (i == 0) i = 1;
@@ -1427,7 +1721,7 @@ void LaneGraph::build(const World::RoadNetwork& rn) {
                         L.b = b;
                         L.kind = WL_CORNER;
                         L.ctrl = rnode.p - A.dir * (A.hw + A.sw + 4.5f) * 1.6f;
-                        L.halfWidth = Max(A.sw * 0.5f - 0.3f, 0.3f);
+                        L.halfWidth = Max(Min(A.swS[0], A.swS[1]) * 0.5f - 0.3f, 0.3f);
                         addLink(L);
                     }
                 }
@@ -1455,7 +1749,7 @@ void LaneGraph::build(const World::RoadNetwork& rn) {
                     L.b = b;
                     L.kind = WL_CORNER;
                     L.ctrl = C;
-                    L.halfWidth = Max(Min(A.sw, B.sw) * 0.5f - 0.3f, 0.3f);
+                    L.halfWidth = Max(Min(A.swS[1], B.swS[0]) * 0.5f - 0.3f, 0.3f);
                     addLink(L);
                 }
                 // crosswalks
@@ -1493,8 +1787,12 @@ void LaneGraph::build(const World::RoadNetwork& rn) {
                 if (wa < 0 || wb < 0 || wa == wb) continue;
                 const Approach& A0 = nodes[e.n0].approaches[a0];
                 const Approach& A1 = nodes[e.n1].approaches[a1];
-                float da = nodes[e.n0].deadEnd ? deadEndBack(e.n0, A0.hw, A0.sw, e.length) : Min(Max(A0.crossS, A0.cut + 1.f), e.length * 0.45f);
-                float db = nodes[e.n1].deadEnd ? deadEndBack(e.n1, A1.hw, A1.sw, e.length) : Min(Max(A1.crossS, A1.cut + 1.f), e.length * 0.45f);
+                const EdgeSection& S = sections[ei];
+                const int es = side > 0 ? 1 : 0;
+                if (S.walk[es] <= 0.5f) continue;
+                const float latC = S.kerb[es] + S.walk[es] * 0.5f;
+                float da = nodes[e.n0].deadEnd ? deadEndBack(e.n0, latC, A0.sw, e.length) : Min(Max(A0.crossS, A0.cut + 1.f), e.length * 0.45f);
+                float db = nodes[e.n1].deadEnd ? deadEndBack(e.n1, latC, A1.sw, e.length) : Min(Max(A1.crossS, A1.cut + 1.f), e.length * 0.45f);
                 WalkLink L;
                 L.a = wa;
                 L.b = wb;
@@ -1503,8 +1801,8 @@ void LaneGraph::build(const World::RoadNetwork& rn) {
                 L.sa = da;
                 L.sb = e.length - db;
                 if (L.sb - L.sa < 0.5f) continue;
-                L.lat = (float)side * (e.halfWidth + e.sidewalk * 0.5f);
-                L.halfWidth = Max(e.sidewalk * 0.5f - 0.35f, 0.25f);
+                L.lat = (float)side * latC;
+                L.halfWidth = Max(S.walk[es] * 0.5f - 0.35f, 0.25f);
                 L.length = L.sb - L.sa;
                 int id = (int)walkLinks.size();
                 walkLinks.push_back(L);
@@ -1719,6 +2017,10 @@ void LaneGraph::build(const World::RoadNetwork& rn) {
         }
     }
     if (sitePaths + siteZebras > 0) LOG("Lane graph: %d plaza walkways and %d zebra crossings from the sites", sitePaths, siteZebras);
+    if (rulesUsed > 0)
+        LOG("Lane graph: node rules as written at %d nodes: %d all-way stops, %d signals, %d stop-sign and %d give-way approaches, %d with no "
+            "right on red, %d turning circles (%d controls away from a junction, not used)", rulesUsed, ruleAllWay, ruleSignals, ruleStops, ruleYields,
+            ruleNoRed, ruleBulbs, rulesIgnored);
     buildSeconds = TimeSeconds() - t0;
     size_t cpts = 0;
     for (auto& c : conns) cpts += c.pts.size();

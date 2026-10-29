@@ -309,7 +309,7 @@ static const Sample kSamples[] = {
         "channel ch.00 width0=12.00 width1=20.00 depth=2.50 pts=-100.00,-200.00;-80.00,0.00;-60.00,150.00\n"},
     {"transit.ntw",
         "ntw 1 transit line=bus.8 kind=bus name=\"8 Calle Ocho\"\n"
-        "route edges=cl.e0007,cl.e0011\n"
+        "route edges=cl.e0011,cl.e0007\n"
         "stop s1 busstop=cl.bus.08\n"
         "service headway=600.0 first=5.50 last=23.50\n"},
     {"world.ntw",
@@ -430,7 +430,8 @@ static void testRefs() {
         EXPECT(fits == c.fits && names == c.names, "pattern %s, value %s: %s '%s'", c.pattern, c.value, fits ? "fits" : "doesn't fit", names.c_str());
     }
     const std::vector<Ntw::RefRule>* node = Ntw::refRules("roads", "node");
-    EXPECT(node && node->size() == 4 && !strcmp((*node)[0].key, "plan") && (*node)[0].pattern.alts.size() == 2, "refRules: roads node");
+    EXPECT(node && node->size() == 5 && !strcmp((*node)[0].key, "plan") && (*node)[0].pattern.alts.size() == 2 && !strcmp((*node)[4].key, "noredturn"),
+           "refRules: roads node");
     const std::vector<Ntw::RefRule>* junction = Ntw::refRules("roads", "junction");
     EXPECT(junction && junction->size() == 1 && !(*junction)[0].key, "refRules: a junction's id");
     const std::vector<Ntw::RefRule>* stair = Ntw::refRules("unit", "stair");

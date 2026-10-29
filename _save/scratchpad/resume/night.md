@@ -419,3 +419,174 @@ one game at a time. Tree /tmp/night/d = archive 0d67933 + park_shop_interior.dif
    src/shaders/roomlight.hlsli, roomlighttest.hlsl, src/render/roomlight_test.cpp, renderer.cpp hook
    (--roomlighttest); shc 152/0; nt_rl1 built rc 0; the test run NOT done (chain_rl.sh: one 640x360 shot run with
    --roomlighttest -> rltest_result.txt). Then: Environment::gameDay + app.cpp guarded line, Renderer::roomNight().
+
+## RESUMED 10-26 15:20 UTC (HEAD bdf3016). Relaunched chain_r (rtB only left), chain_rl (--roomlighttest), chain_sp
+## (speckles A/B). PROGRESS.md HEAD is now ca9479c7 (re-apply bullets at sign-off); renderer.cpp HEAD 3a970bc0 and
+## app.cpp HEAD a4c4aee9 (rebase tree rl on them); roomlight.h 92d3b91c landed.
+- 15:45 Sign-off tree /tmp/night/r2 = archive bdf3016 + shadow.hlsli 72e3a1a3, gameworld.cpp 7df66af0 (bases == HEAD),
+  vehicle_catalog.cpp 5868f0ca, PROGRESS.md 0cc998fb (bullet on HEAD's ca9479c7); chain_r2.sh builds nt_r2 + selftest.
+  Room light rebased: tree /tmp/night/rl2 = archive bdf3016 + roomlight.hlsli, roomlighttest.hlsl, roomlight_test.cpp,
+  renderer.cpp (+include, hook, roomNightLevel = 255*sat((4-sunElev)/10 + cloud/rain terms)), renderer.h
+  (Environment::gameDay, roomNight()), app.cpp (+ env.gameDay line; shared app.cpp has another agent's uncommitted
+  changes -> tell the lead at sign-off). chain_rl2.sh: build rl2 -> after chain_r2 + chain_sp: selftest + test run.
+- 16:15 SIGNED OFF leaf rings + held brake lamps on HEAD 61cf548 (guard OK, copied): shadow.hlsli 72e3a1a3,
+  gameworld.cpp 7df66af0, vehicle_catalog.cpp 5868f0ca, PROGRESS.md 0cc998fb; selftest nt_r2 0/0; proofs
+  /tmp/night/proof_R_shadow.png, proof_R_heldbrake.png (rtA/rtB frame 14). Offered a PC run for a multi-car queue.
+  Running: chain_rl (rl1 test), chain_sp (speckles spA/spN/spT), chain_rl2 (build rl2 -> selftest -> test).
+- 16:30 Lead: rings + held brake lamps ACCEPTED into snapshot 64 (tree 3e82f6a6 verifying). app.cpp: snapshot 64 changes it (city hand-mode start, 1a889880 on a4c4aee9): rebase my gameDay line on 64's app.cpp once it lands; keep the hunk one line. Next: speckles, then --roomlighttest.
+- 16:50 --roomlighttest PASS (nt_rl1): 5,594,400 sweep inputs (1,751,066 lit), 0 GPU/C++ differences; 104 vectors 0/0. Told the city agent. chain_sp (speckles) next, then chain_rl2 (rebased build + selftest + test).
+- 17:00 City FYI (snapshot 65, part 2a): World::gHandBlocks->lampSched = a roomlight class per hand-placed lamp (RS_DUSK photocell, RS_PORCH evening, RS_ALWAYS), beside lamps[i] (src/world/blocksbin.h); cells take them into CellGeometry::lights. Hook for switching lamps by schedule later (gatherLights). Nothing needed now.
+- 17:20 SPECKLES DIAGNOSED: spA (as is) shows the beige blotches; spN (rust off) clean; spT (1024-texel layers)
+  still blotchy -> the metal roof's RUST layer (matgen genMetalRoof), not specular aliasing / texture resolution.
+  Light rust (0.32,.16,.07) at 70%, rough 0.85, at the material's metal 0.6 catches a blur of the bright sky that the
+  glossier steel doesn't. Fix variant /tmp/night/shd_rust2/matgen.hlsl: low-frequency mask (tfbm base 2, 4 oct,
+  0.6..0.9), less on crests, colour C x0.5 at 60%, rough 0.35..0.6; shc 150/0. chain_sp2.sh: spR after chain_rl2.
+- 17:45 Lead approved the rust fix (matgen only); sign-off wants A/B on 2-3 other metal roofs (warehouse at noon, one at dusk) + gfxselftest. chain_sp3.sh: build nt_m1 (61cf548 + matgen) + selftest; A/B rrA/rrB on nt_r2 (+-shd_rust2): the_flats_low_noon, key_solano_low_dusk. Snapshot 64 (PR #57) pending merge; app.cpp line on 1a889880 after it merges (lead tells the commit).
+- 19:00 main = 69341af (PR #57: rings + held brakes in). FINAL TREE /tmp/night/f = archive 69341af + matgen.hlsl
+  447646b4 (base 3240e731) + roomlight.hlsli 84ab4186 (new) + roomlighttest.hlsl ae632c1a (new) +
+  render/roomlight_test.cpp 65da467f (new) + renderer.cpp 0e583c94 (base 3a970bc0) + renderer.h b60e55d8 (base
+  e20cb7ed) + app.cpp d9a5cd2c (base 1a889880, ONE line) + PROGRESS.md 2a86e9a5 (base 0cc998fb). shc f 152/0.
+  chain_f.sh: build f1 -> selftest -> --roomlighttest. chain_rl2 killed (superseded). Still running: chain_sp2 (spR),
+  chain_sp3 (m1 selftest + rrA/rrB roofs at noon/dusk on nt_r2). Then: proofs + guarded copy + one sign-off message
+  (two parts: roof rust, room light).
+- 19:00 f1 selftest 0/0 (log_f1_selftest.txt); --roomlighttest on nt_f1 (main 69341af base) PASS: 5,594,400 inputs
+  (1,751,066 lit) 0 diffs; 104 vectors 0/0 (rltestf_result.txt after chain_f ends). spR (rust2) still shows faint pale
+  patches (crop /tmp/night/_v/sp_crops.png) -> rust3 (/tmp/night/shd_rust3/matgen.hlsl: rough 0.35..0.45, AO x0.6 on
+  rust = specular occlusion) copied into tree f (matgen blob 53194ece, untested). chain_sp3 killed (m1 selftest not
+  needed). chain_sp4.sh: spR3 (nt_r1 + shd_rust3, key_solano_pickets_morning) -> rrA/rr3 (nt_r2 +- shd_rust3) at
+  the_flats_low_noon + key_solano_low_dusk. chain_f2.sh: build f2 (tree f with rust3) -> after chain_sp4: selftest f2.
+  If rust3 is NOT better than rust2: put shd_rust2/matgen.hlsl (447646b4) back in tree f and rebuild.
+  Shared tree clean at 19:00 (all target files == HEAD 69341af; new files absent).
+- 19:15 chain_h.sh: tree /tmp/night/h69 (pure 69341af) -> build nt_h69 after build_f2 -> after chain_f2: hN (h69) and
+  fN (f2) shots downtown_street_night + _day (1080p Q3, both in one game) = "nothing else changed" check. Timing: no
+  per-frame cost (rust baked at load; roomNight one expression; HLSL roomLight not called by frame shaders yet);
+  --roomlighttest ~29 s at startup on llvmpipe, only with the flag. Environment::gameDay appended at the struct's
+  end; saves write env fields one by one (no layout risk).
+- 19:25 spR3 (rust3): pale patches gone but DARK spots on the sky-reflecting part (-13% vs spN, p10 -24%; visible as
+  dots in rows at 960 px). Measured (/tmp/night/ana/rustratio.py, rust px vs spN): spA +17/+31/+1% (left/middle/glare),
+  spR +5/+18/+6%, spR3 -13/0/+5%. Linear fit -> roughness 0.35..0.45 with NO specular occlusion ~ +-4%: rust4 =
+  /tmp/night/shd_rust4/matgen.hlsl (rust2 + rough 0.35..0.45; blob 3055679455), now in tree f. NOTE GEN 16 is also
+  MAT_CORRUGATED (shed/warehouse walls, metal 0.7). Killed chain_sp4 (+ its rrA run), chain_f2 (+ f2 build), chain_h.
+  New: chain_sp5.sh (spR4 on nt_r1 + shd_rust4); chain_f3.sh (RESUMABLE): build f3 (tree f) -> build h69 (pure main)
+  -> shc tree f (shc_f3.txt) -> after sp5: selftest f3 -> hX (h69) and fX (f3) five views each (pickets morning, flats
+  noon, key solano dusk, downtown night, downtown day).
+- 19:35 spR4 (rust4): left -9%, middle +7%, glare +6% (vs spR +5/+18/+6, spR3 -13/0/+5): the most neutral -> CHOSEN.
+  Crops /tmp/night/_v/sp_crops4.png. f3 built rc 0 (rust4) but roomlight_test.cpp then fixed (comment said 559,440 ->
+  5,594,400; bool counting made explicit for MSVC): blob 11371e79. chain_f3 killed (its h69 build.sh pid 10209 left
+  compiling as an orphan). chain_f4.sh (RESUMABLE): wait 10209 -> accept/rebuild h69 -> build f4 -> shc_f4.txt ->
+  selftest f4 -> rltf4 (--roomlighttest, rltestf4_result.txt) -> hX (h69) / fX (f4) five views each.
+- 20:07 f4 checks DONE: h69 built (orphan, rc 0), f4 rc 0, shc tree f 152/0, selftest f4 0/0 (9 pipelines, debug
+  layer 0), --roomlighttest on f4 PASS (5,594,400 / 1,751,066 lit / 0 diffs; vectors 0/0). Running: hX (h69) then fX
+  (f4), five views each. Then proofs (proof_rust_variants.png done), guarded copy, sign-off.
+- 21:45 SIGNED OFF roof rust (rust4) + room light, base 69341af (HEAD now f26714d: none of my files changed; guard OK).
+  Copied into the shared tree: matgen.hlsl 30556794 (base 3240e731), roomlight.hlsli 84ab4186 (new), roomlighttest.hlsl
+  ae632c1a (new), render/roomlight_test.cpp 11371e79 (new), renderer.cpp 0e583c94 (base 3a970bc0), renderer.h b60e55d8
+  (base e20cb7ed), app.cpp d9a5cd2c (base 1a889880, one line), PROGRESS.md efea0df3 (base 0cc998fb; bullet reworded after the first copy). Proofs:
+  /tmp/night/proof_rust_variants.png, proof_rust_AB.png, proof_rust_crops.png, proof_nochange.png. A/B hX (nt_h69,
+  pure main) vs fX (nt_f4): pickets bit-identical to spA/spR4; dusk/downtown identical outside metal roofs; flats noon
+  also has edge-only TAA/run-timing differences. Nothing of mine running. Next: wait for the lead.
+
+## 10-26 22:00 Lead: roof rust + room light ACCEPTED for snapshot 66 (all 8 blobs OK on HEAD aff17b9; rough .35-.45 OK).
+## NEW ITEM: facade per-window path (7.8 next step) on TODAY'S PROCEDURAL facades (answered yes, going ahead).
+- Plan: FrameCB gRoomClock (uint4: x game day, y roomMinute(timeOfDay), z roomNight(), w 0) in common.hlsli +
+  FrameConstants.roomClock[4] in renderer.h + fill in Renderer::updateFrameConstants (after computeSunAndSky).
+  facade.hlsli: include roomlight.hlsli; schedule class per window room from roomHash + use (homes: living/kitchen/
+  bed/bath mix, stairwell bays of non-house residential RS_ALWAYS; office/industrial: RS_OFFICE + some RS_ALWAYS
+  corridors, office ground-floor lobbies RS_ALWAYS; storefront RS_SHOP, cafes RS_RESTAURANT); level/254 scales the
+  lamp; keep litFrac as the building's vacancy gate (calibrate vs today's lit fractions at 20:00).
+- Caveat sent to the lead: city table turns all home rooms off by ~00:25 weekdays (new game = Tuesday) -> 01:00 house
+  streets dark (today ~1 in 8 home windows lit). Night-owl interval would be the city's change (roomlight.h slot 3 of
+  RS_HOME_LIVING free; their vectors + my HLSL table regen).
+- Sign-off: A/B night shots residential street + downtown at 20:00 and 01:00, gbuffer timing, selftests; base on
+  snapshot 66 when it lands (my 8 files are uncommitted in the shared tree until then).
+- LATER small follow-up: roof rust world-space variation (the 2.5 m tile repeat; needs a world-space term in the
+  gbuffer/material shader, outside matgen).
+- 22:20 Lead: GO; ALSO add night owls to world/roomlight.h RS_HOME_LIVING slot 3 MYSELF (lead tells the city): ~1 home in
+  8-10 by seed, lit until 1:30-3:00, a little more Fri/Sat nights if the table allows; regenerate vectors + property
+  checks in tests/world/worldmodel_test.cpp + HLSL table, one sign-off; include the 01:00 residential A/B.
+- 22:40 Tree /tmp/night/w (aff17b9 + my 8 snapshot-66 files + new work): roomlight.h owls {1320,1575,14,200,45,0}
+  weekdays / chance 21 weekends (weekend = Sat+Sun nights; Friday keeps the weekday share: table limit); generator
+  /tmp/night/rlwork2/gen.cpp (table.txt, vectors.txt); 104 old vectors unchanged + 4 owl vectors (108; also in
+  render/roomlight_test.cpp); owl property checks; worldmodel_test built with CI flags: all passed. gRoomClock
+  (common.hlsli FrameCB, renderer.h FrameConstants.roomClock, renderer.cpp fill + include roomlight.h). facade.hlsli:
+  facadeRoomSchedule + shopIsCafe + roomLight-driven lit/levelK/afterHours; roomlight.hlsli class constants. shc w
+  152/0. PROGRESS bullet added. Tree /tmp/night/h66 = aff17b9 + 8 files (before). chain_w.sh (RESUMABLE): build h66,
+  w1 -> selftest w1 -> rlw1 (--roomlighttest + 640x360 sanity: downtown aerial/pickets at 20:00, 01:00) ->
+  hW/wW 1080p Q3 six views (residential=pickets framing, downtown aerial, calle luna; 20:00 + 01:00) -> tours tH/tW
+  (stops 4-8) for gbuffer timing (perstop3.py).
+- 22:45 h66 + w1 built rc 0; selftest w1 0/0; --roomlighttest w1 PASS (108 vectors 0/0) but the sweep seeds (stride
+  211) hold NO night owls -> stride 205 (1 weekday + 3 weekend owl seeds) in roomlighttest.hlsl + roomlight_test.cpp;
+  chain_w2.sh: after the A/B shots, build w2 + shc + selftest + --roomlighttest (final exe). Sanity frames
+  /tmp/night/_v/sanity_w1.png OK (downtown lit at 20:00, sprinkle at 01:00; pickets house lit at 20:00, dark at 01:00).
+  chain_w3.sh: hR/wR Key Solano aerial at 20:00 + 01:00 (owls over many homes), after the A/B shots.
+- 23:00 Lead: PR #59 merged, main = 41c3ca0 (snapshot 66: my 8 files as signed; app.cpp 7c65554a = my line + menu
+  camera hunks). BASE the per-window work on 41c3ca0. Tree /tmp/night/w66 = archive 41c3ca0 + my 10 changed files
+  (worldmodel_test.cpp re-applied on 41c3ca0's bde87a90; others' bases identical); worldmodel_test (CI flags) passed.
+  chain_w2 killed; chain_w2b.sh: build w2 from w66 -> shc -> selftest -> --roomlighttest (+2 spot frames rlw2).
+  A/B stays h66 vs w1 (same base, aff17b9); the final exe is w2 (41c3ca0-based).
+- 23:55 A/B hW (h66) vs wW (w1): hW OOM-killed after 4 shots (calle luna lost) -> chain_w4.sh reruns them (hW2 ->
+  copied to hW_calle_luna_*). Results so far: residential (pickets) 20:00 similar count (3 -> 4 lit), 01:00 house +
+  neighbours dark after (no owl among these 4 homes; before had 2 lit); downtown 20:00 brighter, 01:00 brighter
+  (bright px 1.23% -> 2.10%: office corridors 7% always-lit, scattered). Waiting: hR/wR key solano aerial (owls over
+  many homes), hW2, w2 checks (chain_w2b), tours tH/tW (chain_w) for gbuffer timing.
+- 10-27 00:50 CONTAINER RESTART 00:45 (all processes died). Done before it: build w2 rc 0 (tree w66 = 41c3ca0 +
+  changes), shc w2 152/0, selftest w2 0/0, tour tH (h66) done. Missing -> chain_w5.sh (RESUMABLE): rlw2
+  (--roomlighttest on w2 + 2 spot frames), hW2 Calle Luna on h66 (-> hW_calle_luna_*), hR/wR Key Solano aerial
+  20:00/01:00 (shoot1 per view), tour tW (w1).
+- 01:00 Lead: main = 0e4bf3a (snapshot 67: traffic AI, stairs, worldv; none of my files; my 10 bases unchanged).
+  SIGN-OFF BASE 0e4bf3a. Tree /tmp/night/w67 = archive 0e4bf3a + w66's 10 files; chain_w6.sh: build w3 -> selftest
+  w3 -> --roomlighttest w3 (rltestw3_result.txt). Guard at copy: the 10 files == 0e4bf3a's (same as 41c3ca0's).
+- 02:55 rlw2 PASS (sweep 5,594,400, 1,739,772 lit with the owl seeds; 108 vectors 0/0). hW2 (-> hW_calle_luna_*),
+  hR/wR done. Calle Luna view = a wall close-up (one window beside the camera off after; exposure shifts) -> left
+  out of the proofs. Proofs: /tmp/night/proof_rooms_residential.png (pickets + Key Solano aerial, 20:00/01:00),
+  proof_rooms_downtown.png, proof_rooms_crops.png (1:1 at 01:00). Waiting: tour tW (w1) vs tH, chain_w6 (w3 on
+  0e4bf3a: build, selftest, --roomlighttest). Then guard (10 files == 0e4bf3a) + copy + sign-off.
+- 03:10 SIGNED OFF facade per-window lighting + night owls on main 0e4bf3a (guard OK, copied): roomlight.h 1e7704ab,
+  worldmodel_test.cpp 0d1aa92f, roomlight.hlsli b92c5f90, roomlighttest.hlsl 5c5713fd, roomlight_test.cpp fcfbe25d,
+  common.hlsli 9bc43be8, renderer.h ee302b14, renderer.cpp 5ff3ef6b, facade.hlsli 43f8e7bb, PROGRESS.md 1511ddc9.
+  nt_w3 (0e4bf3a-based): rc 0, selftest 0/0, --roomlighttest PASS (1,739,772 lit, 108 vectors). Tour gbuffer +2% raw
+  / +9% norm (noisy). Nothing of mine running. Next: wait for the lead. Later follow-up: roof rust world-space term.
+- 03:30 Lead: per-window ACCEPTED for snapshot 68 (worldmodel_test.cpp merged with the city's written-bulb tests by
+  the lead -> rebase my test edits on 68's file at sign-off). Decisions: downtown 01:00 OK, shop display 45% OK,
+  parking garages: lead asks city for a use flag later. NEXT: (1) Friday day type, (2) roof rust world-space
+  variation, sign both off, then PARK with notes current (usage tight).
+- 03:40 (1) Tree /tmp/night/x = 0e4bf3a + w67's 10 files + FOUR day types (RD_WEEKDAY Mon-Thu, RD_FRIDAY, RD_SATURDAY,
+  RD_SUNDAY: a day's row covers its daytime and its night, so Fri = workday + late night, Sun = day off + early night;
+  3 types can't express it). roomlight.h table [13][4][3], roomDayType(); HLSL kRoomIntervals[156] + roomDayType;
+  vectors: 108 unchanged + 6 day-type vectors (114) in test + roomlight_test.cpp; checks owlFri==owlSat,
+  owlSun==owlWeek, bars at 3:30 (Thu 280, Fri 1605, Sat 1605, Sun 280 of 2000). worldmodel_test passed. PROGRESS
+  bullet updated. Generator /tmp/night/rlwork2/gen2.cpp. chain_x.sh: shc x, build x1, selftest, --roomlighttest.
+- 04:00 (2) rust world-space variation: tree /tmp/night/y = tree x + materials.cpp MF_WEATHERED (1024) on
+  MAT_ROOF_METAL + MAT_CORRUGATED + world.hlsl psWorld: base samples unchanged, for MF_WEATHERED two SampleGrad samples
+  at offsets (x: whole ribs 1/16, y: any) picked by floor(valueNoise(world xy*0.07 + z*0.05)*5), blended
+  (IQ technique 3) + PROGRESS bullet reflowed. shc y 152/0. chain_y.sh: build y1 (after x1) -> selftest y1 ->
+  --roomlighttest y1 -> rust A/B rvA (x1) / rvB (y1): pickets morning, flats noon, key solano dusk.
+- 04:15 Lead: main = 886dc47 (snapshot 68: my per-window files as signed; worldmodel_test.cpp = d630dd0c, merged with
+  the city's written-bulb tests). Snapshot 69 adds the city's dead-end test: worldmodel_test.cpp a2bfda68 -> base my
+  test edits on it (or tell the lead). Tree /tmp/night/z = 886dc47 + y's roomlight.h, roomlight.hlsli,
+  roomlight_test.cpp, materials.cpp, world.hlsl, PROGRESS.md + worldmodel_test.cpp = a2bfda68 + my day-type edits
+  (c695bcb4). Test vs 886dc47 code: only the city's dead-end test fails (line ~1227; it fails identically without my
+  edits: needs 69's code) -> say so in the sign-off. chain_z.sh: build z1 (886dc47-based) -> shc -> selftest ->
+  --roomlighttest. chain_y continues (y1 + rust A/B rvA x1 / rvB y1).
+- 04:35 x1/y1 built rc 0 (y1 0 warnings), selftests 0/0, --roomlighttest x1 + y1 PASS (1,743,432 lit; 114 vectors).
+  Rust variation A/B rvA (x1) / rvB (y1): lattice of dots broken on the Key Solano roof and the dusk hip roof, ribs
+  aligned, no seams. Proofs /tmp/night/proof_rust_variation.png (1:1 crops) + proof_rust_variation_dusk.png.
+  worldmodel_test edits on 68's d630dd0c -> 3f65b9c0 (all passed vs 886dc47 + my files; goes in the shared tree) and
+  on 69's a2bfda68 -> c695bcb4 (blob written, for the lead's merge; only the city's dead-end test fails vs 68 code).
+  Waiting chain_z (z1 = 886dc47 + my 6 files: build, shc, selftest, --roomlighttest) -> guard + copy 7 files ->
+  sign-off -> PARK.
+- 04:45 SIGNED OFF day types + rust world-space variation on main 886dc47 (guard OK, copied): roomlight.h ab24a1e4,
+  roomlight.hlsli c1596d00, roomlight_test.cpp 021f974f, materials.cpp 01c3165a, world.hlsl a69791a8, PROGRESS.md
+  5fce52b7, worldmodel_test.cpp 3f65b9c0 (on 68's d630dd0c; the same edits on 69's a2bfda68 = blob c695bcb4 for the
+  lead's merge). nt_z1 (886dc47-based): rc 0, 0 warnings, shc 152/0, selftest 0/0, --roomlighttest PASS (114 vectors).
+
+## PARKED 10-27 04:45 UTC (lead: usage tight; park after these sign-offs). Nothing of mine running.
+Open items for later (lead will resume me):
+- Parking garages should stay lit all night: needs a facade "use" flag from the city's procedural generator; then
+  map it to RS_ALWAYS in facade.hlsli facadeRoomSchedule (lead will ask the city and come back).
+- 7.8 remaining (hand-built world): room id MRT (R16_UINT), room table + tile room filter (4 ids/tile), froxel fog
+  light filtering by room, photometric table by catalog code=, emissive fixtures, window records path (worldc u32 per
+  window replacing facadeRoomSchedule), lampSched gather (city's blocksbin lampSched -> switch lamps by roomLight),
+  --gfxstats counters.
+- Private trees of the last work: /tmp/night/z (final, 886dc47-based), /tmp/night/x, /tmp/night/y; generators
+  /tmp/night/rlwork2/gen.cpp, gen2.cpp (table + vectors from roomlight.h).

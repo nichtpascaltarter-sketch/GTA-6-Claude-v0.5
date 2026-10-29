@@ -1,6 +1,0 @@
-f174c1a0dd847d44451effe953b9fac82ce60451 src/game/traffic_core.cpp
-3babf61f42d0fb67fcef110a321d00439856e1a1 src/game/ai_core.h
-fce68d5f7a5ab5a9c75e80e00077f9fbb242d553 src/game/ai.cpp
-d30f47a5509cb48bb93d20dc6eba88eaf7e71f60 src/anim/animator.cpp
-bd6d781f29b5bc5692bb04bea5aa798e98098cd9 src/anim/character.h
-c8bb416c078741d3883430a9308a07b3db32b197 src/game/app.cpp

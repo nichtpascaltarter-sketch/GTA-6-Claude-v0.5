@@ -1,0 +1,30 @@
+city snapshot-safe: Settings > Run Benchmark in hand mode (low priority). In the hand-built world it now says it can't run there and goes back to the game, instead of starting a new game in a city that isn't loaded. On 0e4bf3a, where app.cpp is still 66's.
+
+FILES (blob written)
+- src/game/app.cpp 1327627f on 7c65554a (66's, unchanged in 0e4bf3a).
+
+WHAT (player-facing)
+- The benchmark's five scenes are places in the procedural city. It starts with startNewGame and ends with openMainMenu, and the hand-built world has neither the places nor a main menu: Quit to menu in hand mode already goes to the free camera instead.
+- Now, in hand mode, choosing Run Benchmark in the pause menu's Settings:
+  - closes the menu and resumes the game;
+  - shows "BENCHMARK: Its scenes are in the procedural city: start the game without --world=hand to run it".
+- In the procedural world nothing changes.
+
+HOW
+- app.cpp handleMenuAction, MA_RUN_BENCHMARK: when World::isHandWorld(), it does what MA_RESUME does (menu off, unpause, mouse captured unless autotest, audio resumed), then game.notify(...), then breaks.
+- It is one block at the top of the case, behind isHandWorld(), and the procedural path below it is untouched.
+
+CHECKS
+- CI's tests: app.cpp is in none of them (the UI test builds menus.cpp only).
+- MinGW, main.cpp with the exe build's own -Wall flags, with the file: 0 errors, 0 warnings, on 66's tree and on 0e4bf3a's.
+- The exe with a scratch test hook, never shipped: /tmp/city/nt_bench66t.exe, 16,095,232 bytes, 0 warnings.
+  - The hook is a --benchguardtest switch. Five seconds into a hand-mode game it opens the pause menu on Settings, pauses, sends MA_RUN_BENCHMARK through handleMenuAction, and logs the state before and after.
+  - Apart from the hook, the exe is 66 plus this file.
+- The hook test in hand mode (--world=hand --play --autoplay drive, 20 s): rc 0, 0 fatal errors.
+  - Before the action: hand 1, state 2 (playing), autoplay 'drive', menu 4 (Settings), paused 1.
+  - After it: hand 1, state 2, autoplay still 'drive', benchFromMenu 0, menu 0 (none), paused 0.
+  - No benchmark scene started, and the drive ran on to its end (at t=11.5 s: (1819.7,243.6), 90 peds, 62 vehicles).
+  - Log: /tmp/city/benchsmoke_log.txt; shots /tmp/city/benchsmoke/auto_drive_0{0,1}.bmp.
+- Drives with the same exe, hook off, 0 fatal errors each:
+  - Procedural (24 s): rc 0, the network at 6,260 nodes and 9,547 edges, a clean shutdown. At t=17.5 s: (1806.7,268.0), 87 peds, 66 vehicles, the same as the other procedural drives today.
+  - Hand mode (30 s, which is 66's hand mode): rc 0. At t=21.5 s: (1911.9,282.8), 77 peds, 53 vehicles.

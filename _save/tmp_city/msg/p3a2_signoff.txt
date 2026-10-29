@@ -1,0 +1,117 @@
+city snapshot-safe: 3a-2 of the Calle Luna pilot, the first hand-built buildings, drawn. Hand mode now draws each placed building from its plan. Block b005 (Calle Luna's south side, by the boatyard) has 12 of them from 3 plans: six shops with a flat over each, two walk-ups and four bungalows. At night each window is lit by the room behind it, through the facade shader and the flag bit you chose. On 062c9cd plus my 3a-1 blobs.
+
+FILES (45, 27 new)
+Code and docs (18):
+- docs/HANDBUILT_WORLD.md 74d3b9f2 on 4accbd11 (3a-1's)
+- docs/NTW_FORMAT.md ab738c87 on 3925502a (3a-1's)
+- src/render/roomlight_test.cpp fe465aed on 021f974f (062c9cd's)
+- src/shaders/facade.hlsli 26cf584f on 222a6b70 (062c9cd's)
+- src/shaders/roomlight.hlsli 0cd1c553 on c1596d00 (062c9cd's)
+- src/shaders/roomlighttest.hlsl 48c8bfdd on 5c5713fd (062c9cd's)
+- src/world/buildings.h b9cbd0ed on 1638b728 (062c9cd's; the flag list only)
+- src/world/buildingsbin.cpp 79914663 on 7fba769e (3a-1's)
+- src/world/buildingsbin.h 60e8dc50 on fc310882 (3a-1's)
+- src/world/cellgen.cpp c1d6ec20 on 21d940ac (062c9cd's)
+- src/world/handshells.cpp 68486e8b (new)
+- src/world/handworld.cpp 3d5a0738 on f2dd318d (3a-1's)
+- src/world/handworld.h 41f14329 on 378776bb (062c9cd's)
+- src/world/roomlight.h f5d4effd on ab24a1e4 (062c9cd's)
+- src/world/worldmodel.cpp 01cf899b on 65e68458 (3a-1's)
+- src/world/worldmodel.h 90750ad5 on a6fc25c6 (3a-1's)
+- src/world/worldmodel_buildings.cpp b7816e5f on cdbe7dca (3a-1's)
+- tests/world/worldmodel_test.cpp 0377f6fb on d5350589 (3a-1's)
+Content (27; all new except the catalog):
+- world/lib/catalog.ntw f3947c29 on 9834796b (062c9cd's)
+- world/lib/facades/bungalow_lap.ntw 903d5285, calle_stucco.ntw d7b2fbf0, calle_walkup.ntw d2da6b6b
+- world/lib/palettes/bungalow.ntw 4ab4fc68, calle.ntw 4c25358b
+- world/lib/plans/house/bungalow_c.ntw 9e149d52
+- world/lib/plans/midrise/walkup_b.ntw 5c6c3a29
+- world/lib/plans/shop/flats_a.ntw 072f1349
+- world/lib/layouts/house/bungalow_c_f0.ntw bad932a0
+- world/lib/layouts/midrise/walkup_b_f0.ntw bcacc188, walkup_b_f1.ntw 1feb57a7, walkup_b_f2.ntw 2e04cbb6
+- world/lib/layouts/shop/flats_a_f0.ntw 5ad5b754, flats_a_f1.ntw 2778edf9
+- world/districts/cl/blocks/b005/: h09.ntw af3a3119, h10.ntw a4fd96f3, h11.ntw cda68f15, h12.ntw 01460120, m01.ntw 290624b4, m06.ntw 0e80b9a8, s02.ntw 96546e7e, s03.ntw 55cb065f, s04.ntw dc92b770, s05.ntw bfbf5b4b, s07.ntw 6ef70d5b, s08.ntw ea13b65d
+
+WHAT (player-facing)
+- In hand mode, b005 now has its buildings, the first hand-built ones in the game:
+  - along Calle Luna, a street front of 8 in pairs on party walls, with narrow gaps at the lot lines: six two-storey shops with a flat over each, in pastels (coral, mint, lemon, rose), and a three-storey walk-up on the west corner and another in the middle;
+  - behind them, four bungalows at the back of the lots, facing their yards.
+- Up close:
+  - stucco walls on a painted plinth or a stone base; bands at the floor lines, cornices along the parapets, and quoins on the walk-ups;
+  - real window and door openings with reveals and sills;
+  - the windows by their kind: double-hung under Bahama shutters on the shops' flats, casements on the walk-ups, double-hung between fixed shutters on the bungalows;
+  - storefronts with glass shop doors, and panel doors;
+  - flat roofs behind parapets, and the bungalows' shingled gables with their eaves.
+- At night each window shows the room behind it, lit by that room's own schedule:
+  - the shops are lit until 21:00, with the facade shader's shop interiors behind the glass (clothing shops among them in the shots);
+  - the flats' living rooms light up in the evening and the bedrooms later;
+  - the walk-ups' stairs and corridors stay lit;
+  - the windows of one room light up together.
+- The buildings are solid: each adds one collision box to its cell, as the generated buildings do, and the doors stay shut until the interiors come.
+
+HOW
+- The hand-built window flag, option (b):
+  - FacadeGPU::flags bit 6 (64) is kFacadeHandWindow, and the room's class rides in bits 8-11. Bits 0-5 were taken (5 is your parking flag); bit 7 and bits 12-31 stay free.
+  - The bits are documented in facade.hlsli, in buildings.h's flag list, and in roomlight.h with its HLSL copy.
+  - facade.hlsli takes one line: the class is handWindowSchedule(flags) when the bit is set, else facadeRoomSchedule as before.
+  - Pinned:
+    - roomlighttest.hlsl's vectors now take facade flags. 2 hand-window vectors (a living room's, and a storefront shop's) carry their class in the flags with the schedule set to never, and both the GPU and the C++ must light them as their class.
+    - worldmodel_test checks the flags' round trip for every class, and that they stay clear of bits 0-5 and bit 7.
+  - Procedural facades are unchanged byte for byte. The census's hash of the facade table is 062c9cd's, and none of its 42,219 entries uses a flag past bit 5.
+- src/world/handshells.cpp (new):
+  - It is included by cellgen.cpp (as buildings.cpp includes blockstyle.cpp), so the tools that build cells get it.
+  - At load, prepareHandBuildings:
+    - finds each placement's cell (by its footprint's centre);
+    - appends to the building set a facade entry for each window and glass door, which the renderer uploads unchanged. An entry is one window cell the size of the glass, flagged a hand-built window with the room's class; a storefront entry for a shop's windows and doors; the office flag for an office.
+    - gives a room's windows one seed, so they show the same room and light together.
+    - b005 has 96 entries.
+  - The near LOD:
+    - the walls around their openings; the base; a foundation down to 0.3 m under the lowest ground;
+    - the reveals, and the glass 10 cm in;
+    - the door leaves (panel, glass, roll-up, garage), sills, glazing bars by the window's kind, and fixed or Bahama shutters;
+    - the look's trims;
+    - the roof: flat behind a parapet with its coping, or gable, hip or shed with overhang, fascia and soffit.
+  - The far LOD keeps the walls, the glass flush with them, the doors and the roofs.
+  - Triangles: about 830 per building near (9,992 for b005's 12) and 150 far (1,820), inside 7.2's near-shell budget of 1,000-1,500 a house.
+  - Collision: one box per building, the walls' bounds from the foundation to the roof, at both LODs.
+- Compile changes, on 3a-1's format:
+  - each opening carries its room (its index among the layout's rooms);
+  - a door carries the schedule of the room it opens into from outside (leads=out:<room>), so a glass shop door is lit like its shop;
+  - the "library" section is version 2 (an opening is 28 bytes).
+- Content:
+  - lib.plan.shop.flats_a, 8 x 14 m:
+    - the ground floor holds the shop and its store, and the flat's own street door with a straight stair of 20 risers at 0.18 m;
+    - the flat over it has a living room, kitchen, hall, bedroom and bathroom.
+  - lib.plan.midrise.walkup_b, 10 x 14 m:
+    - three floors, each with a flat;
+    - the hall from the street door, and a dogleg stair of 17 risers at 0.18 m per floor, with 0.28 m treads.
+  - lib.plan.house.bungalow_c: the fixture bungalow's floor without its furnishing, under a 24-degree gable.
+  - Three facade styles, ten palettes, and the kit's materials in the catalog: code= names a MaterialId, plus a door piece.
+  - Every file is worldv-clean and canonical: rooms closed and reachable, doors 0.9 m or wider, risers 0.18 m.
+  - Placements:
+    - the front row faces Calle Luna (yaw 180), about 0.2 m behind the sidewalk, in pairs on shared party walls, its floors about 2 cm above the sidewalk;
+    - the bungalows stand 1.4 m off the lots' backs, their floors 15 cm above their yards' highest ground.
+- Tests: testBuildings now covers the doors' schedules and rooms and library v2; testRoomLight covers the hand-window flags.
+
+CHECKS (062c9cd + 3a-1 + 3a-2)
+- CI's tests with CI's flags (-Wall -Wextra -Werror, UBSan): worldmodel_test, world_format_test and worldv_test all pass.
+- worldc (-Wall -Wextra, 0 warnings): "library 3 looks, 3 shells; 12 buildings". world.bin is 72's plus "library" (1,008 bytes) and "buildings" (424 bytes); the manifest lists the new files, and every other section is byte-identical.
+- worldv: 0 errors and the 4 agreed warnings (57 files, 2,335 records, 557 ids, 2,124 references).
+- MinGW -Wall on main.cpp with the exe build's flags: 0 errors, 0 warnings. MinGW -Wall -Wextra on worldc.cpp: 0 errors, 0 warnings. traffic_sim, worldcheck and terrainbake, which build cells with cellgen.cpp, still compile.
+- The procedural world is untouched: meshcensus, now with the facade table, gives 0 of 13,914 lines different from 062c9cd's.
+- The exe built with 0 warnings: /tmp/city/nt_b7.exe, 16,339,456 bytes.
+- --gfxselftest: 0 failures.
+- --roomlighttest: PASS. 5,594,400 sweep inputs and 116 vectors (2 of them hand-built windows), 0 different.
+- Shots, hand mode, 1280x720:
+  - the sheet: /tmp/city/b005smoke/b005_sheet.png (street, corner and yard views, each by day and at night);
+  - the pairs: pair_street.png, pair_corner.png and pair_yard.png in the same folder.
+- Drives with the exe, 0 fatal each:
+  - hand, 30 s: logs "12 buildings (3 shells, 96 window facades)". The lane graph is unchanged: 192 lanes, 397 connectors, 330 walk nodes and 443 walk links. It ends at t=21.5 at 1911.9,282.8 with 82 peds and 56 vehicles, exactly slice 3's drive.
+  - procedural, 24 s: 6268 nodes, 9547 edges. It ends at t=17.5 at 1789.9,130.6 with 93 peds and 63 vehicles, exactly 72's drive.
+
+FOR LATER (none of it needed for 73)
+- The AI's building queries (BuildingSet::pointInBuilding, buildingsNear) don't see the hand-built buildings. Hand mode's people walk the sidewalks' graph, so nothing walks into them yet. The AI agent should hear of it before the interiors (3b) open the doors.
+- The plans have no side windows, so their buildings can stand against each other. On a corner that leaves a blank side wall; a corner variant with side windows is a later plan.
+- A pitched roof needs a rectangular footprint, and any other shape gets a flat one for now.
+- The shells are built per cell rather than cached per plan. That is fine for 12; the cache comes with 3c's 439.
+- 3b (the interiors, with the interiors agent) and 3c (the other items and placements) wait for your go.

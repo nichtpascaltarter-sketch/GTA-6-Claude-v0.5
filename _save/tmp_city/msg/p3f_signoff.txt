@@ -1,0 +1,93 @@
+city snapshot-safe: 3f R3b, the Calle Siete face of b017-b019: 22 buildings, which completes Calle Siete's north side. Avenida Flores is untouched. Base b67d2d1, snapshot 90 (tree ef0d3d99). 23 files: 1 changed on its blobs, 22 new.
+
+FILES (path, base, new)
+docs/HANDBUILT_WORLD.md 01e94b6e d14512e3
+world/districts/cl/blocks/b017/h13.ntw new 8961723b
+world/districts/cl/blocks/b017/h14.ntw new 631d47d8
+world/districts/cl/blocks/b017/h15.ntw new d544f764
+world/districts/cl/blocks/b017/h16.ntw new 81ea8193
+world/districts/cl/blocks/b017/h17.ntw new 4644382b
+world/districts/cl/blocks/b017/h18.ntw new 04bea8da
+world/districts/cl/blocks/b017/h19.ntw new a9defe3f
+world/districts/cl/blocks/b017/s12.ntw new 9edaacd4
+world/districts/cl/blocks/b017/s20.ntw new 3e8a49b2
+world/districts/cl/blocks/b018/h11.ntw new 6abf7c1b
+world/districts/cl/blocks/b018/h12.ntw new 9887777c
+world/districts/cl/blocks/b018/h13.ntw new a0085000
+world/districts/cl/blocks/b018/h14.ntw new d0185d3e
+world/districts/cl/blocks/b018/h15.ntw new f185861c
+world/districts/cl/blocks/b018/s10.ntw new 67c21b26
+world/districts/cl/blocks/b018/s16.ntw new a1fb0417
+world/districts/cl/blocks/b019/h09.ntw new c5a3d784
+world/districts/cl/blocks/b019/h10.ntw new a43b3f73
+world/districts/cl/blocks/b019/h11.ntw new 773a22f5
+world/districts/cl/blocks/b019/h12.ntw new 266bfd65
+world/districts/cl/blocks/b019/s08.ntw new 06e07f62
+world/districts/cl/blocks/b019/s13.ntw new 08498175
+(also in /tmp/city/p3f_blobs.txt)
+
+WHAT (player-facing, hand world only)
+- Calle Siete now has houses on both sides from Bougainvillea to Este. Each face has a corner shop at each end, with houses between.
+  - b017 (Coral to Palma): s12 and s20 corners. Between them, gables h13 (sand) and h14 (rose), twin h15 (coral), the bungalow h16, twins h17 (lemon) and h18 (mint), and gable h19 (sand).
+  - b018 (Palma to Sol): s10 corner, and s16 set in 0.6 m from Sol. Between them, gable h11 (mint), twins h12 (rose) and h13 (coral), and gables h14 (sky) and h15 (sand).
+  - b019 (Sol to Este): s08 and s13 corners. Between them, gable h09 (lemon), twin h10 (sky), the bungalow h11 and gable h12 (coral).
+- Seven houses have 1.0 m yards: b017's h13, h14, h18 and h19 (lots of 10.4-10.9 m), b018's h15 (10.7 m), and b019's h10 and h12 (10.8 and 11.2 m).
+- No three alike side by side anywhere; the longest is two.
+- All 22 can be walked into from the sidewalk and through every room. There are no new plans.
+- Their Avenida Flores face (27 buildings) waits for R3d. Procedural mode is unchanged.
+
+HOW
+- As R3a: street.py as merged (seed 6, the twin rule, --ground from worldc --dump-ground) wrote b017-b019 into a scratch copy. I took only its 22 files facing Calle Siete, with no hand edits, and left the Avenida face's ids free.
+- The dry runs from R3a's re-run are unchanged. The block files are unchanged.
+- Docs: HANDBUILT 5.3 (b017-b019's Calle Siete face) and 7.4 (the 249 hold 2,640 rooms in 1,371k).
+
+CHECKS
+- worldc: 0 warnings, 249 buildings from 304 files. world.bin changes only in buildings and manifest.
+- worldv: 0 errors and the 4 warnings as before (304 files, 2,952 records).
+- CI's three tests pass with CI's flags. MinGW -Wall on main.cpp: 0 errors, 0 warnings.
+- The procedural census: 0 of 13,914 lines differ from 90's.
+- The exe nt_b24: 16,489,472 B, with 0 warnings.
+- The 22 new files are canonical (ntwfmt --check).
+- Harness: 2,640 of 2,640 rooms in the 249 interiors, 0 tour legs off the walk.
+- Shots, 0 fatal, in /tmp/city/b24smoke/shots/ (PNG):
+  - r3b_b017_calle_siete_1530: Calle Siete by day from Palma. b017's face is on the right (the corner s20, gable h19, the twins), and row 2's b011 is across from it.
+  - r3b_b019_calle_siete_2030: b019's face by night from Este, windows lit.
+  - r3b_aerial_1530: from over Avenida Flores looking south, at b017 and b018. Calle Siete's north side is built from end to end.
+- Hand drive, 0 fatal: every checkpoint is the same as on 90 (t=2.6, 11.5 and 21.5; the same peds and vehicles).
+- Procedural drive, 0 fatal: the same as on 90.
+
+MEASURED AGAINST THE PREDICTIONS (near build ms in the drive / the shots game; each game from load under 2.0)
+
+| Cell | Placements | Triangles: predicted / measured | Near build: predicted / measured | Upload: predicted / measured |
+|---|---|---|---|---|
+| 46,41 | 68 to 81, as predicted | about 75.0k / 75,018 | 11-13 ms / 10.0 and 11.5 ms | about 79k alone / 78,685 alone, 10.2 ms |
+| 47,41 | 39 to 48, as predicted | 46,575 / 46,594 | not predicted / 6.0 and 6.2 ms | about 50.4k / 50,434, with 45,40 (11.5k) in the same frame, 6.2 ms |
+
+- 45,41 (68, unchanged): 9.4 and 11.1 ms near; upload 74,875 alone, 7.4 ms.
+- The busiest near build is 10.0-11.5 ms, under the ~15 ms line, so (a) stays parked.
+- The uploads ran slow in this chain. 90's own 46,41 (66,225 triangles) took 11.3 ms here, against 7.5 ms in R3a's chain. So 46,41's 10.2 ms is about the run-to-run spread, not a step. If you want a lone big cell under ~8 ms every time, the parked (i) is the lever.
+- Frame log, 90 against R3b, back to back:
+  - Median: 6.7 / 6.8 ms.
+  - Frames over 33 ms: 253 / 252.
+  - Streaming max: 11.67 / 10.24 ms. 90's is the request-loop spike (empty far cells at t=0.43); R3b's is 46,41's upload alone at t=0.10.
+  - The first frames' p99 and max are the load: p99 1,790 / 1,788 ms, max 15,289 / 15,653 ms.
+- Interiors: up to 243 resident in R3b's drive (1,343,866 triangles), 221 on 90.
+- Memory: the hand drive used 2,999-3,048 MB on 90 and 2,999-3,061 MB on R3b.
+
+THE WAVY LINE (the side check)
+- What draws it: the renderer's asphalt detail, your first guess.
+  - src/shaders/world.hlsl, roadWear(), draws "longitudinal cracks meandering near the lane joints" on every road segment.
+  - Along some stretches it seals them: "a wide glossy tar band over the crack instead of an open line". That band is about 9 cm wide (lineMask half-width 0.045 m), its albedo is halved and its roughness drops to 0.35.
+  - At a low angle it catches the sky by day and the lamps by night. In the night shot above it reads dark.
+- Why there:
+  - The joints come every 3.5 m of the road's u, ±0.3 m of meander. roadmesh.cpp counts u in metres from the road surface's left edge.
+  - Calle Siete's edges run east, so their left is the north kerb. The carriageway is 11.4 m: two 3.3 m lanes and two 2.4 m parking strips.
+  - So the third joint, at u=10.5 m, lies 0.9 m inside the south kerb, in the parking strip.
+- By design, in both modes and on every street. It's not a seam between mesh pieces and not a decal. It's the renderer's shader, not hand-road code I own, so I'm proposing no slice.
+- A possible tweak for the shader's owner, if they want the cracks on the lane lines:
+  - The shader only knows the carriageway's width, which travels in the colour alpha.
+  - Placing the joints from the centre in 3.3 m steps would put them on the lane lines of these streets, at 2.4 m from each kerb and at the centre line, and on Avenida Flores' 2/2 lanes too.
+
+Next, on your go: R3c, the Avenida Flores face of b014-b016 (31 buildings, Calle Luna's plans per the user's answer).
+- It lands in cell row 42, which has no hand buildings yet. Busiest is 45,42: 20 placements, about 25k triangles, a near build of about 4 ms and an upload under 30k.
+- Then R3d, b017-b019's Avenida face (27). Busiest is 46,42: 21 placements, about 20k triangles.

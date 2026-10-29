@@ -1,6 +1,0 @@
-start 17:01:32
-build st22o -> loco_st22o.exe 17:01:32
-build st22o -> loco_st22o.exe rc 0 17:21:51
-src/game/../game/gameworld.cpp:273: note: adding '-flarge-source-files' will allow for more column-tracking support, at the expense of compilation time and memory
--rwxr-xr-x 1 root root 15882752 Oct 20 17:21 bin/loco_st22o.exe
-bldx done 17:21:51

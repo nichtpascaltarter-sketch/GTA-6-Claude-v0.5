@@ -1,4 +1,0 @@
-g27_0p5m   n=7  last3: gbuffer  762.61 shadows  414.01 total  2430.00 | min3: gbuffer  752.01 shadows  397.30 total  2397.02 ms
-g27_1m     n=5  last3: gbuffer  704.72 shadows  426.23 total  2323.35 | min3: gbuffer  694.96 shadows  406.35 total  2276.75 ms
-g6_0p5m    n=5  last3: gbuffer  725.81 shadows  407.55 total  2352.40 | min3: gbuffer  704.78 shadows  388.36 total  2337.44 ms
-g6_1m      n=5  last3: gbuffer  616.77 shadows  350.46 total  2007.78 | min3: gbuffer  523.98 shadows  332.09 total  1795.92 ms

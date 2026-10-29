@@ -1,0 +1,33 @@
+- CI's three tests pass with CI's flags (-Wall -Wextra -Werror, UBSan).
+  - New worldmodel_test case: a plan lists its floors f0 (z 0), f2 (z 6), f1 (z 3) on one layout with `stair from=0:hall to=+1:hall`.
+  - It compiles to the stairs f0 -> f1 and f1 -> f2 (record indices 0 -> 2 and 2 -> 1), each 17 treads of 0.18. The top floor's is left out.
+  - With the old record-order resolution, the test fails.
+- worldc: 0 warnings, 2,757,904 B, 17 sections. world.bin is byte-identical to 75's (cmp), so 3b-3 changes no data.
+- worldv: 0 errors, 4 warnings, as on 76.
+- MinGW -Wall: main.cpp 0 errors, 0 warnings; worldc.cpp (with -Wextra) 0 and 0. Host syntax of traffic_sim, worldcheck and terrainbake: 0 errors.
+- Procedural census (meshcensus4): 0 of 13,914 C/Q/F lines differ from 75.
+  - T: mesh effcf391d20a40f2, queries 0afe996d34cd88a8.
+  - F: 42,219 facades, hash 021a82448ad773d0.
+- exe: 16,435,200 B, 0 warning or error lines. The game logs "Hand interiors: 12 (120 rooms, 90 doors with leaves, 10 stairs); the ground under their floors stays 0.17 m below them or more (cl.b005.h11)", and builds each interior on a worker in 0.3-8 ms.
+- The --handtour in the game: one of each plan in each orientation, walking with no teleports.
+  - Tour 1: h09 6 of 6 rooms in 38.7 s, m01 21 of 21 in 132.9 s, s02 9 of 9 in 58.9 s. 0 waypoints out of reach, 0 fatal.
+  - Tour 2: h10 6 of 6, m06 21 of 21, s03 9 of 9, in the same times. 0 waypoints out of reach, 0 fatal.
+  - That covers each plan's mirrored and unmirrored placement. The other 6 buildings share those plans; the harness walks them.
+  - The tour's camera is pitched 17 degrees down, so it rides near the ceilings. Its shots show it stays inside on every floor and stair.
+- Shots (hand mode, 1280x720, 15:30 and 21:00; 0 fatal):
+  - the shop: its glass pair door, windows, troffer and floor tiles;
+  - the shop's stair up to the flat's door;
+  - the flat over the shop;
+  - the walk-up's landing on its terrazzo dogleg;
+  - a walk-up flat by day, and the same at night with its pendants lit;
+  - a bungalow room;
+  - the street by day, looking as before, and at night, with the shops' glass doors showing their lit rooms.
+- Harness (scratch, not committed): all 12 buildings, with the game's own collision built and the walk's rules (the ground probe with a 0.55 m step; a box blocks when its top is 0.35 m or more over the feet).
+  - 120 of 120 rooms are reached walking from outside each main entrance.
+  - Every leg of every building's tour stays within the walk.
+  - 62,244 triangles, 1,000 colliders (+179 in the shells), 96 leaves, 152 lights.
+- Hand drive: 0 fatal, and identical to 75's.
+  - Lane graph 192 / 397 / 330 / 443, dead ends 0 moved and 0 obstructed.
+  - Its three autoplay lines: t=2.5 90 peds and 61 vehicles at 1762.5,218.1; t=11.5 90 and 62 at 1819.7,243.6; t=21.5 82 and 56 at 1911.9,282.8.
+  - The log's only other changes are the "Hand interiors" line and the 12 interiors built as they stream in.
+- Procedural drive: 0 fatal, 6268 nodes and 9547 edges. t=17.5 at 1789.9,130.6 with 93 peds, 63 vehicles and wanted 2, as on 75.
